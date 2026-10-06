@@ -62,7 +62,8 @@ describe('docs/advisory.md', () => {
     const flat = doc.replace(/\s+/g, ' ');
     const heading = '### Extractor 0.1.2 on constructed reports (recall)';
     expect(doc).toContain(`\n${heading}\n`);
-    const section = doc.slice(doc.indexOf(heading)).replace(/\s+/g, ' ');
+    const next = '### Extractor 0.1.3 on constructed reports (recall)';
+    const section = doc.slice(doc.indexOf(heading), doc.indexOf(next)).replace(/\s+/g, ' ');
     expect(section).toContain(
       'those figures come from real pull requests and are carried in records, while these come from constructed reports and are never carried in a record',
     );
@@ -79,13 +80,58 @@ describe('docs/advisory.md', () => {
     expect(section).toContain('[0.782, 0.881]');
     expect(section).toContain('1 `differs` note across the 50 clean reports');
     expect(section).toContain('The preregistered bar was not met.');
-    // For 0.1.3 the doc says only that no figures are published, never that none was measured.
-    expect(section).toContain('No figures are published for extractor 0.1.3, which runs now.');
     expect(flat).not.toMatch(/0\.1\.3[^.]*(?:has not been measured|is unmeasured)/);
     // 0.1.2 is no longer "nothing published", and still has no real-PR precision.
     expect(flat).not.toContain('Nothing is published for either');
     expect(flat).toContain(
       'but no precision measured on real pull requests, so its records still carry `null` for both figures',
+    );
+  });
+
+  it('states extractor 0.1.3 on constructed reports apart, as never carried in a record', () => {
+    const flat = doc.replace(/\s+/g, ' ');
+    const heading = '### Extractor 0.1.3 on constructed reports (recall)';
+    expect(doc).toContain(`\n${heading}\n`);
+    // The 0.1.3 subsection follows the 0.1.2 one and ends at the next section.
+    expect(doc.indexOf(heading)).toBeGreaterThan(
+      doc.indexOf('### Extractor 0.1.2 on constructed reports (recall)'),
+    );
+    const start = doc.indexOf(heading);
+    const raw = doc.slice(start, doc.indexOf('\n## ', start));
+    const section = raw.replace(/\s+/g, ' ');
+    expect(section).toContain(`digest \`${EXTRACTOR.digest.sha256}\`, and comparison 0.2.0`);
+    expect(section).toContain('on the same 430 constructed reports as the 0.1.2 subsection');
+    expect(section).toContain(
+      'these figures are never carried in a record: 0.1.3 has no precision measured on real pull requests, so a record extractor 0.1.3 writes carries `null` for both figures',
+    );
+    const rows = [...raw.matchAll(/^\| (.+) \| (.+) \| (.+) \|$/gm)].map((m) => m.slice(1));
+    expect(rows).toEqual([
+      ['Planted claim type', 'Flagged', 'n'],
+      ['---', '---', '---'],
+      ['wrong file (`scope_mismatch`)', '98', '98'],
+      ['wrong count (`wrong_count`)', '82', '82'],
+      ['fabricated reference (`fabricated_reference`)', '100', '100'],
+      ['premature completion (`premature`)', '0', '100'],
+      ['**all planted**', '**280**', '**380**: recall 0.737, Wilson 95% [0.690, 0.779]'],
+    ]);
+    expect(section).toContain(
+      '280 of the 315 `differs` notes fell on the planted claim: 0.889, Wilson 95% [0.849, 0.919]',
+    );
+    expect(section).toContain('1 `differs` note across the 50 clean reports.');
+    expect(section).toContain('The preregistered bar was met.');
+    expect(section).toContain('Only the 100 `fabricated_reference` plants, from 0 flagged to 100.');
+    expect(section).toContain('Every `premature` plant opens `Status as of <time>: …`');
+    expect(section).toContain('**Method.** The same as for 0.1.2');
+    // The sentences that said 0.1.3 had no published figures are replaced, and none claims a
+    // record carries a 0.1.3 figure.
+    expect(flat).not.toContain('No figures are published for extractor 0.1.3');
+    expect(flat).not.toContain('0.1.3, which runs now, has no published figures');
+    expect(flat).not.toContain('No figures are published for it');
+    expect(flat).toContain(
+      '0.1.2, and 0.1.3, which runs now, each have figures from constructed reports only, which no record carries, and no precision measured on real pull requests',
+    );
+    expect(flat).toContain(
+      'carries `null` for both figures, shown as "unmeasured", until a precision measured on real pull requests is published for 0.1.3',
     );
   });
 

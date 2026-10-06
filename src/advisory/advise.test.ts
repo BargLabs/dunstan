@@ -564,16 +564,22 @@ function build(report: string, advisory: boolean, e: Evidence = evidence): Dunst
   });
 }
 
-// Extractor 0.1.2's figures on constructed reports (docs/advisory.md, "Extractor 0.1.2 on
-// constructed reports") are published in the doc only. No record carries them: they are not in the
-// tables precisionFor and differsAccuracyFor read, and no source file that writes a record holds them.
+// Extractors 0.1.2's and 0.1.3's figures on constructed reports (docs/advisory.md, "Extractor 0.1.2
+// on constructed reports" and "Extractor 0.1.3 on constructed reports") are published in the doc
+// only. No record carries them: they are not in the tables precisionFor and differsAccuracyFor read,
+// and no source file that writes a record holds them.
 describe('the constructed-report figures are never carried in a record', () => {
-  // The shares and counts the doc publishes: recall 180 of 380, differs precision 180 of 215, and
-  // their Wilson bounds.
-  const CONSTRUCTED = [/\b0\.47[34]/, /\b0\.83[67]/, /\b0\.42[34]/, /\b0\.52[34]/, /\b0\.78[12]/];
+  // The shares and counts the doc publishes, and their Wilson bounds: for 0.1.2, recall 180 of 380
+  // and differs precision 180 of 215; for 0.1.3, recall 280 of 380 and differs precision 280 of 315.
+  const CONSTRUCTED = [
+    ...[/\b0\.47[34]/, /\b0\.83[67]/, /\b0\.42[34]/, /\b0\.52[34]/, /\b0\.78[12]/],
+    ...[/\b0\.73[67]/, /\b0\.690/, /\b0\.77[89]/, /\b0\.88[89]/, /\b0\.849/, /\b0\.919/],
+  ];
   const COUNTS: [number, number][] = [
     [180, 380],
     [180, 215],
+    [280, 380],
+    [280, 315],
     [1, 50],
   ];
   const ROOT = fileURLToPath(new URL('../../', import.meta.url));
@@ -588,11 +594,13 @@ describe('the constructed-report figures are never carried in a record', () => {
     return out;
   }
 
-  it('the tables a record reads hold no figure for extractor 0.1.2, nor the constructed counts', () => {
+  it('the tables a record reads hold no figure for extractor 0.1.2 or 0.1.3, nor the constructed counts', () => {
     expect(PUBLISHED_PRECISION.map((p) => p.extractorDigest)).toEqual([EXTRACTOR_0_1_1]);
     expect(PUBLISHED_DIFFERS_ACCURACY.map((p) => p.extractorDigest)).toEqual([EXTRACTOR_0_1_1]);
-    expect(precisionFor(EXTRACTOR_0_1_2)).toBeNull();
-    expect(differsAccuracyFor(EXTRACTOR_0_1_2, COMPARISON_VERSION)).toBeNull();
+    for (const digest of [EXTRACTOR_0_1_2, EXTRACTOR_0_1_3]) {
+      expect(precisionFor(digest)).toBeNull();
+      expect(differsAccuracyFor(digest, COMPARISON_VERSION)).toBeNull();
+    }
     const figures = [
       ...PUBLISHED_PRECISION.map((p) => p.precision),
       ...PUBLISHED_DIFFERS_ACCURACY.flatMap((p) => [p.differsAccuracy, p.differsAccuracy.baseRate]),

@@ -94,9 +94,9 @@ from the record:
 > Advisories never affect the verdict. Extraction precision 0.80 (24/30, 95% CI 0.63–0.90). A possible disagreement is unverified: on 170 of our own agent PRs, 0 of 20 marked a false claim, and of the 44 advisories the record could check there, none was a false claim (0 of 44).
 
 For a record that carries no figure (a later extractor or comparison, not yet measured), the line
-states none. Since extractor 0.1.2 that includes every record the running checker writes: 0.1.2
-has figures from constructed reports only, which no record carries, and 0.1.3, which runs now, has
-no published figures ("Measured figures", below).
+states none. Since extractor 0.1.2 that includes every record the running checker writes: 0.1.2,
+and 0.1.3, which runs now, each have figures from constructed reports only, which no record
+carries, and no precision measured on real pull requests ("Measured figures", below).
 
 > Advisories never affect the verdict. A possible disagreement is unverified: on the reports measured so far it usually reflected a misread of the report, not a false claim.
 
@@ -500,10 +500,11 @@ The table below is for extractor 0.1.1. Extractor 0.1.2, digest
 has figures measured on constructed reports ("Extractor 0.1.2 on constructed reports (recall)",
 below), but no precision measured on real pull requests, so its records still carry `null` for both
 figures. The extractor that runs since 2026-10-06 is 0.1.3, digest
-`2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37`. No figures are published for
-it, on real pull requests or on constructed reports, so a record the running checker writes carries
-`null` for both figures, shown as "unmeasured", until figures for 0.1.3 are published. No figure
-here is rebound to it.
+`2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37`. It too has figures measured on
+constructed reports ("Extractor 0.1.3 on constructed reports (recall)", below), and no precision
+measured on real pull requests. So a record the running checker writes carries `null` for both
+figures, shown as "unmeasured", until a precision measured on real pull requests is published for
+0.1.3. No figure here is rebound to it.
 
 | Figure | Value | n | Wilson 95% interval | Bound to |
 | --- | --- | --- | --- | --- |
@@ -569,7 +570,38 @@ report's record. A planted claim counts as flagged when a `differs` note falls o
 were predicted before the run, from the sentence shapes the grammar does not read: a colon ends the
 clause before "merged", and a `#N` makes the clause about another pull request.
 
-No figures are published for extractor 0.1.3, which runs now.
+### Extractor 0.1.3 on constructed reports (recall)
+
+Measured for extractor 0.1.3, digest
+`2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37`, and comparison 0.2.0, on the
+same 430 constructed reports as the 0.1.2 subsection above, not on real pull requests. As with
+0.1.2, these figures are never carried in a record: 0.1.3 has no precision measured on real pull
+requests, so a record extractor 0.1.3 writes carries `null` for both figures.
+
+| Planted claim type | Flagged | n |
+| --- | --- | --- |
+| wrong file (`scope_mismatch`) | 98 | 98 |
+| wrong count (`wrong_count`) | 82 | 82 |
+| fabricated reference (`fabricated_reference`) | 100 | 100 |
+| premature completion (`premature`) | 0 | 100 |
+| **all planted** | **280** | **380**: recall 0.737, Wilson 95% [0.690, 0.779] |
+
+- **Precision on the same run.** 280 of the 315 `differs` notes fell on the planted claim: 0.889,
+  Wilson 95% [0.849, 0.919].
+- **Clean reports.** 1 `differs` note across the 50 clean reports.
+- **The preregistered bar was met.** The bar was a recall of at least 0.50; the recall measured is
+  0.737.
+- **What changed from 0.1.2.** Only the 100 `fabricated_reference` plants, from 0 flagged to 100.
+  Nothing else moved.
+- **The misses are one sentence shape.** Every `premature` plant opens `Status as of <time>: …`,
+  the template published in the Jev preregistration
+  (https://github.com/BargLabs/jev-judge-calibration/blob/main/jev-judge-calibration-preregistration-2026-09-19.md).
+  0.1.3's merge-time rule does not read that shape. The zero was predicted before the run, as both
+  of 0.1.2's zeros were.
+
+**Method.** The same as for 0.1.2: each report was read by the extractor, and its advisories were
+compared with the report's record. A planted claim counts as flagged when a `differs` note falls on
+it.
 
 ## What it does not do
 
