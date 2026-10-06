@@ -628,6 +628,11 @@ Retrieval MUST be deterministic and MUST NOT use a model or the network. Given a
 A claim of a known kind (D.6) has candidates only of that kind's item type. A **candidate** is
 `{type, id, score, matchedField}`. Every candidate at or above the floor is recorded.
 
+A measurement MAY run Arm A **filled to k**: the same order, with the places left below k filled by
+the next items below the floor (`docs/retrieval.md`). Filled candidates are not recorded in this
+draft: `check_succeeded` and `test_passed` read every candidate, so a filled one could decide them
+(D.10, question 4).
+
 An embedding arm (Arm B) MAY be added behind a provider seam, if a measurement shows it closes a
 gap. Its scores, like BM25's, MUST NOT be read by a check.
 
@@ -748,7 +753,7 @@ A checker writes the section only when asked to (`dunstan check --advisory`; the
 
 ```json
 "advisory": {
-  "extractor": { "version": "0.1.2", "digest": { "sha256": "<64 hex>" } },
+  "extractor": { "version": "0.1.3", "digest": { "sha256": "<64 hex>" } },
   "comparison": { "version": "0.2.0" },
   "precision": null,
   "differsAccuracy": null,
@@ -807,7 +812,7 @@ in full. In outline:
 3. **Clauses** end at `.` `;` `:` `!` `?` closing a word, at a blank line, a list item, a heading
    or a table cell, and before a subordinating word. A clause that ends in `?` asks and is dropped.
    A clause opened by a conditional (`if`, `once`, `unless`, `until`, `when`, `whenever`) asserts
-   nothing.
+   nothing. A file list or a merge time after a colon can bind to the clause before it (item 7).
 4. **Binding.** A token is a claim only when it is bound to an asserting verb. That verb is the
    nearest verb to the token's left in the same clause, within the window (8 words), with no
    negation, modal or infinitive between them. For subjects (`CI`, `checks`, `tests`), the verb is
@@ -829,8 +834,20 @@ in full. In outline:
    - a negation covers every path of the list after it, and a negated subject ("none of the
      tests") is not read;
    - a clause that narrates a failure staged on purpose ("fail as expected", "red without the
-     guard", "mutation") proposes no false test or check result and no count. It proposes a true
-     one only for a pass predicate followed by a final state ("green with it").
+     guard", "mutation", "by design") proposes no false test or check result and no count. It
+     proposes a true one only for a pass predicate followed by a final state ("green with it").
+     When a staging phrase ("deliberately", "on purpose", "mutation", "by design") stands before
+     its fail predicate, it proposes no file claim either;
+   - since 0.1.3, an issue that is not the verb's subject leaves a closing keyword or a commit in
+     the clause this pull request's ("Builds on #10 and closes #12"), and a closing keyword inside
+     a bracket binds only when it opens the bracket ("(closes #12)", but not "(the earlier fix
+     closed #12)").
+7. **Across a colon** (0.1.3). A clause that ends in a colon and holds an asserting file verb with
+   a files noun ("Files changed:", "Changed the following files:") heads a list: the paths of the
+   clause after it on the same line, or of the list items on the lines after it, bind to its verb
+   when that clause has no verb, negation or modal of its own. A timestamp after "Merged at:" or
+   "Merge time:" on the same line binds as `merged_at`, and so does a timestamp alone before a
+   colon followed by "merged".
 
 #### D.11.4 Kinds and comparisons
 
@@ -926,6 +943,20 @@ notes with its base rate.
    unchanged.
 
 ### D.12 Changes to this draft
+
+- **2026-10-06.** Advisory extractor 0.1.3: a file list after a colon binds to the verb of the
+  clause before it ("Files changed: …"), and a timestamp after "Merged at:" or "Merge time:" binds
+  as `merged_at` (D.11.3, item 7); a pull request's own closing keyword or commit is proposed
+  beside another issue that is not the verb's subject, and `implemented` binds a SHA after
+  "commit"; a closing keyword in a parenthetical history is not read; "by design" narrates a
+  failure, and an edit staged to cause one proposes no file claim (D.11.3, item 6;
+  `docs/advisory.md`, "Lists, merge times and own references"). Context in a neighbouring clause
+  and a bare repository name are left as they were. The grammar digest changes from
+  `dfd6563a934667a80448e49b7133ade6d2473e5e13cd9d05fd52c761a1a1780b` to
+  `2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37`. The published figures stay
+  bound to 0.1.1, so a record written by 0.1.3 carries `null` for `precision` and
+  `differsAccuracy`, shown as "unmeasured", until 0.1.3 is measured. The comparison (0.2.0), the
+  schemas, the record members and sections 1 to 17 are unchanged.
 
 - **2026-10-05.** Advisory extractor 0.1.2: a claim is proposed only as this pull request's
   (D.11.3, item 6). The extractor's rules and their tests are in `src/advisory/`. The grammar

@@ -10,8 +10,9 @@ import { verifyRecord } from '../record/verify.js';
 import { DRAFT_PREDICATE_TYPE, DRAFT_SPEC_VERSION, PREDICATE_TYPE } from '../spec/constants.js';
 import { extractHandbackBlock } from '../spec/extract.js';
 import { validateDraftRecord, validateRecord } from '../spec/schema.js';
+import { recordItems } from './items.js';
 import { checkReaderClaim, type ReaderClaimInput, readReaderClaim } from './reader-claims.js';
-import { BM25_FLOOR } from './retrieve.js';
+import { BM25_FLOOR, FILL_TO_K, retrieve } from './retrieve.js';
 
 // Offline verification must recompute reader verdicts from the recorded candidates and never run a
 // fresh retrieval. While `forbid` is set, retrieval throws.
@@ -154,6 +155,51 @@ describe('reader claims', () => {
       verdict: 'unverifiable',
       reason: 'candidate_not_in_evidence',
     });
+  });
+});
+
+describe('candidates filled to k', () => {
+  // Filling adds candidates below the floor. For the identity kinds a pass still needs the declared
+  // item itself among the candidates, and an item the claim names is an identifier match, never a
+  // fill. A record never carries filled candidates: readReaderClaim does not fill.
+  const cases: [string, string, string][] = [
+    ['Rewrote the onboarding wizard', 'file_changed', 'app/wizard.rb'],
+    ['Landed the onboarding wizard commit', 'commit_present', 'abc1234'],
+    ['Closes the onboarding wizard issue', 'reference_in_timeline', '#99'],
+  ];
+  for (const [text, kind, declaredValue] of cases) {
+    it(`never makes ${kind} pass without the declared item`, () => {
+      const type =
+        kind === 'file_changed' ? 'file' : kind === 'commit_present' ? 'commit' : 'timeline_event';
+      const candidates = retrieve({ text, declaredValue }, recordItems(storage), {
+        repository: REPO,
+        types: [type],
+        limit: 5,
+        fill: FILL_TO_K,
+      });
+      expect(candidates.length).toBeGreaterThan(0);
+      expect(candidates.every((c) => c.score !== null && c.score < BM25_FLOOR)).toBe(true);
+      expect(checkReaderClaim({ kind, declaredValue, candidates }, storage, REPO)).toEqual({
+        observed: null,
+        verdict: 'unverifiable',
+        reason: 'declared_item_not_among_candidates',
+      });
+      const recorded = read(claim(text, kind, declaredValue));
+      expect(recorded.candidates).toEqual([]);
+      expect(recorded).toMatchObject({
+        verdict: 'unverifiable',
+        reason: 'no_matching_record_item',
+      });
+    });
+  }
+
+  it('finds a declared item the record holds as an identifier match, not a fill', () => {
+    const candidates = retrieve(
+      { text: 'Rewrote the onboarding wizard', declaredValue: 'src/storage/retry.ts' },
+      recordItems(storage),
+      { repository: REPO, types: ['file'], limit: 5, fill: FILL_TO_K },
+    );
+    expect(candidates[0]).toMatchObject({ id: 'src/storage/retry.ts', score: null });
   });
 });
 

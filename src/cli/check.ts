@@ -4,23 +4,12 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import { parseArgs } from 'node:util';
-import { type PullRequestRead, readEvidence } from '../evidence/github.js';
 import { GitHubClient } from '../evidence/http.js';
 import { type Report, reportFromComment, reportFromPullRequestBody } from '../evidence/report.js';
 import { checkPullRequest, githubReaders } from '../pipeline/check-pull-request.js';
-import {
-  type Assurance,
-  buildRecord,
-  type DunstanRecord,
-  type RecordBlock,
-  recordBlock,
-  rerunCommands,
-  serializeRecord,
-} from '../record/build.js';
+import { type Assurance, serializeRecord } from '../record/build.js';
 import { checkerIdentity } from '../record/checker.js';
 import { keyFingerprint, signRecordFile } from '../record/sign.js';
-import { extractHandbackBlock } from '../spec/extract.js';
-import { sha256Hex } from '../spec/jcs.js';
 import { type CliIo, exitFor, renderRecord, UsageError } from './output.js';
 
 export const REPOSITORY = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})\/[A-Za-z0-9._-]{1,100}$/;
@@ -45,52 +34,10 @@ export async function signingAssurance(
   return { status: 'signed', issuer: signer, keyFingerprint: keyFingerprint(signKey) };
 }
 
-// Kept for the MCP tool (src/mcp/server.ts), which builds a record from a report or a block it was
-// given directly. dunstan check and the Action use src/pipeline/check-pull-request.ts.
+// The record file a check writes when none is named: `dunstan check` without --out, and the MCP
+// tool's rerun commands when it writes no file.
 export function defaultRecordFile(repository: string, number: number): string {
   return `dunstan-${repository.replace('/', '-')}-${number}.json`;
-}
-
-// The block a report text carries. WHATWG UTF-8 decode: a leading BOM is removed and an invalid
-// sequence becomes U+FFFD.
-export function blockOfReport(report: Report): RecordBlock {
-  return recordBlock(extractHandbackBlock(new TextDecoder('utf-8').decode(report.bytes)));
-}
-
-export interface RecordInput {
-  pullRequest: PullRequestRead;
-  report: Report;
-  block: RecordBlock;
-  // The URL of the running checker artifact, whose digest the record carries.
-  artifact: string;
-  // The record's file name, for its rerun commands.
-  recordFile: string;
-  excludedCheckRunIds?: readonly number[];
-  assurance?: Assurance;
-}
-
-// Everything after the report is resolved: read the evidence the block needs and build the record.
-// `dunstan check` and the MCP tool both end here, so on the same evidence they give the same record.
-export async function recordReport(
-  client: GitHubClient,
-  input: RecordInput,
-): Promise<DunstanRecord> {
-  const { block, pullRequest } = input;
-  const evidence = await readEvidence(client, {
-    repository: pullRequest.repository,
-    pullRequest,
-    block: block.status === 'found' ? block.value : null,
-    excludedCheckRunIds: input.excludedCheckRunIds ?? [],
-  });
-  return buildRecord({
-    checker: checkerIdentity(input.artifact),
-    report: { sha256: sha256Hex(input.report.bytes), source: input.report.source },
-    block,
-    repository: pullRequest.repository,
-    evidence,
-    rerun: rerunCommands(basename(input.recordFile)),
-    ...(input.assurance === undefined ? {} : { assurance: input.assurance }),
-  });
 }
 
 export async function check(args: string[], io: CliIo): Promise<number> {
@@ -136,7 +83,7 @@ export async function check(args: string[], io: CliIo): Promise<number> {
   });
   if (!client.hasToken) io.err('dunstan: GITHUB_TOKEN is not set; reading anonymously\n');
 
-  const out = values.out ?? `dunstan-${values.repo.replace('/', '-')}-${number}.json`;
+  const out = values.out ?? defaultRecordFile(values.repo, number);
   const file = values['report-file'];
   const author = values['report-comment-author'];
   const record = await checkPullRequest({

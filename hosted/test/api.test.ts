@@ -29,7 +29,7 @@ import {
   webhook,
 } from './support.js';
 
-const CHECKER = { name: 'dunstan', version: '0.1.1', digest: { sha256: 'a'.repeat(64) } };
+const CHECKER = { name: 'dunstan', version: '0.1.2', digest: { sha256: 'a'.repeat(64) } };
 const NOW = new Date('2026-10-04T12:00:00Z');
 
 let emulated: Emulated;

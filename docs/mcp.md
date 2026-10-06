@@ -108,7 +108,7 @@ text item: exactly what `dunstan suggest` prints for that report (`src/mcp/serve
 this). Each claim the prose extractor proposes that the block does not declare is listed with its
 sentence, its kind, its value and the block field that would declare it, with two choices: declare
 it in the block, or reword it if it is not a claim about this pull request. The output is labelled
-with the extractor's version and its measured precision ("unmeasured" for 0.1.2).
+with the extractor's version and its measured precision ("unmeasured" for 0.1.3).
 
 It is a sibling of the check, not an option on it, because it needs no pull request: it reads
 nothing, writes nothing, and makes no call (`readOnlyHint: true`, `openWorldHint: false`). It is

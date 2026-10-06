@@ -8,11 +8,13 @@ import { retrievalEval } from './retrieval.js';
 export const EVAL_USAGE = `dunstan-eval ${CHECKER_VERSION}
 
 usage:
-  dunstan-eval retrieval --corpus <dir> --out <file> [--provider <module>]
+  dunstan-eval retrieval --corpus <dir> --out <file> [--fill-to-k] [--provider <module>]
 
 retrieval  recall at k = 5 per arm on a corpus of claims with known matching record items
-           (docs/retrieval.md). Arm A always; with --provider, a module whose default export is
-           an EmbeddingProvider, also Arm B and A+B.
+           (docs/retrieval.md), each arm's no-candidate rate, and the recall of a uniformly
+           random ranking. Arm A always; with --fill-to-k, also Arm A filled to k below the
+           floor (A-fill); with --provider, a module whose default export is an
+           EmbeddingProvider, also Arm B and A+B.
 `;
 
 export async function evalMain(argv: string[], io: Pick<CliIo, 'out' | 'err'>): Promise<number> {

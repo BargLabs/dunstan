@@ -89,7 +89,8 @@ from the record:
 
 For a record that carries no figure (a later extractor or comparison, not yet measured), the line
 states none. Since extractor 0.1.2 that includes every record the running checker writes: 0.1.2
-has no figure published ("Measured figures", below).
+has figures from constructed reports only, which no record carries, and 0.1.3, which runs now, is
+unmeasured ("Measured figures", below).
 
 > Advisories never affect the verdict. A possible disagreement is unverified: on the reports measured so far it usually reflected a misread of the report, not a false claim.
 
@@ -173,7 +174,7 @@ The gate is unchanged. A handback block's `filesChanged` holds repository-relati
 files as people do. The extraction grammar is unchanged too: extractor 0.1.1, digest
 `ab77ce47d1c5172ec912d1221e03bbe5b312ff5dc2acb594c4b8549fe602c360`. A measurement of the
 extractor's precision on that digest still holds. (Extractor 0.1.2 later changed the grammar:
-"Attribution", below.)
+"Attribution", below; and 0.1.3 after it: "Lists, merge times and own references", below.)
 
 The rules are pinned by synthetic tests in `advise.test.ts`, "a file named by a bare name or a
 partial path (comparison 0.2.0)".
@@ -202,7 +203,9 @@ request URL, and only when a closing keyword binds it.
 A clause ends at `.` `;` `:` `!` or `?` closing a word, at a blank line, at a list item, heading or
 table cell, and before a word in `subordinators`. A soft-wrapped line continues its clause. A colon
 directly after a closing keyword does not end a clause ("Fixes: #12"). A clause ending in `?` is a
-question and is dropped. A clause opened by a word in `conditionals` asserts nothing.
+question and is dropped. A clause opened by a word in `conditionals` asserts nothing. Since 0.1.3 a
+colon still ends its clause, but a file list or a merge time after it can bind to the clause before
+it ("Lists, merge times and own references", below).
 
 ### Tokens
 
@@ -242,9 +245,10 @@ A token is a claim only when it is bound to an asserting verb in its own clause.
    - an issue binds to a verb in `verbs.close`, with only issues and `closeFillers` between them;
    - a SHA is `head_commit` after `head` with only `headFillers` between them. Otherwise it is
      `commit` when its verb is in `verbs.commit`, or when the word before it is in `commitNouns`
-     and its verb is a file, close or merged verb. A SHA with a word in `shaBlockers` in the two
-     words before it never binds;
-   - a timestamp binds to `merged`, with only `mergedFillers` between them;
+     and its verb is a file, close, merged or `verbs.implement` verb ("implemented in commit
+     3f2a1b9"). A SHA with a word in `shaBlockers` in the two words before it never binds;
+   - a timestamp binds to `merged`, with only `mergedFillers` between them, or across a colon
+     (0.1.3, below);
    - a subject from `checksNouns` or `testsNouns` (or "check runs") binds to the first word of
      `verbs.pass` or `verbs.fail` after it, with only `predicateFillers` between them. A negation
      between them flips the value. A count directly before the subject gives `check_count` or
@@ -290,7 +294,8 @@ Left out, on purpose:
 - **`following`.** "Changed the following files `a.ts` and `b.ts`" names the verb's own objects, so
   `following` is not a barrier, and that sentence binds both paths. Written with a colon, "Changed
   the following files: `a.ts`, `b.ts`", the colon ends the clause, as every colon has since 0.1.0,
-  and the list after it has no verb, so it binds nothing. That is a clause rule, unchanged here.
+  and through 0.1.2 the list after it had no verb, so it bound nothing. Since 0.1.3 the list binds
+  to the verb of the clause before the colon ("Lists, merge times and own references", below).
 - **Exemplifiers** (`such as`, `e.g`, `for example`). What they introduce is usually an instance of
   the verb's object: "updated the workflows, such as `ci.yml`" says `ci.yml` was updated.
 - **Issues, SHAs, timestamps and subjects.** The barriers apply to paths only, the class the defect
@@ -307,12 +312,99 @@ phrase) and "still a claim beside the aside and analogue rules (extractor 0.1.1)
 
 The extractor's rules and their tests are in `src/advisory/`.
 
+### Lists, merge times and own references (extractor 0.1.3)
+
+Through 0.1.2 every colon ended a clause, so a list after "Files changed:" had no verb, and a
+timestamp after "Merged at:" had no `merged`. An issue that no closing keyword bound made its whole
+clause another pull request's, so a pull request's own "closes #12" beside "builds on #10" was
+dropped. A closing keyword in a parenthetical history, and a failure narrated "by design", were
+read as claims. 0.1.3 adds one rule for each. Rules 1 to 3 add claims; rules 4 and 5 only drop
+them.
+
+1. **A file list after a colon.** A clause that ends in a colon, is about this pull request (not
+   conditional, transient or elsewhere, and not staged as in rule 5), and holds a word in
+   `fileListNouns` with an asserting file verb heads a file list. The verb either follows the noun,
+   with only `passiveFillers` and `fileListSubjects` between ("Files changed:", "the files I
+   changed:"), or is the noun's nearest verb to its left within the window, with no negation, modal
+   or word in `nounPrepositions` between ("Changed the following files:", but not "added tests for
+   the following files:"). A verb directly after "be" is a plan ("Files to be changed:"). The list
+   is the clause after the colon on the same line, or, on the lines after, the list items that
+   follow it (nested under it when the head is a list item itself), until a clause that is not in
+   such an item. A path in the list binds to the head's verb when the list clause holds no verb,
+   negation or modal of its own, and the scan left from the path meets no bracket opened since the
+   head and no analogue, within the window. The claim's clause runs from the head to the list
+   clause. "Files: `a.ts`" has no verb and still binds nothing.
+2. **A merge time across a colon.** A timestamp that opens the clause after a colon on the same
+   line binds as `merged_at` when the clause before the colon is about this pull request and ends
+   in an asserting `merged` (not after "be") with only `mergedFillers` after it ("Merged at:", "It
+   was merged into main at:"), or is exactly a phrase in `mergeTimeLabels` ("Merge time:"). So does
+   a timestamp alone before a colon, after only `mergedFillers`, when the clause after it on the
+   same line opens with an asserting `merged` after only `mergedFillers`, and neither clause is
+   about another pull request: "At 2026-10-01T12:00:00Z: merged into main." "Merged at
+   2026-10-01T12:00:00Z: …" bound in 0.1.2 already. A timestamp on the next line is not read: a
+   line that opens with one is a log line.
+3. **This pull request's own closing keyword or commit.** Through 0.1.2 an issue that no closing
+   keyword binds made the whole clause another pull request's. Since 0.1.3, a `reference_closes` or
+   a `commit` in such a clause is still proposed unless the other reference is the verb's subject:
+   it stands directly before the verb, with only `subjectFillers` between and no comma ("PR #10
+   closes #12", "#10 was pushed as …"), or it is a possessive anywhere before the verb ("#10's fix
+   landed in commit …"). So "Builds on #10 and closes #12" and "As discussed in #10, this closes
+   #12" close #12, and "Cherry-picked the fix from #10 in commit …" is a commit. Every other claim
+   in such a clause is still dropped, and the rule does not apply to a clause about another
+   repository or one carried over by a pronoun ("PR #10 was merged. It closes #12.").
+   `verbs.implement` (`implemented`, `implements`) binds a SHA after a word in `commitNouns`, as
+   file verbs do: "Implemented in commit 3f2a1b9c". It binds no path.
+4. **A closing keyword in a parenthetical history.** A closing keyword inside a bracket still open
+   at it binds only when nothing but `asideCloseFillers` stands between the bracket and it:
+   "(closes #12)" and "(this PR also fixes #12)" bind, "(the earlier fix closed #12 and #13)" does
+   not.
+5. **A failure narrated by design.** `by design` is a phrase in `narrations`, so "the checks fail by
+   design" proposes no `checks_succeeded: false`. A narrated clause that holds a phrase in
+   `stagings` before its first fail predicate says the edit itself was made to cause the failure,
+   and proposes no file claim either: "deliberately removed the guard from `src/guard.ts` so the
+   tests fail", "the mutation removed the check in `src/a.ts` and the tests fail". After the fail
+   predicate the phrase describes the failure, not the edit: "updated `src/a.test.ts` so the new
+   case fails by design" binds. A file claim in a narrated clause with no staging ("added
+   `src/a.test.ts`, and the new tests fail as expected without the fix"), or with no fail predicate
+   ("removed `src/legacy.ts` by design"), binds as before. `without`, `as expected` and
+   `as intended` are not stagings: they usually describe a test the pull request really adds.
+
+What each costs, on purpose:
+
+- `implemented` is a verb, so it stops the scan from a path: in "updated the parser and implemented
+  the cache in `src/cache.ts`" the path is no longer bound to `updated`.
+- A closing keyword after any word but `asideCloseFillers` in a bracket is dropped, history or not:
+  "(previously fixed #12, now closes #13)" and "(this change closes #12)" close nothing.
+- A staging phrase before the fail predicate drops the clause's paths, even a real one: "added a
+  regression test to `src/a.test.ts` on purpose, so the build fails without the fix" is not read.
+- A file list or a merge time is a new claim where 0.1.2 proposed none, so each is a new chance of
+  a misread that has not been measured. A head such as "Updated the tests for these files:" is
+  stopped by its preposition, but other heads whose list is not the verb's object are not.
+
+Left as they were, on purpose:
+
+- **Attribution, transient or narration context in a neighbouring clause.** 0.1.3, like 0.1.2,
+  reads one clause, plus the pronoun carry-over of the attribution rules, the list after a
+  file-list head, and the clause either side of a merge-time colon. Reading context across clauses
+  in general is a design change, not a rule.
+- **A bare repository name with no repository noun** ("files in example_docs"). It still cannot be
+  told from a directory without the repository's own list of names.
+
+Each rule is pinned by synthetic tests in `extract.test.ts`: "a file list after a colon (0.1.3)",
+"a merge time across a colon (0.1.3)", "this pull request's own closing keyword or commit beside
+another reference (0.1.3)", "a closing keyword in a parenthetical history (0.1.3)", "a failure
+narrated by design, and the edit that staged it (0.1.3)", "not read since 0.1.3, even where it was
+meant" and "still a claim beside the 0.1.3 rules". For the rules that add a claim, 0.1.2 proposed
+none of the claims each positive expects; for the rules that drop one, it proposed the claim each
+negative drops.
+
 ### The lists
 
 - `verbs.file`: added, adds, adjusted, adjusts, amended, amends, changed, changes, created, creates, deleted, deletes, edited, edits, extended, extends, fixed, fixes, modified, modifies, moved, moves, patched, patches, refactored, refactors, removed, removes, renamed, renames, replaced, replaces, reworked, reworks, rewrites, rewritten, rewrote, touched, touches, tweaked, tweaks, updated, updates
 - `verbs.close`: close, closed, closes, fix, fixed, fixes, resolve, resolved, resolves
 - `verbs.commit`: cherry-picked, committed, landed, pushed
 - `verbs.merged`: merged
+- `verbs.implement`: implemented, implements
 - `verbs.ran`: executed, ran
 - `verbs.pass`: green, pass, passed, passes, passing, succeed, succeeded, succeeds
 - `verbs.fail`: fail, failed, failing, fails, red
@@ -325,7 +417,11 @@ The extractor's rules and their tests are in `src/advisory/`.
 - `conditionals`: if, once, unless, until, when, whenever
 - `nounPrepositions`: across, for, from, in, of, on, to, under, within
 - `closeFillers`: &, and, bug, bugs, issue, issues, ticket, tickets
+- `asideCloseFillers`: also, and, pr, this
 - `mergedFillers`: as, at, been, into, main, master, of, on, the, was
+- `mergeTimeLabels`: merge time, merge timestamp
+- `fileListNouns`: file, files, path, paths
+- `fileListSubjects`: i, we
 - `predicateFillers`: again, all, also, are, been, both, did, do, does, has, have, is, locally, never, no, not, now, still, turned, was, went, were
 - `passiveFillers`: also, are, been, both, has, have, is, now, was, were
 - `objectFillers`: all, required, the
@@ -339,10 +435,12 @@ The extractor's rules and their tests are in `src/advisory/`.
 - `ownRepository`: our, same, the, this
 - `pronouns`: it, they
 - `possessives`: its, their
+- `subjectFillers`: already, also, had, has, have, is, itself, now, then, was, were
 - `transients`: backed out, reverted, reverting, temporarily, then deleted, then removed, throw-away, throwaway, undid, undone
 - `baselines`: base, baseline, earlier, former, old, original, previous, prior
 - `remotePrefixes`: origin/, upstream/
-- `narrations`: as expected, as intended, deliberately, intentionally, mutant, mutants, mutation, mutations, on purpose, without
+- `narrations`: as expected, as intended, by design, deliberately, intentionally, mutant, mutants, mutation, mutations, on purpose, without
+- `stagings`: by design, deliberately, intentionally, mutant, mutants, mutation, mutations, on purpose
 - `narrationOpeners`: before
 - `finalStates`: now, with it, with the change, with the fix, with this change
 - `commandWords`: bash, biome, bun, cargo, cat, cd, chmod, cp, curl, deno, docker, gh, git, go, grep, jest, kubectl, ls, make, mkdir, mv, node, npm, npx, pnpm, pytest, python, python3, rm, ruby, sh, touch, tsc, tsx, vitest, yarn
@@ -391,10 +489,14 @@ pins the binding.
 Published 2026-10-05: value, n and method only. The reports, their clauses and the adjudication
 labels are not published.
 
-These figures are for extractor 0.1.1. The extractor that runs since 2026-10-05 is 0.1.2, digest
-`dfd6563a934667a80448e49b7133ade6d2473e5e13cd9d05fd52c761a1a1780b`. Nothing is published for it,
-so a record it writes carries `null` for both figures, shown as "unmeasured", until it is measured
-anew. The figures below are not rebound to it.
+The table below is for extractor 0.1.1. Extractor 0.1.2, digest
+`dfd6563a934667a80448e49b7133ade6d2473e5e13cd9d05fd52c761a1a1780b`, ran from 2026-10-05. It now
+has figures measured on constructed reports ("Extractor 0.1.2 on constructed reports (recall)",
+below), but no precision measured on real pull requests, so its records still carry `null` for both
+figures. The extractor that runs since 2026-10-06 is 0.1.3, digest
+`2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37`. It is unmeasured, on real pull
+requests and on constructed reports, so a record the running checker writes carries `null` for both
+figures, shown as "unmeasured", until 0.1.3 is measured anew. No figure here is rebound to it.
 
 | Figure | Value | n | Wilson 95% interval | Bound to |
 | --- | --- | --- | --- | --- |
@@ -427,6 +529,40 @@ not yet happened, so a `differs` note is still shown as "possible disagreement, 
 In the record, each figure is `{value, n, interval, pullRequests, method, source}`, with `source`
 "operator-adjudicated, Barg Labs internal corpus, 2026-10-05", and `differsAccuracy` adds
 `baseRate` in the same form (spec D.11.2).
+
+### Extractor 0.1.2 on constructed reports (recall)
+
+Measured for extractor 0.1.2, digest
+`dfd6563a934667a80448e49b7133ade6d2473e5e13cd9d05fd52c761a1a1780b`, and comparison 0.2.0, on
+constructed reports, not on real pull requests. They are kept apart from the table above because
+those figures come from real pull requests and are carried in records, while these come from
+constructed reports and are never carried in a record: a record extractor 0.1.2 wrote carries
+`null` for both figures.
+
+The corpus holds 430 constructed reports: 380 carry one planted false claim each, and 50 are clean.
+The corpus and its four claim types are described at
+https://cejel.dev/experiments/jev-judge-2026-09-20/.
+
+| Planted claim type | Flagged | n |
+| --- | --- | --- |
+| wrong file (`scope_mismatch`) | 98 | 98 |
+| wrong count (`wrong_count`) | 82 | 82 |
+| premature completion (`premature`) | 0 | 100 |
+| fabricated reference (`fabricated_reference`) | 0 | 100 |
+| **all planted** | **180** | **380**: recall 0.474, Wilson 95% [0.424, 0.524] |
+
+- **Precision on the same run.** 180 of the 215 `differs` notes fell on the planted claim: 0.837,
+  Wilson 95% [0.782, 0.881].
+- **Clean reports.** 1 `differs` note across the 50 clean reports.
+- **The preregistered bar was not met.** The bar was a recall of at least 0.50; the recall measured
+  is 0.474.
+
+**Method.** Each report was read by the extractor, and its advisories were compared with the
+report's record. A planted claim counts as flagged when a `differs` note falls on it. Both zeros
+were predicted before the run, from the sentence shapes the grammar does not read: a colon ends the
+clause before "merged", and a `#N` makes the clause about another pull request.
+
+Extractor 0.1.3, which runs now, has not been measured on constructed reports either.
 
 ## What it does not do
 

@@ -4,7 +4,7 @@ import { Bm25Index, tokenize } from './bm25.js';
 import { fuse, retrieveByEmbedding } from './embedding.js';
 import { identifierMatches } from './identifiers.js';
 import { recordItems } from './items.js';
-import { BM25_FLOOR, retrieve } from './retrieve.js';
+import { BM25_FLOOR, FILL_TO_K, retrieve } from './retrieve.js';
 import type { RecordItem } from './types.js';
 
 const storage = () => recordItems(corpusCase('storage-retry').evidence);
@@ -194,6 +194,90 @@ describe('retrieve (Arm A)', () => {
   it('names the field that best explains a lexical match', () => {
     const got = retrieve({ text: 'exponential backoff' }, storage(), { repository: REPO });
     expect(got[0]).toMatchObject({ type: 'commit', matchedField: 'headline' });
+  });
+});
+
+describe('retrieve, filled to k', () => {
+  const K = 5;
+  const filled = (text: string, types?: RecordItem['type'][], limit = K, items = storage()) =>
+    retrieve({ text }, items, {
+      repository: REPO,
+      ...(types === undefined ? {} : { types }),
+      limit,
+      fill: FILL_TO_K,
+    });
+
+  it('fills to k below the floor where the floor leaves fewer', () => {
+    const text = 'Improved the onboarding wizard';
+    expect(retrieve({ text }, storage(), { repository: REPO, limit: K })).toEqual([]);
+    const got = filled(text);
+    expect(got).toHaveLength(K);
+    expect(got.every((c) => c.score !== null && c.score < BM25_FLOOR)).toBe(true);
+  });
+
+  it('keeps the unfilled list as its head, then the rest by score, then record order, then id', () => {
+    const text = 'Added exponential backoff for blob uploads, see #41';
+    const plain = retrieve({ text }, storage(), { repository: REPO });
+    expect(plain.length).toBeGreaterThan(0);
+    expect(plain.length).toBeLessThan(10);
+    const got = filled(text, undefined, 10);
+    expect(got).toHaveLength(10);
+    expect(got.slice(0, plain.length)).toEqual(plain);
+    const tail = got.slice(plain.length);
+    const scores = tail.map((c) => c.score as number);
+    expect(scores.every((x) => x < BM25_FLOOR)).toBe(true);
+    expect([...scores].sort((x, y) => y - x)).toEqual(scores);
+    // Items that share no term with the claim (score 0) follow in record order.
+    const order = new Map(storage().map((i, n) => [`${i.type}:${i.id}`, n]));
+    const zeros = tail
+      .filter((c) => c.score === 0)
+      .map((c) => order.get(`${c.type}:${c.id}`) ?? -1);
+    expect(zeros.length).toBeGreaterThan(1);
+    expect([...zeros].sort((x, y) => x - y)).toEqual(zeros);
+  });
+
+  it('breaks ties below the floor by record order', () => {
+    const items = [
+      item('file', 'c', ['path', 'gamma']),
+      item('file', 'a', ['path', 'alpha']),
+      item('file', 'b', ['path', 'beta']),
+    ];
+    expect(filled('nothing in common', undefined, 2, items).map((c) => c.id)).toEqual(['c', 'a']);
+  });
+
+  it('never exceeds the pool of the allowed types', () => {
+    expect(filled('anything at all', ['check_run'])).toHaveLength(3);
+    expect(filled('anything at all', ['check_run']).every((c) => c.type === 'check_run')).toBe(
+      true,
+    );
+    expect(filled('anything at all', undefined, 100)).toHaveLength(storage().length);
+    expect(filled('anything at all', ['file'], 0)).toEqual([]);
+  });
+
+  it('is the unfilled list cut at k when k candidates reach the floor', () => {
+    const text = 'retry storage blob upload backoff exponential test';
+    const plain = retrieve({ text }, storage(), { repository: REPO });
+    expect(plain.length).toBeGreaterThanOrEqual(3);
+    expect(filled(text, undefined, 3)).toEqual(plain.slice(0, 3));
+  });
+
+  it('gives the same candidates on every run', () => {
+    const first = JSON.stringify(filled('the onboarding wizard and #41'));
+    for (let i = 0; i < 5; i++)
+      expect(JSON.stringify(filled('the onboarding wizard and #41'))).toBe(first);
+  });
+
+  it('needs a limit, and leaves the default unchanged', () => {
+    expect(() => retrieve({ text: 'x' }, storage(), { repository: REPO, fill: FILL_TO_K })).toThrow(
+      /needs a limit/,
+    );
+    for (const text of ['Improved the onboarding wizard', 'exponential backoff', 'storage']) {
+      const plain = retrieve({ text }, storage(), { repository: REPO });
+      expect(plain.every((c) => c.score === null || c.score >= BM25_FLOOR)).toBe(true);
+      expect(retrieve({ text }, storage(), { repository: REPO, limit: K })).toEqual(
+        plain.slice(0, K),
+      );
+    }
   });
 });
 

@@ -9104,7 +9104,7 @@ async function readCheckRuns(client, repository, commit, excludedIds) {
 async function readTestRecord(client, repository, record, headCommit) {
   const workflowFile = record.workflow.split("/").at(-1);
   const runsPath = (page) => `/repos/${repository}/actions/workflows/${encodeURIComponent(workflowFile)}/runs?head_sha=${headCommit}&per_page=${PER_PAGE}&page=${page}`;
-  const listed = await readAllPages(
+  const listed2 = await readAllPages(
     client,
     "workflow_runs",
     runsPath,
@@ -9116,9 +9116,9 @@ async function readTestRecord(client, repository, record, headCommit) {
     // No workflow with that file name: there is no run, so no candidate run.
     { notFoundIsEmpty: true }
   );
-  if (listed === null) return { record, ...unreadable("workflow_runs") };
+  if (listed2 === null) return { record, ...unreadable("workflow_runs") };
   const runs = [];
-  for (const run of listed.filter((r) => r.path.replace(/@.*$/, "") === record.workflow)) {
+  for (const run of listed2.filter((r) => r.path.replace(/@.*$/, "") === record.workflow)) {
     const jobs = await readAllPages(
       client,
       "workflow_runs",
@@ -9283,7 +9283,7 @@ async function readEvidence(client, input2) {
 // src/record/checker.ts
 import { readFileSync } from "node:fs";
 var CHECKER_NAME = "dunstan";
-var CHECKER_VERSION = "0.1.1";
+var CHECKER_VERSION = "0.1.2";
 function checkerIdentity(artifact) {
   return {
     name: CHECKER_NAME,
@@ -9483,7 +9483,7 @@ async function reportFromComment(client, repository, number, login) {
 }
 
 // src/advisory/grammar.ts
-var EXTRACTOR_VERSION = "0.1.2";
+var EXTRACTOR_VERSION = "0.1.3";
 var ADVISORY_KINDS = [
   "file_changed",
   "reference_closes",
@@ -9562,6 +9562,9 @@ var GRAMMAR = {
       "resolves"
     ],
     commit: ["cherry-picked", "committed", "landed", "pushed"],
+    // Bind a SHA only directly after a word in `commitNouns`, as file, close and merged verbs do:
+    // "implemented in commit 3f2a1b9" (extractor 0.1.3). They bind no path.
+    implement: ["implemented", "implements"],
     merged: ["merged"],
     ran: ["executed", "ran"],
     // Predicates that follow a subject: "tests pass", "CI is green".
@@ -9712,8 +9715,21 @@ var GRAMMAR = {
   nounPrepositions: ["across", "for", "from", "in", "of", "on", "to", "under", "within"],
   // Between a closing keyword and its issue only these may stand: "fixes issue #12".
   closeFillers: ["&", "and", "bug", "bugs", "issue", "issues", "ticket", "tickets"],
+  // Inside a bracket still open at it, a closing keyword binds only when nothing but these stands
+  // between the bracket and it: "(closes #12)", "(this PR also fixes #12)". After any other word it
+  // narrates history: "(the earlier fix closed #12 and #13)" (extractor 0.1.3).
+  asideCloseFillers: ["also", "and", "pr", "this"],
   // Between "merged" and its timestamp.
   mergedFillers: ["as", "at", "been", "into", "main", "master", "of", "on", "the", "was"],
+  // A clause that is one of these and ends in a colon states the merge time, as "Merged at:" does
+  // (extractor 0.1.3): "Merge time: 2026-10-01T12:00:00Z".
+  mergeTimeLabels: ["merge time", "merge timestamp"],
+  // A clause that ends in a colon and holds one of these with an asserting file verb heads a list of
+  // files (extractor 0.1.3): "Changed the following files:", "Files changed:". The paths after the
+  // colon bind to its verb.
+  fileListNouns: ["file", "files", "path", "paths"],
+  // Between the noun and a verb after it, as `passiveFillers` may: "the files I changed:".
+  fileListSubjects: ["i", "we"],
   // Between a subject (CI, checks, tests) and its predicate.
   predicateFillers: [
     "again",
@@ -9788,6 +9804,23 @@ var GRAMMAR = {
   // 3f2a1b9c." An object pronoun is not enough: "I fixed it in src/a.ts".
   pronouns: ["it", "they"],
   possessives: ["its", "their"],
+  // Since extractor 0.1.3, an issue reference that is not the verb's subject leaves a closing
+  // keyword or a commit in the clause this pull request's: "Builds on #10 and closes #12". The
+  // reference is the subject when it stands directly before the verb, with only these between, or
+  // when it is a possessive ("#10's fix") anywhere before the verb: "PR #10 closes #12" is #10's.
+  subjectFillers: [
+    "already",
+    "also",
+    "had",
+    "has",
+    "have",
+    "is",
+    "itself",
+    "now",
+    "then",
+    "was",
+    "were"
+  ],
   // A clause holding one of these narrates a change made and then undone, or made only for a while,
   // and proposes nothing: "temporarily removed src/a.ts", "added a throwaway marker, then reverted".
   transients: [
@@ -9815,6 +9848,7 @@ var GRAMMAR = {
   narrations: [
     "as expected",
     "as intended",
+    "by design",
     "deliberately",
     "intentionally",
     "mutant",
@@ -9823,6 +9857,20 @@ var GRAMMAR = {
     "mutations",
     "on purpose",
     "without"
+  ],
+  // A narrated clause holding one of these before its first fail predicate says the edit itself was
+  // made to cause the failure, so it proposes no file claim either (extractor 0.1.3): "deliberately
+  // removed the guard from src/guard.ts so the tests fail". After the fail predicate one describes
+  // the failure, not the edit: "updated src/a.test.ts so the new case fails by design" binds.
+  stagings: [
+    "by design",
+    "deliberately",
+    "intentionally",
+    "mutant",
+    "mutants",
+    "mutation",
+    "mutations",
+    "on purpose"
   ],
   narrationOpeners: ["before"],
   finalStates: ["now", "with it", "with the change", "with the fix", "with this change"],
@@ -10124,11 +10172,13 @@ function advisoryDigest(section) {
 
 // src/advisory/extract.ts
 var words = (list) => new Set(list);
+var phrases = (list) => list.map((phrase) => phrase.split(" "));
 var V = GRAMMAR.verbs;
 var FILE_VERBS = words(V.file);
 var CLOSE_VERBS = words(V.close);
 var COMMIT_VERBS = words(V.commit);
 var MERGED_VERBS = words(V.merged);
+var IMPLEMENT_VERBS = words(V.implement);
 var RAN_VERBS = words(V.ran);
 var PASS = words(V.pass);
 var FAIL = words(V.fail);
@@ -10137,6 +10187,7 @@ var ALL_VERBS = words([
   ...V.close,
   ...V.commit,
   ...V.merged,
+  ...V.implement,
   ...V.ran,
   ...V.pass,
   ...V.fail,
@@ -10150,7 +10201,11 @@ var SUBORDINATORS = words(GRAMMAR.subordinators);
 var CONDITIONALS = words(GRAMMAR.conditionals);
 var NOUN_PREPOSITIONS = words(GRAMMAR.nounPrepositions);
 var CLOSE_FILLERS = words(GRAMMAR.closeFillers);
+var ASIDE_CLOSE_FILLERS = words(GRAMMAR.asideCloseFillers);
 var MERGED_FILLERS = words(GRAMMAR.mergedFillers);
+var MERGE_TIME_LABELS = phrases(GRAMMAR.mergeTimeLabels);
+var FILE_LIST_NOUNS = words(GRAMMAR.fileListNouns);
+var FILE_LIST_SUBJECTS = words(GRAMMAR.fileListSubjects);
 var PREDICATE_FILLERS = words(GRAMMAR.predicateFillers);
 var PASSIVE_FILLERS = words(GRAMMAR.passiveFillers);
 var OBJECT_FILLERS = words(GRAMMAR.objectFillers);
@@ -10166,16 +10221,17 @@ var TESTS_NOUNS = words(GRAMMAR.testsNouns);
 var EXTENSIONLESS = words(GRAMMAR.extensionlessFiles);
 var HOST_EXTENSIONS = words(GRAMMAR.hostExtensions);
 var LOG_LEVELS = words(GRAMMAR.logLevels);
-var phrases = (list) => list.map((phrase) => phrase.split(" "));
 var ANALOGUES = phrases(GRAMMAR.analogues);
 var SELF_NAMES = phrases(GRAMMAR.selfNames);
 var REPOSITORY_NOUNS = words(GRAMMAR.repositoryNouns);
 var OWN_REPOSITORY = words(GRAMMAR.ownRepository);
 var PRONOUNS = words(GRAMMAR.pronouns);
 var POSSESSIVES = words(GRAMMAR.possessives);
+var SUBJECT_FILLERS = words(GRAMMAR.subjectFillers);
 var TRANSIENTS = phrases(GRAMMAR.transients);
 var BASELINES = words(GRAMMAR.baselines);
 var NARRATIONS = phrases(GRAMMAR.narrations);
+var STAGINGS = phrases(GRAMMAR.stagings);
 var NARRATION_OPENERS = words(GRAMMAR.narrationOpeners);
 var FINAL_STATES = phrases(GRAMMAR.finalStates);
 var CLOSERS = new Map(GRAMMAR.brackets.map((pair) => [pair[1], pair[0]]));
@@ -10244,7 +10300,8 @@ var TRAILING = /[)\]}"'*>~,.;:!?]+$/;
 function makeWord(raw, start, atom, bracketAt) {
   const rawEnd = start + raw.length;
   if (atom !== void 0) {
-    return { text: raw, lower: "", start, end: rawEnd, rawEnd, bracket: bracketAt(start), atom };
+    const bracket = bracketAt(start);
+    return { text: raw, lower: "", start, end: rawEnd, rawEnd, bracket, comma: false, atom };
   }
   const lead = LEADING.exec(raw)?.[0].length ?? 0;
   const text = raw.slice(lead).replace(TRAILING, "");
@@ -10256,7 +10313,8 @@ function makeWord(raw, start, atom, bracketAt) {
     start: begin,
     end: begin + text.length,
     rawEnd,
-    bracket: bracketAt(begin)
+    bracket: bracketAt(begin),
+    comma: raw.slice(lead + text.length).includes(",")
   };
 }
 function bracketCursor(prep) {
@@ -10290,8 +10348,14 @@ function clausesOf(prep) {
   const bracketAt = bracketCursor(prep);
   const clauses = [];
   let current = [];
-  const flush = (question = false) => {
-    if (current.length > 0 && !question) clauses.push(current);
+  let item;
+  let fresh = false;
+  let opened = {
+    item: void 0,
+    itemStart: false
+  };
+  const flush = (question = false, colon = false) => {
+    if (current.length > 0 && !question) clauses.push({ words: current, colon, ...opened });
     current = [];
   };
   let blockLine2 = false;
@@ -10311,7 +10375,10 @@ function clausesOf(prep) {
     let back = i;
     while (back > 0 && /[ \t\r]/.test(text[back - 1])) back--;
     const lineStart = back === 0 || text[back - 1] === "\n";
-    if (/\n[ \t\r]*\n/.test(gap)) flush();
+    if (/\n[ \t\r]*\n/.test(gap)) {
+      flush();
+      item = void 0;
+    }
     if (gap.includes("\n")) {
       if (blockLine2) flush();
       blockLine2 = false;
@@ -10322,21 +10389,34 @@ function clausesOf(prep) {
       if (marker || /^\|+$/.test(raw)) {
         flush();
         if (lineStart && /^[#|]/.test(raw)) blockLine2 = true;
+        if (marker && !raw.startsWith("#")) {
+          item = { column: i - (text.lastIndexOf("\n", i - 1) + 1) };
+          fresh = true;
+        } else {
+          item = void 0;
+        }
         gapStart = end;
         i = end;
         continue;
       }
-      if (lineStart && raw.startsWith("|")) blockLine2 = true;
+      if (lineStart && raw.startsWith("|")) {
+        blockLine2 = true;
+        item = void 0;
+      }
     }
     const word = makeWord(raw, i, atom?.kind, bracketAt);
     if (word !== void 0) {
       if (current.length > 0 && SUBORDINATORS.has(word.lower)) flush();
+      if (current.length === 0) {
+        opened = { item, itemStart: fresh };
+        fresh = false;
+      }
       current.push(word);
     }
     if (atom === void 0) {
       const stop = raw.replace(/["')\]*_]+$/, "").slice(-1);
       if (/[.;:!?]/.test(stop) && !(stop === ":" && word !== void 0 && CLOSE_VERBS.has(word.lower))) {
-        flush(stop === "?");
+        flush(stop === "?", stop === ":");
       }
     }
     gapStart = end;
@@ -10392,6 +10472,12 @@ var Clause = class {
   tokens;
   // The clause narrates a failure staged on purpose (GRAMMAR.narrations).
   narrated = false;
+  // ...by an edit made to cause it, so its paths are not this pull request's (GRAMMAR.stagings).
+  staged = false;
+  // The clause before ended in a colon and heads what this clause lists (0.1.3): a file list
+  // (GRAMMAR.fileListNouns) or a merge time (GRAMMAR.mergeTimeLabels).
+  fileList;
+  mergeTime;
   lower(i) {
     return this.words[i]?.lower ?? "";
   }
@@ -10477,13 +10563,52 @@ function bindPath(c, j, value, emit) {
   const word = c.words[j];
   const span = { start: word.start, end: word.end };
   const passive = passiveAt(c, j);
-  if (passive === -1) return;
+  if (passive === -1 || c.staged) return;
   const k = c.leftVerb(j, "path");
   if (c.binds(k, FILE_VERBS)) {
     emit("file_changed", value, k, span);
     return;
   }
-  if (passive !== void 0 && !negatedList(c, j)) emit("file_changed", value, passive, span);
+  if (passive !== void 0) {
+    if (!negatedList(c, j)) emit("file_changed", value, passive, span);
+    return;
+  }
+  if (c.fileList !== void 0 && listed(c, j, c.fileList)) {
+    emit("file_changed", value, -1, span, c.fileList);
+  }
+}
+function listed(c, j, head) {
+  for (let k = 0; k < c.words.length; k++) {
+    if (c.isVerb(k) || c.isNegation(k) || c.isModal(k)) return false;
+  }
+  if (c.words[j].bracket >= head.from.start) return false;
+  let distance = 0;
+  for (let k = j - 1; k >= 0; k--) {
+    if (c.analogue(k, j)) return false;
+    if (c.tokens[k]?.cls !== "path" && ++distance > WINDOW) return false;
+  }
+  return true;
+}
+function fileListVerb(c) {
+  const head = (k) => FILE_VERBS.has(c.lower(k)) && c.asserting(k) && c.lower(k - 1) !== "be";
+  for (let n = 0; n < c.words.length; n++) {
+    if (!FILE_LIST_NOUNS.has(c.lower(n))) continue;
+    for (let r = n + 1; r < c.words.length; r++) {
+      if (c.isVerb(r)) {
+        if (head(r)) return r;
+        break;
+      }
+      if (!PASSIVE_FILLERS.has(c.lower(r)) && !FILE_LIST_SUBJECTS.has(c.lower(r))) break;
+    }
+    for (let k = n - 1; k >= 0 && n - k <= WINDOW; k--) {
+      if (c.isVerb(k)) {
+        if (head(k)) return k;
+        break;
+      }
+      if (c.isNegation(k) || c.isModal(k) || NOUN_PREPOSITIONS.has(c.lower(k))) break;
+    }
+  }
+  return void 0;
 }
 function passiveAt(c, j) {
   let denied = false;
@@ -10517,20 +10642,46 @@ function closingVerb(c, j) {
 }
 function bindIssue(c, j, value, emit) {
   const k = closingVerb(c, j);
-  if (k !== void 0 && c.asserting(k)) emit("reference_closes", value, k, c.words[j]);
+  if (k !== void 0 && c.asserting(k) && !history(c, k)) {
+    emit("reference_closes", value, k, c.words[j]);
+  }
 }
-function elsewhereAt(c) {
+function history(c, k) {
+  const bracket = c.words[k].bracket;
+  if (bracket < 0) return false;
+  for (let m = k - 1; m >= 0 && c.words[m].start > bracket; m--) {
+    if (!ASIDE_CLOSE_FILLERS.has(c.lower(m))) return true;
+  }
+  return false;
+}
+var POSSESSIVE = /['’]s$/;
+function elsewhereOf(c) {
+  const found = { at: -1, issues: [], repository: false };
   for (let j = 0; j < c.words.length; j++) {
     const word = c.words[j];
-    const issue = c.tokens[j]?.cls === "issue" || word.atom === void 0 && ISSUE.test(word.text.replace(/['’]s$/, ""));
+    const issue = c.tokens[j]?.cls === "issue" || word.atom === void 0 && ISSUE.test(word.text.replace(POSSESSIVE, ""));
     if (issue) {
       const own = SELF_NAMES.some((p) => p.length <= j && c.phraseAt(j - p.length, [p]));
-      if (!own && closingVerb(c, j) === void 0) return j;
+      if (own || closingVerb(c, j) !== void 0) continue;
+      found.issues.push(j);
     } else if (REPOSITORY_NOUNS.has(c.lower(j)) && j > 0 && !OWN_REPOSITORY.has(c.lower(j - 1))) {
-      return j;
+      found.repository = true;
+    } else {
+      continue;
     }
+    if (found.at < 0) found.at = j;
   }
-  return -1;
+  return found;
+}
+function subjectOf(c, r, k) {
+  if (r >= k) return false;
+  if (POSSESSIVE.test(c.words[r].text)) return true;
+  for (let m = r; m < k; m++) {
+    const word = c.words[m];
+    if (m > r && !SUBJECT_FILLERS.has(word.lower)) return false;
+    if (word.comma) return false;
+  }
+  return true;
 }
 function baselineBefore(c, j) {
   for (let k = 0; k < j; k++) {
@@ -10554,7 +10705,7 @@ function bindSha(c, j, value, emit) {
   const k = c.leftVerb(j, "sha");
   if (k === void 0 || !c.asserting(k)) return;
   const verb = c.lower(k);
-  const afterNoun = COMMIT_NOUNS.has(c.lower(j - 1)) && (FILE_VERBS.has(verb) || CLOSE_VERBS.has(verb) || MERGED_VERBS.has(verb));
+  const afterNoun = COMMIT_NOUNS.has(c.lower(j - 1)) && (FILE_VERBS.has(verb) || CLOSE_VERBS.has(verb) || MERGED_VERBS.has(verb) || IMPLEMENT_VERBS.has(verb));
   if (COMMIT_VERBS.has(verb) || afterNoun) emit("commit", value, k, span);
 }
 function bindTimestamp(c, j, value, emit) {
@@ -10566,6 +10717,26 @@ function bindTimestamp(c, j, value, emit) {
     }
     if (!MERGED_FILLERS.has(l)) return;
   }
+  if (j === 0 && c.mergeTime !== void 0) {
+    emit("merged_at", value, -1, c.words[j], c.mergeTime);
+  }
+}
+function mergeTimeHead(c) {
+  let k = c.words.length - 1;
+  while (k >= 0 && MERGED_FILLERS.has(c.lower(k))) k--;
+  if (MERGED_VERBS.has(c.lower(k)) && c.asserting(k) && c.lower(k - 1) !== "be") return c.lower(k);
+  const label = MERGE_TIME_LABELS.find((p) => p.length === c.words.length && c.phraseAt(0, [p]));
+  return label?.[0];
+}
+function mergedAfter(c, next) {
+  const last = c.words.length - 1;
+  if (c.tokens[last]?.cls !== "timestamp") return void 0;
+  for (let k = 0; k < last; k++) if (!MERGED_FILLERS.has(c.lower(k))) return void 0;
+  for (let k = 0; k < next.words.length; k++) {
+    if (MERGED_VERBS.has(next.lower(k))) return next.asserting(k) ? k : void 0;
+    if (!MERGED_FILLERS.has(next.lower(k))) return void 0;
+  }
+  return void 0;
 }
 function bindSubject(c, i, emit) {
   const l = c.lower(i);
@@ -10649,34 +10820,95 @@ function openedByNarration(prep, words2, next) {
   const stop = prep.text.slice(last.start, last.rawEnd).replace(/["')\]*_]+$/, "");
   return !/[.;:!?]$/.test(stop) && /^[ \t]*\n?[ \t]*$/.test(prep.text.slice(last.rawEnd, first.start));
 }
+function sameLine(prep, words2, next) {
+  const last = words2[words2.length - 1];
+  return !prep.text.slice(last.rawEnd, next[0].start).includes("\n");
+}
 function extractClaims(report) {
   const out = [];
   const seen = /* @__PURE__ */ new Set();
   const prep = prepare(report);
-  const clauses = clausesOf(prep);
+  const parts = clausesOf(prep);
+  const clauses = parts.map((part) => new Clause(part.words));
   let elsewhereBefore = false;
-  clauses.forEach((words2, n) => {
-    const c = new Clause(words2);
-    let elsewhere = elsewhereAt(c);
+  let head;
+  parts.forEach((part, n) => {
+    const { words: words2 } = part;
+    const c = clauses[n];
+    const before = parts[n - 1];
+    if (head !== void 0) {
+      const nested = part.item !== void 0 && (head.item === void 0 || part.item.column > head.item.column);
+      if (n === head.at + 1 && sameLine(prep, before?.words ?? [], words2)) {
+        c.fileList = { ...head.via, to: words2[words2.length - 1] };
+      } else if (nested && (head.block || n === head.at + 1 && part.itemStart)) {
+        head.block = true;
+        c.fileList = { ...head.via, to: words2[words2.length - 1] };
+      } else {
+        head = void 0;
+      }
+    }
+    const other = elsewhereOf(c);
+    let elsewhere = other.at;
     const refers = PRONOUNS.has(c.lower(0)) || words2.some((w) => POSSESSIVES.has(w.lower));
-    if (elsewhere < 0 && elsewhereBefore && refers) elsewhere = 0;
+    const carried = elsewhere < 0 && elsewhereBefore && refers;
+    if (carried) elsewhere = 0;
     elsewhereBefore = elsewhere >= 0;
     if (CONDITIONALS.has(c.lower(0)) || c.holds(TRANSIENTS)) return;
-    c.narrated = words2.some((w) => FAIL.has(w.lower)) && (c.holds(NARRATIONS) || openedByNarration(prep, words2, clauses[n + 1]));
+    const firstFail = words2.findIndex((w) => FAIL.has(w.lower));
+    c.narrated = firstFail >= 0 && (c.holds(NARRATIONS) || openedByNarration(prep, words2, parts[n + 1]?.words));
+    c.staged = c.narrated && c.holds(STAGINGS, 0, firstFail);
+    const own = elsewhere < 0;
+    const next = parts[n + 1];
+    if (part.colon && own && next !== void 0) {
+      const k = fileListVerb(c);
+      if (k !== void 0 && !c.staged) {
+        head = {
+          at: n,
+          via: { verb: c.lower(k), from: words2[0], to: words2[0] },
+          item: part.item,
+          block: false
+        };
+      }
+      const merged = mergeTimeHead(c);
+      if (merged !== void 0 && sameLine(prep, words2, next.words)) {
+        clauses[n + 1].mergeTime = {
+          verb: merged,
+          from: words2[0],
+          to: next.words[next.words.length - 1]
+        };
+      }
+    }
     const clause = clauseText(report, words2);
-    const emit = (kind, value, verb, span) => {
-      if (elsewhere >= 0 && !(kind === "reference_closes" && verb < elsewhere)) return;
+    const emit = (kind, value, verb, span, via) => {
+      if (elsewhere >= 0) {
+        const before2 = kind === "reference_closes" && verb >= 0 && verb < elsewhere;
+        const ownVerb = (kind === "reference_closes" || kind === "commit") && verb >= 0 && !carried && !other.repository && !other.issues.some((r) => subjectOf(c, r, verb));
+        if (!before2 && !ownVerb) return;
+      }
       const key = `${kind}\0${JSON.stringify(value)}`;
       if (seen.has(key)) return;
       seen.add(key);
       out.push({
-        clause,
-        verb: c.lower(verb),
+        clause: via === void 0 ? clause : clauseText(report, [via.from, via.to]),
+        verb: via === void 0 ? c.lower(verb) : via.verb,
         kind,
         value,
         span: { start: span.start, end: span.end }
       });
     };
+    if (part.colon && own && next !== void 0 && sameLine(prep, words2, next.words)) {
+      const after = clauses[n + 1];
+      const k = mergedAfter(c, after);
+      const ownNext = elsewhereOf(after).at < 0 && !after.holds(TRANSIENTS) && !CONDITIONALS.has(after.lower(0));
+      const stamp = c.tokens[words2.length - 1];
+      if (k !== void 0 && ownNext && stamp?.cls === "timestamp") {
+        emit("merged_at", stamp.value, -1, words2[words2.length - 1], {
+          verb: after.lower(k),
+          from: words2[0],
+          to: next.words[next.words.length - 1]
+        });
+      }
+    }
     c.tokens.forEach((token, j) => {
       switch (token.cls) {
         case "path":
@@ -10928,6 +11160,7 @@ function identifierMatches(claim, items, repository) {
 
 // src/retrieval/retrieve.ts
 var ARM_A = "A";
+var FILL_TO_K = "to-k";
 var BM25_FLOOR = 1;
 var SCORE_DECIMALS = 6;
 function round(score) {
@@ -10959,6 +11192,8 @@ function compareRanked(a, b) {
   return a.order - b.order || compareCodeUnits(a.candidate.id, b.candidate.id);
 }
 function retrieve(claim, items, opts) {
+  const fill = opts.fill === FILL_TO_K;
+  if (fill && opts.limit === void 0) throw new Error(`fill '${FILL_TO_K}' needs a limit (k)`);
   const allowed = opts.types === void 0 ? void 0 : new Set(opts.types);
   const exact = identifierMatches(claim, items, opts.repository);
   const index = new Bm25Index(items.map(itemTokens));
@@ -10977,7 +11212,7 @@ function retrieve(claim, items, opts) {
       return;
     }
     const score = round(scores[order] ?? 0);
-    if (score < BM25_FLOOR) return;
+    if (!fill && score < BM25_FLOOR) return;
     ranked.push({
       order,
       candidate: {
@@ -12584,12 +12819,12 @@ function githubReaders(client) {
   };
 }
 async function checkPullRequest(input2) {
-  const pr = await input2.readers.pullRequest(input2.repository, input2.number);
+  const pr = input2.pullRequest ?? await input2.readers.pullRequest(input2.repository, input2.number);
   const repository = pr.repository;
   const ownRuns = await input2.afterPullRequest?.(pr) ?? [];
   const report = await input2.report(pr);
   const text = new TextDecoder("utf-8").decode(report.bytes);
-  const block = recordBlock(extractHandbackBlock(text));
+  const block = input2.block ?? recordBlock(extractHandbackBlock(text));
   const found = block.status === "found" ? block.value : null;
   const proposed = input2.advisory === true ? extractClaims(text) : void 0;
   const evidence = await input2.readers.evidence({

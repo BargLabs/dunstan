@@ -50,11 +50,13 @@ erratum's 0.1.1 re-run.
    (`no_comparable_record_field`). A local run leaves nothing in the repository's record. The cited
    #787 and #790 exist, and everything else passes.
 
-The table, the five 0.1.0 records and their summaries stand as published. The checker that runs
-now is 0.1.1, which refuses to verify a 0.1.0 record, because spec section 12 says a record is
-verified by the checker version that wrote it. The 0.1.0 checker that wrote them was a development
-build that no tag of this repository reproduces; `PROVENANCE.md` gives its digest and each original
-record's SHA-256. The re-runs verify with the checker this repository builds at `v0.1.1`.
+The table, the five 0.1.0 records and their summaries stand as published. Spec section 12 says a
+record is verified by the checker version that wrote it, so a later checker refuses to verify
+them. The 0.1.0 checker that wrote them was a development build that no tag of this repository
+reproduces; `PROVENANCE.md` gives its digest and each original record's SHA-256. The re-runs were
+written by checker 0.1.1 and verify with the checker this repository builds at the tag `v0.1.1`,
+not with a build of a later head: the head now builds checker 0.1.2, which refuses them for the
+same reason.
 
 Each folder `<n>-<owner>-<repo>-<pr>/` holds `block.json` (the declared block), `record.json` (the
 record `dunstan check` wrote) and `summary.md` (the claims table, how to read the verdict, what the
@@ -113,9 +115,10 @@ sources against the recorded block.
 
 ## Re-run
 
-Offline, from the re-run records alone, with the checker built at `v0.1.1`:
+Offline, from the re-run records alone, with the checker built at tag `v0.1.1`:
 
 ```sh
+git checkout v0.1.1
 pnpm install --frozen-lockfile && pnpm run build
 node dist/dunstan.mjs verify demo/2026-10/1-FluidSynth-fluidsynth-1639/rerun-v0.1.1-2026-10-06/record.json
 node dist/dunstan.mjs verify demo/2026-10/2-airbytehq-airbyte-74367/rerun-v0.1.1-2026-10-06/record.json
@@ -124,7 +127,8 @@ node dist/dunstan.mjs verify demo/2026-10/4-cdcseacave-openMVS-1246/rerun-v0.1.1
 node dist/dunstan.mjs verify demo/2026-10/5-QuantEcon-QuantEcon.py-798/rerun-v0.1.1-2026-10-06/record.json
 ```
 
-Online, re-reading the same sources (prints `evidence_changed` with the fields that moved):
+Online, with the same `v0.1.1` build, re-reading the same sources (prints `evidence_changed` with
+the fields that moved):
 
 ```sh
 GITHUB_TOKEN=<read token> node dist/dunstan.mjs rerun demo/2026-10/<n>-<owner>-<repo>-<pr>/rerun-v0.1.1-2026-10-06/record.json

@@ -36,4 +36,10 @@ export interface RetrieveOptions {
   types?: readonly ItemType[];
   // At most this many candidates, after ranking. Unset: every candidate at or above the floor.
   limit?: number;
+  // 'to-k': after the identifier matches and the candidates at or above the floor, fill the places
+  // left up to `limit` with the next items by BM25 score, below the floor too, so that there are
+  // min(limit, pool) candidates, where the pool is every item of the allowed types. Ties break as
+  // above. Requires `limit`. Unset: nothing below the floor. For measurement (dunstan-eval
+  // --fill-to-k); no record carries filled candidates.
+  fill?: 'to-k';
 }

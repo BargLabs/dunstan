@@ -1,8 +1,9 @@
 // The MCP self-check: dunstan_check_handback, that a coding agent calls before it says a task is
 // done. It takes the subject and the block (or the report that carries it) and returns the verdict,
-// the claims table and the record. It is `dunstan check` with a different caller: the report is
-// resolved here, and everything after that is the CLI's own recordReport, so on the same evidence
-// the two give the same claims, verdict and digests (src/mcp/parity.test.ts).
+// the claims table and the record. It is `dunstan check` with a different caller: the report (and a
+// block given as an object) is resolved here, and everything after that is the same
+// checkPullRequest the CLI and the Action run, so on the same evidence the two give the same claims,
+// verdict and digests (src/mcp/parity.test.ts).
 //
 // Beside it, dunstan_suggest_declarations is `dunstan suggest`: offline, no subject, the same text.
 // It is a sibling tool rather than an option of the check because it needs no pull request and
@@ -13,22 +14,23 @@
 // existing file. An error comes back as a tool error, never as a verdict.
 
 import { existsSync, writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { basename, resolve } from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { blockOfReport, defaultRecordFile, REPOSITORY, recordReport } from '../cli/check.js';
+import { defaultRecordFile, REPOSITORY } from '../cli/check.js';
 import { renderRecord } from '../cli/output.js';
 import { PullRequestUnreadable, readPullRequest } from '../evidence/github.js';
 import { GitHubClient } from '../evidence/http.js';
 import type { Report } from '../evidence/report.js';
+import { checkPullRequest, githubReaders } from '../pipeline/check-pull-request.js';
 import {
   type DunstanRecord,
   type RecordBlock,
   recordBlock,
   serializeRecord,
 } from '../record/build.js';
-import { CHECKER_NAME, CHECKER_VERSION } from '../record/checker.js';
+import { CHECKER_NAME, CHECKER_VERSION, checkerIdentity } from '../record/checker.js';
 import { readBlockContent } from '../spec/extract.js';
 import { CanonicalizationError, canonicalize } from '../spec/jcs.js';
 import type { JsonValue } from '../spec/json.js';
@@ -76,12 +78,14 @@ function reportOfBlock(block: Record<string, unknown>): { report: Report; block:
   };
 }
 
-function reportOfText(text: string): { report: Report; block: RecordBlock } {
-  const report: Report = {
-    bytes: new TextEncoder().encode(text),
-    source: { kind: 'api', locator: `mcp ${TOOL_NAME}#report` },
+// A report given as text: its block is found by checkPullRequest, as in a report the CLI reads.
+function reportOfText(text: string): { report: Report; block?: RecordBlock } {
+  return {
+    report: {
+      bytes: new TextEncoder().encode(text),
+      source: { kind: 'api', locator: `mcp ${TOOL_NAME}#report` },
+    },
   };
-  return { report, block: blockOfReport(report) };
 }
 
 export async function checkHandback(
@@ -115,12 +119,16 @@ export async function checkHandback(
   }
 
   const pullRequest = await readPullRequest(client, input.repository, input.pullRequest);
-  const record = await recordReport(client, {
+  const recordFile = outPath ?? defaultRecordFile(pullRequest.repository, input.pullRequest);
+  const record = await checkPullRequest({
+    readers: githubReaders(client),
+    repository: input.repository,
+    number: input.pullRequest,
     pullRequest,
-    report,
-    block,
-    artifact: options.artifact,
-    recordFile: outPath ?? defaultRecordFile(pullRequest.repository, input.pullRequest),
+    report: async () => report,
+    ...(block === undefined ? {} : { block }),
+    checker: checkerIdentity(options.artifact),
+    recordFile: basename(recordFile),
   });
   const serialized = serializeRecord(record);
   if (outPath !== undefined) writeFileSync(outPath, serialized, { flag: 'wx' });

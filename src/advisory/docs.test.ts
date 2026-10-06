@@ -46,7 +46,7 @@ describe('docs/advisory.md', () => {
   });
 
   it('states the fixed line with the published figures, and the figures and their binding', () => {
-    // The figures were measured on extractor 0.1.1; the extractor that runs is 0.1.2.
+    // The figures were measured on extractor 0.1.1; the extractor that runs is 0.1.3.
     const measured = 'ab77ce47d1c5172ec912d1221e03bbe5b312ff5dc2acb594c4b8549fe602c360';
     const precision = precisionFor(measured);
     const differsAccuracy = differsAccuracyFor(measured, COMPARISON_VERSION);
@@ -58,6 +58,37 @@ describe('docs/advisory.md', () => {
     }
   });
 
+  it('states extractor 0.1.2 on constructed reports apart, as never carried in a record', () => {
+    const flat = doc.replace(/\s+/g, ' ');
+    const heading = '### Extractor 0.1.2 on constructed reports (recall)';
+    expect(doc).toContain(`\n${heading}\n`);
+    const section = doc.slice(doc.indexOf(heading)).replace(/\s+/g, ' ');
+    expect(section).toContain(
+      'those figures come from real pull requests and are carried in records, while these come from constructed reports and are never carried in a record',
+    );
+    for (const row of [
+      '| wrong file (`scope_mismatch`) | 98 | 98 |',
+      '| wrong count (`wrong_count`) | 82 | 82 |',
+      '| premature completion (`premature`) | 0 | 100 |',
+      '| fabricated reference (`fabricated_reference`) | 0 | 100 |',
+      '| **all planted** | **180** | **380**: recall 0.474, Wilson 95% [0.424, 0.524] |',
+    ]) {
+      expect(section).toContain(row);
+    }
+    expect(section).toContain('180 of the 215 `differs` notes fell on the planted claim: 0.837');
+    expect(section).toContain('[0.782, 0.881]');
+    expect(section).toContain('1 `differs` note across the 50 clean reports');
+    expect(section).toContain('The preregistered bar was not met.');
+    expect(section).toContain(
+      'Extractor 0.1.3, which runs now, has not been measured on constructed reports either.',
+    );
+    // 0.1.2 is no longer "nothing published", and still has no real-PR precision.
+    expect(flat).not.toContain('Nothing is published for either');
+    expect(flat).toContain(
+      'but no precision measured on real pull requests, so its records still carry `null` for both figures',
+    );
+  });
+
   it('states the token scraper figures as published, with their method and no source', () => {
     expect(doc).toContain('On 196 real pull requests it raised 4,647 flags');
     expect(doc).toContain('(0 of 30; Wilson 95% upper bound 0.114)');
@@ -66,11 +97,11 @@ describe('docs/advisory.md', () => {
 
   it('states the extractor that runs, its digest, and that it is unmeasured', () => {
     expect(precisionFor(EXTRACTOR.digest.sha256)).toBeNull();
-    expect(doc).toContain(
-      `The extractor that runs since 2026-10-05 is ${EXTRACTOR.version}, digest`,
+    expect(doc.replace(/\s+/g, ' ')).toContain(
+      `The extractor that runs since 2026-10-06 is ${EXTRACTOR.version}, digest \`${EXTRACTOR.digest.sha256}\``,
     );
-    expect(doc).toContain(`\`${EXTRACTOR.digest.sha256}\``);
     expect(doc).toContain('### Attribution (extractor 0.1.2)');
+    expect(doc).toContain('### Lists, merge times and own references (extractor 0.1.3)');
   });
 
   // Each of these sections is one sentence pointing at the code, which holds the rules and tests.

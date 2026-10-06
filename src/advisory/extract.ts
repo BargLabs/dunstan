@@ -10,6 +10,10 @@
 // A claim is about this pull request's final state (extractor 0.1.2). A clause about another pull
 // request or repository, a change made and undone, a baseline head, a negated list or a failure
 // staged on purpose proposes nothing for it (GRAMMAR, "Attribution").
+//
+// Since extractor 0.1.3 a file list or a merge time after a colon binds to the clause before it, a
+// pull request's own closing keyword or commit beside another issue is kept, and a closing keyword
+// in a parenthetical history or an edit staged to cause a failure is not read.
 
 import { type AdvisoryKind, GRAMMAR } from './grammar.js';
 
@@ -30,11 +34,13 @@ export interface ProposedClaim {
 }
 
 const words = (list: readonly string[]) => new Set<string>(list);
+const phrases = (list: readonly string[]) => list.map((phrase) => phrase.split(' '));
 const V = GRAMMAR.verbs;
 const FILE_VERBS = words(V.file);
 const CLOSE_VERBS = words(V.close);
 const COMMIT_VERBS = words(V.commit);
 const MERGED_VERBS = words(V.merged);
+const IMPLEMENT_VERBS = words(V.implement);
 const RAN_VERBS = words(V.ran);
 const PASS = words(V.pass);
 const FAIL = words(V.fail);
@@ -43,6 +49,7 @@ const ALL_VERBS = words([
   ...V.close,
   ...V.commit,
   ...V.merged,
+  ...V.implement,
   ...V.ran,
   ...V.pass,
   ...V.fail,
@@ -56,7 +63,11 @@ const SUBORDINATORS = words(GRAMMAR.subordinators);
 const CONDITIONALS = words(GRAMMAR.conditionals);
 const NOUN_PREPOSITIONS = words(GRAMMAR.nounPrepositions);
 const CLOSE_FILLERS = words(GRAMMAR.closeFillers);
+const ASIDE_CLOSE_FILLERS = words(GRAMMAR.asideCloseFillers);
 const MERGED_FILLERS = words(GRAMMAR.mergedFillers);
+const MERGE_TIME_LABELS = phrases(GRAMMAR.mergeTimeLabels);
+const FILE_LIST_NOUNS = words(GRAMMAR.fileListNouns);
+const FILE_LIST_SUBJECTS = words(GRAMMAR.fileListSubjects);
 const PREDICATE_FILLERS = words(GRAMMAR.predicateFillers);
 const PASSIVE_FILLERS = words(GRAMMAR.passiveFillers);
 const OBJECT_FILLERS = words(GRAMMAR.objectFillers);
@@ -72,16 +83,17 @@ const TESTS_NOUNS = words(GRAMMAR.testsNouns);
 const EXTENSIONLESS = words(GRAMMAR.extensionlessFiles);
 const HOST_EXTENSIONS = words(GRAMMAR.hostExtensions);
 const LOG_LEVELS = words(GRAMMAR.logLevels);
-const phrases = (list: readonly string[]) => list.map((phrase) => phrase.split(' '));
 const ANALOGUES = phrases(GRAMMAR.analogues);
 const SELF_NAMES = phrases(GRAMMAR.selfNames);
 const REPOSITORY_NOUNS = words(GRAMMAR.repositoryNouns);
 const OWN_REPOSITORY = words(GRAMMAR.ownRepository);
 const PRONOUNS = words(GRAMMAR.pronouns);
 const POSSESSIVES = words(GRAMMAR.possessives);
+const SUBJECT_FILLERS = words(GRAMMAR.subjectFillers);
 const TRANSIENTS = phrases(GRAMMAR.transients);
 const BASELINES = words(GRAMMAR.baselines);
 const NARRATIONS = phrases(GRAMMAR.narrations);
+const STAGINGS = phrases(GRAMMAR.stagings);
 const NARRATION_OPENERS = words(GRAMMAR.narrationOpeners);
 const FINAL_STATES = phrases(GRAMMAR.finalStates);
 // Each closing bracket, and the opening bracket it closes.
@@ -174,6 +186,8 @@ interface Word {
   rawEnd: number;
   // The offset of the innermost bracket still open at the word, or -1.
   bracket: number;
+  // A comma follows the word.
+  comma: boolean;
   atom?: 'code' | 'url';
 }
 
@@ -189,7 +203,8 @@ function makeWord(
 ): Word | undefined {
   const rawEnd = start + raw.length;
   if (atom !== undefined) {
-    return { text: raw, lower: '', start, end: rawEnd, rawEnd, bracket: bracketAt(start), atom };
+    const bracket = bracketAt(start);
+    return { text: raw, lower: '', start, end: rawEnd, rawEnd, bracket, comma: false, atom };
   }
   const lead = LEADING.exec(raw)?.[0].length ?? 0;
   const text = raw.slice(lead).replace(TRAILING, '');
@@ -202,6 +217,7 @@ function makeWord(
     end: begin + text.length,
     rawEnd,
     bracket: bracketAt(begin),
+    comma: raw.slice(lead + text.length).includes(','),
   };
 }
 
@@ -235,17 +251,38 @@ function bracketCursor(prep: Prepared): (offset: number) => number {
   };
 }
 
+// A list item: its marker's column.
+interface Item {
+  column: number;
+}
+
+// A clause as split: its words, whether a colon ended it, and the list item it opens in, if any.
+interface Part {
+  words: Word[];
+  colon: boolean;
+  item: Item | undefined;
+  // The clause is the first of its list item.
+  itemStart: boolean;
+}
+
 // Splits the prepared text into clauses: at . ; : ! ? ending a word, at a blank line, at a list
 // item, heading or table cell, and before a subordinating word. A soft-wrapped line continues its
 // clause. A colon after a closing keyword ("Fixes: #12") does not end it. A clause ending in a
 // question mark asks; it asserts nothing and is dropped.
-function clausesOf(prep: Prepared): Word[][] {
+function clausesOf(prep: Prepared): Part[] {
   const { text, atoms } = prep;
   const bracketAt = bracketCursor(prep);
-  const clauses: Word[][] = [];
+  const clauses: Part[] = [];
   let current: Word[] = [];
-  const flush = (question = false) => {
-    if (current.length > 0 && !question) clauses.push(current);
+  // The list item the text is in: set at a list marker, cleared at a blank line, heading or table.
+  let item: Item | undefined;
+  let fresh = false;
+  let opened: { item: Item | undefined; itemStart: boolean } = {
+    item: undefined,
+    itemStart: false,
+  };
+  const flush = (question = false, colon = false) => {
+    if (current.length > 0 && !question) clauses.push({ words: current, colon, ...opened });
     current = [];
   };
   let blockLine = false;
@@ -265,7 +302,10 @@ function clausesOf(prep: Prepared): Word[][] {
     let back = i;
     while (back > 0 && /[ \t\r]/.test(text[back - 1] as string)) back--;
     const lineStart = back === 0 || text[back - 1] === '\n';
-    if (/\n[ \t\r]*\n/.test(gap)) flush();
+    if (/\n[ \t\r]*\n/.test(gap)) {
+      flush();
+      item = undefined;
+    }
     if (gap.includes('\n')) {
       if (blockLine) flush();
       blockLine = false;
@@ -276,15 +316,28 @@ function clausesOf(prep: Prepared): Word[][] {
       if (marker || /^\|+$/.test(raw)) {
         flush();
         if (lineStart && /^[#|]/.test(raw)) blockLine = true;
+        if (marker && !raw.startsWith('#')) {
+          item = { column: i - (text.lastIndexOf('\n', i - 1) + 1) };
+          fresh = true;
+        } else {
+          item = undefined;
+        }
         gapStart = end;
         i = end;
         continue;
       }
-      if (lineStart && raw.startsWith('|')) blockLine = true;
+      if (lineStart && raw.startsWith('|')) {
+        blockLine = true;
+        item = undefined;
+      }
     }
     const word = makeWord(raw, i, atom?.kind, bracketAt);
     if (word !== undefined) {
       if (current.length > 0 && SUBORDINATORS.has(word.lower)) flush();
+      if (current.length === 0) {
+        opened = { item, itemStart: fresh };
+        fresh = false;
+      }
       current.push(word);
     }
     if (atom === undefined) {
@@ -293,7 +346,7 @@ function clausesOf(prep: Prepared): Word[][] {
         /[.;:!?]/.test(stop) &&
         !(stop === ':' && word !== undefined && CLOSE_VERBS.has(word.lower))
       ) {
-        flush(stop === '?');
+        flush(stop === '?', stop === ':');
       }
     }
     gapStart = end;
@@ -371,6 +424,12 @@ class Clause {
   readonly tokens: Token[];
   // The clause narrates a failure staged on purpose (GRAMMAR.narrations).
   narrated = false;
+  // ...by an edit made to cause it, so its paths are not this pull request's (GRAMMAR.stagings).
+  staged = false;
+  // The clause before ended in a colon and heads what this clause lists (0.1.3): a file list
+  // (GRAMMAR.fileListNouns) or a merge time (GRAMMAR.mergeTimeLabels).
+  fileList: Via | undefined;
+  mergeTime: Via | undefined;
   constructor(readonly words: Word[]) {
     this.tokens = words.map(classify);
   }
@@ -466,7 +525,21 @@ function clauseText(report: string, words: Word[]): string {
   return text.length > 300 ? `${text.slice(0, 299)}…` : text;
 }
 
-type Emit = (kind: AdvisoryKind, value: ProposedClaim['value'], verb: number, span: Span) => void;
+// A claim bound across a colon (0.1.3): the verb, from the clause on the other side, and the words
+// the claim's clause runs from and to.
+interface Via {
+  verb: string;
+  from: Word;
+  to: Word;
+}
+
+type Emit = (
+  kind: AdvisoryKind,
+  value: ProposedClaim['value'],
+  verb: number,
+  span: Span,
+  via?: Via,
+) => void;
 
 function bindPath(c: Clause, j: number, value: string, emit: Emit): void {
   // A path in a command ("node scripts/build.mjs", "--config tsconfig.json") is not a file claim.
@@ -478,7 +551,7 @@ function bindPath(c: Clause, j: number, value: string, emit: Emit): void {
   const span = { start: word.start, end: word.end };
   // A denied passive denies the path whatever stands before it: "and src/b.ts was not touched".
   const passive = passiveAt(c, j);
-  if (passive === -1) return;
+  if (passive === -1 || c.staged) return;
   const k = c.leftVerb(j, 'path');
   if (c.binds(k, FILE_VERBS)) {
     emit('file_changed', value, k, span);
@@ -486,7 +559,58 @@ function bindPath(c: Clause, j: number, value: string, emit: Emit): void {
   }
   // The passive: "src/a.ts was updated". A negation before the list the path ends covers every path
   // in it: "none of a.sh, b.sh were touched".
-  if (passive !== undefined && !negatedList(c, j)) emit('file_changed', value, passive, span);
+  if (passive !== undefined) {
+    if (!negatedList(c, j)) emit('file_changed', value, passive, span);
+    return;
+  }
+  // A list after a colon binds to the verb of the clause that heads it: "Files changed: a.ts".
+  if (c.fileList !== undefined && listed(c, j, c.fileList)) {
+    emit('file_changed', value, -1, span, c.fileList);
+  }
+}
+
+// The path at j is in the list a file-list head introduces: the clause holds no verb, negation or
+// modal of its own, and the scan left from the path reaches the clause's start with no bracket
+// opened since the head, no analogue, and within the window.
+function listed(c: Clause, j: number, head: Via): boolean {
+  for (let k = 0; k < c.words.length; k++) {
+    if (c.isVerb(k) || c.isNegation(k) || c.isModal(k)) return false;
+  }
+  if ((c.words[j] as Word).bracket >= head.from.start) return false;
+  let distance = 0;
+  for (let k = j - 1; k >= 0; k--) {
+    if (c.analogue(k, j)) return false;
+    if (c.tokens[k]?.cls !== 'path' && ++distance > WINDOW) return false;
+  }
+  return true;
+}
+
+// The asserting file verb of a clause that heads a file list (GRAMMAR.fileListNouns), or undefined:
+// "Files changed", "the files I changed" (the verb after the noun, with only `passiveFillers` and
+// `fileListSubjects` between)
+// or "Changed the following files" (the noun's nearest verb to its left, within the window, with no
+// negation, modal or noun preposition between). A verb after "be" is a plan: "files to be changed".
+function fileListVerb(c: Clause): number | undefined {
+  const head = (k: number) =>
+    FILE_VERBS.has(c.lower(k)) && c.asserting(k) && c.lower(k - 1) !== 'be';
+  for (let n = 0; n < c.words.length; n++) {
+    if (!FILE_LIST_NOUNS.has(c.lower(n))) continue;
+    for (let r = n + 1; r < c.words.length; r++) {
+      if (c.isVerb(r)) {
+        if (head(r)) return r;
+        break;
+      }
+      if (!PASSIVE_FILLERS.has(c.lower(r)) && !FILE_LIST_SUBJECTS.has(c.lower(r))) break;
+    }
+    for (let k = n - 1; k >= 0 && n - k <= WINDOW; k--) {
+      if (c.isVerb(k)) {
+        if (head(k)) return k;
+        break;
+      }
+      if (c.isNegation(k) || c.isModal(k) || NOUN_PREPOSITIONS.has(c.lower(k))) break;
+    }
+  }
+  return undefined;
 }
 
 // The participle of a passive after the path at j, with one or more `passiveFillers` between: its
@@ -530,26 +654,66 @@ function closingVerb(c: Clause, j: number): number | undefined {
 
 function bindIssue(c: Clause, j: number, value: string, emit: Emit): void {
   const k = closingVerb(c, j);
-  if (k !== undefined && c.asserting(k)) emit('reference_closes', value, k, c.words[j] as Word);
+  if (k !== undefined && c.asserting(k) && !history(c, k)) {
+    emit('reference_closes', value, k, c.words[j] as Word);
+  }
 }
 
-// The first word of the clause that names another pull request or repository, or -1: an issue
-// (or its possessive, "#10's") that no closing keyword binds and that is not this pull request's
-// own, or a repository noun with no `ownRepository` word directly before it.
-function elsewhereAt(c: Clause): number {
+// The closing keyword at k is inside a bracket still open at it, after a word that is not in
+// `asideCloseFillers`: the aside narrates history, "(the earlier fix closed #12 and #13)".
+function history(c: Clause, k: number): boolean {
+  const bracket = (c.words[k] as Word).bracket;
+  if (bracket < 0) return false;
+  for (let m = k - 1; m >= 0 && (c.words[m] as Word).start > bracket; m--) {
+    if (!ASIDE_CLOSE_FILLERS.has(c.lower(m))) return true;
+  }
+  return false;
+}
+
+// What in the clause names another pull request or repository: an issue (or its possessive,
+// "#10's") that no closing keyword binds and that is not this pull request's own, or a repository
+// noun with no `ownRepository` word directly before it. `at` is the first such word, or -1.
+interface Elsewhere {
+  at: number;
+  issues: number[];
+  repository: boolean;
+}
+
+const POSSESSIVE = /['’]s$/;
+
+function elsewhereOf(c: Clause): Elsewhere {
+  const found: Elsewhere = { at: -1, issues: [], repository: false };
   for (let j = 0; j < c.words.length; j++) {
     const word = c.words[j] as Word;
     const issue =
       c.tokens[j]?.cls === 'issue' ||
-      (word.atom === undefined && ISSUE.test(word.text.replace(/['’]s$/, '')));
+      (word.atom === undefined && ISSUE.test(word.text.replace(POSSESSIVE, '')));
     if (issue) {
       const own = SELF_NAMES.some((p) => p.length <= j && c.phraseAt(j - p.length, [p]));
-      if (!own && closingVerb(c, j) === undefined) return j;
+      if (own || closingVerb(c, j) !== undefined) continue;
+      found.issues.push(j);
     } else if (REPOSITORY_NOUNS.has(c.lower(j)) && j > 0 && !OWN_REPOSITORY.has(c.lower(j - 1))) {
-      return j;
+      found.repository = true;
+    } else {
+      continue;
     }
+    if (found.at < 0) found.at = j;
   }
-  return -1;
+  return found;
+}
+
+// The issue reference at r is the subject of the verb at k (0.1.3): a possessive before the verb
+// ("#10's fix landed in commit …"), or a reference directly before it, with only `subjectFillers`
+// between and no comma after either ("PR #10 closes #12", "#10 was pushed as …").
+function subjectOf(c: Clause, r: number, k: number): boolean {
+  if (r >= k) return false;
+  if (POSSESSIVE.test((c.words[r] as Word).text)) return true;
+  for (let m = r; m < k; m++) {
+    const word = c.words[m] as Word;
+    if (m > r && !SUBJECT_FILLERS.has(word.lower)) return false;
+    if (word.comma) return false;
+  }
+  return true;
 }
 
 // A word before j that makes a SHA a baseline or an earlier head.
@@ -578,7 +742,10 @@ function bindSha(c: Clause, j: number, value: string, emit: Emit): void {
   const verb = c.lower(k);
   const afterNoun =
     COMMIT_NOUNS.has(c.lower(j - 1)) &&
-    (FILE_VERBS.has(verb) || CLOSE_VERBS.has(verb) || MERGED_VERBS.has(verb));
+    (FILE_VERBS.has(verb) ||
+      CLOSE_VERBS.has(verb) ||
+      MERGED_VERBS.has(verb) ||
+      IMPLEMENT_VERBS.has(verb));
   if (COMMIT_VERBS.has(verb) || afterNoun) emit('commit', value, k, span);
 }
 
@@ -591,6 +758,35 @@ function bindTimestamp(c: Clause, j: number, value: string, emit: Emit): void {
     }
     if (!MERGED_FILLERS.has(l)) return;
   }
+  // The timestamp opens a clause after "Merged at:" or "Merge time:" (0.1.3).
+  if (j === 0 && c.mergeTime !== undefined) {
+    emit('merged_at', value, -1, c.words[j] as Word, c.mergeTime);
+  }
+}
+
+// A clause that ends in a colon and states the merge time (0.1.3): `merged` asserting, with only
+// `mergedFillers` after it ("Merged at:", "It was merged on main at:"), or one of `mergeTimeLabels`
+// and nothing else ("Merge time:"). The verb, or undefined.
+function mergeTimeHead(c: Clause): string | undefined {
+  let k = c.words.length - 1;
+  while (k >= 0 && MERGED_FILLERS.has(c.lower(k))) k--;
+  if (MERGED_VERBS.has(c.lower(k)) && c.asserting(k) && c.lower(k - 1) !== 'be') return c.lower(k);
+  const label = MERGE_TIME_LABELS.find((p) => p.length === c.words.length && c.phraseAt(0, [p]));
+  return label?.[0];
+}
+
+// A clause that is a timestamp alone, after only `mergedFillers`, ending in a colon, followed on its
+// line by a clause that opens with `merged`, after only `mergedFillers` (0.1.3): "At
+// 2026-10-01T12:00:00Z: merged into main." The index of `merged` in that clause, or undefined.
+function mergedAfter(c: Clause, next: Clause): number | undefined {
+  const last = c.words.length - 1;
+  if (c.tokens[last]?.cls !== 'timestamp') return undefined;
+  for (let k = 0; k < last; k++) if (!MERGED_FILLERS.has(c.lower(k))) return undefined;
+  for (let k = 0; k < next.words.length; k++) {
+    if (MERGED_VERBS.has(next.lower(k))) return next.asserting(k) ? k : undefined;
+    if (!MERGED_FILLERS.has(next.lower(k))) return undefined;
+  }
+  return undefined;
 }
 
 // A subject (CI, checks, tests) and the predicate after it: "all 42 tests pass", "CI is green".
@@ -693,43 +889,119 @@ function openedByNarration(prep: Prepared, words: Word[], next: Word[] | undefin
   );
 }
 
+// The clause after `words` starts on the same line.
+function sameLine(prep: Prepared, words: Word[], next: Word[]): boolean {
+  const last = words[words.length - 1] as Word;
+  return !prep.text.slice(last.rawEnd, (next[0] as Word).start).includes('\n');
+}
+
 export function extractClaims(report: string): ProposedClaim[] {
   const out: ProposedClaim[] = [];
   const seen = new Set<string>();
   const prep = prepare(report);
-  const clauses = clausesOf(prep);
+  const parts = clausesOf(prep);
+  const clauses = parts.map((part) => new Clause(part.words));
   // The clause before was about another pull request or repository.
   let elsewhereBefore = false;
-  clauses.forEach((words, n) => {
-    const c = new Clause(words);
+  // The last clause that headed a file list, while the clauses after it continue that list: the
+  // clause on the same line after its colon, or the list items that follow it on the next lines,
+  // nested under it if it is a list item itself.
+  let head: { at: number; via: Via; item: Item | undefined; block: boolean } | undefined;
+  parts.forEach((part, n) => {
+    const { words } = part;
+    const c = clauses[n] as Clause;
+    const before = parts[n - 1];
+    if (head !== undefined) {
+      const nested =
+        part.item !== undefined && (head.item === undefined || part.item.column > head.item.column);
+      if (n === head.at + 1 && sameLine(prep, before?.words ?? [], words)) {
+        c.fileList = { ...head.via, to: words[words.length - 1] as Word };
+      } else if (nested && (head.block || (n === head.at + 1 && part.itemStart))) {
+        head.block = true;
+        c.fileList = { ...head.via, to: words[words.length - 1] as Word };
+      } else {
+        head = undefined;
+      }
+    }
     // From the word at `elsewhere` on, the clause is about another pull request or repository. A
     // subject pronoun or a possessive carries that over from the clause before: "Its head is …".
-    let elsewhere = elsewhereAt(c);
+    const other = elsewhereOf(c);
+    let elsewhere = other.at;
     const refers = PRONOUNS.has(c.lower(0)) || words.some((w) => POSSESSIVES.has(w.lower));
-    if (elsewhere < 0 && elsewhereBefore && refers) elsewhere = 0;
+    const carried = elsewhere < 0 && elsewhereBefore && refers;
+    if (carried) elsewhere = 0;
     elsewhereBefore = elsewhere >= 0;
     // A conditional clause ("if tests pass") asserts nothing, and neither does a change made and
     // undone ("temporarily removed …").
     if (CONDITIONALS.has(c.lower(0)) || c.holds(TRANSIENTS)) return;
+    const firstFail = words.findIndex((w) => FAIL.has(w.lower));
     c.narrated =
-      words.some((w) => FAIL.has(w.lower)) &&
-      (c.holds(NARRATIONS) || openedByNarration(prep, words, clauses[n + 1]));
+      firstFail >= 0 &&
+      (c.holds(NARRATIONS) || openedByNarration(prep, words, parts[n + 1]?.words));
+    c.staged = c.narrated && c.holds(STAGINGS, 0, firstFail);
+    const own = elsewhere < 0;
+    // A clause before a colon that heads a file list or states the merge time (0.1.3).
+    const next = parts[n + 1];
+    if (part.colon && own && next !== undefined) {
+      const k = fileListVerb(c);
+      if (k !== undefined && !c.staged) {
+        head = {
+          at: n,
+          via: { verb: c.lower(k), from: words[0] as Word, to: words[0] as Word },
+          item: part.item,
+          block: false,
+        };
+      }
+      const merged = mergeTimeHead(c);
+      if (merged !== undefined && sameLine(prep, words, next.words)) {
+        (clauses[n + 1] as Clause).mergeTime = {
+          verb: merged,
+          from: words[0] as Word,
+          to: next.words[next.words.length - 1] as Word,
+        };
+      }
+    }
     const clause = clauseText(report, words);
-    const emit: Emit = (kind, value, verb, span) => {
+    const emit: Emit = (kind, value, verb, span, via) => {
       // Nothing in the clause is this pull request's, but a closing keyword before the other
-      // reference: "Closes #12, a follow-up to #10".
-      if (elsewhere >= 0 && !(kind === 'reference_closes' && verb < elsewhere)) return;
+      // reference ("Closes #12, a follow-up to #10"), and since 0.1.3 a closing keyword or a commit
+      // whose subject is no other issue or pull request ("Builds on #10 and closes #12").
+      if (elsewhere >= 0) {
+        const before = kind === 'reference_closes' && verb >= 0 && verb < elsewhere;
+        const ownVerb =
+          (kind === 'reference_closes' || kind === 'commit') &&
+          verb >= 0 &&
+          !carried &&
+          !other.repository &&
+          !other.issues.some((r) => subjectOf(c, r, verb));
+        if (!before && !ownVerb) return;
+      }
       const key = `${kind}\u0000${JSON.stringify(value)}`;
       if (seen.has(key)) return;
       seen.add(key);
       out.push({
-        clause,
-        verb: c.lower(verb),
+        clause: via === undefined ? clause : clauseText(report, [via.from, via.to]),
+        verb: via === undefined ? c.lower(verb) : via.verb,
         kind,
         value,
         span: { start: span.start, end: span.end },
       });
     };
+    // A timestamp alone before a colon, and `merged` after it (0.1.3).
+    if (part.colon && own && next !== undefined && sameLine(prep, words, next.words)) {
+      const after = clauses[n + 1] as Clause;
+      const k = mergedAfter(c, after);
+      const ownNext =
+        elsewhereOf(after).at < 0 && !after.holds(TRANSIENTS) && !CONDITIONALS.has(after.lower(0));
+      const stamp = c.tokens[words.length - 1];
+      if (k !== undefined && ownNext && stamp?.cls === 'timestamp') {
+        emit('merged_at', stamp.value, -1, words[words.length - 1] as Word, {
+          verb: after.lower(k),
+          from: words[0] as Word,
+          to: next.words[next.words.length - 1] as Word,
+        });
+      }
+    }
     c.tokens.forEach((token, j) => {
       switch (token.cls) {
         case 'path':

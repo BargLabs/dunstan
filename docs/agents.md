@@ -101,7 +101,7 @@ with two choices, declare it in the block or reword it if it is not a claim abou
   written to a record. It exits 0 whatever it finds; only a report that cannot be read exits 3.
 - It runs offline and needs no pull request.
 - The output is labelled with the extractor's version and its measured precision, read from the
-  published figures. The extractor that runs, 0.1.2, has not been measured, so the label says
+  published figures. The extractor that runs, 0.1.3, has not been measured, so the label says
   "precision unmeasured".
 - An empty list is not a check of the prose. The extractor proposes only the claims its grammar
   binds, and misses many; the author still reads their own report.
@@ -131,7 +131,7 @@ Moved the retry logic into src/net/retry.ts and updated docs/usage.md. Fixes #12
 `dunstan suggest --report-file report.md` prints:
 
 ~~~text
-suggestions from the prose extractor (0.1.2, precision unmeasured)
+suggestions from the prose extractor (0.1.3, precision unmeasured)
 Not a verdict: nothing here passes or fails, and nothing is written to a record.
 block: found
 

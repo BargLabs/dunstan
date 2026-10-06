@@ -26,7 +26,7 @@ const PROSE = 'Updated src/a.ts and docs/guide.md. Fixes #12. All 42 tests pass.
 const REPORT = `${PROSE}${fence(BLOCK)}`;
 
 const HEADER = [
-  'suggestions from the prose extractor (0.1.2, precision unmeasured)',
+  'suggestions from the prose extractor (0.1.3, precision unmeasured)',
   'Not a verdict: nothing here passes or fails, and nothing is written to a record.',
 ];
 const NONE =

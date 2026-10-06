@@ -350,10 +350,15 @@ describe('still a claim beside the aside and analogue rules (extractor 0.1.1)', 
     expect(claims(text)).toEqual(paths.map((value) => ({ kind: 'file_changed', value })));
   });
 
-  // "following" is not a barrier. The colon after it ends the clause, as every colon has since
-  // 0.1.0, so the list after it has no verb; 0.1.1 does not change where clauses end.
-  it('"the following files:" ends its clause at the colon', () => {
-    expect(claims('Changed the following files: `src/a.ts`, `src/b.ts`.')).toEqual([]);
+  // "following" is not a barrier. The colon after it still ends the clause, as every colon has
+  // since 0.1.0. Through 0.1.2 the list after it had no verb and this test pinned []; since 0.1.3 a
+  // list after a colon binds to the verb of a clause that heads a file list, so both paths bind
+  // ("a file list after a colon", below).
+  it('"the following files:" heads the list after the colon (0.1.3)', () => {
+    expect(claims('Changed the following files: `src/a.ts`, `src/b.ts`.')).toEqual([
+      { kind: 'file_changed', value: 'src/a.ts' },
+      { kind: 'file_changed', value: 'src/b.ts' },
+    ]);
   });
 
   it('binds a SHA in a parenthesis as before: the rules are for paths', () => {
@@ -565,6 +570,275 @@ describe('still a claim beside the attribution rules (0.1.2)', () => {
       { kind: 'tests_passed', value: true },
       { kind: 'test_count', value: 40 },
       { kind: 'checks_succeeded', value: true },
+    ]);
+  });
+});
+
+// Extractor 0.1.3. Each block below pins one rule of docs/advisory.md, "Lists, merge times and own
+// references". The sentences are synthetic: written for the shape of each rule, with placeholder
+// paths, references, SHAs and times, none taken from a report. For the rules that add a claim
+// (rules 1 to 3) extractor 0.1.2 proposed none of the claims each positive here expects; for the
+// rules that drop one (rules 4 and 5) it proposed the claim each negative here drops.
+const files = (...paths: string[]) => paths.map((value) => ({ kind: 'file_changed', value }));
+const T = '2026-10-01T12:00:00Z';
+
+describe('a file list after a colon (0.1.3)', () => {
+  it.each([
+    ['Files changed: src/a.ts, src/b.ts', ['src/a.ts', 'src/b.ts']],
+    ['Files changed: `src/a.ts` and `src/b.ts`.', ['src/a.ts', 'src/b.ts']],
+    ['Modified files: src/a.ts, docs/guide.md', ['src/a.ts', 'docs/guide.md']],
+    [
+      'I updated three files: src/a.ts, src/b.ts and src/c.ts.',
+      ['src/a.ts', 'src/b.ts', 'src/c.ts'],
+    ],
+    ['Here are the files I changed: `Makefile`, `package.json`.', ['Makefile', 'package.json']],
+    ['The files we have touched: src/a.ts', ['src/a.ts']],
+    ['**Files changed:** `src/a.ts`, `src/b.ts`', ['src/a.ts', 'src/b.ts']],
+    ['Files changed (2): src/a.ts', ['src/a.ts']],
+  ])('on the same line: %s', (text, paths) => {
+    expect(claims(text)).toEqual(files(...paths));
+  });
+
+  it.each([
+    [
+      'a list',
+      'Files changed:\n- `src/a.ts`\n- `src/b.ts`\n\nTests pass.',
+      ['src/a.ts', 'src/b.ts'],
+    ],
+    [
+      'a blank line first',
+      '## Summary\n\nFiles changed:\n\n1. src/a.ts\n2. src/b.ts',
+      ['src/a.ts', 'src/b.ts'],
+    ],
+    [
+      'a note after each path',
+      'Files changed:\n- `src/a.ts`: the parser\n- `src/b.ts`: its tests',
+      ['src/a.ts', 'src/b.ts'],
+    ],
+    [
+      'nested under a list item',
+      '- Files changed:\n  - src/a.ts\n  - src/b.ts\n- docs/guide.md is next.',
+      ['src/a.ts', 'src/b.ts'],
+    ],
+    ['until a paragraph', 'Files changed:\n- src/a.ts\n\nSee also:\n- src/b.ts', ['src/a.ts']],
+  ])('on the lines after, as list items: %s', (_, text, paths) => {
+    const found = extractClaims(text).filter((c) => c.kind === 'file_changed');
+    expect(found.map((c) => c.value)).toEqual(paths);
+  });
+
+  it("records the head's verb, and the clause from the head to the list", () => {
+    const [a, b] = extractClaims('Files changed: src/a.ts.\n\nFiles touched:\n- src/b.ts');
+    expect(a).toMatchObject({ verb: 'changed', clause: 'Files changed: src/a.ts.' });
+    expect(b).toMatchObject({ verb: 'touched', clause: 'Files touched: - src/b.ts' });
+  });
+
+  // The head needs an asserting file verb and a noun in `fileListNouns`, about this pull request;
+  // the list needs no verb, negation or modal of its own. These bind nothing.
+  it.each([
+    'Files: src/a.ts, src/b.ts',
+    'Updated the docs: docs/a.md',
+    'Read the following files: src/a.ts, src/b.ts',
+    'Files to be changed: src/a.ts, src/b.ts',
+    'Files I did not change: src/a.ts',
+    'Files I will update: src/a.ts',
+    'No files changed: src/a.ts is the same.',
+    'If you changed files: src/a.ts',
+    'Temporarily changed files: src/a.ts',
+    'Files changed by #10: src/a.ts, src/b.ts',
+    'Files changed in the docs repo: docs/a.md',
+    'Added tests for the following files: src/a.ts, src/b.ts',
+    'Files changed: none of src/a.ts, src/b.ts',
+    'Files changed: src/a.ts was not touched',
+    'Files changed: pnpm exec tsc --project tsconfig.json',
+    'Files changed: 3 (src/a.ts, src/b.ts, src/c.ts)',
+    'Files changed:\n\nThe parser lives in src/a.ts.',
+    'Files changed: src/a.ts, then reverted.',
+  ])('%s', (text) => {
+    expect(claims(text)).toEqual([]);
+  });
+
+  it('an analogue in the list stops the paths after it, as in a clause', () => {
+    expect(claims('Files changed: src/a.ts, mirroring src/b.ts')).toEqual(files('src/a.ts'));
+  });
+
+  it('a list with a verb of its own binds as before', () => {
+    expect(claims('Files changed: I updated src/a.ts.')).toEqual(files('src/a.ts'));
+  });
+
+  it('a sibling list item after a nested list is not in it', () => {
+    expect(claims('- Files changed:\n  - src/a.ts\n- `docs/guide.md`')).toEqual(files('src/a.ts'));
+  });
+});
+
+describe('a merge time across a colon (0.1.3)', () => {
+  it.each([
+    `Merged at: ${T}`,
+    `Merged: ${T}`,
+    `**Merged at:** \`${T}\``,
+    `It was merged into main at: ${T}.`,
+    `Merge time: ${T}`,
+    `At ${T}: merged into main.`,
+    `\`${T}\`: merged.`,
+  ])('%s', (text) => {
+    expect(claims(text)).toEqual([{ kind: 'merged_at', value: T }]);
+  });
+
+  it('a colon after the timestamp, with "merged" before it, bound as in 0.1.2', () => {
+    expect(claims(`Merged at ${T}: the release is out.`)).toEqual([
+      { kind: 'merged_at', value: T },
+    ]);
+  });
+
+  it('records the verb and both clauses', () => {
+    expect(extractClaims(`At ${T}: merged into main.`)[0]).toMatchObject({
+      verb: 'merged',
+      clause: `At ${T}: merged into main.`,
+    });
+  });
+
+  it.each([
+    `PR #10 merged at: ${T}`,
+    `Will be merged at: ${T}`,
+    `To be merged at: ${T}`,
+    `Not merged: ${T}`,
+    `Expected merge time: ${T}`,
+    `Deployed at ${T}: merged later.`,
+    `At ${T}: PR #10 merged.`,
+    `At ${T}: will be merged.`,
+    `Merged at: ${T} (PR #10).`,
+    `Merged at: soon, ${T}`,
+    // A line that opens with a timestamp is a log line and is not read.
+    `Merged at:\n${T}`,
+  ])('%s', (text) => {
+    expect(claims(text)).toEqual([]);
+  });
+});
+
+describe("this pull request's own closing keyword or commit beside another reference (0.1.3)", () => {
+  it.each([
+    ['Builds on #10 and closes #12.', 'reference_closes', '#12'],
+    ['As discussed in #10, this closes #12.', 'reference_closes', '#12'],
+    ['Follows up #10 and fixes #12.', 'reference_closes', '#12'],
+    ['Implemented in commit abc1234f.', 'commit', 'abc1234f'],
+    ['Implemented the retry in commit abc1234f.', 'commit', 'abc1234f'],
+    ['This implements the parser from #10 in commit abc1234f.', 'commit', 'abc1234f'],
+    ['Cherry-picked the fix from #10 in commit abc1234f.', 'commit', 'abc1234f'],
+    ['Ported the guard from #10 and pushed abc1234f.', 'commit', 'abc1234f'],
+    ['Pushed abc1234f on top of #10.', 'commit', 'abc1234f'],
+  ])('%s', (text, kind, value) => {
+    expect(claims(text)).toEqual([{ kind, value }]);
+  });
+
+  // The other reference is the verb's subject, or the clause is another repository's or carries
+  // another pull request over from the clause before.
+  it.each([
+    'PR #10 closes #12.',
+    '#10 also closes #12.',
+    'The fix in #10 closes #12.',
+    'PR #10 was pushed as abc1234f.',
+    '#10 implemented it in commit abc1234f.',
+    "#10's fix landed in commit abc1234f.",
+    "PR #10's head is abc1234f.",
+    'PR #10 was merged. It closes #12.',
+    'Pushed abc1234f to the docs repo.',
+    'In the docs repo, I pushed abc1234f.',
+    'Implemented abc1234f.',
+  ])('%s', (text) => {
+    expect(claims(text)).toEqual([]);
+  });
+
+  it("only a closing keyword or a commit: the rest of the clause is still the other reference's", () => {
+    expect(claims('Builds on #10, updates src/a.ts and closes #12.')).toEqual([
+      { kind: 'reference_closes', value: '#12' },
+    ]);
+  });
+});
+
+describe('a closing keyword in a parenthetical history (0.1.3)', () => {
+  it.each([
+    ['This adds the retry (the earlier fix closed #12 and #13).', []],
+    ['Adds the retry [the previous attempt resolved #12].', []],
+    ['Closes #12 (the earlier fix closed #10).', ['#12']],
+  ])('%s', (text, refs) => {
+    expect(claims(text)).toEqual(refs.map((value) => ({ kind: 'reference_closes', value })));
+  });
+
+  it.each([
+    ['This adds the retry (closes #12).', ['#12']],
+    ['This adds the retry (this PR also fixes #12).', ['#12']],
+    ['Fixes (#12).', ['#12']],
+    ['Closes #12 (and #13).', ['#12', '#13']],
+  ])('a keyword that opens the bracket still binds: %s', (text, refs) => {
+    expect(claims(text)).toEqual(refs.map((value) => ({ kind: 'reference_closes', value })));
+  });
+});
+
+describe('a failure narrated by design, and the edit that staged it (0.1.3)', () => {
+  it.each([
+    'The checks fail by design.',
+    'The new tests fail by design.',
+    'Deliberately removed the guard from src/guard.ts so the tests fail.',
+    'Changed src/a.ts on purpose to make the tests fail.',
+    'The mutation removed the check in src/a.ts and the tests fail.',
+  ])('%s', (text) => {
+    expect(claims(text)).toEqual([]);
+  });
+
+  // A staging phrase after the fail predicate describes the failure, not the edit; a file claim with
+  // no fail predicate, or one beside a narration that is not a staging, is read as before.
+  it.each([
+    ['Updated src/a.test.ts so the new case fails by design.', 'src/a.test.ts'],
+    ['Removed src/legacy.ts by design.', 'src/legacy.ts'],
+    ['Intentionally changed src/a.ts.', 'src/a.ts'],
+    ['Added src/a.test.ts, and the new tests fail as expected without the fix.', 'src/a.test.ts'],
+  ])('%s', (text, path) => {
+    expect(claims(text)).toEqual(files(path));
+  });
+
+  it('a pass with a final state is still proposed', () => {
+    expect(claims('The new tests are red by design without the guard, green with it.')).toEqual([
+      { kind: 'tests_passed', value: true },
+    ]);
+  });
+});
+
+// The cost of the 0.1.3 rules (docs/advisory.md, "Lists, merge times and own references"): claims a
+// writer meant for this pull request that 0.1.2 read and 0.1.3 does not.
+describe('not read since 0.1.3, even where it was meant', () => {
+  it.each([
+    // `implemented` is a verb now, and binds no path.
+    'Updated the parser and implemented the cache in src/cache.ts.',
+    // A closing keyword after any word but `asideCloseFillers` in a bracket.
+    'This adds the retry (previously fixed #12, now closes #13).',
+    'This adds the retry (this change closes #12).',
+    // A staging phrase before the fail predicate drops the clause's paths.
+    'Added a regression test to src/a.test.ts on purpose, so the build fails without the fix.',
+  ])('%s', (text) => {
+    expect(claims(text)).toEqual([]);
+  });
+});
+
+describe('still a claim beside the 0.1.3 rules', () => {
+  it('reads a report with a file list, a merge time and its own references', () => {
+    const text = [
+      'Builds on #10 and closes #12.',
+      '',
+      'Files changed:',
+      '- `src/a.ts`',
+      '- `src/b.ts`',
+      '',
+      `Merged at: ${T}`,
+      '',
+      'Implemented in commit 5c4b3a2f. All 40 tests pass.',
+    ].join('\n');
+    expect(claims(text)).toEqual([
+      { kind: 'reference_closes', value: '#12' },
+      { kind: 'file_changed', value: 'src/a.ts' },
+      { kind: 'file_changed', value: 'src/b.ts' },
+      { kind: 'merged_at', value: T },
+      { kind: 'commit', value: '5c4b3a2f' },
+      { kind: 'tests_passed', value: true },
+      { kind: 'test_count', value: 40 },
     ]);
   });
 });

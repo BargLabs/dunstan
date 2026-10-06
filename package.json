@@ -1,6 +1,6 @@
 {
   "name": "dunstan",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "mcpName": "io.github.BargLabs/dunstan",
   "private": true,
   "description": "Holds a coding agent's completion report to the record: deterministic checks of a declared handback block against the repository's own metadata.",

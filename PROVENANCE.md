@@ -21,12 +21,19 @@ an auditor on request. This repository makes no stronger claim than that.
 ## Records
 
 A record's `checker.digest` is the SHA-256 of the `dist/dunstan.mjs` that wrote it (spec section
-9.3).
+9.3). A record is verified by the checker version that wrote it (spec section 12), so each row gives
+the build to verify it with.
 
-| Records | `checker.digest` | Built from |
-|---|---|---|
-| `demo/2026-10/*/rerun-v0.1.1-2026-10-06/record.json` | `9bbd685b8adbb1cf11beaad7dc294150e30775f50c3c3a2468f596deca7f38e4` | tag `v0.1.1`: `pnpm install --frozen-lockfile && pnpm build` there reproduces this digest |
-| `spec/examples/records/*.json` | `73a50031c8bdf06b0bd96062386dc3347ad18d6b3c458c4dae123efd6e6c044a` | nothing: these records are illustrative and this digest is a placeholder (spec section 15) |
+| Records | Checker | `checker.digest` | Built from |
+|---|---|---|---|
+| `demo/2026-10/*/rerun-v0.1.1-2026-10-06/record.json` | 0.1.1 | `9bbd685b8adbb1cf11beaad7dc294150e30775f50c3c3a2468f596deca7f38e4` | tag `v0.1.1`: `pnpm install --frozen-lockfile && pnpm build` there reproduces this digest |
+| `spec/examples/records/*.json` | 0.1.2 | `73a50031c8bdf06b0bd96062386dc3347ad18d6b3c458c4dae123efd6e6c044a` | nothing: these records are illustrative and this digest is a placeholder (spec section 15) |
+
+The demo's `rerun-v0.1.1-2026-10-06` records carry checker 0.1.1 and digest `9bbd685b…`. That digest
+is reproduced by `pnpm build` at the tag `v0.1.1`, not at the current head of this repository, which
+builds checker 0.1.2 and another bundle. Verify them with the `v0.1.1` build: checker 0.1.2 refuses
+a record that checker 0.1.1 wrote, as spec section 12 requires. The spec examples are recomputed by
+the checker the current head builds, and carry its version.
 
 ### Development-build records
 
@@ -45,7 +52,8 @@ reproduced from this repository's tags.
 | `demo/2026-10/5-QuantEcon-QuantEcon.py-798/record.json` | 0.1.0 | `8ae2ac4f96ccf814cfb914e475d936e658c49549557ba656020af76d5f31fe10` | `eddda325652d9d4016b0e600b14892160ede27c0` | 2026-10-04 | `9efa60de45eaf05dec7e41fe6c44e5ce1e1ab101667706ef09b095eb0072e237` |
 
 `src/__tests__/provenance.test.ts` fails if a record under `demo/` or `spec/examples/` carries a
-`checker.digest` these tables do not give for it, or if a development-build record's bytes change.
+`checker.digest` or checker version these tables do not give for it, if a tag's row names another
+version than the tag's, or if a development-build record's bytes change.
 
 ## Going forward
 

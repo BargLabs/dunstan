@@ -56,6 +56,16 @@ publish".
 3. **Order.** Identifier matches come first, then lexical matches by score descending. Ties break by
    record order, then by id (code-unit order).
 4. **The floor.** `BM25_FLOOR = 1`. Nothing below it is a candidate.
+5. **Filling to k (opt-in, measurement only).** With `fill: 'to-k'` and a `limit` of k, the places
+   left below k after steps 1 to 4 are filled with the next items of the allowed types by BM25
+   score, below the floor too, ties by record order then id, so the list holds min(k, pool) items.
+   The head of the list is the unfilled list, unchanged; a filled candidate is one whose score is
+   below the floor. The default does not fill, and no record carries filled candidates:
+   `readReaderClaim` never fills. For `file_changed`, `commit_present` and
+   `reference_in_timeline` a filled candidate cannot make a claim pass, since the declared item has
+   to be among the candidates and an item the claim names is an identifier match. For
+   `check_succeeded` and `test_passed` it could, because they aggregate over the candidates (spec
+   D.10, question 4), so filling would need that question settled before it reached a record.
 
 ### The floor, and why 1
 
@@ -117,7 +127,7 @@ Kinds and their checks are listed in the DRAFT section of the spec.
 
 ```sh
 pnpm build
-pnpm dunstan-eval retrieval --corpus <dir> --out <file> [--provider <module.mjs>]
+pnpm dunstan-eval retrieval --corpus <dir> --out <file> [--fill-to-k] [--provider <module.mjs>]
 # or, from a built checkout: node dist/dunstan-eval.mjs retrieval ...
 ```
 
@@ -136,12 +146,20 @@ It reads every `*.json` in `<dir>`, in code-unit order. Each case file is:
 
 `evidence` uses the record's shapes. A claim is a **hit** when any of its `expected` items is in the
 top 5 of an arm's ranking. A known `kind` restricts candidates to its item type, as the product
-does. The output gives, per arm, `claims`, `hits`, `recallAtK` and `missed` (as `case/claim`), along
-with `k`, the floor, the checker version, a SHA-256 of the corpus and the provider's identity.
-Without `--provider` only Arm A runs. With it, B and A+B run too.
+does. The output gives, per arm, `claims`, `hits`, `recallAtK`, `empty` and `emptyRate` (claims for
+which the arm proposed no candidate) and `missed` (as `case/claim`), along with `k`, the floor, the
+checker version, a SHA-256 of the corpus and the provider's identity. Without `--provider` only Arm
+A runs. `--fill-to-k` adds `A-fill`, Arm A filled to k = 5 as above. `--provider` adds B and A+B
+(A+B fuses the unfilled Arm A).
+
+`chance` is what a uniformly random ranking of each claim's pool would score: the pool is every item
+of the claim's allowed types, as the arms rank, and a claim with g of its expected items among a
+pool of P has a hit with probability `1 − C(P − g, m) / C(P, m)`, m = min(5, P), which is m / P for
+one expected item. `chance.expectedHits` sums that over the claims, computed exactly rather than
+sampled, and `chance.recallAtK` divides by the claim count.
 
 `test/retrieval-corpus/` is a **small synthetic corpus**, a smoke test and not a result. Arm A gets
-13 of 14 there. The miss is a claim written to share no word with its commit ("more resilient to
+13 of 14 there (A-fill 14 of 14; chance 0.814). The miss is a claim written to share no word with its commit ("more resilient to
 flaky networks" against "Add exponential backoff to blob uploads"): it is the kind of gap Arm B is
 meant to measure. The real measurement runs on a private corpus outside this repository.
 

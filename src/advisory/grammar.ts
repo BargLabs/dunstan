@@ -7,7 +7,7 @@
 import { sha256Canonical } from '../spec/jcs.js';
 import type { JsonValue } from '../spec/json.js';
 
-export const EXTRACTOR_VERSION = '0.1.2';
+export const EXTRACTOR_VERSION = '0.1.3';
 
 // The kinds of claim the extractor proposes, each compared by one 0.1 gate check (advise.ts).
 export const ADVISORY_KINDS = [
@@ -91,6 +91,9 @@ export const GRAMMAR = {
       'resolves',
     ],
     commit: ['cherry-picked', 'committed', 'landed', 'pushed'],
+    // Bind a SHA only directly after a word in `commitNouns`, as file, close and merged verbs do:
+    // "implemented in commit 3f2a1b9" (extractor 0.1.3). They bind no path.
+    implement: ['implemented', 'implements'],
     merged: ['merged'],
     ran: ['executed', 'ran'],
     // Predicates that follow a subject: "tests pass", "CI is green".
@@ -241,8 +244,21 @@ export const GRAMMAR = {
   nounPrepositions: ['across', 'for', 'from', 'in', 'of', 'on', 'to', 'under', 'within'],
   // Between a closing keyword and its issue only these may stand: "fixes issue #12".
   closeFillers: ['&', 'and', 'bug', 'bugs', 'issue', 'issues', 'ticket', 'tickets'],
+  // Inside a bracket still open at it, a closing keyword binds only when nothing but these stands
+  // between the bracket and it: "(closes #12)", "(this PR also fixes #12)". After any other word it
+  // narrates history: "(the earlier fix closed #12 and #13)" (extractor 0.1.3).
+  asideCloseFillers: ['also', 'and', 'pr', 'this'],
   // Between "merged" and its timestamp.
   mergedFillers: ['as', 'at', 'been', 'into', 'main', 'master', 'of', 'on', 'the', 'was'],
+  // A clause that is one of these and ends in a colon states the merge time, as "Merged at:" does
+  // (extractor 0.1.3): "Merge time: 2026-10-01T12:00:00Z".
+  mergeTimeLabels: ['merge time', 'merge timestamp'],
+  // A clause that ends in a colon and holds one of these with an asserting file verb heads a list of
+  // files (extractor 0.1.3): "Changed the following files:", "Files changed:". The paths after the
+  // colon bind to its verb.
+  fileListNouns: ['file', 'files', 'path', 'paths'],
+  // Between the noun and a verb after it, as `passiveFillers` may: "the files I changed:".
+  fileListSubjects: ['i', 'we'],
   // Between a subject (CI, checks, tests) and its predicate.
   predicateFillers: [
     'again',
@@ -317,6 +333,23 @@ export const GRAMMAR = {
   // 3f2a1b9c." An object pronoun is not enough: "I fixed it in src/a.ts".
   pronouns: ['it', 'they'],
   possessives: ['its', 'their'],
+  // Since extractor 0.1.3, an issue reference that is not the verb's subject leaves a closing
+  // keyword or a commit in the clause this pull request's: "Builds on #10 and closes #12". The
+  // reference is the subject when it stands directly before the verb, with only these between, or
+  // when it is a possessive ("#10's fix") anywhere before the verb: "PR #10 closes #12" is #10's.
+  subjectFillers: [
+    'already',
+    'also',
+    'had',
+    'has',
+    'have',
+    'is',
+    'itself',
+    'now',
+    'then',
+    'was',
+    'were',
+  ],
   // A clause holding one of these narrates a change made and then undone, or made only for a while,
   // and proposes nothing: "temporarily removed src/a.ts", "added a throwaway marker, then reverted".
   transients: [
@@ -344,6 +377,7 @@ export const GRAMMAR = {
   narrations: [
     'as expected',
     'as intended',
+    'by design',
     'deliberately',
     'intentionally',
     'mutant',
@@ -352,6 +386,20 @@ export const GRAMMAR = {
     'mutations',
     'on purpose',
     'without',
+  ],
+  // A narrated clause holding one of these before its first fail predicate says the edit itself was
+  // made to cause the failure, so it proposes no file claim either (extractor 0.1.3): "deliberately
+  // removed the guard from src/guard.ts so the tests fail". After the fail predicate one describes
+  // the failure, not the edit: "updated src/a.test.ts so the new case fails by design" binds.
+  stagings: [
+    'by design',
+    'deliberately',
+    'intentionally',
+    'mutant',
+    'mutants',
+    'mutation',
+    'mutations',
+    'on purpose',
   ],
   narrationOpeners: ['before'],
   finalStates: ['now', 'with it', 'with the change', 'with the fix', 'with this change'],

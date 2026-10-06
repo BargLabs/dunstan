@@ -18,5 +18,12 @@ export {
   type ReaderInfo,
   readReaderClaim,
 } from './reader-claims.js';
-export { ARM_A, BM25_FLOOR, retrieve, SCORE_DECIMALS } from './retrieve.js';
+export {
+  ARM_A,
+  ARM_A_FILL,
+  BM25_FLOOR,
+  FILL_TO_K,
+  retrieve,
+  SCORE_DECIMALS,
+} from './retrieve.js';
 export type { Candidate, ClaimQuery, ItemType, RecordItem, RetrieveOptions } from './types.js';

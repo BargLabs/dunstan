@@ -301,7 +301,7 @@ describe('the tool response for a record with advisories', () => {
     expect(table).toMatch(
       /possible disagreement, unverified: not among the changed files\s+file_changed\s+src\/zzz\.ts\s+null/,
     );
-    // Extractor 0.1.2 is unmeasured, so the fixed line states no figure.
+    // Extractor 0.1.3 is unmeasured, as 0.1.2 was, so the fixed line states no figure.
     const line = advisoryLine(record.predicate.advisory as AdvisorySection);
     expect(line).toBe(ADVISORY_LINE);
     expect(table).toContain(line);

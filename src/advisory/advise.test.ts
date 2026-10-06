@@ -1,6 +1,7 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   basePullRequest,
@@ -29,13 +30,21 @@ import {
 } from './advise.js';
 import { extractClaims, type ProposedClaim } from './extract.js';
 import { ADVISORY_KINDS, EXTRACTOR, EXTRACTOR_VERSION, GRAMMAR } from './grammar.js';
-import { differsAccuracyFor, precisionFor, precisionText } from './precision.js';
+import {
+  differsAccuracyFor,
+  PUBLISHED_DIFFERS_ACCURACY,
+  PUBLISHED_PRECISION,
+  precisionFor,
+  precisionText,
+} from './precision.js';
 import { ADVISORY_LINE, advisoryLine } from './present.js';
 
 const OTHER = '0123456789abcdef0123456789abcdef01234567';
-// The grammar the published figures were measured on, and the one that runs now (0.1.2).
+// The grammar the published figures were measured on, the one before this, and the one that runs
+// now (0.1.3).
 const EXTRACTOR_0_1_1 = 'ab77ce47d1c5172ec912d1221e03bbe5b312ff5dc2acb594c4b8549fe602c360';
 const EXTRACTOR_0_1_2 = 'dfd6563a934667a80448e49b7133ade6d2473e5e13cd9d05fd52c761a1a1780b';
+const EXTRACTOR_0_1_3 = '2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37';
 
 const evidence: Evidence = {
   pullRequest: {
@@ -332,10 +341,11 @@ describe('a file named by a bare name or a partial path (comparison 0.2.0)', () 
     ).toMatchObject({ verdict: 'unverifiable', reason: 'declared_item_not_among_candidates' });
   });
 
-  // Comparison 0.2.0 left the grammar at 0.1.1. Extractor 0.1.2 changed it later.
-  it('is extractor 0.1.2; the comparison left 0.1.1 as it was', () => {
-    expect(EXTRACTOR_VERSION).toBe('0.1.2');
-    expect(EXTRACTOR).toEqual({ version: '0.1.2', digest: { sha256: EXTRACTOR_0_1_2 } });
+  // Comparison 0.2.0 left the grammar at 0.1.1. Extractors 0.1.2 and then 0.1.3 changed it later.
+  it('is extractor 0.1.3; the comparison left 0.1.1 as it was', () => {
+    expect(EXTRACTOR_VERSION).toBe('0.1.3');
+    expect(EXTRACTOR).toEqual({ version: '0.1.3', digest: { sha256: EXTRACTOR_0_1_3 } });
+    expect(EXTRACTOR.digest.sha256).not.toBe(EXTRACTOR_0_1_2);
   });
 
   it('is comparison 0.2.0, the version the accuracy of differs notes was measured on', () => {
@@ -343,7 +353,7 @@ describe('a file named by a bare name or a partial path (comparison 0.2.0)', () 
     expect(COMPARISON).toEqual({ version: '0.2.0' });
     expect(differsAccuracyFor(EXTRACTOR_0_1_1, COMPARISON_VERSION)).not.toBeNull();
     expect(differsAccuracyFor(EXTRACTOR_0_1_1, '0.1.0')).toBeNull();
-    // Measured with extractor 0.1.1 only: 0.1.2 is unmeasured.
+    // Measured with extractor 0.1.1 only: 0.1.2 and 0.1.3 are unmeasured.
     expect(differsAccuracyFor(EXTRACTOR.digest.sha256, COMPARISON_VERSION)).toBeNull();
   });
 });
@@ -536,6 +546,62 @@ function build(report: string, advisory: boolean, e: Evidence = evidence): Dunst
   });
 }
 
+// Extractor 0.1.2's figures on constructed reports (docs/advisory.md, "Extractor 0.1.2 on
+// constructed reports") are published in the doc only. No record carries them: they are not in the
+// tables precisionFor and differsAccuracyFor read, and no source file that writes a record holds them.
+describe('the constructed-report figures are never carried in a record', () => {
+  // The shares and counts the doc publishes: recall 180 of 380, differs precision 180 of 215, and
+  // their Wilson bounds.
+  const CONSTRUCTED = [/\b0\.47[34]/, /\b0\.83[67]/, /\b0\.42[34]/, /\b0\.52[34]/, /\b0\.78[12]/];
+  const COUNTS: [number, number][] = [
+    [180, 380],
+    [180, 215],
+    [1, 50],
+  ];
+  const ROOT = fileURLToPath(new URL('../../', import.meta.url));
+
+  function sources(dir: string): string[] {
+    const out: string[] = [];
+    for (const entry of readdirSync(join(ROOT, dir), { withFileTypes: true })) {
+      const path = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) out.push(...sources(path));
+      else if (entry.name.endsWith('.ts') && !entry.name.endsWith('.test.ts')) out.push(path);
+    }
+    return out;
+  }
+
+  it('the tables a record reads hold no figure for extractor 0.1.2, nor the constructed counts', () => {
+    expect(PUBLISHED_PRECISION.map((p) => p.extractorDigest)).toEqual([EXTRACTOR_0_1_1]);
+    expect(PUBLISHED_DIFFERS_ACCURACY.map((p) => p.extractorDigest)).toEqual([EXTRACTOR_0_1_1]);
+    expect(precisionFor(EXTRACTOR_0_1_2)).toBeNull();
+    expect(differsAccuracyFor(EXTRACTOR_0_1_2, COMPARISON_VERSION)).toBeNull();
+    const figures = [
+      ...PUBLISHED_PRECISION.map((p) => p.precision),
+      ...PUBLISHED_DIFFERS_ACCURACY.flatMap((p) => [p.differsAccuracy, p.differsAccuracy.baseRate]),
+    ];
+    for (const f of figures) {
+      expect(COUNTS).not.toContainEqual([Math.round(f.value * f.n), f.n]);
+    }
+  });
+
+  it('a record the running extractor writes carries null for both figures', () => {
+    const record = JSON.parse(JSON.stringify(build(PROSE, true))) as DunstanRecord;
+    expect(record.predicate.advisory?.extractor.version).toBe(EXTRACTOR_VERSION);
+    expect(record.predicate.advisory?.precision).toBeNull();
+    expect(record.predicate.advisory?.differsAccuracy).toBeNull();
+  });
+
+  it('no source file that can write a record holds the constructed figures', () => {
+    const files = [...sources('src'), ...sources('hosted/src')];
+    expect(files).toContain('src/advisory/precision.ts');
+    for (const file of files) {
+      const text = readFileSync(join(ROOT, file), 'utf8');
+      for (const figure of CONSTRUCTED)
+        expect(`${file}: ${figure.test(text)}`).toBe(`${file}: false`);
+    }
+  });
+});
+
 describe('a record with an advisory section (DRAFT 0.2.0)', () => {
   it('can never alter the verdict or the claims', () => {
     const reports = [
@@ -596,7 +662,7 @@ describe('a record with an advisory section (DRAFT 0.2.0)', () => {
     expect(a?.differsAccuracy).toEqual(
       differsAccuracyFor(EXTRACTOR.digest.sha256, COMPARISON_VERSION),
     );
-    // None is published for extractor 0.1.2: both are unmeasured.
+    // None is published for extractor 0.1.2 or 0.1.3: both are unmeasured.
     expect(a?.precision).toBeNull();
     expect(a?.differsAccuracy).toBeNull();
     expect(a?.advisories.map((x) => [x.kind, x.value, x.note])).toEqual([
@@ -642,8 +708,8 @@ describe('a record with an advisory section (DRAFT 0.2.0)', () => {
   });
 
   // Before extractor 0.1.2 this was "a figure the record leaves out where one is published". 0.1.2
-  // has none published, so the case to name is the other one: a record that carries 0.1.1's figures
-  // for 0.1.2. No version inherits a figure.
+  // and 0.1.3 have none published, so the case to name is the other one: a record that carries
+  // 0.1.1's figures for the extractor that runs. No version inherits a figure.
   it('verify names a figure the record carries where none is published', () => {
     const record = JSON.parse(JSON.stringify(build(PROSE, true))) as DunstanRecord;
     const a = record.predicate.advisory;
@@ -857,7 +923,7 @@ describe('dunstan check --advisory', () => {
     );
     const lines = advised.text.split('\n');
     const header = lines.findIndex((l) => l.startsWith('advisory (DRAFT'));
-    // Extractor 0.1.2 is unmeasured, so the fixed line states no figure.
+    // Extractor 0.1.3 is unmeasured, as 0.1.2 was, so the fixed line states no figure.
     const section = advised.record.predicate.advisory;
     if (section === undefined) throw new Error('fixture');
     const line = advisoryLine(section);

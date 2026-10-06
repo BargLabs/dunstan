@@ -1,5 +1,6 @@
 // Arm A: deterministic retrieval with no model. Exact identifiers first, then BM25 over the items'
-// text. Ties break by record order, then by id. Nothing below the floor is a candidate.
+// text. Ties break by record order, then by id. Nothing below the floor is a candidate, unless the
+// caller asks to fill to k (FILL_TO_K), which only measurement does.
 
 import { compareCodeUnits } from '../check/rows.js';
 import { Bm25Index, tokenize } from './bm25.js';
@@ -7,6 +8,11 @@ import { claimTexts, identifierMatches } from './identifiers.js';
 import type { Candidate, ClaimQuery, RecordItem, RetrieveOptions } from './types.js';
 
 export const ARM_A = 'A';
+
+// Arm A filled to k: the same ranking with the floor lifted for the places left below k. A filled
+// candidate is one whose score is below the floor. Measurement only.
+export const FILL_TO_K = 'to-k';
+export const ARM_A_FILL = 'A-fill';
 
 // The lowest BM25 score that makes an item a candidate (docs/retrieval.md, "The floor"). With
 // k1 = 1.2 and b = 0.75, one query term occurring once in an item of average length contributes
@@ -66,6 +72,8 @@ export function retrieve(
   items: readonly RecordItem[],
   opts: RetrieveOptions,
 ): Candidate[] {
+  const fill = opts.fill === FILL_TO_K;
+  if (fill && opts.limit === undefined) throw new Error(`fill '${FILL_TO_K}' needs a limit (k)`);
   const allowed = opts.types === undefined ? undefined : new Set(opts.types);
   const exact = identifierMatches(claim, items, opts.repository);
   const index = new Bm25Index(items.map(itemTokens));
@@ -85,7 +93,9 @@ export function retrieve(
       return;
     }
     const score = round(scores[order] ?? 0);
-    if (score < BM25_FLOOR) return;
+    // Filling ranks every item of an allowed type; the same order puts every item at or above the
+    // floor before every item below it, so the first k are the unfilled list, then the fill.
+    if (!fill && score < BM25_FLOOR) return;
     ranked.push({
       order,
       candidate: {
