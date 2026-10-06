@@ -1,7 +1,8 @@
 // Typed claims from a reader (spec/claim-format.md, "DRAFT 0.2.0"). A reader turns a prose report
 // into claims; retrieval proposes the record items each is about; the check here decides, from the
-// recorded candidates and the evidence alone. The reader's probability is recorded as the reader's
-// output and is read by nothing in this file. A claim with no candidate is unverifiable, never pass.
+// recorded candidates and the evidence alone. Retrieval narrows where to look; it is never evidence.
+// The reader's probability is recorded as the reader's output and is read by nothing in this file.
+// A claim with no candidate at or above the floor is unverifiable, never pass.
 
 import { countedCheckRuns, qualifyIssue, sameIssue } from '../check/checks.js';
 import { absentSection } from '../check/rows.js';
@@ -15,8 +16,11 @@ import type {
 } from '../check/types.js';
 import type { JsonValue } from '../spec/json.js';
 import { recordItems, testId } from './items.js';
-import { ARM_A, BM25_FLOOR, retrieve } from './retrieve.js';
+import { type ARM_A, ARM_A_FILL, BM25_FLOOR, FILL_TO_K, retrieve } from './retrieve.js';
 import type { Candidate, ItemType, RetrieveOptions } from './types.js';
+
+// A reader claim's candidates are filled to this many when fewer reach the floor.
+export const READER_CLAIM_K = 5;
 
 // Each kind a reader may type a claim as, and the one item type it is about. A claim of any other
 // kind is recorded, with its candidates, and is unverifiable with no_comparable_record_field.
@@ -49,7 +53,10 @@ export interface ReaderCheck {
 }
 
 export interface ReaderClaim extends ReaderClaimInput, ReaderCheck {
-  retrieval: { arm: typeof ARM_A; floor: number };
+  // Arm A unfilled (as recorded before filling was the default), or filled to k.
+  retrieval:
+    | { arm: typeof ARM_A; floor: number }
+    | { arm: typeof ARM_A_FILL; floor: number; k: number };
   candidates: Candidate[];
 }
 
@@ -110,11 +117,13 @@ function lookup(type: ItemType, evidence: Evidence): Map<string, JsonValue> {
 
 const ISSUE_REF = /^(?:[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9._-]{1,100})?#[1-9][0-9]{0,9}$/;
 
-// The check for one reader claim: a pure function of the claim (its kind, declared value and
-// recorded candidates) and the evidence. It never runs retrieval, so offline verification recomputes
-// it from the record even where a fresh retrieval would rank differently.
+// The check for one reader claim: a pure function of the claim (its kind, declared value, recorded
+// candidates and recorded floor) and the evidence. It never runs retrieval, so offline verification
+// recomputes it from the record even where a fresh retrieval would rank differently.
 export function checkReaderClaim(
-  claim: Pick<ReaderClaim, 'kind' | 'declaredValue' | 'candidates'>,
+  claim: Pick<ReaderClaim, 'kind' | 'declaredValue' | 'candidates'> & {
+    retrieval: { floor: number };
+  },
   evidence: Evidence,
   repository: string,
 ): ReaderCheck {
@@ -130,9 +139,16 @@ export function checkReaderClaim(
   if (missing !== undefined) return unverifiable(missing);
 
   const entries = lookup(type, evidence);
-  const relevant = claim.candidates.filter((c) => c.type === type);
+  const typed = claim.candidates.filter((c) => c.type === type);
+  if (typed.some((c) => entries.get(c.id) === undefined)) {
+    return unverifiable('candidate_not_in_evidence');
+  }
+  // A candidate below the floor was filled in to make up k: a place to look, never evidence. The
+  // check reads identifier matches and candidates at or above the floor only, so filling cannot
+  // change a verdict, including for the kinds that aggregate over their candidates.
+  const floor = claim.retrieval.floor;
+  const relevant = typed.filter((c) => c.score === null || c.score >= floor);
   const observed = relevant.map((c) => entries.get(c.id));
-  if (observed.some((v) => v === undefined)) return unverifiable('candidate_not_in_evidence');
 
   // A file missing from an incomplete list may be among the files that could not be listed.
   const truncated = type === 'file' && evidence.files?.status === 'ok' && !evidence.files.complete;
@@ -193,7 +209,8 @@ export function checkReaderClaim(
 }
 
 // Retrieves a reader claim's candidates from the evidence and checks it: the readerClaims entry a
-// record carries. Every candidate at or above the floor is kept, so the check sees them all.
+// record carries. Every candidate at or above the floor is kept, so the check sees them all; when
+// fewer than k reach it, the list is filled to k (FILL_TO_K) with the next items below the floor.
 export function readReaderClaim(
   input: ReaderClaimInput,
   evidence: Evidence,
@@ -201,20 +218,24 @@ export function readReaderClaim(
 ): ReaderClaim {
   const type = READER_CLAIM_KINDS.get(input.kind);
   const opts: RetrieveOptions = type === undefined ? { repository } : { repository, types: [type] };
-  const candidates = retrieve(
-    { text: input.text, declaredValue: input.declaredValue },
-    recordItems(evidence),
-    opts,
-  );
+  const query = { text: input.text, declaredValue: input.declaredValue };
+  const items = recordItems(evidence);
+  const unfilled = retrieve(query, items, opts);
+  // Filled to k, the head of the list is the unfilled list, so a fill never drops a candidate.
+  const candidates =
+    unfilled.length >= READER_CLAIM_K
+      ? unfilled
+      : retrieve(query, items, { ...opts, limit: READER_CLAIM_K, fill: FILL_TO_K });
+  const retrieval = { arm: ARM_A_FILL, floor: BM25_FLOOR, k: READER_CLAIM_K } as const;
   const claim: ReaderClaim = {
     text: input.text,
     kind: input.kind,
     declaredValue: input.declaredValue,
     reader: { name: input.reader.name, version: input.reader.version },
-    retrieval: { arm: ARM_A, floor: BM25_FLOOR },
+    retrieval,
     candidates,
     ...checkReaderClaim(
-      { kind: input.kind, declaredValue: input.declaredValue, candidates },
+      { kind: input.kind, declaredValue: input.declaredValue, candidates, retrieval },
       evidence,
       repository,
     ),

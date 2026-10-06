@@ -11,7 +11,13 @@ import { DRAFT_PREDICATE_TYPE, DRAFT_SPEC_VERSION, PREDICATE_TYPE } from '../spe
 import { extractHandbackBlock } from '../spec/extract.js';
 import { validateDraftRecord, validateRecord } from '../spec/schema.js';
 import { recordItems } from './items.js';
-import { checkReaderClaim, type ReaderClaimInput, readReaderClaim } from './reader-claims.js';
+import {
+  checkReaderClaim,
+  READER_CLAIM_K,
+  READER_CLAIM_KINDS,
+  type ReaderClaimInput,
+  readReaderClaim,
+} from './reader-claims.js';
 import { BM25_FLOOR, FILL_TO_K, retrieve } from './retrieve.js';
 
 // Offline verification must recompute reader verdicts from the recorded candidates and never run a
@@ -52,14 +58,14 @@ describe('reader claims', () => {
     expect(c.candidates[0]).toMatchObject({ type: 'file', score: null });
   });
 
-  it('is unverifiable with no_matching_record_item when retrieval proposes nothing, and states the floor', () => {
+  it('is unverifiable with no_matching_record_item when no candidate reaches the floor, and states the floor', () => {
     const c = read(claim('Rewrote the onboarding wizard', 'file_changed', 'app/wizard.rb'));
-    expect(c.candidates).toEqual([]);
+    expect(c.candidates.every((x) => x.score !== null && x.score < BM25_FLOOR)).toBe(true);
     expect(c).toMatchObject({
       verdict: 'unverifiable',
       reason: 'no_matching_record_item',
       observed: null,
-      retrieval: { arm: 'A', floor: BM25_FLOOR },
+      retrieval: { arm: 'A-fill', floor: BM25_FLOOR, k: READER_CLAIM_K },
     });
   });
 
@@ -72,9 +78,14 @@ describe('reader claims', () => {
     });
   });
 
-  it('fails a check the candidate run contradicts', () => {
+  it('fails a check the candidate run contradicts, reading no filled candidate', () => {
     const c = read(claim('The typecheck job passes', 'check_succeeded', true));
-    expect(c.candidates.map((x) => x.id)).toEqual(['103']);
+    // 103 is the identifier match; 101 and 102 fill the list and are not read.
+    expect(c.candidates.map((x) => [x.id, x.score === null || x.score >= BM25_FLOOR])).toEqual([
+      ['103', true],
+      ['101', false],
+      ['102', false],
+    ]);
     expect(c).toMatchObject({ verdict: 'fail', reason: 'all_succeeded_mismatch', observed: false });
   });
 
@@ -159,9 +170,52 @@ describe('reader claims', () => {
 });
 
 describe('candidates filled to k', () => {
-  // Filling adds candidates below the floor. For the identity kinds a pass still needs the declared
-  // item itself among the candidates, and an item the claim names is an identifier match, never a
-  // fill. A record never carries filled candidates: readReaderClaim does not fill.
+  // A reader claim's candidates are filled to k by default. A filled candidate (below the floor) is
+  // a place to look and never evidence: the check reads only identifier matches and candidates at or
+  // above the recorded floor, so filling changes no verdict. For the identity kinds a pass also
+  // needs the declared item itself, and an item the claim names is an identifier match, never a fill.
+  const unfilledAndFilled = (text: string, kind: string, declaredValue: boolean | string) => {
+    const type = READER_CLAIM_KINDS.get(kind);
+    const opts = { repository: REPO, ...(type === undefined ? {} : { types: [type] }) };
+    const query = { text, declaredValue };
+    return [
+      retrieve(query, recordItems(storage), opts),
+      retrieve(query, recordItems(storage), { ...opts, limit: READER_CLAIM_K, fill: FILL_TO_K }),
+    ];
+  };
+
+  it('fills a reader claim to k by default, the unfilled list first', () => {
+    const recorded = read(claim('Updated the retry module', 'file_changed', 'src/storage/x.ts'));
+    const [unfilled, filled] = unfilledAndFilled(
+      'Updated the retry module',
+      'file_changed',
+      'src/storage/x.ts',
+    );
+    expect(unfilled?.length).toBeGreaterThan(0);
+    expect(unfilled?.length).toBeLessThan(4);
+    // Four files in the record, fewer than k: every one is a candidate, the unfilled list first.
+    expect(recorded.candidates).toHaveLength(4);
+    expect(recorded.candidates).toEqual(filled);
+    expect(recorded.candidates.slice(0, unfilled?.length)).toEqual(unfilled);
+    expect(recorded.retrieval).toEqual({ arm: 'A-fill', floor: BM25_FLOOR, k: READER_CLAIM_K });
+  });
+
+  it('keeps every candidate at or above the floor when more than k reach it', () => {
+    const files = storage.files;
+    if (files?.status !== 'ok') throw new Error('fixture');
+    const template = files.entries[0];
+    if (template === undefined) throw new Error('fixture');
+    const paths = Array.from({ length: READER_CLAIM_K + 2 }, (_, i) => `src/part${i}.ts`);
+    const many = {
+      ...storage,
+      files: { ...files, entries: paths.map((path) => ({ ...template, path })) },
+    };
+    const last = paths[paths.length - 1] as string;
+    const c = read(claim(`Changed ${paths.join(', ')}.`, 'file_changed', last), many);
+    expect(c.candidates.map((x) => x.id)).toEqual(paths);
+    expect(c).toMatchObject({ verdict: 'pass', observed: last });
+  });
+
   const cases: [string, string, string][] = [
     ['Rewrote the onboarding wizard', 'file_changed', 'app/wizard.rb'],
     ['Landed the onboarding wizard commit', 'commit_present', 'abc1234'],
@@ -169,27 +223,49 @@ describe('candidates filled to k', () => {
   ];
   for (const [text, kind, declaredValue] of cases) {
     it(`never makes ${kind} pass without the declared item`, () => {
-      const type =
-        kind === 'file_changed' ? 'file' : kind === 'commit_present' ? 'commit' : 'timeline_event';
-      const candidates = retrieve({ text, declaredValue }, recordItems(storage), {
-        repository: REPO,
-        types: [type],
-        limit: 5,
-        fill: FILL_TO_K,
+      const [unfilled, filled] = unfilledAndFilled(text, kind, declaredValue);
+      expect(unfilled).toEqual([]);
+      expect(filled?.length).toBeGreaterThan(0);
+      expect(filled?.every((c) => c.score !== null && c.score < BM25_FLOOR)).toBe(true);
+      const recorded = read(claim(text, kind, declaredValue));
+      expect(recorded.candidates).toEqual(filled);
+      expect(recorded).toMatchObject({
+        observed: null,
+        verdict: 'unverifiable',
+        reason: 'no_matching_record_item',
       });
-      expect(candidates.length).toBeGreaterThan(0);
-      expect(candidates.every((c) => c.score !== null && c.score < BM25_FLOOR)).toBe(true);
-      expect(checkReaderClaim({ kind, declaredValue, candidates }, storage, REPO)).toEqual({
+      // Even read as evidence (a floor of 0), a fill cannot make an identity kind pass.
+      const asEvidence = { kind, declaredValue, candidates: filled ?? [], retrieval: { floor: 0 } };
+      expect(checkReaderClaim(asEvidence, storage, REPO)).toEqual({
         observed: null,
         verdict: 'unverifiable',
         reason: 'declared_item_not_among_candidates',
       });
+    });
+  }
+
+  // check_succeeded and test_passed aggregate over their candidates, so a fill read as evidence
+  // would decide them. Recorded, it is skipped, and the claim stays unverifiable.
+  for (const [kind, declaredValue] of [
+    ['check_succeeded', true],
+    ['check_succeeded', false],
+    ['test_passed', true],
+    ['test_passed', false],
+  ] as const) {
+    it(`never lets a filled candidate decide ${kind} (${declaredValue})`, () => {
+      const text = 'Rewrote the onboarding wizard';
+      const [unfilled, filled] = unfilledAndFilled(text, kind, declaredValue);
+      expect(unfilled).toEqual([]);
       const recorded = read(claim(text, kind, declaredValue));
-      expect(recorded.candidates).toEqual([]);
+      expect(recorded.candidates.length).toBeGreaterThan(0);
+      expect(recorded.candidates).toEqual(filled);
       expect(recorded).toMatchObject({
+        observed: null,
         verdict: 'unverifiable',
         reason: 'no_matching_record_item',
       });
+      const asEvidence = { ...recorded, retrieval: { floor: 0 } };
+      expect(checkReaderClaim(asEvidence, storage, REPO).verdict).not.toBe('unverifiable');
     });
   }
 
@@ -232,6 +308,8 @@ describe('a record with reader claims (DRAFT 0.2.0)', () => {
       'fail',
       'unverifiable',
     ]);
+    // The unverifiable claim carries its fill: candidates below the floor, recorded.
+    expect(record.predicate.readerClaims?.[2]?.candidates.length).toBeGreaterThan(0);
     expect(validateDraftRecord(record)).toEqual([]);
     expect(validateRecord(record)).not.toEqual([]);
     guard.forbid = true;
@@ -313,6 +391,18 @@ describe('a record with reader claims (DRAFT 0.2.0)', () => {
     expect(verifyRecord(record).problems.map((p) => p.member)).toContain(
       '/predicate/readerClaims/1',
     );
+  });
+
+  it('validates a claim recorded unfilled, as before filling was the default, and refuses a fill without k', () => {
+    const record = JSON.parse(JSON.stringify(build(claims))) as DunstanRecord;
+    const first = record.predicate.readerClaims?.[0];
+    const last = record.predicate.readerClaims?.[2];
+    if (first === undefined || last === undefined) throw new Error('fixture');
+    first.retrieval = { arm: 'A', floor: BM25_FLOOR };
+    expect(validateDraftRecord(record)).toEqual([]);
+    last.retrieval = { arm: 'A-fill', floor: BM25_FLOOR } as unknown as typeof last.retrieval;
+    const pointers = validateDraftRecord(record).map((e) => e.pointer);
+    expect(pointers).toContain('/predicate/readerClaims/2/retrieval');
   });
 
   it('refuses a probability outside [0, 1] and a pass that carries a reason', () => {

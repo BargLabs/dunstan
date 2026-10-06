@@ -79,9 +79,9 @@ describe('docs/advisory.md', () => {
     expect(section).toContain('[0.782, 0.881]');
     expect(section).toContain('1 `differs` note across the 50 clean reports');
     expect(section).toContain('The preregistered bar was not met.');
-    expect(section).toContain(
-      'Extractor 0.1.3, which runs now, has not been measured on constructed reports either.',
-    );
+    // For 0.1.3 the doc says only that no figures are published, never that none was measured.
+    expect(section).toContain('No figures are published for extractor 0.1.3, which runs now.');
+    expect(flat).not.toMatch(/0\.1\.3[^.]*(?:has not been measured|is unmeasured)/);
     // 0.1.2 is no longer "nothing published", and still has no real-PR precision.
     expect(flat).not.toContain('Nothing is published for either');
     expect(flat).toContain(

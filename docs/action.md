@@ -94,7 +94,7 @@ Action concludes `success` for `pass` and nothing else:
 | --- | --- | --- |
 | `pass` | `success` | A block was found and every claim in it holds against the record. |
 | `fail` | `failure` | At least one claim is contradicted by the record. The table names the claim and the reason. |
-| `unverifiable` | `failure` (default) | The record cannot answer a claim (a source unreadable, a field unpopulated, checks still running), or there is no single valid block: `block_missing`, `block_ambiguous`, `block_invalid`. Not a pass. |
+| `unverifiable` | `failure` (default) | The record cannot answer a claim (a source unreadable, a field unpopulated, checks still running, a `closes` issue not yet among an open pull request's closing references), or there is no single valid block: `block_missing`, `block_ambiguous`, `block_invalid`. Not a pass. |
 | `unverifiable` | `neutral`, with `unverifiable-conclusion: neutral` | The same verdict, reported without blocking. A neutral required check lets the merge through, so this setting merges claims nobody could check. Choose it deliberately, for example while agents are being moved onto the block. |
 | none (`error`) | `failure` | No record: `report-source` missing or malformed, the report source unreadable (no comment by that author, no such file), the pull request unreadable, an event Dunstan cannot check, `file:` under `pull_request_target`, or a crash. The reason is in the summary. |
 | any | `failure` | The record could not be uploaded as the artifact. A verdict whose record is not kept cannot be re-run. |
@@ -121,6 +121,12 @@ own job's check run from the counted check runs (a `checks` claim never counts t
 `checks` claim is checked against the check runs at the moment the Action runs: if CI is still
 running, `checks.allSucceeded` is `unverifiable: checks_incomplete`. Re-run the Dunstan job once CI
 has finished.
+
+A `closes` claim reads the closing references GitHub computes after a pull request is opened or its
+body is edited. While the pull request is open, an existing issue missing from them is
+`unverifiable: closing_link_unsettled`, never `fail`; once it is merged or closed, the same absence
+fails with `not_closing` (spec section 7.4). Re-run the Dunstan job if the closing references were
+not computed yet when it ran.
 
 **Fork pull requests.** GitHub gives a `pull_request` workflow from a fork a read-only token, which
 cannot create check runs. The Action then writes the job summary and the step's exit status only, and

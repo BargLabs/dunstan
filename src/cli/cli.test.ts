@@ -289,7 +289,7 @@ describe('signing', () => {
     expect(ok.out).toMatch(/Good "dunstan-record" signature for checker@example.org/);
 
     // One changed byte breaks the signature even if the record still recomputes.
-    writeFileSync(out, bytes.replace('"spec":"0.1.1"', '"spec":"0.1.2"'));
+    writeFileSync(out, bytes.replace('"spec":"0.1.2"', '"spec":"0.1.3"'));
     const bad = await run(['verify', out, '--sig', `${out}.sig`, '--allowed-signers', allowed]);
     expect(bad.code).toBe(1);
     expect(bad.out).toMatch(/\/predicate\/assurance: signature/);

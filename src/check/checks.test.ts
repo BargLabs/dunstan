@@ -140,6 +140,38 @@ describe('runChecks', () => {
     });
   });
 
+  it('never fails a closes missing from the closing references while the pull request is open', () => {
+    // GitHub computes the closing references asynchronously after the pull request is opened or
+    // its body edited (spec section 7.4); only a merged or closed pull request's list is settled.
+    const closes = block({ references: [{ issue: '#15', relation: 'closes' }] });
+    const verdictOf = (state: 'open' | 'closed', merged: boolean, issues: string[]) => {
+      const e = evidence({
+        closingReferences: { status: 'ok', issues },
+        references: [{ kind: 'issue', ref: `${REPO}#15`, status: 'ok', exists: true }],
+      });
+      e.pullRequest = { ...e.pullRequest, state, merged };
+      return row(runChecks(closes, e, REPO), 'reference:/references/0');
+    };
+    expect(verdictOf('open', false, [])).toMatchObject({
+      verdict: 'unverifiable',
+      reason: 'closing_link_unsettled',
+      observed: null,
+    });
+    expect(verdictOf('closed', true, [])).toMatchObject({
+      verdict: 'fail',
+      reason: 'not_closing',
+      observed: { closing: [] },
+    });
+    expect(verdictOf('closed', false, [])).toMatchObject({
+      verdict: 'fail',
+      reason: 'not_closing',
+    });
+    expect(verdictOf('open', false, [`${REPO}#15`])).toMatchObject({
+      verdict: 'pass',
+      observed: { closing: [`${REPO}#15`] },
+    });
+  });
+
   it('compares times to the second', () => {
     const e = evidence();
     e.pullRequest.mergedAt = '2026-10-01T14:05:09.900Z';

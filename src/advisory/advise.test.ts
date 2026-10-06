@@ -17,6 +17,7 @@ import { buildRecord, type DunstanRecord, recordBlock, serializeRecord } from '.
 import { CHECKER_NAME, CHECKER_VERSION } from '../record/checker.js';
 import { verifyRecord } from '../record/verify.js';
 import { checkReaderClaim } from '../retrieval/reader-claims.js';
+import { BM25_FLOOR } from '../retrieval/retrieve.js';
 import { DRAFT_PREDICATE_TYPE, PREDICATE_TYPE } from '../spec/constants.js';
 import { extractHandbackBlock } from '../spec/extract.js';
 import { DRAFT_RECORD_SCHEMA_FILE, readSchema, validateDraftRecord } from '../spec/schema.js';
@@ -101,6 +102,18 @@ describe('compareAdvisory: the gate check for each kind', () => {
     expect(note('reference_closes', '#12').note).toBe('agrees');
     expect(note('reference_closes', `${REPO}#12`).note).toBe('agrees');
     expect(note('reference_closes', '#13').note).toBe('differs:not_closing');
+  });
+
+  it('reference_closes on an open pull request is unanswered, never differs (spec 0.1.2)', () => {
+    const open: Evidence = {
+      ...evidence,
+      pullRequest: { ...evidence.pullRequest, state: 'open', merged: false, mergedAt: null },
+    };
+    expect(note('reference_closes', '#12', open).note).toBe('agrees');
+    expect(note('reference_closes', '#13', open)).toEqual({
+      observed: null,
+      note: 'unanswered:closing_link_unsettled',
+    });
   });
 
   it('commit and head_commit read the head, or a cited commit', () => {
@@ -336,8 +349,13 @@ describe('a file named by a bare name or a partial path (comparison 0.2.0)', () 
     const candidates = [
       { type: 'file' as const, id: 'packages/tool/src/cli.ts', score: null, matchedField: 'path' },
     ];
+    const retrieval = { floor: BM25_FLOOR };
     expect(
-      checkReaderClaim({ kind: 'file_changed', declaredValue: 'cli.ts', candidates }, tool, REPO),
+      checkReaderClaim(
+        { kind: 'file_changed', declaredValue: 'cli.ts', candidates, retrieval },
+        tool,
+        REPO,
+      ),
     ).toMatchObject({ verdict: 'unverifiable', reason: 'declared_item_not_among_candidates' });
   });
 
@@ -680,6 +698,19 @@ describe('a record with an advisory section (DRAFT 0.2.0)', () => {
       ['merged_at', '2026-10-01T11:00:00Z', 'differs:premature'],
     ]);
     expect(record.predicate.digests.advisory).toMatch(/^[0-9a-f]{64}$/);
+    expect(validateDraftRecord(record)).toEqual([]);
+    expect(verifyRecord(record).problems).toEqual([]);
+  });
+
+  it('validates with a closes advisory on an open pull request (spec 0.1.2)', () => {
+    const open: Evidence = {
+      ...evidence,
+      pullRequest: { ...evidence.pullRequest, state: 'open', merged: false, mergedAt: null },
+    };
+    const record = JSON.parse(JSON.stringify(build('Fixes #13.', true, open))) as DunstanRecord;
+    expect(record.predicate.advisory?.advisories.map((a) => a.note)).toEqual([
+      'unanswered:closing_link_unsettled',
+    ]);
     expect(validateDraftRecord(record)).toEqual([]);
     expect(verifyRecord(record).problems).toEqual([]);
   });

@@ -137,7 +137,7 @@ A stored record, within retention, for the installation the key belongs to:
 
 ### `GET /v0.1/health`
 
-`{"status": "ok", "checker": {"name", "version", "digest": {"sha256"}}, "spec": "0.1.1"}`. The digest
+`{"status": "ok", "checker": {"name", "version", "digest": {"sha256"}}, "spec": "0.1.2"}`. The digest
 is the SHA-256 of the Worker bundle that is running (`hosted/dist/checker.mjs`, built by
 `pnpm build:hosted`); it is the `checker.digest` every hosted record carries. The build is
 deterministic: check out the commit, run `pnpm install --frozen-lockfile && pnpm build:hosted`, and

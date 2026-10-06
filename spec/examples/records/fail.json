@@ -16,10 +16,10 @@
   ],
   "predicateType": "https://barglabs.ai/dunstan/record/v0.1",
   "predicate": {
-    "spec": "0.1.1",
+    "spec": "0.1.2",
     "checker": {
       "name": "dunstan",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "digest": {
         "sha256": "73a50031c8bdf06b0bd96062386dc3347ad18d6b3c458c4dae123efd6e6c044a"
       }
@@ -207,11 +207,9 @@
           "issue": "#21",
           "relation": "closes"
         },
-        "observed": {
-          "closing": []
-        },
-        "verdict": "fail",
-        "reason": "not_closing"
+        "observed": null,
+        "verdict": "unverifiable",
+        "reason": "closing_link_unsettled"
       },
       {
         "id": "count:/tests/0/count",
@@ -225,7 +223,7 @@
     ],
     "verdict": "fail",
     "digests": {
-      "claims": "1d33fa2247f153fa87f9efec8b02029f7a81b323159c34bda7a2822446710198",
+      "claims": "4bb25be093694d8b737b7c0e3da3fa7f7c0d4042c92627ac918e2520eecba01e",
       "evidence": "c6a6dd43e1a0cef2350ebaafa8b691efa5a9fe1a565de50d7a0997ac7bb15f33"
     },
     "rerun": {

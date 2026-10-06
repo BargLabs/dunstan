@@ -1,7 +1,7 @@
 // The values the spec (spec/claim-format.md) names. Each lives here once; the schemas carry the same
 // strings and src/spec/schema.test.ts checks that they agree.
 
-export const SPEC_VERSION = '0.1.1';
+export const SPEC_VERSION = '0.1.2';
 
 // The `dunstan` field a block declares: the spec's major.minor.
 export const BLOCK_VERSION = '0.1';

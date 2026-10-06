@@ -1,6 +1,6 @@
 # The Dunstan claim format
 
-Version 0.1.1. Draft. Licensed under Apache-2.0 (`spec/LICENSE`).
+Version 0.1.2. Draft. Licensed under Apache-2.0 (`spec/LICENSE`).
 
 A coding agent that finishes a task writes a completion report. This specification defines a block
 the agent declares inside that report, the checks a checker runs on each declared field against the
@@ -27,7 +27,7 @@ verdict.
 16. [Reason codes](#16-reason-codes)
 17. [Changes](#17-changes)
 
-Not part of 0.1.1: [DRAFT 0.2.0: reader claims and retrieval](#draft-020-reader-claims-and-retrieval),
+Not part of 0.1.2: [DRAFT 0.2.0: reader claims and retrieval](#draft-020-reader-claims-and-retrieval),
 with [advisories from prose](#d11-advisories-from-prose), for the operator to check.
 
 ## 1. Conventions
@@ -290,9 +290,14 @@ subject repository.
   - `unverifiable` with `source_unreadable:repository` if the issue's repository is unreadable;
   - `unverifiable` with `source_unreadable:issue` if the issue's read errors;
   - `fail` with `not_found` if the issue does not exist;
-  - `fail` with `not_closing` if the issue exists.
+  - `unverifiable` with `closing_link_unsettled` if the issue exists and the pull request is open
+    (`pullRequest.state` is `open` and `merged` is `false`);
+  - `fail` with `not_closing` if the issue exists and the pull request is merged or closed.
 
-  `observed` is `{closing: [...]}`, with `exists: false` added for `not_found`.
+  GitHub computes the closing references asynchronously after a pull request is opened or its body
+  is edited, so while it is open an issue missing from the list may yet be added. The list of a
+  merged or closed pull request is read as settled. `observed` is `{closing: [...]}`, with
+  `exists: false` added for `not_found`, and `null` for `closing_link_unsettled` (section 7.1).
 - **`cites`, issue or pull request,** passes if it exists, and otherwise fails with `not_found`.
   `observed` is `{exists}`.
 - **`cites`, commit,** passes if the commit exists in the subject repository and is reachable from the
@@ -400,7 +405,7 @@ one ingests the other.
 
 | Member | Value |
 | --- | --- |
-| `spec` | The full version of this specification the checker implements, `"0.1.1"`. |
+| `spec` | The full version of this specification the checker implements, `"0.1.2"`. |
 | `checker` | `{name, version, digest: {sha256}}`; the digest is of the distributed checker artifact that ran. |
 | `report` | `{sha256, source: {kind, locator}}`, `kind` one of `pr-body`, `pr-comment`, `file`, `stdin`, `api`. |
 | `block` | `{status, sha256, value}`, plus `reason` and `count` or `errors` when not `found`. |
@@ -511,9 +516,11 @@ against the schemas and check each record's block, report and claim and evidence
 - `spec/examples/reports/`: each file is named `<status>.<slug>.md` for the status extraction must
   return: one block, none, two, malformed JSON, an unterminated fence, a `json` fence, an info string
   with a suffix, and an example block quoted inside another fence.
-- `spec/examples/records/`: `pass.json`, `fail.json` (an undeclared file, a `closes` of an existing
-  issue the API did not record as closing, and a short test count), `unverifiable.json` (a non-JUnit
-  test record and unreadable check runs) and `block_missing.json`.
+- `spec/examples/records/`: `pass.json`, `fail.json` (an undeclared file and a short test count,
+  which fail, beside a `closes` of an existing issue missing from an open pull request's closing
+  references, which is `unverifiable` with `closing_link_unsettled`: a `fail` decides even beside an
+  `unverifiable` row), `unverifiable.json` (a non-JUnit test record and unreadable check runs) and
+  `block_missing.json`.
 
 ## 16. Reason codes
 
@@ -526,7 +533,8 @@ against the schemas and check each record's block, report and claim and evidence
 | `declared_not_changed` | fail | A declared path is not in the changed set. |
 | `undeclared_file` | fail | A changed file is not declared. |
 | `file_list_truncated` | unverifiable | The changed-file list is incomplete. |
-| `not_closing` | fail | The issue exists but is not among the recorded closing references. |
+| `not_closing` | fail | The issue exists but is not among the closing references of a merged or closed pull request. |
+| `closing_link_unsettled` | unverifiable | The issue exists but is not among the closing references of an open pull request, which GitHub may not have computed yet. |
 | `not_found` | fail | The cited issue, pull request or commit, or the issue a `closes` names, does not exist. |
 | `not_reachable` | fail | The cited commit is not reachable from the head. |
 | `count_mismatch` | fail | A declared count differs from the record. |
@@ -544,6 +552,20 @@ against the schemas and check each record's block, report and claim and evidence
 
 ## 17. Changes
 
+- **0.1.2** (2026-10-06). Erratum to section 7.4, corrected in checker 0.1.3. In 0.1.1 a `closes`
+  issue that exists and is missing from the closing references failed with `not_closing` whatever
+  the pull request's state. GitHub computes `closingIssuesReferences` asynchronously after a pull
+  request is opened or its body is edited, so for an open pull request that fail rested on an
+  absence that could still change, which section 2 forbids. Such an issue is now `unverifiable`
+  with `closing_link_unsettled` while the pull request is open (`state` `open`, `merged` `false`),
+  and still fails with `not_closing` once it is merged or closed. The rule reads `pullRequest.state`
+  and `merged`, which the evidence already holds, so no evidence section changes. Section 16 adds
+  the reason, and `record-0.1.schema.json`'s claim reason pattern accepts it. The block format and
+  `handback-block-0.1.schema.json` are unchanged; a 0.1 block stays valid. The example
+  `spec/examples/records/fail.json` is an open pull request: its `closes` row is now
+  `unverifiable`, its claims digest changes, and its verdict stays `fail` (section 15). The
+  preregistered acceptance case `closes-not-linked` is a merged pull request and keeps its expected
+  `fail` with `not_closing`.
 - **0.1.1** (2026-10-04). Erratum to section 7.4, found by the October 2026 demo and corrected in
   checker 0.1.1. In 0.1.0 a
   `closes` issue missing from the closing references failed with `not_closing`. GitHub leaves out of
@@ -558,8 +580,8 @@ against the schemas and check each record's block, report and claim and evidence
 ## DRAFT 0.2.0: reader claims and retrieval
 
 > **DRAFT. Not normative. For the operator to check.** Nothing in this section changes version
-> 0.1.1. Sections 1 to 17, `handback-block-0.1.schema.json`, `record-0.1.schema.json` and every 0.1
-> verdict stand as written. A 0.1.1 checker ignores this section. The key words of section 1 are
+> 0.1.2. Sections 1 to 17, `handback-block-0.1.schema.json`, `record-0.1.schema.json` and every 0.1
+> verdict stand as written. A 0.1.2 checker ignores this section. The key words of section 1 are
 > used here to say what 0.2.0 would require if it is adopted. Until then they bind nothing. Open
 > questions are in D.10 and D.11.8. The reference implementations are `src/retrieval/` and
 > `src/advisory/`, and the rationale is in `docs/retrieval.md` and `docs/advisory.md`.
@@ -621,17 +643,24 @@ Retrieval MUST be deterministic and MUST NOT use a model or the network. Given a
    over all items of the pull request, each distinct query term once. Tokenisation is as
    `docs/retrieval.md` states. Scores are rounded to 6 decimal places.
 3. **Floor.** An item that is not an identifier match is a candidate only if its rounded score is
-   at least the **floor, 1**. The floor is recorded with every reader claim.
+   at least the **floor, 1**, or it fills the list (step 5). The floor is recorded with every
+   reader claim.
 4. **Order.** Identifier matches first, then by score descending. Ties break by record order, then
    by `id` in code-unit order.
+5. **Filling to k.** When fewer than k candidates reach the floor, the places left below k are
+   filled by the next items of the allowed types below the floor, in the same order
+   (`docs/retrieval.md`), after the candidates that reach it. A **filled** candidate is one whose
+   `score` is below the recorded floor. The list is never cut: with k or more candidates at or
+   above the floor, nothing is filled. This is the default, with k = 5, and its `retrieval` member
+   is `{"arm": "A-fill", "floor": 1, "k": 5}`. A record written before it was the default has
+   `{"arm": "A", "floor": 1}` and no filled candidate.
 
 A claim of a known kind (D.6) has candidates only of that kind's item type. A **candidate** is
-`{type, id, score, matchedField}`. Every candidate at or above the floor is recorded.
+`{type, id, score, matchedField}`. Every candidate at or above the floor is recorded, and every
+filled candidate after them.
 
-A measurement MAY run Arm A **filled to k**: the same order, with the places left below k filled by
-the next items below the floor (`docs/retrieval.md`). Filled candidates are not recorded in this
-draft: `check_succeeded` and `test_passed` read every candidate, so a filled one could decide them
-(D.10, question 4).
+Retrieval narrows where to look. It is never evidence and never decides a verdict: a filled
+candidate MUST NOT be read by a check (D.6).
 
 An embedding arm (Arm B) MAY be added behind a provider seam, if a measurement shows it closes a
 gap. Its scores, like BM25's, MUST NOT be read by a check.
@@ -641,8 +670,10 @@ gap. Its scores, like BM25's, MUST NOT be read by a check.
 ```json
 { "text": "The typecheck job passes", "kind": "check_succeeded", "declaredValue": true,
   "reader": { "name": "example-reader", "version": "0.0.1" }, "probability": 0.8,
-  "retrieval": { "arm": "A", "floor": 1 },
-  "candidates": [ { "type": "check_run", "id": "103", "score": null, "matchedField": "name" } ],
+  "retrieval": { "arm": "A-fill", "floor": 1, "k": 5 },
+  "candidates": [ { "type": "check_run", "id": "103", "score": null, "matchedField": "name" },
+                  { "type": "check_run", "id": "101", "score": 0, "matchedField": "name" },
+                  { "type": "check_run", "id": "102", "score": 0, "matchedField": "name" } ],
   "observed": false, "verdict": "fail", "reason": "all_succeeded_mismatch" }
 ```
 
@@ -655,8 +686,9 @@ gap. Its scores, like BM25's, MUST NOT be read by a check.
 
 ### D.6 Kinds and checks
 
-The check is a pure function of `kind`, `declaredValue`, the recorded `candidates` and the evidence.
-It never runs retrieval. In order:
+The check is a pure function of `kind`, `declaredValue`, the recorded `candidates`, the recorded
+`retrieval.floor` and the evidence. It never runs retrieval. After step 3 it reads only identifier
+matches and candidates at or above the floor: a filled candidate (D.4) is skipped. In order:
 
 1. A kind not in the table below, or a `declaredValue` of the wrong type for its kind:
    `unverifiable`, `no_comparable_record_field`.
@@ -664,9 +696,9 @@ It never runs retrieval. In order:
    `source_unreadable:<kind>` or `evidence_field_unpopulated:<field>` (section 6).
 3. A recorded candidate of that type that the evidence does not hold: `unverifiable`,
    `candidate_not_in_evidence`.
-4. **No candidate of that type: `unverifiable`, `no_matching_record_item`, with the floor stated in
-   `retrieval.floor`. Never `pass`.** For `file_changed` with an incomplete file list, the reason is
-   `file_list_truncated`.
+4. **No candidate of that type at or above the floor: `unverifiable`, `no_matching_record_item`,
+   with the floor stated in `retrieval.floor`. Never `pass`, whatever was filled.** For
+   `file_changed` with an incomplete file list, the reason is `file_list_truncated`.
 5. The kind's own check:
 
 | `kind` | `declaredValue` | Item type | Passes when | Otherwise |
@@ -714,8 +746,9 @@ record; and retrieval scores. It would still hold no file contents and no report
 3. **Section 14, "A JUnit file is read for element counts only".** `items.tests` reads test case
    names and outcomes, which goes beyond that.
 4. **A pass on lexical candidates.** As drafted, `check_succeeded` and `test_passed` may pass when
-   every candidate was proposed by BM25 alone. The stricter alternative: a `pass` needs at least one
-   identifier-matched candidate, and is otherwise `unverifiable`.
+   every candidate was proposed by BM25 alone at or above the floor (a filled candidate is never
+   read, D.6). The stricter alternative: a `pass` needs at least one identifier-matched candidate,
+   and is otherwise `unverifiable`.
 5. **"All" claims.** "CI is green" is a claim about every check run. As drafted, it is checked
    against whichever runs retrieval proposes. A kind such as `checks_all_succeeded`, whose items
    are all check runs without retrieval, would match 0.1's `checks.allSucceeded`.
@@ -943,6 +976,14 @@ notes with its base rate.
    unchanged.
 
 ### D.12 Changes to this draft
+
+- **2026-10-06.** Spec 0.1.2 (section 17). A `reference_closes` advisory is compared by the 7.4
+  `closes` check, so on an open pull request whose closing references do not list an existing
+  issue its note is now `unanswered:closing_link_unsettled`, not `differs:not_closing`. The
+  advisory note pattern of `record-0.2-draft.schema.json` accepts the reason. The comparison stays
+  0.2.0: its own rules are unchanged, the gate check under it is named by the record's `spec` and
+  `checker`, and the published `differs` figure was measured on merged pull requests only, whose
+  notes do not change. The extractor and the record members are unchanged.
 
 - **2026-10-06.** Advisory extractor 0.1.3: a file list after a colon binds to the verb of the
   clause before it ("Files changed: …"), and a timestamp after "Merged at:" or "Merge time:" binds

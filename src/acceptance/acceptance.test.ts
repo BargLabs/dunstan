@@ -48,6 +48,8 @@ describe('acceptance (c): planted defects', () => {
       // Spec 0.1.1: a closes missing from the closing references.
       'closes-repository-unreadable',
       'closes-nonexistent-issue',
+      // Spec 0.1.2: a closes missing from an open pull request's closing references.
+      'closes-unsettled-open',
     ]) {
       expect(names).toContain(required);
     }

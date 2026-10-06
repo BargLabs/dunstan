@@ -29,7 +29,7 @@ import {
   webhook,
 } from './support.js';
 
-const CHECKER = { name: 'dunstan', version: '0.1.2', digest: { sha256: 'a'.repeat(64) } };
+const CHECKER = { name: 'dunstan', version: '0.1.3', digest: { sha256: 'a'.repeat(64) } };
 const NOW = new Date('2026-10-04T12:00:00Z');
 
 let emulated: Emulated;
@@ -334,6 +334,6 @@ describe('GET /v0.1/health', () => {
       emulated.env,
       deps(),
     );
-    expect(await response.json()).toEqual({ status: 'ok', checker: CHECKER, spec: '0.1.1' });
+    expect(await response.json()).toEqual({ status: 'ok', checker: CHECKER, spec: '0.1.2' });
   });
 });

@@ -113,14 +113,16 @@ const FIGURES_LINE =
 // ---------------------------------------------------------------- the record does not change
 
 // The schemas as they stood before the presentation change, but for the DRAFT 0.2.0 schema, which
-// gained the figure fields of the advisory section when the figures were published. A change to any
-// of them is a record change.
+// gained the figure fields of the advisory section when the figures were published, and a reader
+// claim's retrieval arm "A-fill" with its k when filling to k became the default; and but for the
+// reason `closing_link_unsettled` of spec 0.1.2, which the 0.1 record schema's claim reason and the
+// DRAFT schema's advisory note both gained. A change to any of them is a record change.
 const SCHEMA_SHA256: Record<string, string> = {
   'handback-block-0.1.schema.json':
     '331d142be28bf7c9deac7f76cad83731bf00679b952418004270c70344db46a7',
-  'record-0.1.schema.json': '32ee4da6d4507952a1ea5c75635f1349a7a8fefe4ef7ee81ff0a0465115567b4',
+  'record-0.1.schema.json': 'ac398929b30ae0bcaa22298d03a0af0a78af84844223626ccc8bf79bcfcb5e26',
   'record-0.2-draft.schema.json':
-    'f5443895ba5f6830357a01ee6391437519d53c0aa7d6fbae34d192c64f238b28',
+    'bcb717b073ec7616abe6735f22269285cd91f92b90a7e4eb2977184450d8c574',
 };
 
 const evidence: Evidence = {

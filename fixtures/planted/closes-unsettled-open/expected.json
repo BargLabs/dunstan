@@ -1,0 +1,52 @@
+{
+  "description": "Declares closes #17 on an open pull request whose closing references do not list it yet",
+  "blockStatus": "found",
+  "verdict": "unverifiable",
+  "claims": [
+    {
+      "id": "head:/headCommit",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/0",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/1",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/2",
+      "verdict": "pass"
+    },
+    {
+      "id": "reference:/references/0",
+      "verdict": "unverifiable",
+      "reason": "closing_link_unsettled"
+    },
+    {
+      "id": "reference:/references/1",
+      "verdict": "pass"
+    },
+    {
+      "id": "reference:/references/2",
+      "verdict": "pass"
+    },
+    {
+      "id": "count:/tests/0/count",
+      "verdict": "pass"
+    },
+    {
+      "id": "count:/tests/0/failures",
+      "verdict": "pass"
+    },
+    {
+      "id": "count:/checks/total",
+      "verdict": "pass"
+    },
+    {
+      "id": "count:/checks/allSucceeded",
+      "verdict": "pass"
+    }
+  ]
+}

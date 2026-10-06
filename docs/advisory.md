@@ -81,6 +81,12 @@ never shows it as "differs", "mismatch" or "false", nor as anything that says th
 | `differs:not_merged` | possible disagreement, unverified: the pull request is not merged |
 | `differs:premature` | possible disagreement, unverified: the recorded merge time is later |
 
+`differs:not_closing` is given only for a merged or closed pull request. GitHub computes the closing
+references asynchronously after a pull request is opened or its body is edited, so on an open pull
+request an issue missing from them is `unanswered:closing_link_unsettled`, as the gate's own claim
+is `unverifiable` there (spec 0.1.2, section 7.4). An advisory never gates, but a note should not
+claim more than the evidence holds.
+
 Every surface that shows advisories also prints one fixed line beside them. For a record that
 carries the published figures (extractor 0.1.1 and comparison 0.2.0), the line states them, filled
 from the record:
@@ -89,8 +95,8 @@ from the record:
 
 For a record that carries no figure (a later extractor or comparison, not yet measured), the line
 states none. Since extractor 0.1.2 that includes every record the running checker writes: 0.1.2
-has figures from constructed reports only, which no record carries, and 0.1.3, which runs now, is
-unmeasured ("Measured figures", below).
+has figures from constructed reports only, which no record carries, and 0.1.3, which runs now, has
+no published figures ("Measured figures", below).
 
 > Advisories never affect the verdict. A possible disagreement is unverified: on the reports measured so far it usually reflected a misread of the report, not a false claim.
 
@@ -129,7 +135,7 @@ figures.
 | Kind | Value | Gate check | Notes it can carry |
 | --- | --- | --- | --- |
 | `file_changed` | path | 7.3 scope, one declared path, then by name | `agrees`, `agrees_by_name`, `differs:declared_not_changed`, `unanswered:ambiguous_path`, `unanswered:file_list_truncated` |
-| `reference_closes` | `#N`, `owner/repo#N` | 7.4 `closes` | `agrees`, `differs:not_closing`, `differs:not_found`, `unanswered:…` |
+| `reference_closes` | `#N`, `owner/repo#N` | 7.4 `closes` | `agrees`, `differs:not_closing` (merged or closed pull request), `differs:not_found`, `unanswered:closing_link_unsettled` (open pull request), `unanswered:…` |
 | `commit` | 7 to 40 hex | 7.2 if the head starts with it, else 7.4 `cites` (40 hex only) | `agrees`, `differs:not_found`, `differs:not_reachable`, `unanswered:…` |
 | `head_commit` | 7 to 40 hex | 7.2 head | `agrees`, `differs:head_mismatch` |
 | `checks_succeeded` | boolean | 7.5 `allSucceeded` | `agrees`, `differs:all_succeeded_mismatch`, `unanswered:checks_incomplete`, `unanswered:no_check_runs` |
@@ -494,9 +500,10 @@ The table below is for extractor 0.1.1. Extractor 0.1.2, digest
 has figures measured on constructed reports ("Extractor 0.1.2 on constructed reports (recall)",
 below), but no precision measured on real pull requests, so its records still carry `null` for both
 figures. The extractor that runs since 2026-10-06 is 0.1.3, digest
-`2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37`. It is unmeasured, on real pull
-requests and on constructed reports, so a record the running checker writes carries `null` for both
-figures, shown as "unmeasured", until 0.1.3 is measured anew. No figure here is rebound to it.
+`2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37`. No figures are published for
+it, on real pull requests or on constructed reports, so a record the running checker writes carries
+`null` for both figures, shown as "unmeasured", until figures for 0.1.3 are published. No figure
+here is rebound to it.
 
 | Figure | Value | n | Wilson 95% interval | Bound to |
 | --- | --- | --- | --- | --- |
@@ -562,7 +569,7 @@ report's record. A planted claim counts as flagged when a `differs` note falls o
 were predicted before the run, from the sentence shapes the grammar does not read: a colon ends the
 clause before "merged", and a `#N` makes the clause about another pull request.
 
-Extractor 0.1.3, which runs now, has not been measured on constructed reports either.
+No figures are published for extractor 0.1.3, which runs now.
 
 ## What it does not do
 

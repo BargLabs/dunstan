@@ -6,7 +6,9 @@ find which record items each claim is about. `src/retrieval/` does that.
 
 **Retrieval proposes; the check decides.** Retrieval returns candidate record items. It never returns
 a verdict. The check in `src/retrieval/reader-claims.ts` decides, from the candidates and the
-evidence. A claim with no candidate is `unverifiable` with `no_matching_record_item`, never `pass`.
+evidence. A claim with no candidate at or above the floor is `unverifiable` with
+`no_matching_record_item`, never `pass`. Retrieval narrows where to look; it is never evidence and
+never decides a verdict.
 
 The record format for reader claims is **DRAFT 0.2.0** (`spec/claim-format.md`, "DRAFT 0.2.0";
 `spec/schema/record-0.2-draft.schema.json`). It is for the operator to check and is not normative.
@@ -55,17 +57,23 @@ publish".
    claim's terms.
 3. **Order.** Identifier matches come first, then lexical matches by score descending. Ties break by
    record order, then by id (code-unit order).
-4. **The floor.** `BM25_FLOOR = 1`. Nothing below it is a candidate.
-5. **Filling to k (opt-in, measurement only).** With `fill: 'to-k'` and a `limit` of k, the places
-   left below k after steps 1 to 4 are filled with the next items of the allowed types by BM25
-   score, below the floor too, ties by record order then id, so the list holds min(k, pool) items.
-   The head of the list is the unfilled list, unchanged; a filled candidate is one whose score is
-   below the floor. The default does not fill, and no record carries filled candidates:
-   `readReaderClaim` never fills. For `file_changed`, `commit_present` and
-   `reference_in_timeline` a filled candidate cannot make a claim pass, since the declared item has
-   to be among the candidates and an item the claim names is an identifier match. For
-   `check_succeeded` and `test_passed` it could, because they aggregate over the candidates (spec
-   D.10, question 4), so filling would need that question settled before it reached a record.
+4. **The floor.** `BM25_FLOOR = 1`. Nothing below it is a candidate, unless the list is filled.
+5. **Filling to k (the default for reader claims).** With `fill: 'to-k'` and a `limit` of k, the
+   places left below k after steps 1 to 4 are filled with the next items of the allowed types by
+   BM25 score, below the floor too, ties by record order then id, so the list holds min(k, pool)
+   items. The head of the list is the unfilled list, unchanged; a filled candidate is one whose
+   score is below the floor. `retrieve` itself fills only when asked. `readReaderClaim` asks, with
+   k = 5 (`READER_CLAIM_K`), whenever fewer than k candidates reach the floor, and never cuts the
+   list: every candidate at or above the floor is still recorded. Its claims record
+   `"retrieval": {"arm": "A-fill", "floor": 1, "k": 5}`. No embedding model is used or needed.
+
+   **A filled candidate is never evidence.** The check reads only identifier matches and candidates
+   at or above the recorded floor, so filling changes no verdict. A claim whose candidates are all
+   filled is `unverifiable` with `no_matching_record_item`, as it was with none. This matters most
+   for `check_succeeded` and `test_passed`, which aggregate over their candidates (spec D.10,
+   question 4): a filled run or test case never decides them. For `file_changed`, `commit_present`
+   and `reference_in_timeline` a filled candidate could not make a claim pass anyway, since the
+   declared item has to be among the candidates and an item the claim names is an identifier match.
 
 ### The floor, and why 1
 
@@ -105,11 +113,19 @@ Each entry is:
 {
   "text": "The typecheck job passes", "kind": "check_succeeded", "declaredValue": true,
   "reader": {"name": "example-reader", "version": "0.0.1"}, "probability": 0.8,
-  "retrieval": {"arm": "A", "floor": 1},
-  "candidates": [{"type": "check_run", "id": "103", "score": null, "matchedField": "name"}],
+  "retrieval": {"arm": "A-fill", "floor": 1, "k": 5},
+  "candidates": [
+    {"type": "check_run", "id": "103", "score": null, "matchedField": "name"},
+    {"type": "check_run", "id": "101", "score": 0, "matchedField": "name"},
+    {"type": "check_run", "id": "102", "score": 0, "matchedField": "name"}
+  ],
   "observed": false, "verdict": "fail", "reason": "all_succeeded_mismatch"
 }
 ```
+
+Runs 101 and 102 fill the list to k and are below the floor, so the check reads run 103 alone. A
+record written before filling was the default has `"retrieval": {"arm": "A", "floor": 1}` and no
+candidate below the floor; it verifies as before.
 
 - `probability` is the reader's output, recorded as given. No check reads it, and a test proves that
   the same claim gets the same check at any probability.
@@ -149,7 +165,7 @@ top 5 of an arm's ranking. A known `kind` restricts candidates to its item type,
 does. The output gives, per arm, `claims`, `hits`, `recallAtK`, `empty` and `emptyRate` (claims for
 which the arm proposed no candidate) and `missed` (as `case/claim`), along with `k`, the floor, the
 checker version, a SHA-256 of the corpus and the provider's identity. Without `--provider` only Arm
-A runs. `--fill-to-k` adds `A-fill`, Arm A filled to k = 5 as above. `--provider` adds B and A+B
+A runs. `--fill-to-k` adds `A-fill`, Arm A filled to k = 5 as above (cut at k, as recall at k is). `--provider` adds B and A+B
 (A+B fuses the unfilled Arm A).
 
 `chance` is what a uniformly random ranking of each claim's pool would score: the pool is every item

@@ -11,6 +11,7 @@ export { identifierMatches, MIN_NAME_LENGTH } from './identifiers.js';
 export { type ItemSnapshot, recordItems, testId } from './items.js';
 export {
   checkReaderClaim,
+  READER_CLAIM_K,
   READER_CLAIM_KINDS,
   type ReaderCheck,
   type ReaderClaim,

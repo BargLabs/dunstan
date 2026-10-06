@@ -108,6 +108,14 @@ reads for #17 (it exists).
 | `closes-repository-unreadable` | `unverifiable` | `reference:/references/0` `source_unreadable:repository` (a `closes` missing from the closing references, in a repository that answers 404) |
 | `closes-nonexistent-issue` | `fail` | `reference:/references/0` `not_found` (a `closes` missing from the closing references, whose readable repository answers 404 for the issue) |
 
+Addendum, 2026-10-06, spec 0.1.2. Added case. The rows above are unchanged. `closes-not-linked` is
+a merged pull request, so spec 0.1.2 reads its closing references as settled and it keeps its
+expected `fail` with `not_closing`.
+
+| Case | Expected verdict | Expected failing or unverifiable row and reason |
+| --- | --- | --- |
+| `closes-unsettled-open` | `unverifiable` | `reference:/references/0` `closing_link_unsettled` (a `closes` of an existing issue missing from the closing references of an open, unmerged pull request, which GitHub may not have computed yet) |
+
 ### Cross-machine (d)
 
 CI runs every fixture, planted and control, through `runChecks` and the record builder on

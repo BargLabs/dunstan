@@ -280,13 +280,28 @@
           "maximum": 1
         },
         "retrieval": {
-          "type": "object",
-          "required": ["arm", "floor"],
-          "additionalProperties": false,
-          "properties": {
-            "arm": { "const": "A" },
-            "floor": { "type": "number", "minimum": 0 }
-          }
+          "description": "Arm A, filled to k (\"A-fill\") or, as recorded before filling was the default, unfilled (\"A\"). A candidate whose score is below the floor was filled in and is never read by the check.",
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["arm", "floor"],
+              "additionalProperties": false,
+              "properties": {
+                "arm": { "const": "A" },
+                "floor": { "type": "number", "minimum": 0 }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["arm", "floor", "k"],
+              "additionalProperties": false,
+              "properties": {
+                "arm": { "const": "A-fill" },
+                "floor": { "type": "number", "minimum": 0 },
+                "k": { "type": "integer", "minimum": 1 }
+              }
+            }
+          ]
         },
         "candidates": { "type": "array", "items": { "$ref": "#/$defs/candidate" } },
         "observed": true,
@@ -437,7 +452,7 @@
     "advisoryNote": {
       "description": "agrees when the gate check would pass; differs:<reason> when it would fail; unanswered:<reason> when it would be unverifiable. The reasons are the 0.1 claim reasons. A file claim matched by name only is agrees_by_name, or unanswered:ambiguous_path when more than one changed path has that name (D.11.4). Never a verdict.",
       "type": "string",
-      "pattern": "^(?:agrees|agrees_by_name|unanswered:ambiguous_path|(?:differs|unanswered):(?:head_mismatch|declared_not_changed|file_list_truncated|not_closing|not_found|not_reachable|count_mismatch|all_succeeded_mismatch|checks_incomplete|no_check_runs|no_comparable_record_field|not_merged|premature|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request|pull_request_files|closing_references|repository|issue|commit|compare|check_runs)))$"
+      "pattern": "^(?:agrees|agrees_by_name|unanswered:ambiguous_path|(?:differs|unanswered):(?:head_mismatch|declared_not_changed|file_list_truncated|not_closing|closing_link_unsettled|not_found|not_reachable|count_mismatch|all_succeeded_mismatch|checks_incomplete|no_check_runs|no_comparable_record_field|not_merged|premature|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request|pull_request_files|closing_references|repository|issue|commit|compare|check_runs)))$"
     },
     "readerReason": {
       "type": "string",

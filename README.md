@@ -143,7 +143,7 @@ figure and base rate to the comparison version too. Any later extractor or compa
 0.1.3. Since 0.1.2 it stops reading statements about another pull request, an undone change, a
 baseline, a negated list or a deliberate test failure as claims, and since 0.1.3 it reads a file
 list or a merge time after a colon ([`docs/advisory.md`](docs/advisory.md), "Attribution" and
-"Lists, merge times and own references"). No figure has been measured on it, so a record it writes
+"Lists, merge times and own references"). No figure is published for it, so a record it writes
 says "unmeasured".
 
 The base rate is always shown next to the `differs` figure: among the 44 advisories the record

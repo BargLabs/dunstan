@@ -150,9 +150,15 @@ export function checkReferences(block: Block, evidence: Evidence, repository: st
       if (entry.status !== 'ok') {
         return unverifiable('reference', field, reference, unreadReason(entry));
       }
-      return entry.exists
-        ? fail('reference', field, reference, observed, 'not_closing')
-        : fail('reference', field, reference, { ...observed, exists: false }, 'not_found');
+      if (!entry.exists) {
+        return fail('reference', field, reference, { ...observed, exists: false }, 'not_found');
+      }
+      // GitHub computes the closing references asynchronously after the pull request is opened or
+      // its body is edited, so while it is open an absence may not be settled yet.
+      const pr = evidence.pullRequest;
+      return pr.state === 'open' && !pr.merged
+        ? unverifiable('reference', field, reference, 'closing_link_unsettled')
+        : fail('reference', field, reference, observed, 'not_closing');
     }
 
     if ('issue' in reference) {

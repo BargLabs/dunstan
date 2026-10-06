@@ -304,7 +304,7 @@
     },
     "claimReason": {
       "type": "string",
-      "pattern": "^(?:head_mismatch|declared_not_changed|undeclared_file|file_list_truncated|not_closing|not_found|not_reachable|count_mismatch|all_succeeded_mismatch|checks_incomplete|no_check_runs|no_comparable_record_field|record_not_found|record_ambiguous|not_merged|premature|no_deployment|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request|pull_request_files|closing_references|repository|issue|commit|compare|check_runs|workflow_runs|artifact|deployments))$"
+      "pattern": "^(?:head_mismatch|declared_not_changed|undeclared_file|file_list_truncated|not_closing|closing_link_unsettled|not_found|not_reachable|count_mismatch|all_succeeded_mismatch|checks_incomplete|no_check_runs|no_comparable_record_field|record_not_found|record_ambiguous|not_merged|premature|no_deployment|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request|pull_request_files|closing_references|repository|issue|commit|compare|check_runs|workflow_runs|artifact|deployments))$"
     },
     "unread": {
       "description": "A section the checker could not use: its source errored, or the source answered without the field.",

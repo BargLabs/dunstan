@@ -1,6 +1,7 @@
 // Arm A: deterministic retrieval with no model. Exact identifiers first, then BM25 over the items'
 // text. Ties break by record order, then by id. Nothing below the floor is a candidate, unless the
-// caller asks to fill to k (FILL_TO_K), which only measurement does.
+// caller asks to fill to k (FILL_TO_K). Reader claims (reader-claims.ts) and measurement do; the
+// default here does not.
 
 import { compareCodeUnits } from '../check/rows.js';
 import { Bm25Index, tokenize } from './bm25.js';
@@ -10,7 +11,7 @@ import type { Candidate, ClaimQuery, RecordItem, RetrieveOptions } from './types
 export const ARM_A = 'A';
 
 // Arm A filled to k: the same ranking with the floor lifted for the places left below k. A filled
-// candidate is one whose score is below the floor. Measurement only.
+// candidate is one whose score is below the floor. It says where to look and is never evidence.
 export const FILL_TO_K = 'to-k';
 export const ARM_A_FILL = 'A-fill';
 

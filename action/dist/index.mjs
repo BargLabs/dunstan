@@ -8028,7 +8028,7 @@ import { join } from "node:path";
 import { createHash } from "node:crypto";
 
 // src/spec/constants.ts
-var SPEC_VERSION = "0.1.1";
+var SPEC_VERSION = "0.1.2";
 var BLOCK_VERSION = "0.1";
 var SUPPORTED_BLOCK_VERSIONS = [BLOCK_VERSION];
 var BLOCK_INFO_STRING = "dunstan-handback";
@@ -8442,7 +8442,11 @@ function checkReferences(block, evidence, repository) {
       if (entry2.status !== "ok") {
         return unverifiable("reference", field, reference, unreadReason(entry2));
       }
-      return entry2.exists ? fail("reference", field, reference, observed2, "not_closing") : fail("reference", field, reference, { ...observed2, exists: false }, "not_found");
+      if (!entry2.exists) {
+        return fail("reference", field, reference, { ...observed2, exists: false }, "not_found");
+      }
+      const pr = evidence.pullRequest;
+      return pr.state === "open" && !pr.merged ? unverifiable("reference", field, reference, "closing_link_unsettled") : fail("reference", field, reference, observed2, "not_closing");
     }
     if ("issue" in reference) {
       const entry2 = findReference(evidence, "issue", qualifyIssue(reference.issue, repository));
@@ -9283,7 +9287,7 @@ async function readEvidence(client, input2) {
 // src/record/checker.ts
 import { readFileSync } from "node:fs";
 var CHECKER_NAME = "dunstan";
-var CHECKER_VERSION = "0.1.2";
+var CHECKER_VERSION = "0.1.3";
 function checkerIdentity(artifact) {
   return {
     name: CHECKER_NAME,
@@ -11159,8 +11163,8 @@ function identifierMatches(claim, items, repository) {
 }
 
 // src/retrieval/retrieve.ts
-var ARM_A = "A";
 var FILL_TO_K = "to-k";
+var ARM_A_FILL = "A-fill";
 var BM25_FLOOR = 1;
 var SCORE_DECIMALS = 6;
 function round(score) {
@@ -11229,6 +11233,7 @@ function retrieve(claim, items, opts) {
 }
 
 // src/retrieval/reader-claims.ts
+var READER_CLAIM_K = 5;
 var READER_CLAIM_KINDS = /* @__PURE__ */ new Map([
   ["file_changed", "file"],
   ["commit_present", "commit"],
@@ -11293,9 +11298,13 @@ function checkReaderClaim(claim, evidence, repository) {
   const missing = sectionReason(type, evidence);
   if (missing !== void 0) return unverifiable2(missing);
   const entries = lookup(type, evidence);
-  const relevant = claim.candidates.filter((c) => c.type === type);
+  const typed = claim.candidates.filter((c) => c.type === type);
+  if (typed.some((c) => entries.get(c.id) === void 0)) {
+    return unverifiable2("candidate_not_in_evidence");
+  }
+  const floor = claim.retrieval.floor;
+  const relevant = typed.filter((c) => c.score === null || c.score >= floor);
   const observed = relevant.map((c) => entries.get(c.id));
-  if (observed.some((v) => v === void 0)) return unverifiable2("candidate_not_in_evidence");
   const truncated = type === "file" && evidence.files?.status === "ok" && !evidence.files.complete;
   if (relevant.length === 0) {
     return unverifiable2(truncated ? "file_list_truncated" : "no_matching_record_item");
@@ -11340,20 +11349,20 @@ function checkReaderClaim(claim, evidence, repository) {
 function readReaderClaim(input2, evidence, repository) {
   const type = READER_CLAIM_KINDS.get(input2.kind);
   const opts = type === void 0 ? { repository } : { repository, types: [type] };
-  const candidates = retrieve(
-    { text: input2.text, declaredValue: input2.declaredValue },
-    recordItems(evidence),
-    opts
-  );
+  const query = { text: input2.text, declaredValue: input2.declaredValue };
+  const items = recordItems(evidence);
+  const unfilled = retrieve(query, items, opts);
+  const candidates = unfilled.length >= READER_CLAIM_K ? unfilled : retrieve(query, items, { ...opts, limit: READER_CLAIM_K, fill: FILL_TO_K });
+  const retrieval = { arm: ARM_A_FILL, floor: BM25_FLOOR, k: READER_CLAIM_K };
   const claim = {
     text: input2.text,
     kind: input2.kind,
     declaredValue: input2.declaredValue,
     reader: { name: input2.reader.name, version: input2.reader.version },
-    retrieval: { arm: ARM_A, floor: BM25_FLOOR },
+    retrieval,
     candidates,
     ...checkReaderClaim(
-      { kind: input2.kind, declaredValue: input2.declaredValue, candidates },
+      { kind: input2.kind, declaredValue: input2.declaredValue, candidates, retrieval },
       evidence,
       repository
     )
@@ -11930,7 +11939,7 @@ var FILES = { "handback-block-0.1.schema.json": `{
     },
     "claimReason": {
       "type": "string",
-      "pattern": "^(?:head_mismatch|declared_not_changed|undeclared_file|file_list_truncated|not_closing|not_found|not_reachable|count_mismatch|all_succeeded_mismatch|checks_incomplete|no_check_runs|no_comparable_record_field|record_not_found|record_ambiguous|not_merged|premature|no_deployment|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request|pull_request_files|closing_references|repository|issue|commit|compare|check_runs|workflow_runs|artifact|deployments))$"
+      "pattern": "^(?:head_mismatch|declared_not_changed|undeclared_file|file_list_truncated|not_closing|closing_link_unsettled|not_found|not_reachable|count_mismatch|all_succeeded_mismatch|checks_incomplete|no_check_runs|no_comparable_record_field|record_not_found|record_ambiguous|not_merged|premature|no_deployment|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request|pull_request_files|closing_references|repository|issue|commit|compare|check_runs|workflow_runs|artifact|deployments))$"
     },
     "unread": {
       "description": "A section the checker could not use: its source errored, or the source answered without the field.",
@@ -12494,13 +12503,28 @@ var FILES = { "handback-block-0.1.schema.json": `{
           "maximum": 1
         },
         "retrieval": {
-          "type": "object",
-          "required": ["arm", "floor"],
-          "additionalProperties": false,
-          "properties": {
-            "arm": { "const": "A" },
-            "floor": { "type": "number", "minimum": 0 }
-          }
+          "description": "Arm A, filled to k (\\"A-fill\\") or, as recorded before filling was the default, unfilled (\\"A\\"). A candidate whose score is below the floor was filled in and is never read by the check.",
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["arm", "floor"],
+              "additionalProperties": false,
+              "properties": {
+                "arm": { "const": "A" },
+                "floor": { "type": "number", "minimum": 0 }
+              }
+            },
+            {
+              "type": "object",
+              "required": ["arm", "floor", "k"],
+              "additionalProperties": false,
+              "properties": {
+                "arm": { "const": "A-fill" },
+                "floor": { "type": "number", "minimum": 0 },
+                "k": { "type": "integer", "minimum": 1 }
+              }
+            }
+          ]
         },
         "candidates": { "type": "array", "items": { "$ref": "#/$defs/candidate" } },
         "observed": true,
@@ -12651,7 +12675,7 @@ var FILES = { "handback-block-0.1.schema.json": `{
     "advisoryNote": {
       "description": "agrees when the gate check would pass; differs:<reason> when it would fail; unanswered:<reason> when it would be unverifiable. The reasons are the 0.1 claim reasons. A file claim matched by name only is agrees_by_name, or unanswered:ambiguous_path when more than one changed path has that name (D.11.4). Never a verdict.",
       "type": "string",
-      "pattern": "^(?:agrees|agrees_by_name|unanswered:ambiguous_path|(?:differs|unanswered):(?:head_mismatch|declared_not_changed|file_list_truncated|not_closing|not_found|not_reachable|count_mismatch|all_succeeded_mismatch|checks_incomplete|no_check_runs|no_comparable_record_field|not_merged|premature|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request|pull_request_files|closing_references|repository|issue|commit|compare|check_runs)))$"
+      "pattern": "^(?:agrees|agrees_by_name|unanswered:ambiguous_path|(?:differs|unanswered):(?:head_mismatch|declared_not_changed|file_list_truncated|not_closing|closing_link_unsettled|not_found|not_reachable|count_mismatch|all_succeeded_mismatch|checks_incomplete|no_check_runs|no_comparable_record_field|not_merged|premature|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request|pull_request_files|closing_references|repository|issue|commit|compare|check_runs)))$"
     },
     "readerReason": {
       "type": "string",
