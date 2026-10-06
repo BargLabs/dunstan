@@ -1,0 +1,40 @@
+{
+  "pullRequest": {
+    "status": "ok",
+    "number": 127,
+    "state": "open",
+    "merged": false,
+    "mergedAt": null,
+    "headSha": "a11ce5e0c0ffee00d00dfeed0000111122223333",
+    "mergeSha": null,
+    "changedFiles": 5
+  },
+  "files": {
+    "status": "ok",
+    "complete": false,
+    "entries": [
+      {
+        "path": "src/cache.test.ts",
+        "status": "added"
+      },
+      {
+        "path": "src/cache.ts",
+        "status": "modified"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "kind": "pull_request",
+      "locator": "GET /repos/example-org/example-repo/pulls/127",
+      "sha256": "a48ed50a8a6f57377d32207f4c7ce5a893e20cd15b15eb099bb1cfce7026778c",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "pull_request_files",
+      "locator": "GET /repos/example-org/example-repo/pulls/127/files?per_page=100&page=1",
+      "sha256": "986a6250863cc3a13789ca2269ee02103844046c85cda1fb897a4b1c8c7fe203",
+      "readAt": "2026-10-04T12:00:00Z"
+    }
+  ]
+}

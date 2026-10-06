@@ -1,0 +1,290 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "git+https://github.com/QuantEcon/QuantEcon.py@2fcb68c3356030ed21f8dcc932e444d69bdf5c44",
+      "digest": {
+        "gitCommit": "2fcb68c3356030ed21f8dcc932e444d69bdf5c44"
+      }
+    },
+    {
+      "name": "handback-block",
+      "digest": {
+        "sha256": "1fd1349b9bf067029de77481fd1febf2bdc3cce5070d5b6dbfed9efa92c7d9b9"
+      }
+    }
+  ],
+  "predicateType": "https://barglabs.ai/dunstan/record/v0.1",
+  "predicate": {
+    "spec": "0.1.0",
+    "checker": {
+      "name": "dunstan",
+      "version": "0.1.0",
+      "digest": {
+        "sha256": "8ae2ac4f96ccf814cfb914e475d936e658c49549557ba656020af76d5f31fe10"
+      }
+    },
+    "report": {
+      "sha256": "0d3bc421507d97454f90e3ad0d57ee876e901262652920f5376da4a63e28ecdb",
+      "source": {
+        "kind": "file",
+        "locator": "demo/2026-10/.work/5/report.md"
+      }
+    },
+    "block": {
+      "status": "found",
+      "sha256": "1fd1349b9bf067029de77481fd1febf2bdc3cce5070d5b6dbfed9efa92c7d9b9",
+      "value": {
+        "dunstan": "0.1",
+        "headCommit": "2fcb68c3356030ed21f8dcc932e444d69bdf5c44",
+        "filesChanged": [
+          "quantecon/markov/tests/test_core.py",
+          "quantecon/markov/tests/test_gth_solve.py",
+          "quantecon/tests/test_kalman.py",
+          "quantecon/tests/test_lqcontrol.py",
+          "quantecon/tests/test_lqnash.py",
+          "quantecon/tests/test_matrix_eqn.py",
+          "quantecon/tests/test_ricatti.py"
+        ],
+        "tests": [
+          {
+            "command": "not stated in report",
+            "count": 605,
+            "record": {
+              "kind": "unspecified"
+            }
+          }
+        ],
+        "references": [
+          {
+            "issue": "#787",
+            "relation": "cites"
+          },
+          {
+            "issue": "#790",
+            "relation": "cites"
+          }
+        ],
+        "mergedAt": "2026-09-10T01:54:40Z"
+      }
+    },
+    "subject": {
+      "repository": "QuantEcon/QuantEcon.py",
+      "pullRequest": 798,
+      "headSha": "2fcb68c3356030ed21f8dcc932e444d69bdf5c44",
+      "mergeSha": "4cbe3bbe511cfa5a6c66c66205ec8d07c241c807"
+    },
+    "evidence": {
+      "pullRequest": {
+        "status": "ok",
+        "number": 798,
+        "state": "closed",
+        "merged": true,
+        "mergedAt": "2026-09-10T01:54:40Z",
+        "headSha": "2fcb68c3356030ed21f8dcc932e444d69bdf5c44",
+        "mergeSha": "4cbe3bbe511cfa5a6c66c66205ec8d07c241c807",
+        "changedFiles": 7
+      },
+      "sources": [
+        {
+          "kind": "issue",
+          "locator": "GET /repos/QuantEcon/QuantEcon.py/issues/787",
+          "sha256": "3c3962d0c99dbf0f13f30c458958557704d94354266c9b2d99a8c7bc34fc35ff",
+          "readAt": "2026-10-04T19:08:16.796Z",
+          "etag": "W/\"ec4f52031ab50d3df92ef45d660d3c2bff2503ee151e864ab54965ff06b55825\""
+        },
+        {
+          "kind": "issue",
+          "locator": "GET /repos/QuantEcon/QuantEcon.py/issues/790",
+          "sha256": "615a92112f37171a1775e3ae020c8e091eed270497b7fb42401302b5ed155eda",
+          "readAt": "2026-10-04T19:08:17.083Z",
+          "etag": "W/\"3ec660c2c57cfbb3b104a8090963a5ed48d0ac2ffad9d46fbf7b8167cc374e09\""
+        },
+        {
+          "kind": "pull_request",
+          "locator": "GET /repos/QuantEcon/QuantEcon.py/pulls/798",
+          "sha256": "f87f53abd8ea944eb9de2d2933932c303f91c12ca8a22b0839daa7ca2aedb040",
+          "readAt": "2026-10-04T19:08:16.144Z",
+          "etag": "W/\"49ada1a856bffdb09c6c984a1f70391a89140c157cb86dcfbe463898d30f5f13\""
+        },
+        {
+          "kind": "pull_request_files",
+          "locator": "GET /repos/QuantEcon/QuantEcon.py/pulls/798/files?per_page=100&page=1",
+          "sha256": "64bd59328ed9c58778b23ed83788a87c8da5d84b44e008d2fdb6f27b27f30461",
+          "readAt": "2026-10-04T19:08:16.506Z",
+          "etag": "W/\"d751eda25a24f98aa8e52b2c5fe76ddce93762d57e9cd00ec17af6d665339cbf\""
+        }
+      ],
+      "files": {
+        "status": "ok",
+        "complete": true,
+        "entries": [
+          {
+            "path": "quantecon/markov/tests/test_core.py",
+            "status": "modified"
+          },
+          {
+            "path": "quantecon/markov/tests/test_gth_solve.py",
+            "status": "modified"
+          },
+          {
+            "path": "quantecon/tests/test_kalman.py",
+            "status": "modified"
+          },
+          {
+            "path": "quantecon/tests/test_lqcontrol.py",
+            "status": "modified"
+          },
+          {
+            "path": "quantecon/tests/test_lqnash.py",
+            "status": "modified"
+          },
+          {
+            "path": "quantecon/tests/test_matrix_eqn.py",
+            "status": "modified"
+          },
+          {
+            "path": "quantecon/tests/test_ricatti.py",
+            "status": "modified"
+          }
+        ]
+      },
+      "references": [
+        {
+          "kind": "issue",
+          "ref": "QuantEcon/QuantEcon.py#787",
+          "status": "ok",
+          "exists": true
+        },
+        {
+          "kind": "issue",
+          "ref": "QuantEcon/QuantEcon.py#790",
+          "status": "ok",
+          "exists": true
+        }
+      ]
+    },
+    "claims": [
+      {
+        "id": "head:/headCommit",
+        "check": "head",
+        "field": "/headCommit",
+        "declared": "2fcb68c3356030ed21f8dcc932e444d69bdf5c44",
+        "observed": "2fcb68c3356030ed21f8dcc932e444d69bdf5c44",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/0",
+        "check": "scope",
+        "field": "/filesChanged/0",
+        "declared": "quantecon/markov/tests/test_core.py",
+        "observed": "quantecon/markov/tests/test_core.py",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/1",
+        "check": "scope",
+        "field": "/filesChanged/1",
+        "declared": "quantecon/markov/tests/test_gth_solve.py",
+        "observed": "quantecon/markov/tests/test_gth_solve.py",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/2",
+        "check": "scope",
+        "field": "/filesChanged/2",
+        "declared": "quantecon/tests/test_kalman.py",
+        "observed": "quantecon/tests/test_kalman.py",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/3",
+        "check": "scope",
+        "field": "/filesChanged/3",
+        "declared": "quantecon/tests/test_lqcontrol.py",
+        "observed": "quantecon/tests/test_lqcontrol.py",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/4",
+        "check": "scope",
+        "field": "/filesChanged/4",
+        "declared": "quantecon/tests/test_lqnash.py",
+        "observed": "quantecon/tests/test_lqnash.py",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/5",
+        "check": "scope",
+        "field": "/filesChanged/5",
+        "declared": "quantecon/tests/test_matrix_eqn.py",
+        "observed": "quantecon/tests/test_matrix_eqn.py",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/6",
+        "check": "scope",
+        "field": "/filesChanged/6",
+        "declared": "quantecon/tests/test_ricatti.py",
+        "observed": "quantecon/tests/test_ricatti.py",
+        "verdict": "pass"
+      },
+      {
+        "id": "reference:/references/0",
+        "check": "reference",
+        "field": "/references/0",
+        "declared": {
+          "issue": "#787",
+          "relation": "cites"
+        },
+        "observed": {
+          "exists": true
+        },
+        "verdict": "pass"
+      },
+      {
+        "id": "reference:/references/1",
+        "check": "reference",
+        "field": "/references/1",
+        "declared": {
+          "issue": "#790",
+          "relation": "cites"
+        },
+        "observed": {
+          "exists": true
+        },
+        "verdict": "pass"
+      },
+      {
+        "id": "count:/tests/0/count",
+        "check": "count",
+        "field": "/tests/0/count",
+        "declared": 605,
+        "observed": null,
+        "verdict": "unverifiable",
+        "reason": "no_comparable_record_field"
+      },
+      {
+        "id": "time:/mergedAt",
+        "check": "time",
+        "field": "/mergedAt",
+        "declared": "2026-09-10T01:54:40Z",
+        "observed": "2026-09-10T01:54:40Z",
+        "verdict": "pass"
+      }
+    ],
+    "verdict": "unverifiable",
+    "digests": {
+      "claims": "be389f451e0a4aed68a5f19f3b46ebc2ac15211a565a8b2fca7dbf30ee53aaca",
+      "evidence": "eceb99f546c14a011cb4f6dd31d02d077ccb6a8ef884fbcfc61b44c72784f28a"
+    },
+    "rerun": {
+      "offline": "dunstan verify record.json",
+      "online": "dunstan rerun record.json"
+    },
+    "assurance": {
+      "status": "unsigned",
+      "issuer": "self-generated"
+    }
+  }
+}

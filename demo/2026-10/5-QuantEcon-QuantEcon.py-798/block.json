@@ -1,0 +1,33 @@
+{
+  "dunstan": "0.1",
+  "headCommit": "2fcb68c3356030ed21f8dcc932e444d69bdf5c44",
+  "filesChanged": [
+    "quantecon/markov/tests/test_core.py",
+    "quantecon/markov/tests/test_gth_solve.py",
+    "quantecon/tests/test_kalman.py",
+    "quantecon/tests/test_lqcontrol.py",
+    "quantecon/tests/test_lqnash.py",
+    "quantecon/tests/test_matrix_eqn.py",
+    "quantecon/tests/test_ricatti.py"
+  ],
+  "tests": [
+    {
+      "command": "not stated in report",
+      "count": 605,
+      "record": {
+        "kind": "unspecified"
+      }
+    }
+  ],
+  "references": [
+    {
+      "issue": "#787",
+      "relation": "cites"
+    },
+    {
+      "issue": "#790",
+      "relation": "cites"
+    }
+  ],
+  "mergedAt": "2026-09-10T01:54:40Z"
+}

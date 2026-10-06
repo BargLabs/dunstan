@@ -1,0 +1,7 @@
+{
+  "description": "A handback block that is not JSON (trailing comma)",
+  "blockStatus": "invalid",
+  "blockErrors": ["invalid_json"],
+  "verdict": "unverifiable",
+  "claims": []
+}

@@ -1,0 +1,150 @@
+{
+  "pullRequest": {
+    "status": "ok",
+    "number": 125,
+    "state": "closed",
+    "merged": true,
+    "mergedAt": "2026-10-01T14:05:09Z",
+    "headSha": "a11ce5e0c0ffee00d00dfeed0000111122223333",
+    "mergeSha": "feedface00000000000000000000000000000001",
+    "changedFiles": 3
+  },
+  "files": {
+    "status": "ok",
+    "complete": true,
+    "entries": [
+      {
+        "path": "docs/cache.md",
+        "status": "modified"
+      },
+      {
+        "path": "src/cache.test.ts",
+        "status": "added"
+      },
+      {
+        "path": "src/cache.ts",
+        "status": "modified"
+      }
+    ]
+  },
+  "closingReferences": {
+    "status": "ok",
+    "issues": ["example-org/example-repo#17"]
+  },
+  "references": [
+    {
+      "kind": "issue",
+      "ref": "example-org/example-docs#5",
+      "status": "ok",
+      "exists": true
+    },
+    {
+      "kind": "commit",
+      "ref": "c17ed00000000000000000000000000000000001",
+      "status": "ok",
+      "exists": true,
+      "reachableFromHead": true
+    }
+  ],
+  "checkRuns": {
+    "status": "ok",
+    "commit": "a11ce5e0c0ffee00d00dfeed0000111122223333",
+    "excludedIds": [],
+    "runs": [
+      {
+        "id": 9001,
+        "name": "lint",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 9002,
+        "name": "typecheck",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 9003,
+        "name": "test",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "deployments": [
+    {
+      "environment": "production",
+      "status": "ok",
+      "deployments": [
+        {
+          "id": 5001,
+          "sha": "feedface00000000000000000000000000000001",
+          "relation": "merge",
+          "successAt": "2026-10-01T14:12:30Z"
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "kind": "check_runs",
+      "locator": "GET /repos/example-org/example-repo/commits/a11ce5e0c0ffee00d00dfeed0000111122223333/check-runs?filter=latest&per_page=100&page=1",
+      "sha256": "bef97eb796966fbb85553d4bccf7f4b0c3e3aff8952ae65297b6d675474ea8fd",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "closing_references",
+      "locator": "POST /graphql repository(example-org/example-repo).pullRequest(125).closingIssuesReferences",
+      "sha256": "ba489825927b572a4eda76615e4962d8921bfecd3cd84b33305b95df1c668a5e",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "commit",
+      "locator": "GET /repos/example-org/example-repo/commits/c17ed00000000000000000000000000000000001",
+      "sha256": "e277f2f7391c573e0a72ecaf2bb867e75efa4d8ddbda293ba0484e52010badec",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "compare",
+      "locator": "GET /repos/example-org/example-repo/compare/c17ed00000000000000000000000000000000001...a11ce5e0c0ffee00d00dfeed0000111122223333",
+      "sha256": "765d0178e9a285560ddd70aeef80c846d3195fb120141c409357bcf31fcf3199",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "deployments",
+      "locator": "GET /repos/example-org/example-repo/deployments/5001/statuses?per_page=100&page=1",
+      "sha256": "0e9ef015aebe25e2914ed26ae28915ef3e628d618c7ef8af5c5d7ceb6a5d00df",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "deployments",
+      "locator": "GET /repos/example-org/example-repo/deployments?environment=production&sha=a11ce5e0c0ffee00d00dfeed0000111122223333&per_page=100&page=1",
+      "sha256": "1a5723c96ca0760f50fc71b197fdefdf39bf7f6493a6d8016eb1e9aa8516021d",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "issue",
+      "locator": "GET /repos/example-org/example-docs/issues/5",
+      "sha256": "5cb77a09e47d825e084594d7b2eee69cc360c9d2b712b3064fdfe0592c3f0910",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "pull_request",
+      "locator": "GET /repos/example-org/example-repo/pulls/125",
+      "sha256": "bd605c4e3a5653df09cc852bf1c4f7ea95ef500b22d408cac5fe3b3fd4c08186",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "pull_request_files",
+      "locator": "GET /repos/example-org/example-repo/pulls/125/files?per_page=100&page=1",
+      "sha256": "c1f199060b396bf201ee96ebd9103a4f72e9b4581f2d8e01c30aeea80325f6ad",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "repository",
+      "locator": "GET /repos/example-org/example-docs",
+      "sha256": "c4bd145478f74ee8a922a745c7eb18b83de91fa866f1ea6cb4ba1314b89d9c37",
+      "readAt": "2026-10-04T12:00:00Z"
+    }
+  ]
+}

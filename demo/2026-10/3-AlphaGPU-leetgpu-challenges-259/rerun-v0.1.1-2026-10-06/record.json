@@ -1,0 +1,221 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "git+https://github.com/AlphaGPU/leetgpu-challenges@5c8ab314dff324a413dc81c6a37690705aca0ccb",
+      "digest": {
+        "gitCommit": "5c8ab314dff324a413dc81c6a37690705aca0ccb"
+      }
+    },
+    {
+      "name": "handback-block",
+      "digest": {
+        "sha256": "15733e962634af4d630c995c7c18b345a9309d50cb315f023aaf61bdec419f51"
+      }
+    }
+  ],
+  "predicateType": "https://barglabs.ai/dunstan/record/v0.1",
+  "predicate": {
+    "spec": "0.1.1",
+    "checker": {
+      "name": "dunstan",
+      "version": "0.1.1",
+      "digest": {
+        "sha256": "9bbd685b8adbb1cf11beaad7dc294150e30775f50c3c3a2468f596deca7f38e4"
+      }
+    },
+    "report": {
+      "sha256": "62fdf300ef123ba47f4c36877ce3b238d6ecd2d4aee5b865446ca7d6eecd5a6d",
+      "source": {
+        "kind": "file",
+        "locator": "demo/2026-10/.work/3/report.md"
+      }
+    },
+    "block": {
+      "status": "found",
+      "sha256": "15733e962634af4d630c995c7c18b345a9309d50cb315f023aaf61bdec419f51",
+      "value": {
+        "dunstan": "0.1",
+        "headCommit": "5c8ab314dff324a413dc81c6a37690705aca0ccb",
+        "filesChanged": [
+          "challenges/medium/98_beam_search_step/challenge.html",
+          "challenges/medium/98_beam_search_step/challenge.py",
+          "challenges/medium/98_beam_search_step/starter/starter.cu",
+          "challenges/medium/98_beam_search_step/starter/starter.cute.py",
+          "challenges/medium/98_beam_search_step/starter/starter.jax.py",
+          "challenges/medium/98_beam_search_step/starter/starter.mojo",
+          "challenges/medium/98_beam_search_step/starter/starter.pytorch.py",
+          "challenges/medium/98_beam_search_step/starter/starter.triton.py"
+        ],
+        "mergedAt": "2026-09-30T11:44:15Z"
+      }
+    },
+    "subject": {
+      "repository": "AlphaGPU/leetgpu-challenges",
+      "pullRequest": 259,
+      "headSha": "5c8ab314dff324a413dc81c6a37690705aca0ccb",
+      "mergeSha": "37a1253e167149376fcc14b4fe745172b23e7646"
+    },
+    "evidence": {
+      "pullRequest": {
+        "status": "ok",
+        "number": 259,
+        "state": "closed",
+        "merged": true,
+        "mergedAt": "2026-09-30T11:44:15Z",
+        "headSha": "5c8ab314dff324a413dc81c6a37690705aca0ccb",
+        "mergeSha": "37a1253e167149376fcc14b4fe745172b23e7646",
+        "changedFiles": 8
+      },
+      "sources": [
+        {
+          "kind": "pull_request",
+          "locator": "GET /repos/AlphaGPU/leetgpu-challenges/pulls/259",
+          "sha256": "8776559849350036f858607aa8a6ecf9330464a93e3542152e30ec50250654e3",
+          "readAt": "2026-10-06T00:03:21.875Z",
+          "etag": "W/\"574ea69663295a54b9476504501849cf07989d99daccec7cddb236d584dc8de9\""
+        },
+        {
+          "kind": "pull_request_files",
+          "locator": "GET /repos/AlphaGPU/leetgpu-challenges/pulls/259/files?per_page=100&page=1",
+          "sha256": "057c9631e714437c2a8a0c5879d8b3fe426cea4f3b3d52ca40db3cb37d8a57f7",
+          "readAt": "2026-10-06T00:03:22.259Z",
+          "etag": "W/\"f9bf6c3f121056199a2c4cfdb17f193bfdcd341a2dec0cb666e9b4b08aa6f324\""
+        }
+      ],
+      "files": {
+        "status": "ok",
+        "complete": true,
+        "entries": [
+          {
+            "path": "challenges/medium/98_beam_search_step/challenge.html",
+            "status": "added"
+          },
+          {
+            "path": "challenges/medium/98_beam_search_step/challenge.py",
+            "status": "added"
+          },
+          {
+            "path": "challenges/medium/98_beam_search_step/starter/starter.cu",
+            "status": "added"
+          },
+          {
+            "path": "challenges/medium/98_beam_search_step/starter/starter.cute.py",
+            "status": "added"
+          },
+          {
+            "path": "challenges/medium/98_beam_search_step/starter/starter.jax.py",
+            "status": "added"
+          },
+          {
+            "path": "challenges/medium/98_beam_search_step/starter/starter.mojo",
+            "status": "added"
+          },
+          {
+            "path": "challenges/medium/98_beam_search_step/starter/starter.pytorch.py",
+            "status": "added"
+          },
+          {
+            "path": "challenges/medium/98_beam_search_step/starter/starter.triton.py",
+            "status": "added"
+          }
+        ]
+      }
+    },
+    "claims": [
+      {
+        "id": "head:/headCommit",
+        "check": "head",
+        "field": "/headCommit",
+        "declared": "5c8ab314dff324a413dc81c6a37690705aca0ccb",
+        "observed": "5c8ab314dff324a413dc81c6a37690705aca0ccb",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/0",
+        "check": "scope",
+        "field": "/filesChanged/0",
+        "declared": "challenges/medium/98_beam_search_step/challenge.html",
+        "observed": "challenges/medium/98_beam_search_step/challenge.html",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/1",
+        "check": "scope",
+        "field": "/filesChanged/1",
+        "declared": "challenges/medium/98_beam_search_step/challenge.py",
+        "observed": "challenges/medium/98_beam_search_step/challenge.py",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/2",
+        "check": "scope",
+        "field": "/filesChanged/2",
+        "declared": "challenges/medium/98_beam_search_step/starter/starter.cu",
+        "observed": "challenges/medium/98_beam_search_step/starter/starter.cu",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/3",
+        "check": "scope",
+        "field": "/filesChanged/3",
+        "declared": "challenges/medium/98_beam_search_step/starter/starter.cute.py",
+        "observed": "challenges/medium/98_beam_search_step/starter/starter.cute.py",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/4",
+        "check": "scope",
+        "field": "/filesChanged/4",
+        "declared": "challenges/medium/98_beam_search_step/starter/starter.jax.py",
+        "observed": "challenges/medium/98_beam_search_step/starter/starter.jax.py",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/5",
+        "check": "scope",
+        "field": "/filesChanged/5",
+        "declared": "challenges/medium/98_beam_search_step/starter/starter.mojo",
+        "observed": "challenges/medium/98_beam_search_step/starter/starter.mojo",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/6",
+        "check": "scope",
+        "field": "/filesChanged/6",
+        "declared": "challenges/medium/98_beam_search_step/starter/starter.pytorch.py",
+        "observed": "challenges/medium/98_beam_search_step/starter/starter.pytorch.py",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/7",
+        "check": "scope",
+        "field": "/filesChanged/7",
+        "declared": "challenges/medium/98_beam_search_step/starter/starter.triton.py",
+        "observed": "challenges/medium/98_beam_search_step/starter/starter.triton.py",
+        "verdict": "pass"
+      },
+      {
+        "id": "time:/mergedAt",
+        "check": "time",
+        "field": "/mergedAt",
+        "declared": "2026-09-30T11:44:15Z",
+        "observed": "2026-09-30T11:44:15Z",
+        "verdict": "pass"
+      }
+    ],
+    "verdict": "pass",
+    "digests": {
+      "claims": "fdd1461d38e88226ba2eacf195c34d323fd9a0060d5f43e4d80881ef81b27bf9",
+      "evidence": "6607db7fa9edf851ab9c1be85d9876ee4b55241b1f0098810475def7c3e8d6c5"
+    },
+    "rerun": {
+      "offline": "dunstan verify record.json",
+      "online": "dunstan rerun record.json"
+    },
+    "assurance": {
+      "status": "unsigned",
+      "issuer": "self-generated"
+    }
+  }
+}

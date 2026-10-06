@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://barglabs.ai/dunstan/spec/schema/handback-block-0.1.schema.json",
+  "title": "Dunstan handback block, v0.1",
+  "description": "The declared block a completion report carries inside a fenced code block whose info string is exactly dunstan-handback. See spec/claim-format.md.",
+  "type": "object",
+  "required": ["dunstan", "headCommit", "filesChanged"],
+  "additionalProperties": false,
+  "properties": {
+    "dunstan": {
+      "description": "The spec version the block is written to, major.minor.",
+      "const": "0.1"
+    },
+    "headCommit": {
+      "$ref": "#/$defs/commitSha"
+    },
+    "filesChanged": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/repoPath" }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/testRun" }
+    },
+    "checks": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "allSucceeded": { "type": "boolean" }
+      }
+    },
+    "references": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/reference" }
+    },
+    "mergedAt": {
+      "$ref": "#/$defs/utcTimestamp"
+    },
+    "deployedAt": {
+      "type": "object",
+      "required": ["at", "environment"],
+      "additionalProperties": false,
+      "properties": {
+        "at": { "$ref": "#/$defs/utcTimestamp" },
+        "environment": { "type": "string", "minLength": 1, "maxLength": 255 }
+      }
+    }
+  },
+  "$defs": {
+    "commitSha": {
+      "description": "A full 40-character lowercase hexadecimal Git commit id.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "repoPath": {
+      "description": "A repository-relative path: segments separated by '/', none empty, none '.' or '..', no leading or trailing '/'.",
+      "type": "string",
+      "pattern": "^(?:[^/\\u0000]{3,}|[^/.\\u0000][^/\\u0000]?|\\.[^/.\\u0000])(?:/(?:[^/\\u0000]{3,}|[^/.\\u0000][^/\\u0000]?|\\.[^/.\\u0000]))*$"
+    },
+    "utcTimestamp": {
+      "description": "An RFC 3339 timestamp in UTC, written with a Z offset.",
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z$"
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "testRun": {
+      "type": "object",
+      "required": ["command", "count", "record"],
+      "additionalProperties": false,
+      "properties": {
+        "command": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "count": { "$ref": "#/$defs/count" },
+        "failures": { "$ref": "#/$defs/count" },
+        "record": { "$ref": "#/$defs/testRecord" }
+      }
+    },
+    "testRecord": {
+      "description": "Names the machine-readable test record a count is compared with. v0.1 defines the junit kind. Any other kind is legal and yields an unverifiable claim.",
+      "type": "object",
+      "required": ["kind"],
+      "properties": {
+        "kind": { "type": "string", "minLength": 1, "maxLength": 100 }
+      },
+      "if": {
+        "properties": { "kind": { "const": "junit" } }
+      },
+      "then": { "$ref": "#/$defs/junitRecord" }
+    },
+    "junitRecord": {
+      "type": "object",
+      "required": ["kind", "workflow", "job", "artifact", "path"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "const": "junit" },
+        "workflow": {
+          "description": "The workflow file's path from the repository root, for example .github/workflows/ci.yml.",
+          "$ref": "#/$defs/repoPath"
+        },
+        "job": {
+          "description": "The job's name as the workflow run records it.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "artifact": {
+          "description": "The name of the artifact the run uploaded.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        "path": {
+          "description": "The JUnit XML file's path inside the artifact.",
+          "$ref": "#/$defs/repoPath"
+        }
+      }
+    },
+    "reference": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["issue", "relation"],
+          "additionalProperties": false,
+          "properties": {
+            "issue": {
+              "description": "#N in the subject repository, or owner/repo#N.",
+              "type": "string",
+              "pattern": "^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})/[A-Za-z0-9._-]{1,100})?#[1-9][0-9]{0,9}$"
+            },
+            "relation": { "enum": ["closes", "cites"] }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["commit", "relation"],
+          "additionalProperties": false,
+          "properties": {
+            "commit": { "$ref": "#/$defs/commitSha" },
+            "relation": { "const": "cites" }
+          }
+        }
+      ]
+    }
+  }
+}

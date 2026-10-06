@@ -1,0 +1,26 @@
+{
+  "description": "The listing returned 2 of 5 changed files",
+  "blockStatus": "found",
+  "verdict": "unverifiable",
+  "claims": [
+    {
+      "id": "head:/headCommit",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/0",
+      "verdict": "unverifiable",
+      "reason": "file_list_truncated"
+    },
+    {
+      "id": "scope:/filesChanged/1",
+      "verdict": "unverifiable",
+      "reason": "file_list_truncated"
+    },
+    {
+      "id": "scope:undeclared",
+      "verdict": "unverifiable",
+      "reason": "file_list_truncated"
+    }
+  ]
+}

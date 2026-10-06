@@ -1,0 +1,1037 @@
+{
+  "rule": {
+    "path": "demo/2026-10/selection-rule.md",
+    "commit": "e223badeb307a22d3bf2692c4bb27c3642c37fea"
+  },
+  "tool": "demo/2026-10/tools/select.mjs",
+  "startedAt": "2026-10-04T19:03:04.722Z",
+  "finishedAt": "2026-10-04T19:03:24.608Z",
+  "measures": {
+    "cleanedBodyLength": "Unicode code points of the search result body after removing <!-- ... --> and trimming whitespace"
+  },
+  "agents": [
+    {
+      "id": "A",
+      "agent": "GitHub Copilot coding agent",
+      "qualifier": "author:app/copilot-swe-agent"
+    },
+    {
+      "id": "B",
+      "agent": "Devin",
+      "qualifier": "author:app/devin-ai-integration"
+    },
+    {
+      "id": "C",
+      "agent": "Claude",
+      "qualifier": "author:app/claude"
+    },
+    {
+      "id": "D",
+      "agent": "OpenAI Codex",
+      "qualifier": "author:app/chatgpt-codex-connector"
+    },
+    {
+      "id": "E",
+      "agent": "Google Jules",
+      "qualifier": "author:app/google-labs-jules"
+    }
+  ],
+  "queries": [
+    {
+      "agent": "A",
+      "q": "is:pr is:merged is:public merged:2026-09-01..2026-10-03 author:app/copilot-swe-agent",
+      "sort": "created",
+      "order": "asc",
+      "perPage": 100,
+      "pages": [
+        {
+          "page": 1,
+          "runAt": "2026-10-04T19:03:04.723Z",
+          "totalCount": 49360,
+          "incompleteResults": false,
+          "items": 100
+        }
+      ]
+    },
+    {
+      "agent": "B",
+      "q": "is:pr is:merged is:public merged:2026-09-01..2026-10-03 author:app/devin-ai-integration",
+      "sort": "created",
+      "order": "asc",
+      "perPage": 100,
+      "pages": [
+        {
+          "page": 1,
+          "runAt": "2026-10-04T19:03:11.521Z",
+          "totalCount": 33855,
+          "incompleteResults": false,
+          "items": 100
+        }
+      ]
+    },
+    {
+      "agent": "C",
+      "q": "is:pr is:merged is:public merged:2026-09-01..2026-10-03 author:app/claude",
+      "sort": "created",
+      "order": "asc",
+      "perPage": 100,
+      "pages": [
+        {
+          "page": 1,
+          "runAt": "2026-10-04T19:03:14.060Z",
+          "totalCount": 18625,
+          "incompleteResults": false,
+          "items": 100
+        }
+      ]
+    },
+    {
+      "agent": "D",
+      "q": "is:pr is:merged is:public merged:2026-09-01..2026-10-03 author:app/chatgpt-codex-connector",
+      "sort": "created",
+      "order": "asc",
+      "perPage": 100,
+      "pages": [
+        {
+          "page": 1,
+          "runAt": "2026-10-04T19:03:16.871Z",
+          "totalCount": 0,
+          "incompleteResults": false,
+          "items": 0
+        }
+      ]
+    },
+    {
+      "agent": "E",
+      "q": "is:pr is:merged is:public merged:2026-09-01..2026-10-03 author:app/google-labs-jules",
+      "sort": "created",
+      "order": "asc",
+      "perPage": 100,
+      "pages": [
+        {
+          "page": 1,
+          "runAt": "2026-10-04T19:03:17.119Z",
+          "totalCount": 6009,
+          "incompleteResults": false,
+          "items": 100
+        }
+      ]
+    }
+  ],
+  "exhaustedAgents": ["D"],
+  "complete": true,
+  "selected": [
+    {
+      "n": 1,
+      "agent": "A",
+      "url": "https://github.com/FluidSynth/fluidsynth/pull/1639",
+      "repository": "FluidSynth/fluidsynth",
+      "number": 1639,
+      "stargazersCount": 2510,
+      "cleanedBodyLength": 1209,
+      "selectedAt": "2026-10-04T19:03:11.521Z"
+    },
+    {
+      "n": 2,
+      "agent": "B",
+      "url": "https://github.com/airbytehq/airbyte/pull/74367",
+      "repository": "airbytehq/airbyte",
+      "number": 74367,
+      "stargazersCount": 22167,
+      "cleanedBodyLength": 4016,
+      "selectedAt": "2026-10-04T19:03:14.060Z"
+    },
+    {
+      "n": 3,
+      "agent": "C",
+      "url": "https://github.com/AlphaGPU/leetgpu-challenges/pull/259",
+      "repository": "AlphaGPU/leetgpu-challenges",
+      "number": 259,
+      "stargazersCount": 1175,
+      "cleanedBodyLength": 1223,
+      "selectedAt": "2026-10-04T19:03:16.871Z"
+    },
+    {
+      "n": 4,
+      "agent": "E",
+      "url": "https://github.com/cdcseacave/openMVS/pull/1246",
+      "repository": "cdcseacave/openMVS",
+      "number": 1246,
+      "stargazersCount": 4144,
+      "cleanedBodyLength": 503,
+      "selectedAt": "2026-10-04T19:03:24.083Z"
+    },
+    {
+      "n": 5,
+      "agent": "A",
+      "url": "https://github.com/QuantEcon/QuantEcon.py/pull/798",
+      "repository": "QuantEcon/QuantEcon.py",
+      "number": 798,
+      "stargazersCount": 2404,
+      "cleanedBodyLength": 5376,
+      "selectedAt": "2026-10-04T19:03:24.608Z"
+    }
+  ],
+  "candidates": [
+    {
+      "agent": "A",
+      "url": "https://github.com/stefankoegl/kdtree/pull/55",
+      "repository": "stefankoegl/kdtree",
+      "number": 55,
+      "author": "Copilot",
+      "createdAt": "2025-05-27T21:13:00Z",
+      "mergedAt": "2026-09-21T18:27:52Z",
+      "repositoryReadAt": "2026-10-04T19:03:07.310Z",
+      "stargazersCount": 382,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 382 < 1000"
+      }
+    },
+    {
+      "agent": "A",
+      "url": "https://github.com/microsoft/vs-mef/pull/594",
+      "repository": "microsoft/vs-mef",
+      "number": 594,
+      "author": "Copilot",
+      "createdAt": "2025-06-11T02:50:00Z",
+      "mergedAt": "2026-09-01T04:15:54Z",
+      "repositoryReadAt": "2026-10-04T19:03:07.532Z",
+      "stargazersCount": 466,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 466 < 1000"
+      }
+    },
+    {
+      "agent": "A",
+      "url": "https://github.com/iakat/aikta/pull/1",
+      "repository": "iakat/aikta",
+      "number": 1,
+      "author": "Copilot",
+      "createdAt": "2025-07-08T01:54:08Z",
+      "mergedAt": "2026-09-22T21:01:28Z",
+      "repositoryReadAt": "2026-10-04T19:03:07.819Z",
+      "stargazersCount": 1,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 1 < 1000"
+      }
+    },
+    {
+      "agent": "A",
+      "url": "https://github.com/rokucommunity/brighterscript/pull/1539",
+      "repository": "rokucommunity/brighterscript",
+      "number": 1539,
+      "author": "Copilot",
+      "createdAt": "2025-07-18T16:26:44Z",
+      "mergedAt": "2026-09-04T18:26:37Z",
+      "repositoryReadAt": "2026-10-04T19:03:08.071Z",
+      "stargazersCount": 209,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 209 < 1000"
+      }
+    },
+    {
+      "agent": "A",
+      "url": "https://github.com/Unity-Developer-Community/UDC-Bot/pull/336",
+      "repository": "Unity-Developer-Community/UDC-Bot",
+      "number": 336,
+      "author": "Copilot",
+      "createdAt": "2025-07-18T22:33:10Z",
+      "mergedAt": "2026-09-10T22:22:24Z",
+      "repositoryReadAt": "2026-10-04T19:03:08.368Z",
+      "stargazersCount": 16,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "a fork, stargazers_count 16 < 1000"
+      }
+    },
+    {
+      "agent": "A",
+      "url": "https://github.com/dhar174/tiny_village/pull/349",
+      "repository": "dhar174/tiny_village",
+      "number": 349,
+      "author": "Copilot",
+      "createdAt": "2025-07-19T07:36:52Z",
+      "mergedAt": "2026-09-11T18:15:10Z",
+      "repositoryReadAt": "2026-10-04T19:03:08.683Z",
+      "stargazersCount": 1,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 1 < 1000"
+      }
+    },
+    {
+      "agent": "A",
+      "url": "https://github.com/Unity-Developer-Community/UDC-Bot/pull/344",
+      "repository": "Unity-Developer-Community/UDC-Bot",
+      "number": 344,
+      "author": "Copilot",
+      "createdAt": "2025-07-21T13:35:05Z",
+      "mergedAt": "2026-09-13T17:06:33Z",
+      "repositoryReadAt": "2026-10-04T19:03:08.368Z",
+      "stargazersCount": 16,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "a fork, stargazers_count 16 < 1000"
+      }
+    },
+    {
+      "agent": "A",
+      "url": "https://github.com/shmulc8/Kakuro-Solver/pull/9",
+      "repository": "shmulc8/Kakuro-Solver",
+      "number": 9,
+      "author": "Copilot",
+      "createdAt": "2025-08-03T22:43:10Z",
+      "mergedAt": "2026-09-09T11:05:10Z",
+      "repositoryReadAt": "2026-10-04T19:03:08.910Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "A",
+      "url": "https://github.com/OP-TED/eforms-notice-viewer/pull/112",
+      "repository": "OP-TED/eforms-notice-viewer",
+      "number": 112,
+      "author": "Copilot",
+      "createdAt": "2025-08-05T16:00:30Z",
+      "mergedAt": "2026-09-17T23:45:42Z",
+      "repositoryReadAt": "2026-10-04T19:03:09.175Z",
+      "stargazersCount": 14,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 14 < 1000"
+      }
+    },
+    {
+      "agent": "A",
+      "url": "https://github.com/ries-lab/DECODE_Cloud_JobFetcher/pull/31",
+      "repository": "ries-lab/DECODE_Cloud_JobFetcher",
+      "number": 31,
+      "author": "Copilot",
+      "createdAt": "2025-08-06T21:24:16Z",
+      "mergedAt": "2026-09-08T23:14:01Z",
+      "repositoryReadAt": "2026-10-04T19:03:09.450Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "A",
+      "url": "https://github.com/Azure-Samples/functions-quickstart-python-http-azd/pull/19",
+      "repository": "Azure-Samples/functions-quickstart-python-http-azd",
+      "number": 19,
+      "author": "Copilot",
+      "createdAt": "2025-08-10T21:16:55Z",
+      "mergedAt": "2026-10-01T22:29:17Z",
+      "repositoryReadAt": "2026-10-04T19:03:09.952Z",
+      "stargazersCount": 30,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 30 < 1000"
+      }
+    },
+    {
+      "agent": "A",
+      "url": "https://github.com/balajirajput96/vscode-live-server-plus-plus/pull/39",
+      "repository": "balajirajput96/vscode-live-server-plus-plus",
+      "number": 39,
+      "author": "Copilot",
+      "createdAt": "2025-08-21T17:24:36Z",
+      "mergedAt": "2026-09-02T04:07:40Z",
+      "repositoryReadAt": "2026-10-04T19:03:10.244Z",
+      "stargazersCount": 1,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "a fork, stargazers_count 1 < 1000"
+      }
+    },
+    {
+      "agent": "A",
+      "url": "https://github.com/balajirajput96/vscode-live-server-plus-plus/pull/45",
+      "repository": "balajirajput96/vscode-live-server-plus-plus",
+      "number": 45,
+      "author": "Copilot",
+      "createdAt": "2025-08-21T18:30:53Z",
+      "mergedAt": "2026-09-02T04:07:37Z",
+      "repositoryReadAt": "2026-10-04T19:03:10.244Z",
+      "stargazersCount": 1,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "a fork, stargazers_count 1 < 1000"
+      }
+    },
+    {
+      "agent": "A",
+      "url": "https://github.com/balajirajput96/vscode-live-server-plus-plus/pull/46",
+      "repository": "balajirajput96/vscode-live-server-plus-plus",
+      "number": 46,
+      "author": "Copilot",
+      "createdAt": "2025-08-21T18:30:56Z",
+      "mergedAt": "2026-09-02T04:10:55Z",
+      "repositoryReadAt": "2026-10-04T19:03:10.244Z",
+      "stargazersCount": 1,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "a fork, stargazers_count 1 < 1000"
+      }
+    },
+    {
+      "agent": "A",
+      "url": "https://github.com/balajirajput96/vscode-live-server-plus-plus/pull/47",
+      "repository": "balajirajput96/vscode-live-server-plus-plus",
+      "number": 47,
+      "author": "Copilot",
+      "createdAt": "2025-08-21T18:32:17Z",
+      "mergedAt": "2026-09-02T04:07:33Z",
+      "repositoryReadAt": "2026-10-04T19:03:10.244Z",
+      "stargazersCount": 1,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "a fork, stargazers_count 1 < 1000"
+      }
+    },
+    {
+      "agent": "A",
+      "url": "https://github.com/balajirajput96/vscode-live-server-plus-plus/pull/48",
+      "repository": "balajirajput96/vscode-live-server-plus-plus",
+      "number": 48,
+      "author": "Copilot",
+      "createdAt": "2025-08-21T18:32:20Z",
+      "mergedAt": "2026-09-02T04:07:30Z",
+      "repositoryReadAt": "2026-10-04T19:03:10.244Z",
+      "stargazersCount": 1,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "a fork, stargazers_count 1 < 1000"
+      }
+    },
+    {
+      "agent": "A",
+      "url": "https://github.com/nicpottier/recipes/pull/20",
+      "repository": "nicpottier/recipes",
+      "number": 20,
+      "author": "Copilot",
+      "createdAt": "2025-08-25T03:07:02Z",
+      "mergedAt": "2026-10-03T02:40:03Z",
+      "repositoryReadAt": "2026-10-04T19:03:10.526Z",
+      "stargazersCount": 2,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 2 < 1000"
+      }
+    },
+    {
+      "agent": "A",
+      "url": "https://github.com/FernandoFonseca-code/GirlScoutTroop41645Page/pull/21",
+      "repository": "FernandoFonseca-code/GirlScoutTroop41645Page",
+      "number": 21,
+      "author": "Copilot",
+      "createdAt": "2025-08-28T17:15:21Z",
+      "mergedAt": "2026-09-17T01:34:06Z",
+      "repositoryReadAt": "2026-10-04T19:03:10.990Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "A",
+      "url": "https://github.com/FluidSynth/fluidsynth/pull/1639",
+      "repository": "FluidSynth/fluidsynth",
+      "number": 1639,
+      "author": "Copilot",
+      "createdAt": "2025-08-30T12:36:24Z",
+      "mergedAt": "2026-09-27T13:06:24Z",
+      "repositoryReadAt": "2026-10-04T19:03:11.247Z",
+      "stargazersCount": 2510,
+      "cleanedBodyLength": 1209,
+      "result": "selected"
+    },
+    {
+      "agent": "B",
+      "url": "https://github.com/intento/intento-plugin-settings/pull/64",
+      "repository": "intento/intento-plugin-settings",
+      "number": 64,
+      "author": "devin-ai-integration[bot]",
+      "createdAt": "2026-01-09T10:41:35Z",
+      "mergedAt": "2026-09-30T08:05:50Z",
+      "repositoryReadAt": "2026-10-04T19:03:13.489Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "B",
+      "url": "https://github.com/airbytehq/airbyte/pull/74367",
+      "repository": "airbytehq/airbyte",
+      "number": 74367,
+      "author": "devin-ai-integration[bot]",
+      "createdAt": "2026-03-08T16:32:52Z",
+      "mergedAt": "2026-09-03T21:25:52Z",
+      "repositoryReadAt": "2026-10-04T19:03:13.774Z",
+      "stargazersCount": 22167,
+      "cleanedBodyLength": 4016,
+      "result": "selected"
+    },
+    {
+      "agent": "C",
+      "url": "https://github.com/sjbp/mexico-en-datos/pull/17",
+      "repository": "sjbp/mexico-en-datos",
+      "number": 17,
+      "author": "claude[bot]",
+      "createdAt": "2026-04-12T06:08:17Z",
+      "mergedAt": "2026-09-28T04:08:49Z",
+      "repositoryReadAt": "2026-10-04T19:03:16.312Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "C",
+      "url": "https://github.com/sjbp/mexico-en-datos/pull/23",
+      "repository": "sjbp/mexico-en-datos",
+      "number": 23,
+      "author": "claude[bot]",
+      "createdAt": "2026-04-13T02:59:34Z",
+      "mergedAt": "2026-09-28T04:05:45Z",
+      "repositoryReadAt": "2026-10-04T19:03:16.312Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "C",
+      "url": "https://github.com/sjbp/mexico-en-datos/pull/34",
+      "repository": "sjbp/mexico-en-datos",
+      "number": 34,
+      "author": "claude[bot]",
+      "createdAt": "2026-04-17T18:53:44Z",
+      "mergedAt": "2026-09-28T04:07:27Z",
+      "repositoryReadAt": "2026-10-04T19:03:16.312Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "C",
+      "url": "https://github.com/AlphaGPU/leetgpu-challenges/pull/259",
+      "repository": "AlphaGPU/leetgpu-challenges",
+      "number": 259,
+      "author": "claude[bot]",
+      "createdAt": "2026-05-01T06:01:22Z",
+      "mergedAt": "2026-09-30T11:44:15Z",
+      "repositoryReadAt": "2026-10-04T19:03:16.633Z",
+      "stargazersCount": 1175,
+      "cleanedBodyLength": 1223,
+      "result": "selected"
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/mdhossain-2437/open-source-the-compiled-thought-themes/pull/2",
+      "repository": "mdhossain-2437/open-source-the-compiled-thought-themes",
+      "number": 2,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2025-08-09T06:09:25Z",
+      "mergedAt": "2026-09-27T03:58:15Z",
+      "repositoryReadAt": "2026-10-04T19:03:18.631Z",
+      "stargazersCount": 133,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 133 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/Made-by-Jason/sonicscope-pro/pull/1",
+      "repository": "Made-by-Jason/sonicscope-pro",
+      "number": 1,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2025-09-06T22:42:26Z",
+      "mergedAt": "2026-10-02T14:07:04Z",
+      "repositoryReadAt": "2026-10-04T19:03:18.866Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/greyhamechuck/zk-voting/pull/1",
+      "repository": "greyhamechuck/zk-voting",
+      "number": 1,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2025-10-07T17:00:35Z",
+      "mergedAt": "2026-09-10T08:07:34Z",
+      "repositoryReadAt": "2026-10-04T19:03:19.178Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "a fork, stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/InnoShay/WebDEV/pull/1",
+      "repository": "InnoShay/WebDEV",
+      "number": 1,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2025-10-12T06:38:27Z",
+      "mergedAt": "2026-10-02T12:57:53Z",
+      "repositoryReadAt": "2026-10-04T19:03:19.477Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/leocavalcante/vup/pull/2",
+      "repository": "leocavalcante/vup",
+      "number": 2,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2025-10-29T20:57:49Z",
+      "mergedAt": "2026-09-30T15:20:21Z",
+      "repositoryReadAt": "2026-10-04T19:03:19.786Z",
+      "stargazersCount": 7,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 7 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/leocavalcante/vup/pull/3",
+      "repository": "leocavalcante/vup",
+      "number": 3,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2025-10-29T21:12:47Z",
+      "mergedAt": "2026-09-30T15:33:46Z",
+      "repositoryReadAt": "2026-10-04T19:03:19.786Z",
+      "stargazersCount": 7,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 7 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/inisoliman/katawp/pull/2",
+      "repository": "inisoliman/katawp",
+      "number": 2,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2025-11-13T09:23:16Z",
+      "mergedAt": "2026-10-03T21:44:15Z",
+      "repositoryReadAt": "2026-10-04T19:03:20.017Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/CrazyDubya/disaster/pull/3",
+      "repository": "CrazyDubya/disaster",
+      "number": 3,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2025-11-17T00:12:22Z",
+      "mergedAt": "2026-10-02T16:01:02Z",
+      "repositoryReadAt": "2026-10-04T19:03:20.242Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/gantrol/yicai_wuthering_waves/pull/9",
+      "repository": "gantrol/yicai_wuthering_waves",
+      "number": 9,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2025-11-20T08:12:43Z",
+      "mergedAt": "2026-09-24T06:57:40Z",
+      "repositoryReadAt": "2026-10-04T19:03:20.460Z",
+      "stargazersCount": 24,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 24 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/stanislasbdx/SeriousRP/pull/47",
+      "repository": "stanislasbdx/SeriousRP",
+      "number": 47,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2025-11-21T00:43:37Z",
+      "mergedAt": "2026-09-03T07:36:33Z",
+      "repositoryReadAt": "2026-10-04T19:03:20.681Z",
+      "stargazersCount": 2,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 2 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/ashleycribb/education-ai-dataset/pull/9",
+      "repository": "ashleycribb/education-ai-dataset",
+      "number": 9,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2025-11-23T18:53:20Z",
+      "mergedAt": "2026-09-02T11:19:26Z",
+      "repositoryReadAt": "2026-10-04T19:03:20.918Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/ashleycribb/education-ai-dataset/pull/10",
+      "repository": "ashleycribb/education-ai-dataset",
+      "number": 10,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2025-11-23T20:09:58Z",
+      "mergedAt": "2026-09-02T11:20:23Z",
+      "repositoryReadAt": "2026-10-04T19:03:20.918Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/ashleycribb/education-ai-dataset/pull/11",
+      "repository": "ashleycribb/education-ai-dataset",
+      "number": 11,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2025-11-23T20:28:15Z",
+      "mergedAt": "2026-09-02T11:21:16Z",
+      "repositoryReadAt": "2026-10-04T19:03:20.918Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/ashleycribb/education-ai-dataset/pull/12",
+      "repository": "ashleycribb/education-ai-dataset",
+      "number": 12,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2025-11-23T21:55:41Z",
+      "mergedAt": "2026-09-02T11:22:30Z",
+      "repositoryReadAt": "2026-10-04T19:03:20.918Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/SauersML/ferromic_benchmark/pull/33",
+      "repository": "SauersML/ferromic_benchmark",
+      "number": 33,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2025-11-25T04:12:55Z",
+      "mergedAt": "2026-09-01T20:22:32Z",
+      "repositoryReadAt": "2026-10-04T19:03:21.197Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/ashleycribb/education-ai-dataset/pull/13",
+      "repository": "ashleycribb/education-ai-dataset",
+      "number": 13,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2025-12-05T12:08:21Z",
+      "mergedAt": "2026-09-02T11:23:33Z",
+      "repositoryReadAt": "2026-10-04T19:03:20.918Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/ashleycribb/education-ai-dataset/pull/14",
+      "repository": "ashleycribb/education-ai-dataset",
+      "number": 14,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2025-12-05T12:36:18Z",
+      "mergedAt": "2026-09-02T11:24:26Z",
+      "repositoryReadAt": "2026-10-04T19:03:20.918Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/Moustachauve/hilo/pull/3",
+      "repository": "Moustachauve/hilo",
+      "number": 3,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2025-12-06T17:23:15Z",
+      "mergedAt": "2026-09-24T18:39:13Z",
+      "repositoryReadAt": "2026-10-04T19:03:21.414Z",
+      "stargazersCount": 1,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "a fork, stargazers_count 1 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/ashleycribb/education-ai-dataset/pull/15",
+      "repository": "ashleycribb/education-ai-dataset",
+      "number": 15,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2025-12-12T11:56:54Z",
+      "mergedAt": "2026-09-02T11:30:56Z",
+      "repositoryReadAt": "2026-10-04T19:03:20.918Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/Charleigh5/THE-NFL-SIM-V2/pull/15",
+      "repository": "Charleigh5/THE-NFL-SIM-V2",
+      "number": 15,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2025-12-19T02:18:55Z",
+      "mergedAt": "2026-09-01T02:31:59Z",
+      "repositoryReadAt": "2026-10-04T19:03:21.674Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/mrizzben/idx-stocks-analysis/pull/7",
+      "repository": "mrizzben/idx-stocks-analysis",
+      "number": 7,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2025-12-24T15:49:21Z",
+      "mergedAt": "2026-09-04T16:03:17Z",
+      "repositoryReadAt": "2026-10-04T19:03:21.910Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/sprillex/unitemp-flipperzero/pull/2",
+      "repository": "sprillex/unitemp-flipperzero",
+      "number": 2,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2025-12-31T08:03:59Z",
+      "mergedAt": "2026-09-10T07:39:26Z",
+      "repositoryReadAt": "2026-10-04T19:03:22.134Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "a fork, stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/ornelasEduardo/doom/pull/45",
+      "repository": "ornelasEduardo/doom",
+      "number": 45,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2026-01-03T20:48:39Z",
+      "mergedAt": "2026-09-05T18:12:29Z",
+      "repositoryReadAt": "2026-10-04T19:03:22.424Z",
+      "stargazersCount": 4,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 4 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/ornelasEduardo/doom/pull/51",
+      "repository": "ornelasEduardo/doom",
+      "number": 51,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2026-01-05T11:39:00Z",
+      "mergedAt": "2026-09-05T18:12:22Z",
+      "repositoryReadAt": "2026-10-04T19:03:22.424Z",
+      "stargazersCount": 4,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 4 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/ornelasEduardo/doom/pull/55",
+      "repository": "ornelasEduardo/doom",
+      "number": 55,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2026-01-06T11:41:15Z",
+      "mergedAt": "2026-09-05T18:12:19Z",
+      "repositoryReadAt": "2026-10-04T19:03:22.424Z",
+      "stargazersCount": 4,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 4 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/ornelasEduardo/doom/pull/58",
+      "repository": "ornelasEduardo/doom",
+      "number": 58,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2026-01-07T11:39:42Z",
+      "mergedAt": "2026-09-05T18:12:25Z",
+      "repositoryReadAt": "2026-10-04T19:03:22.424Z",
+      "stargazersCount": 4,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 4 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/Olabanji-Ebun/parcel-delivery-system/pull/1",
+      "repository": "Olabanji-Ebun/parcel-delivery-system",
+      "number": 1,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2026-01-10T00:38:03Z",
+      "mergedAt": "2026-09-17T11:35:07Z",
+      "repositoryReadAt": "2026-10-04T19:03:22.724Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/K1NGLuFFY/PYHTON/pull/5",
+      "repository": "K1NGLuFFY/PYHTON",
+      "number": 5,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2026-01-10T23:01:18Z",
+      "mergedAt": "2026-09-24T15:36:11Z",
+      "repositoryReadAt": "2026-10-04T19:03:23.070Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/pmaojo/ferrum/pull/318",
+      "repository": "pmaojo/ferrum",
+      "number": 318,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2026-01-11T02:14:53Z",
+      "mergedAt": "2026-09-20T18:46:56Z",
+      "repositoryReadAt": "2026-10-04T19:03:23.324Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/MasumRab/EmailIntelligence/pull/338",
+      "repository": "MasumRab/EmailIntelligence",
+      "number": 338,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2026-01-11T15:35:55Z",
+      "mergedAt": "2026-09-19T08:31:23Z",
+      "repositoryReadAt": "2026-10-04T19:03:23.593Z",
+      "stargazersCount": 0,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 0 < 1000"
+      }
+    },
+    {
+      "agent": "E",
+      "url": "https://github.com/cdcseacave/openMVS/pull/1246",
+      "repository": "cdcseacave/openMVS",
+      "number": 1246,
+      "author": "google-labs-jules[bot]",
+      "createdAt": "2026-01-15T16:03:10Z",
+      "mergedAt": "2026-09-11T23:57:04Z",
+      "repositoryReadAt": "2026-10-04T19:03:23.838Z",
+      "stargazersCount": 4144,
+      "cleanedBodyLength": 503,
+      "result": "selected"
+    },
+    {
+      "agent": "A",
+      "url": "https://github.com/dhar174/intelligent_data_detective/pull/65",
+      "repository": "dhar174/intelligent_data_detective",
+      "number": 65,
+      "author": "Copilot",
+      "createdAt": "2025-08-31T14:31:45Z",
+      "mergedAt": "2026-09-19T01:26:19Z",
+      "repositoryReadAt": "2026-10-04T19:03:24.083Z",
+      "stargazersCount": 1,
+      "result": {
+        "rejectedBy": 2,
+        "reason": "stargazers_count 1 < 1000"
+      }
+    },
+    {
+      "agent": "A",
+      "url": "https://github.com/QuantEcon/QuantEcon.py/pull/798",
+      "repository": "QuantEcon/QuantEcon.py",
+      "number": 798,
+      "author": "Copilot",
+      "createdAt": "2025-09-02T02:17:10Z",
+      "mergedAt": "2026-09-10T01:54:40Z",
+      "repositoryReadAt": "2026-10-04T19:03:24.351Z",
+      "stargazersCount": 2404,
+      "cleanedBodyLength": 5376,
+      "result": "selected"
+    }
+  ]
+}

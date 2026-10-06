@@ -1,0 +1,19 @@
+{
+  "dunstan": "0.1",
+  "headCommit": "a9a27be90d8aa555d2325ed2c55e00b44146fccb",
+  "filesChanged": [
+    "airbyte-integrations/connectors/source-amazon-ads/AGENTS.md",
+    "airbyte-integrations/connectors/source-amazon-ads/acceptance-test-config.yml",
+    "airbyte-integrations/connectors/source-amazon-ads/manifest.yaml",
+    "airbyte-integrations/connectors/source-amazon-ads/metadata.yaml",
+    "airbyte-integrations/connectors/source-amazon-ads/unit_tests/integrations/test_report_streams.py",
+    "docs/integrations/sources/amazon-ads.md"
+  ],
+  "references": [
+    {
+      "issue": "airbytehq/oncall#11556",
+      "relation": "closes"
+    }
+  ],
+  "mergedAt": "2026-09-03T21:25:52Z"
+}

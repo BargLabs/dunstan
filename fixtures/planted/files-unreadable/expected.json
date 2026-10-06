@@ -1,0 +1,21 @@
+{
+  "description": "The changed-file listing failed",
+  "blockStatus": "found",
+  "verdict": "unverifiable",
+  "claims": [
+    {
+      "id": "head:/headCommit",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/0",
+      "verdict": "unverifiable",
+      "reason": "source_unreadable:pull_request_files"
+    },
+    {
+      "id": "scope:undeclared",
+      "verdict": "unverifiable",
+      "reason": "source_unreadable:pull_request_files"
+    }
+  ]
+}

@@ -1,0 +1,436 @@
+# Advisories: reading a report's prose without a model
+
+A handback block states its claims as fields. Many reports have no block, and many that have one
+also say more in prose. The advisory layer (`src/advisory/`) reads that prose and records what it
+finds as **advisories**. It never decides anything:
+
+- **Advisories never change the verdict.** They do not enter `predicate.verdict` or
+  `predicate.claims`. A report with no block stays `unverifiable` (`block_missing`), and a block's
+  verdict is the same with or without advisories.
+- **No advisory is `fail`.** An advisory carries a note (`agrees`, `agrees_by_name`,
+  `differs:<reason>` or `unanswered:<reason>`) and no verdict.
+- **A `differs` note is shown as a "possible disagreement, unverified".** The record keeps
+  `differs:<reason>`; every surface a person reads words it as a possible disagreement, never as an
+  accusation ("How a `differs` note is shown", below).
+- **Its measured figures are carried beside it.** The record states the extractor's measured
+  precision and the measured accuracy of `differs` notes with its base rate, each only for the exact
+  extractor and comparison it was measured on, or `null` (shown as "unmeasured") otherwise
+  ("Measured figures", below).
+
+The record format is **DRAFT 0.2.0** (`spec/claim-format.md`, D.11;
+`spec/schema/record-0.2-draft.schema.json`). It is for the operator to check and is not normative.
+Without `--advisory`, every record is exactly what it was.
+
+## Why a grammar, and not token scraping
+
+The extractor this replaces scraped tokens: any path, `#N` or hex string anywhere in a report was
+treated as a claim. On 196 real pull requests it raised 4,647 flags, and none of a sample of 30 of
+them was real (0 of 30; Wilson 95% upper bound 0.114). Method: the token checks ran over 196 of
+Barg Labs' own merged agent-written pull requests, and 30 of the flags, drawn before any flag was
+read, were each judged by hand against the pull request's record. A token that appears in a report
+is not a claim. A clause that
+asserts something is ("I changed", "tests pass", "closes #12", "merged at"). So this extractor binds
+each candidate token to a clause with an asserting verb before it compares anything. A token that
+cannot be bound is dropped. Recall is traded for precision on purpose.
+
+## Use
+
+```sh
+dunstan check --repo example-org/example-repo --pr 7 --report-pr-body --advisory
+```
+
+```yaml
+- uses: BargLabs/dunstan@<full commit SHA>
+  with:
+    report-source: pr-body
+    advisory: true   # default false
+```
+
+The CLI prints an advisory table after the claims, above the verdict line. The Action adds one
+summary row: how many advisories agree, agree by name only, are possible disagreements or are
+unanswered, plus the extractor version and the precision. Below the claims it lists each possible
+disagreement (at most 20; the record holds every advisory). Neither changes the exit code, the
+check-run conclusion or the title. `dunstan verify` recomputes every advisory's note.
+
+## How a `differs` note is shown
+
+A decision rule preregistered before the measurement governs how a `differs` note is presented:
+
+> If differs accuracy is below 0.50, the `differs` note is labelled "possible disagreement,
+> unverified" in the docs and the CLI, and is never shown as an accusation.
+
+The accuracy of `differs` notes (see "Precision", below) was measured against that rule on
+adjudicated reports outside this repository, and **the rule fired**: on the reports measured so
+far, a `differs` note usually reflected a misread of the report, not a false claim. The figures have
+since been published: value, n and method only, never the reports, their clauses or their labels
+("Measured figures", below).
+
+So every surface a person reads now shows a `differs` note as **"possible
+disagreement, unverified"**, followed by what the record shows and then the observed value. It
+never shows it as "differs", "mismatch" or "false", nor as anything that says the agent was wrong:
+
+| Note in the record | Shown as |
+| --- | --- |
+| `differs:declared_not_changed` | possible disagreement, unverified: not among the changed files |
+| `differs:not_closing` | possible disagreement, unverified: not among the closing references |
+| `differs:not_found` | possible disagreement, unverified: not found in the record |
+| `differs:not_reachable` | possible disagreement, unverified: not reachable from the head |
+| `differs:head_mismatch` | possible disagreement, unverified: the head is another commit |
+| `differs:all_succeeded_mismatch` | possible disagreement, unverified: the check runs read otherwise |
+| `differs:count_mismatch` | possible disagreement, unverified: the record holds another count |
+| `differs:not_merged` | possible disagreement, unverified: the pull request is not merged |
+| `differs:premature` | possible disagreement, unverified: the recorded merge time is later |
+
+Every surface that shows advisories also prints one fixed line beside them. For a record that
+carries the published figures (extractor 0.1.1 and comparison 0.2.0), the line states them, filled
+from the record:
+
+> Advisories never affect the verdict. Extraction precision 0.80 (24/30, 95% CI 0.63–0.90). A possible disagreement is unverified: on 170 of our own agent PRs, 0 of 20 marked a false claim, and of the 44 advisories the record could check there, none was a false claim (0 of 44).
+
+For a record that carries no figure (a later extractor or comparison, not yet measured), the line
+states none. Since extractor 0.1.2 that includes every record the running checker writes: 0.1.2
+has no figure published ("Measured figures", below).
+
+> Advisories never affect the verdict. A possible disagreement is unverified: on the reports measured so far it usually reflected a misread of the report, not a false claim.
+
+The surfaces are:
+
+- **The CLI** (`dunstan check --advisory`): the advisory table's `NOTE` column, with the fixed line
+  under the advisory heading.
+- **The Action**: the check run's summary and the job summary (the advisory row, and a section
+  listing each possible disagreement with its kind, value, observed value and clause). The
+  check-run title states the gate's verdict only and never mentions an advisory (spec D.11.8,
+  item 6).
+- **The MCP tool** (`dunstan_check_handback`): its claims-table text is the CLI's. The tool does
+  not ask for advisories, so its records carry none today.
+- **The hosted endpoint**: `claimsTable` is the CLI's text. The endpoint does not ask for
+  advisories either.
+
+**The wording changes presentation only.** The record's `note` is still `differs:<reason>` and the
+comparison stays 0.2.0. A consumer that reads the record reads the same notes. The only record
+change since is the figure fields of the advisory section ("Measured figures", below).
+`src/advisory/present.ts` holds the wording. `src/advisory/present.test.ts` pins the schemas'
+SHA-256 and a record's notes and digests, and checks each surface's text, with and without the
+figures.
+
+## The pipeline
+
+1. **Extract** (`extract.ts`): `extractClaims(reportText)` gives proposed claims, each
+   `{clause, verb, kind, value, span}`. `span` is the token's code-unit offsets in the report text.
+2. **Read** (`advise.ts`, `readingBlock`): the checker reads the evidence the block needs, plus the
+   sections the proposed claims need (D.11.5).
+3. **Compare** (`advise.ts`, `compareAdvisory`): each claim goes to the 0.1 gate check of the same
+   field, given a block that holds only that field. The check's row becomes the advisory's
+   `observed` and `note`. A file claim is also matched by name ("Bare file names", below). The
+   rules of this step are the **comparison**, versioned apart from the extractor: the record's
+   `advisory.comparison.version` is `0.2.0`.
+
+| Kind | Value | Gate check | Notes it can carry |
+| --- | --- | --- | --- |
+| `file_changed` | path | 7.3 scope, one declared path, then by name | `agrees`, `agrees_by_name`, `differs:declared_not_changed`, `unanswered:ambiguous_path`, `unanswered:file_list_truncated` |
+| `reference_closes` | `#N`, `owner/repo#N` | 7.4 `closes` | `agrees`, `differs:not_closing`, `differs:not_found`, `unanswered:…` |
+| `commit` | 7 to 40 hex | 7.2 if the head starts with it, else 7.4 `cites` (40 hex only) | `agrees`, `differs:not_found`, `differs:not_reachable`, `unanswered:…` |
+| `head_commit` | 7 to 40 hex | 7.2 head | `agrees`, `differs:head_mismatch` |
+| `checks_succeeded` | boolean | 7.5 `allSucceeded` | `agrees`, `differs:all_succeeded_mismatch`, `unanswered:checks_incomplete`, `unanswered:no_check_runs` |
+| `check_count` | integer | 7.5 `total` | `agrees`, `differs:count_mismatch` |
+| `tests_passed` | boolean | none | `unanswered:no_comparable_record_field` |
+| `test_count` | integer | 7.5 test count, with a record that is not JUnit | `unanswered:no_comparable_record_field` |
+| `merged_at` | UTC timestamp | 7.6 `mergedAt` | `agrees`, `differs:premature`, `differs:not_merged` |
+
+Any check whose evidence was not read gives `unanswered:` with that check's own reason
+(`evidence_field_unpopulated:<field>`, `source_unreadable:<source>`).
+
+### Bare file names (comparison 0.2.0)
+
+Reports often name a file by its bare name ("added the command to `cli.ts`") while the pull request
+changed `packages/tool/src/cli.ts`. Comparison 0.1.0 gave such a claim the gate's exact path check,
+so it read `differs:declared_not_changed`: the advisory said the agent claimed a file it did not
+touch, when the agent had touched it. Comparison 0.2.0 matches a file claim
+against the changed paths by name first. The candidates are the changed entries whose path or
+previous path is the value, or ends in `/` and the value. Each candidate is listed once, by its
+current path, in code-unit order.
+
+- **A bare name** (no `/`) is always matched by name, never read as a path at the root:
+  - one candidate: `agrees_by_name`, with `observed` that full path;
+  - more than one: `unanswered:ambiguous_path`, with every candidate in `observed`;
+  - none: `differs:declared_not_changed`, as before.
+- **A value with a `/`** keeps the exact comparison, so a changed path is `agrees`. Otherwise it may
+  be a path relative to some directory: a suffix of one changed path on segment boundaries is
+  `agrees_by_name`, of more than one `unanswered:ambiguous_path`, and of none
+  `differs:declared_not_changed`. `ab/cli.ts` is not a suffix of `xab/cli.ts`.
+- Names are compared case-sensitively: `CLI.ts` is not `cli.ts`.
+- **A file list not read in full** (truncated, unreadable, absent) gives the gate's own
+  `unanswered:` reason, as before, and never `differs` or a name match.
+
+`agrees_by_name` never reads as `agrees`. A name match is weaker evidence: the agent may have meant
+another file of the same name that the pull request did not change. Reporting it as plain `agrees`
+would turn the false `differs` notes of 0.1.0 into silent false agreements. The CLI shows the note
+as written, and the Action counts "agree by name only" apart from "agree".
+
+The gate is unchanged. A handback block's `filesChanged` holds repository-relative paths
+(`spec/claim-format.md`, section 4), so a block that declares a bare `cli.ts` still fails `declared_not_changed`. Retrieval's
+`file_changed` check (D.6) still needs the exact path. Matching by name is for prose, which names
+files as people do. The extraction grammar is unchanged too: extractor 0.1.1, digest
+`ab77ce47d1c5172ec912d1221e03bbe5b312ff5dc2acb594c4b8549fe602c360`. A measurement of the
+extractor's precision on that digest still holds. (Extractor 0.1.2 later changed the grammar:
+"Attribution", below.)
+
+The rules are pinned by synthetic tests in `advise.test.ts`, "a file named by a bare name or a
+partial path (comparison 0.2.0)".
+
+## The grammar, as written
+
+Everything below is `GRAMMAR` in `src/advisory/grammar.ts`. The record's
+`advisory.extractor.digest.sha256` is the SHA-256 over its JCS bytes. `src/advisory/docs.test.ts`
+checks that each list here matches the code word for word.
+
+### What is not read
+
+- Fenced code blocks (` ``` ` or `~~~`), including the handback block itself.
+- Lines quoted with `>`.
+- Log lines: a line (after any list marker) that opens with a log level from `logLevels`, a
+  bracketed prefix such as `[vitest]`, a timestamp, a shell prompt `$ `, a test-runner glyph (✓ ✗ ×
+  ✔ ✘ ❯ ›), or `error:`, `warning:` or `error TS1234:`.
+- HTML comments.
+
+Inline code and URLs are kept, each as a single token. A token in inline code that holds a space (a
+phrase or a command) is never a candidate. A URL is a candidate only if it is a GitHub issue or pull
+request URL, and only when a closing keyword binds it.
+
+### Clauses
+
+A clause ends at `.` `;` `:` `!` or `?` closing a word, at a blank line, at a list item, heading or
+table cell, and before a word in `subordinators`. A soft-wrapped line continues its clause. A colon
+directly after a closing keyword does not end a clause ("Fixes: #12"). A clause ending in `?` is a
+question and is dropped. A clause opened by a word in `conditionals` asserts nothing.
+
+### Tokens
+
+- **Path.** A repository-relative path: no leading `/`, `~` or `..`, no `//`, no trailing `/`. The
+  last segment has an extension starting with a letter (`.ts`, `.json`), or is a name in
+  `extensionlessFiles`. A leading hidden directory (`.github/`) is allowed. A `:line:col` or
+  `(line,col)` suffix is dropped. A bare name (no `/`) must look like a file name: lower-case
+  (`package.json`) or an all-capitals stem (`README.md`). It must not end in a host extension from
+  `hostExtensions`. An extensionless name needs inline code. Inline code lifts the bare-name rule.
+  A first segment that is a host name (`example.com/…`) is not a path.
+- **Issue.** `#N`, `owner/repo#N`, or a GitHub issue or pull request URL.
+- **SHA.** 7 to 40 hex digits holding at least one digit and one letter. An all-decimal run or user
+  id is never one, and neither is a hex word such as `deadbeef`.
+- **Timestamp.** `YYYY-MM-DDTHH:MM:SS[.fff]Z`.
+- **Count.** An integer of up to six digits.
+
+### The binding rule
+
+A token is a claim only when it is bound to an asserting verb in its own clause.
+
+1. **Nearest verb to the left.** Scan left from the token. The first word in any verb list
+   (`verbs.*`) is its verb. The scan stops with no binding if it meets, first, a negation, a modal,
+   or an infinitive `to` (a `to` followed by a plain word that is not a determiner). It also stops
+   after `window` (8) words. Tokens of the token's own class do not count toward the window, so
+   every path in "updated a.ts, b.ts and c.ts" binds. For a path, two more barriers stop the scan
+   (see "Asides and analogues" below): an opening bracket from `brackets` still unclosed at the
+   path, and a phrase from `analogues`.
+2. **Asserting.** The verb must not follow `to`. It must not be an adjective or noun: a verb form
+   after a word in `determiners` is one ("the updated docs", "the fix"), unless that word is in
+   `subjectDeterminers` and the verb is a third-person form ("This updates…"). No modal or negation
+   may stand in the three words before it. A third-person form that opens its clause and is
+   followed by a word in `nounPrepositions` is a noun ("Changes to src/a.ts…").
+3. **By class:**
+   - a path binds to a verb in `verbs.file`, or to a past participle after one or more
+     `passiveFillers` ("src/a.ts was updated"). A path after a word in `commandWords`, or after a
+     flag (`-x`, `--x`), within three words, is a command argument and never binds;
+   - an issue binds to a verb in `verbs.close`, with only issues and `closeFillers` between them;
+   - a SHA is `head_commit` after `head` with only `headFillers` between them. Otherwise it is
+     `commit` when its verb is in `verbs.commit`, or when the word before it is in `commitNouns`
+     and its verb is a file, close or merged verb. A SHA with a word in `shaBlockers` in the two
+     words before it never binds;
+   - a timestamp binds to `merged`, with only `mergedFillers` between them;
+   - a subject from `checksNouns` or `testsNouns` (or "check runs") binds to the first word of
+     `verbs.pass` or `verbs.fail` after it, with only `predicateFillers` between them. A negation
+     between them flips the value. A count directly before the subject gives `check_count` or
+     `test_count` when the value is true. `checks` names all checks only when nothing but
+     `checksQualifiers` stands before it, so "the lint checks pass" is not read. A predicate
+     followed within two words by one of `exceptions` ("except lint") is not read. The object form
+     "passed CI" or "passes all tests" binds a pass verb to a subject after it, with only
+     `objectFillers` between them;
+   - a count before `tests` binds to a verb in `verbs.ran`, with only `countFillers` between them
+     ("ran all 42 tests").
+4. **Once.** Each `(kind, value)` is proposed once, at its first clause.
+5. **This pull request's.** A bound claim is still dropped when its clause is about another pull
+   request or repository, a change made and undone, a baseline head, a negated list, or a failure
+   staged on purpose (see "Attribution" below).
+
+### Asides and analogues (extractor 0.1.1)
+
+A path can be named as a model rather than as the thing changed. Extractor 0.1.0 read "Rewrote the
+timetable (laid out like `ports/winter.md`)" as a claim that `ports/winter.md` changed: `like` was
+in no list, so it neither bound nor stopped the scan, which ran on past the bracket to `Rewrote`.
+The path is what the timetable copies, not the object of `Rewrote`. 0.1.1 adds two barriers to the
+left scan from a path:
+
+1. **An open bracket.** Scanning left from a path, the scan stops at the innermost opening bracket
+   still unclosed at the path. The pairs are `brackets`: `(…)` and `[…]`. A closing bracket closes
+   only its own kind, and one with nothing to close is ignored. So a verb outside an aside does not
+   bind a path inside it, and a verb inside does: "edited the timetable (like `ports/north.csv`)" is
+   not a claim, "added `a.ts` (also edited `b.ts`)" claims both. With nesting, only the innermost
+   bracket counts: in "edited the timetable (also updated the fares [`fares.csv`])", `updated` is
+   outside the `[` and does not bind. A bracket closed before the path is no barrier: "added two
+   crossings (for the winter) to `ports/north.csv`" binds. The text of a markdown link,
+   `[text](target)`, is the thing named, not an aside, so its brackets are not counted: "updated
+   [`src/a.ts`](src/a.ts)" binds. Brackets inside inline code and URLs are not counted either.
+2. **An analogue.** A phrase from `analogues` between the verb and the path stops the scan: "added
+   a timetable based on `ports/north.csv`", "added a fare rule analogous to `fares/summer.ts`". A
+   path before the phrase still binds: "adds `ports/north.csv` (modelled on the summer timetable)",
+   and in "updated `a.ts` and `b.ts`, like `c.ts`" only `a.ts` and `b.ts` bind. `cf` and `e.g.`
+   written with a final period already end their clause (a period closing a word ends a clause), so
+   the list entry `cf` is for the form without one.
+
+Left out, on purpose:
+
+- **`following`.** "Changed the following files `a.ts` and `b.ts`" names the verb's own objects, so
+  `following` is not a barrier, and that sentence binds both paths. Written with a colon, "Changed
+  the following files: `a.ts`, `b.ts`", the colon ends the clause, as every colon has since 0.1.0,
+  and the list after it has no verb, so it binds nothing. That is a clause rule, unchanged here.
+- **Exemplifiers** (`such as`, `e.g`, `for example`). What they introduce is usually an instance of
+  the verb's object: "updated the workflows, such as `ci.yml`" says `ci.yml` was updated.
+- **Issues, SHAs, timestamps and subjects.** The barriers apply to paths only, the class the defect
+  was found in. "Pushed the fix (3f2a1b9c)" binds as before.
+
+The cost is recall: a writer who names the file in an aside, "added a regression test
+(`src/parse.test.ts`)", is not read. That is the trade this extractor makes throughout.
+
+Both barriers are pinned by synthetic tests in `extract.test.ts`, "not a claim: a path in an aside
+or an analogue (extractor 0.1.1)" (one per bracket form, nested brackets, and one per analogue
+phrase) and "still a claim beside the aside and analogue rules (extractor 0.1.1)".
+
+### Attribution (extractor 0.1.2)
+
+The extractor's rules and their tests are in `src/advisory/`.
+
+### The lists
+
+- `verbs.file`: added, adds, adjusted, adjusts, amended, amends, changed, changes, created, creates, deleted, deletes, edited, edits, extended, extends, fixed, fixes, modified, modifies, moved, moves, patched, patches, refactored, refactors, removed, removes, renamed, renames, replaced, replaces, reworked, reworks, rewrites, rewritten, rewrote, touched, touches, tweaked, tweaks, updated, updates
+- `verbs.close`: close, closed, closes, fix, fixed, fixes, resolve, resolved, resolves
+- `verbs.commit`: cherry-picked, committed, landed, pushed
+- `verbs.merged`: merged
+- `verbs.ran`: executed, ran
+- `verbs.pass`: green, pass, passed, passes, passing, succeed, succeeded, succeeds
+- `verbs.fail`: fail, failed, failing, fails, red
+- `verbs.other`: built, cited, compiled, contain, contains, described, describes, exist, exists, expect, expected, explained, explains, found, generated, generates, ignored, imported, included, includes, inspected, install, installed, kept, left, lives, located, logged, looked, mentioned, mentions, opened, pointed, printed, prints, re-ran, re-run, read, referenced, requires, reran, rerun, returned, returns, reviewed, said, saw, says, see, seen, showed, shown, shows, skipped, stored, tested, used, viewed, wrote, written
+- `modals`: can, could, expect, going, hope, intend, may, might, must, need, needs, plan, please, shall, should, todo, try, trying, want, wants, will, would
+- `negations`: neither, never, no, none, nor, not, without
+- `determiners`: a, an, any, each, every, her, his, its, my, our, some, that, the, their, these, this, those, your
+- `subjectDeterminers`: that, this
+- `subordinators`: after, although, because, before, but, if, once, since, that, though, unless, until, when, whenever, where, whereas, which, while, who
+- `conditionals`: if, once, unless, until, when, whenever
+- `nounPrepositions`: across, for, from, in, of, on, to, under, within
+- `closeFillers`: &, and, bug, bugs, issue, issues, ticket, tickets
+- `mergedFillers`: as, at, been, into, main, master, of, on, the, was
+- `predicateFillers`: again, all, also, are, been, both, did, do, does, has, have, is, locally, never, no, not, now, still, turned, was, went, were
+- `passiveFillers`: also, are, been, both, has, have, is, now, was, were
+- `objectFillers`: all, required, the
+- `countFillers`: all, the
+- `exceptions`: apart, besides, except, excluding, other, save
+- `headFillers`: at, commit, is, now, sha, was
+- `analogues`: analogous to, as in, based on, cf, compared to, compared with, like, matching, mirroring, modeled on, modelled on, same as, similar to, unlike
+- `brackets`: (), []
+- `selfNames`: this change, this pr, this pull request
+- `repositoryNouns`: repo, repos, repositories, repository
+- `ownRepository`: our, same, the, this
+- `pronouns`: it, they
+- `possessives`: its, their
+- `transients`: backed out, reverted, reverting, temporarily, then deleted, then removed, throw-away, throwaway, undid, undone
+- `baselines`: base, baseline, earlier, former, old, original, previous, prior
+- `remotePrefixes`: origin/, upstream/
+- `narrations`: as expected, as intended, deliberately, intentionally, mutant, mutants, mutation, mutations, on purpose, without
+- `narrationOpeners`: before
+- `finalStates`: now, with it, with the change, with the fix, with this change
+- `commandWords`: bash, biome, bun, cargo, cat, cd, chmod, cp, curl, deno, docker, gh, git, go, grep, jest, kubectl, ls, make, mkdir, mv, node, npm, npx, pnpm, pytest, python, python3, rm, ruby, sh, touch, tsc, tsx, vitest, yarn
+- `shaBlockers`: account, attempt, build, id, ids, issue, job, jobs, key, node, org, pr, run, runs, step, token, uid, user, users, uuid, workflow
+- `commitNouns`: commit, commits, sha
+- `checksNouns`: checks, ci
+- `checksQualifiers`: all, and, ci, required, status, the
+- `testsNouns`: specs, suite, tests
+- `extensionlessFiles`: CODEOWNERS, Dockerfile, Gemfile, Justfile, LICENSE, Makefile, NOTICE, Procfile, Rakefile
+- `hostExtensions`: ai, app, co, com, dev, io, net, org
+- `logLevels`: DEBUG, ERR, ERR!, ERROR, FAIL, FATAL, INFO, OK, PASS, SKIP, TRACE, WARN, WARNING
+
+A word ending in `n't` is a negation, and a word ending in `'ll` is a modal.
+
+## False-positive classes
+
+The extractor's rules and their tests are in `src/advisory/`.
+
+## Precision
+
+`src/advisory/precision.ts` holds the published measurements, each keyed by what it was taken on.
+A published figure for advisories gives two numbers, each bound to what it measured:
+
+1. **Extraction precision**: the share of proposed claims that are claims the report really makes.
+   It is bound to the extractor digest, and is what `precision` carries.
+2. **The accuracy of `differs` notes**: the share of `differs` notes that mark a claim the record
+   really contradicts. It is bound to the extractor digest and the comparison version
+   (`advisory.comparison.version`): the grammar decides which claims are proposed, and the
+   comparison decides whether a real claim reads `agrees` or `differs`. It is what
+   `differsAccuracy` carries, with the corpus's base rate beside it.
+
+One number is not enough. Comparison 0.1.0 shows why: an extractor that proposed the right file
+claims still raised `differs` notes that were wrong, because it compared bare names by exact path.
+A precision measured on extraction alone says nothing about that.
+
+`precisionFor(digest)` and `differsAccuracyFor(digest, comparison)` return a figure only on an
+exact match of every key. When the grammar changes, the digest changes; when the comparison
+changes, its version changes. Either way the record's figure returns to `null`, shown as
+"unmeasured", until the new version is measured. No version inherits a figure from another.
+`dunstan verify` recomputes both figures from the running checker's table, so a record cannot carry
+a figure that was not published for its extractor and comparison. `src/advisory/precision.test.ts`
+pins the binding.
+
+## Measured figures
+
+Published 2026-10-05: value, n and method only. The reports, their clauses and the adjudication
+labels are not published.
+
+These figures are for extractor 0.1.1. The extractor that runs since 2026-10-05 is 0.1.2, digest
+`dfd6563a934667a80448e49b7133ade6d2473e5e13cd9d05fd52c761a1a1780b`. Nothing is published for it,
+so a record it writes carries `null` for both figures, shown as "unmeasured", until it is measured
+anew. The figures below are not rebound to it.
+
+| Figure | Value | n | Wilson 95% interval | Bound to |
+| --- | --- | --- | --- | --- |
+| Extraction precision | 0.80 (24 real claims) | 30 advisories | [0.627, 0.905] | extractor 0.1.1, digest `ab77ce47d1c5172ec912d1221e03bbe5b312ff5dc2acb594c4b8549fe602c360` |
+| `differs` notes that marked a genuinely false claim | 0 | 20 `differs` advisories | [0, 0.161] | extractor 0.1.1 (same digest) and comparison 0.2.0 |
+| Base rate: genuine false completion claims | 0 | 44 checkable advisories (of 149) | [0, 0.080] | extractor 0.1.1 (same digest) and comparison 0.2.0 |
+
+**Method.** Extractor 0.1.1 proposed 149 advisories on 170 of Barg Labs' own merged agent pull
+requests. For extraction precision, a seeded held-out sample of 30 of those 149 was drawn, and the
+operator adjudicated each as a claim the report really makes or not: 24 were. For the `differs`
+figure, every `differs` advisory under comparison 0.2.0 on the same 170 pull requests was
+adjudicated, a census of 20: none marked a genuinely false claim. For the base rate, the 44
+advisories the record could check (24 that agreed with it and the 20 adjudicated `differs`) held no
+genuinely false completion claim. The other 105, mostly test counts with no record to compare with,
+could not be checked and were not judged, so a false claim among them would not have been seen. Each interval
+is the Wilson score interval at 95%. The record carries each bound to five places, so that it rounds
+correctly both to the three places above and to the two places of the fixed line.
+
+**What the base rate means.** The base rate is always shown next to the `differs` figure. It
+changes how 0 of 20 reads. Among the 44 advisories the record could
+check there was no genuine false completion claim (0 of 44), so there was little for a `differs`
+note to find. 0 of 20 therefore says that every `differs` note on
+this corpus was a false alarm. It does not say that the check failed to catch false claims, and it
+says nothing about how often a `differs` note catches one when there is one to catch.
+
+**Not yet "mismatch".** Wording that calls a `differs` note a mismatch is earned only past a
+preregistered bar, measured on a corpus that contains false claims (decided 2026-10-05). That has
+not yet happened, so a `differs` note is still shown as "possible disagreement, unverified".
+
+In the record, each figure is `{value, n, interval, pullRequests, method, source}`, with `source`
+"operator-adjudicated, Barg Labs internal corpus, 2026-10-05", and `differsAccuracy` adds
+`baseRate` in the same form (spec D.11.2).
+
+## What it does not do
+
+- It does not use a model reader. That is DRAFT 0.2.0 D.1 to D.10 (`docs/retrieval.md`).
+- It does not measure itself. The figures above were measured outside this repository and are
+  published here as constants.
+- It never changes a gate verdict.

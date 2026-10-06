@@ -1,0 +1,396 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "git+https://github.com/example-org/example-repo@4b1d9e2a7c3f5e8a0b6d2c9f1e4a7b0d3c6e9f2a",
+      "digest": {
+        "gitCommit": "4b1d9e2a7c3f5e8a0b6d2c9f1e4a7b0d3c6e9f2a"
+      }
+    },
+    {
+      "name": "handback-block",
+      "digest": {
+        "sha256": "1a94bd2e38dca98399490e4f7ee11e2eee048c408839116d8e947222d0541ce2"
+      }
+    }
+  ],
+  "predicateType": "https://barglabs.ai/dunstan/record/v0.1",
+  "predicate": {
+    "spec": "0.1.1",
+    "checker": {
+      "name": "dunstan",
+      "version": "0.1.1",
+      "digest": {
+        "sha256": "73a50031c8bdf06b0bd96062386dc3347ad18d6b3c458c4dae123efd6e6c044a"
+      }
+    },
+    "report": {
+      "sha256": "04305bbd445ea48c7814d73cc4358d0835004fc52facbfbb8115b3c8e3132634",
+      "source": {
+        "kind": "file",
+        "locator": "spec/examples/reports/found.one-block.md"
+      }
+    },
+    "block": {
+      "status": "found",
+      "sha256": "1a94bd2e38dca98399490e4f7ee11e2eee048c408839116d8e947222d0541ce2",
+      "value": {
+        "dunstan": "0.1",
+        "headCommit": "4b1d9e2a7c3f5e8a0b6d2c9f1e4a7b0d3c6e9f2a",
+        "filesChanged": ["src/parser.ts", "src/parser.test.ts", "docs/parser.md"],
+        "tests": [
+          {
+            "command": "pnpm test",
+            "count": 128,
+            "failures": 0,
+            "record": {
+              "kind": "junit",
+              "workflow": ".github/workflows/ci.yml",
+              "job": "test",
+              "artifact": "junit-report",
+              "path": "reports/junit.xml"
+            }
+          }
+        ],
+        "checks": {
+          "total": 3,
+          "allSucceeded": true
+        },
+        "references": [
+          {
+            "issue": "#17",
+            "relation": "closes"
+          },
+          {
+            "issue": "example-org/example-docs#5",
+            "relation": "cites"
+          },
+          {
+            "commit": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+            "relation": "cites"
+          }
+        ],
+        "mergedAt": "2026-10-01T14:05:09Z",
+        "deployedAt": {
+          "at": "2026-10-01T14:20:00Z",
+          "environment": "production"
+        }
+      }
+    },
+    "subject": {
+      "repository": "example-org/example-repo",
+      "pullRequest": 42,
+      "headSha": "4b1d9e2a7c3f5e8a0b6d2c9f1e4a7b0d3c6e9f2a",
+      "mergeSha": "9e7c5a3b1d8f6e4c2a0b7d5f3e1c9a6b4d2f0e8c"
+    },
+    "evidence": {
+      "pullRequest": {
+        "status": "ok",
+        "number": 42,
+        "state": "closed",
+        "merged": true,
+        "mergedAt": "2026-10-01T14:03:51Z",
+        "headSha": "4b1d9e2a7c3f5e8a0b6d2c9f1e4a7b0d3c6e9f2a",
+        "mergeSha": "9e7c5a3b1d8f6e4c2a0b7d5f3e1c9a6b4d2f0e8c",
+        "changedFiles": 3
+      },
+      "files": {
+        "status": "ok",
+        "complete": true,
+        "entries": [
+          {
+            "path": "docs/parser.md",
+            "status": "added"
+          },
+          {
+            "path": "src/parser.test.ts",
+            "status": "modified"
+          },
+          {
+            "path": "src/parser.ts",
+            "status": "modified"
+          }
+        ]
+      },
+      "closingReferences": {
+        "status": "ok",
+        "issues": ["example-org/example-repo#17"]
+      },
+      "references": [
+        {
+          "kind": "issue",
+          "ref": "example-org/example-docs#5",
+          "status": "ok",
+          "exists": true
+        },
+        {
+          "kind": "commit",
+          "ref": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+          "status": "ok",
+          "exists": true,
+          "reachableFromHead": true
+        }
+      ],
+      "checkRuns": {
+        "status": "ok",
+        "commit": "4b1d9e2a7c3f5e8a0b6d2c9f1e4a7b0d3c6e9f2a",
+        "excludedIds": [],
+        "runs": [
+          {
+            "id": 9001,
+            "name": "lint",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 9002,
+            "name": "test",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "id": 9003,
+            "name": "typecheck",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ]
+      },
+      "testRecords": [
+        {
+          "record": {
+            "kind": "junit",
+            "workflow": ".github/workflows/ci.yml",
+            "job": "test",
+            "artifact": "junit-report",
+            "path": "reports/junit.xml"
+          },
+          "status": "ok",
+          "runs": [
+            {
+              "runId": 7001,
+              "runAttempt": 1,
+              "executed": 128,
+              "failed": 0
+            }
+          ]
+        }
+      ],
+      "deployments": [
+        {
+          "environment": "production",
+          "status": "ok",
+          "deployments": [
+            {
+              "id": 501,
+              "sha": "9e7c5a3b1d8f6e4c2a0b7d5f3e1c9a6b4d2f0e8c",
+              "relation": "merge",
+              "successAt": "2026-10-01T14:12:30Z"
+            }
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "kind": "artifact",
+          "locator": "GET /repos/example-org/example-repo/actions/artifacts/3301/zip#reports/junit.xml",
+          "sha256": "2a58987a3eabadf55438d77a4ffe79c9b39255bdab277195949f697efc799440",
+          "readAt": "2026-10-01T15:00:02Z"
+        },
+        {
+          "kind": "check_runs",
+          "locator": "GET /repos/example-org/example-repo/commits/4b1d9e2a7c3f5e8a0b6d2c9f1e4a7b0d3c6e9f2a/check-runs?filter=latest&per_page=100&page=1",
+          "sha256": "3e08a609c4a2658ff3ca9a949e26a5cfcf02690232b9d7d8a8eb64b5288d90c7",
+          "readAt": "2026-10-01T15:00:01Z"
+        },
+        {
+          "kind": "closing_references",
+          "locator": "POST /graphql repository(example-org/example-repo).pullRequest(42).closingIssuesReferences",
+          "sha256": "c1aedf5d1bc567d59ee857f2377ed64eedd0ced61f143d90d632ab56a3d74988",
+          "readAt": "2026-10-01T15:00:01Z"
+        },
+        {
+          "kind": "commit",
+          "locator": "GET /repos/example-org/example-repo/commits/1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+          "sha256": "4747d9d28551c4c080e6fb7cba58d2fa6a3918294214fdde143f96e1fc857e44",
+          "readAt": "2026-10-01T15:00:01Z"
+        },
+        {
+          "kind": "compare",
+          "locator": "GET /repos/example-org/example-repo/compare/1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b...4b1d9e2a7c3f5e8a0b6d2c9f1e4a7b0d3c6e9f2a",
+          "sha256": "c0f57dd09a6df4b908e3f0f7afe19a76cfa19284d6ea0c0e7aabb5e2680652a4",
+          "readAt": "2026-10-01T15:00:01Z"
+        },
+        {
+          "kind": "deployments",
+          "locator": "GET /repos/example-org/example-repo/deployments?environment=production&per_page=100&page=1",
+          "sha256": "c35e735f5c4343033a5e57d6a30e19e7af5cd9d527f518e5ddaae26bb91f583d",
+          "readAt": "2026-10-01T15:00:02Z"
+        },
+        {
+          "kind": "issue",
+          "locator": "GET /repos/example-org/example-docs/issues/5",
+          "sha256": "284c513b29c18fc29ca7ae8a656415696ea994a3107b2771d7cc5196bd56a7ea",
+          "readAt": "2026-10-01T15:00:01Z"
+        },
+        {
+          "kind": "pull_request",
+          "locator": "GET /repos/example-org/example-repo/pulls/42",
+          "sha256": "b4f798bf83da94d2ebcc2024e5fe4ea558c2ff17a89ae50b7a854f9f028221fb",
+          "etag": "W/\"illustrative-etag-pulls-42\"",
+          "readAt": "2026-10-01T15:00:00Z"
+        },
+        {
+          "kind": "pull_request_files",
+          "locator": "GET /repos/example-org/example-repo/pulls/42/files?per_page=100&page=1",
+          "sha256": "17be846ed2cd35a9f99b6d3e19758c7ca57f99dc8f025f906a090ace0a747336",
+          "readAt": "2026-10-01T15:00:00Z"
+        },
+        {
+          "kind": "workflow_runs",
+          "locator": "GET /repos/example-org/example-repo/actions/workflows/ci.yml/runs?head_sha=4b1d9e2a7c3f5e8a0b6d2c9f1e4a7b0d3c6e9f2a",
+          "sha256": "51c1698e720e35727727f8b7ae3613c726601626471a47e95d976175455050a3",
+          "readAt": "2026-10-01T15:00:01Z"
+        }
+      ]
+    },
+    "claims": [
+      {
+        "id": "head:/headCommit",
+        "check": "head",
+        "field": "/headCommit",
+        "declared": "4b1d9e2a7c3f5e8a0b6d2c9f1e4a7b0d3c6e9f2a",
+        "observed": "4b1d9e2a7c3f5e8a0b6d2c9f1e4a7b0d3c6e9f2a",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/0",
+        "check": "scope",
+        "field": "/filesChanged/0",
+        "declared": "src/parser.ts",
+        "observed": "src/parser.ts",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/1",
+        "check": "scope",
+        "field": "/filesChanged/1",
+        "declared": "src/parser.test.ts",
+        "observed": "src/parser.test.ts",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/2",
+        "check": "scope",
+        "field": "/filesChanged/2",
+        "declared": "docs/parser.md",
+        "observed": "docs/parser.md",
+        "verdict": "pass"
+      },
+      {
+        "id": "reference:/references/0",
+        "check": "reference",
+        "field": "/references/0",
+        "declared": {
+          "issue": "#17",
+          "relation": "closes"
+        },
+        "observed": {
+          "closing": ["example-org/example-repo#17"]
+        },
+        "verdict": "pass"
+      },
+      {
+        "id": "reference:/references/1",
+        "check": "reference",
+        "field": "/references/1",
+        "declared": {
+          "issue": "example-org/example-docs#5",
+          "relation": "cites"
+        },
+        "observed": {
+          "exists": true
+        },
+        "verdict": "pass"
+      },
+      {
+        "id": "reference:/references/2",
+        "check": "reference",
+        "field": "/references/2",
+        "declared": {
+          "commit": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+          "relation": "cites"
+        },
+        "observed": {
+          "exists": true,
+          "reachableFromHead": true
+        },
+        "verdict": "pass"
+      },
+      {
+        "id": "count:/tests/0/count",
+        "check": "count",
+        "field": "/tests/0/count",
+        "declared": 128,
+        "observed": 128,
+        "verdict": "pass"
+      },
+      {
+        "id": "count:/tests/0/failures",
+        "check": "count",
+        "field": "/tests/0/failures",
+        "declared": 0,
+        "observed": 0,
+        "verdict": "pass"
+      },
+      {
+        "id": "count:/checks/total",
+        "check": "count",
+        "field": "/checks/total",
+        "declared": 3,
+        "observed": 3,
+        "verdict": "pass"
+      },
+      {
+        "id": "count:/checks/allSucceeded",
+        "check": "count",
+        "field": "/checks/allSucceeded",
+        "declared": true,
+        "observed": true,
+        "verdict": "pass"
+      },
+      {
+        "id": "time:/mergedAt",
+        "check": "time",
+        "field": "/mergedAt",
+        "declared": "2026-10-01T14:05:09Z",
+        "observed": "2026-10-01T14:03:51Z",
+        "verdict": "pass"
+      },
+      {
+        "id": "time:/deployedAt",
+        "check": "time",
+        "field": "/deployedAt",
+        "declared": {
+          "at": "2026-10-01T14:20:00Z",
+          "environment": "production"
+        },
+        "observed": "2026-10-01T14:12:30Z",
+        "verdict": "pass"
+      }
+    ],
+    "verdict": "pass",
+    "digests": {
+      "claims": "ee1451abd7d13f0095476c11fbfa5808bf5c8005853dc2f19d243b20e93ad96a",
+      "evidence": "2fc9f6a8795f0c4a475aedafe2970579fb922db5929f00b3914bb0313a4a9213"
+    },
+    "rerun": {
+      "offline": "npx dunstan@0.1.1 verify pass.json",
+      "online": "npx dunstan@0.1.1 rerun pass.json"
+    },
+    "assurance": {
+      "status": "unsigned",
+      "issuer": "self-generated"
+    }
+  }
+}

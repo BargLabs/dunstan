@@ -1,0 +1,159 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "git+https://github.com/example-org/example-repo@d15ea5e000111122223333444455556666777788",
+      "digest": {
+        "gitCommit": "d15ea5e000111122223333444455556666777788"
+      }
+    },
+    {
+      "name": "handback-block",
+      "digest": {
+        "sha256": "1525b8d9fdaa8cc14ca68db6e616790de4d891fa0be6060c3823c1bbcb8628e2"
+      }
+    }
+  ],
+  "predicateType": "https://barglabs.ai/dunstan/record/v0.1",
+  "predicate": {
+    "spec": "0.1.1",
+    "checker": {
+      "name": "dunstan",
+      "version": "0.1.1",
+      "digest": {
+        "sha256": "73a50031c8bdf06b0bd96062386dc3347ad18d6b3c458c4dae123efd6e6c044a"
+      }
+    },
+    "report": {
+      "sha256": "7f55d77779f751ce448510f12055fdfead1d50d40e21f775eb89d384e3d2367f",
+      "source": {
+        "kind": "file",
+        "locator": "spec/examples/reports/found.checks-unreadable.md"
+      }
+    },
+    "block": {
+      "status": "found",
+      "sha256": "1525b8d9fdaa8cc14ca68db6e616790de4d891fa0be6060c3823c1bbcb8628e2",
+      "value": {
+        "dunstan": "0.1",
+        "headCommit": "d15ea5e000111122223333444455556666777788",
+        "filesChanged": ["lib/report.py"],
+        "tests": [
+          {
+            "command": "pytest -q",
+            "count": 12,
+            "record": {
+              "kind": "tap",
+              "file": "out/results.tap"
+            }
+          }
+        ],
+        "checks": {
+          "allSucceeded": true
+        }
+      }
+    },
+    "subject": {
+      "repository": "example-org/example-repo",
+      "pullRequest": 44,
+      "headSha": "d15ea5e000111122223333444455556666777788",
+      "mergeSha": null
+    },
+    "evidence": {
+      "pullRequest": {
+        "status": "ok",
+        "number": 44,
+        "state": "open",
+        "merged": false,
+        "mergedAt": null,
+        "headSha": "d15ea5e000111122223333444455556666777788",
+        "mergeSha": null,
+        "changedFiles": 1
+      },
+      "files": {
+        "status": "ok",
+        "complete": true,
+        "entries": [
+          {
+            "path": "lib/report.py",
+            "status": "modified"
+          }
+        ]
+      },
+      "checkRuns": {
+        "status": "unreadable",
+        "source": "check_runs"
+      },
+      "sources": [
+        {
+          "kind": "check_runs",
+          "locator": "GET /repos/example-org/example-repo/commits/d15ea5e000111122223333444455556666777788/check-runs?filter=latest&per_page=100&page=1",
+          "sha256": "f1283996e1480391b430e3a14d64c5ae391864dd86e7ad6d6f4942206f801128",
+          "readAt": "2026-10-03T11:00:01Z",
+          "error": "http_403"
+        },
+        {
+          "kind": "pull_request",
+          "locator": "GET /repos/example-org/example-repo/pulls/44",
+          "sha256": "942cae317cb7119f2d64dad9c59d8571fd0afb95cc87757bdbe626fedb1fbfe7",
+          "readAt": "2026-10-03T11:00:00Z"
+        },
+        {
+          "kind": "pull_request_files",
+          "locator": "GET /repos/example-org/example-repo/pulls/44/files?per_page=100&page=1",
+          "sha256": "3a1a363cd0ab5633b26ae4a847047f3687909a173ff65b662633f7bcce04b54b",
+          "readAt": "2026-10-03T11:00:00Z"
+        }
+      ]
+    },
+    "claims": [
+      {
+        "id": "head:/headCommit",
+        "check": "head",
+        "field": "/headCommit",
+        "declared": "d15ea5e000111122223333444455556666777788",
+        "observed": "d15ea5e000111122223333444455556666777788",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/0",
+        "check": "scope",
+        "field": "/filesChanged/0",
+        "declared": "lib/report.py",
+        "observed": "lib/report.py",
+        "verdict": "pass"
+      },
+      {
+        "id": "count:/tests/0/count",
+        "check": "count",
+        "field": "/tests/0/count",
+        "declared": 12,
+        "observed": null,
+        "verdict": "unverifiable",
+        "reason": "no_comparable_record_field"
+      },
+      {
+        "id": "count:/checks/allSucceeded",
+        "check": "count",
+        "field": "/checks/allSucceeded",
+        "declared": true,
+        "observed": null,
+        "verdict": "unverifiable",
+        "reason": "source_unreadable:check_runs"
+      }
+    ],
+    "verdict": "unverifiable",
+    "digests": {
+      "claims": "2b71b7a427214a9ed2f245aa1f8c588bbce1838baa6fcb23c3dc9ee41db67d79",
+      "evidence": "37dc15ac2052f2edce8c7e27762fb6d469182c9e44645b6e38285328dca3dcde"
+    },
+    "rerun": {
+      "offline": "npx dunstan@0.1.1 verify unverifiable.json",
+      "online": "npx dunstan@0.1.1 rerun unverifiable.json"
+    },
+    "assurance": {
+      "status": "unsigned",
+      "issuer": "self-generated"
+    }
+  }
+}

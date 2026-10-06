@@ -1,0 +1,31 @@
+{
+  "pullRequest": {
+    "status": "ok",
+    "number": 128,
+    "state": "open",
+    "merged": false,
+    "mergedAt": null,
+    "headSha": "a11ce5e0c0ffee00d00dfeed0000111122223333",
+    "mergeSha": null,
+    "changedFiles": 0
+  },
+  "files": {
+    "status": "unreadable",
+    "source": "pull_request_files"
+  },
+  "sources": [
+    {
+      "kind": "pull_request",
+      "locator": "GET /repos/example-org/example-repo/pulls/128",
+      "sha256": "cf5dd0d2218317f53043457e3dd95e5fc18f1b0fe4543e013054f19915631c3e",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "pull_request_files",
+      "locator": "GET /repos/example-org/example-repo/pulls/128/files?per_page=100&page=1",
+      "sha256": "f5fa3dd3d4edbc5c431eba4e567e53cca3870f1335a8937eb261840a46536733",
+      "readAt": "2026-10-04T12:00:00Z",
+      "error": "http_502"
+    }
+  ]
+}

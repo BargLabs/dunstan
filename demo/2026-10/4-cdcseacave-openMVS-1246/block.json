@@ -1,0 +1,6 @@
+{
+  "dunstan": "0.1",
+  "headCommit": "66e9ec39994c81e416b2970fb3d158760389f567",
+  "filesChanged": ["apps/Tests/Tests.cpp", "libs/IO/ImageTIFF.cpp", "libs/IO/ImageTIFF.h"],
+  "mergedAt": "2026-09-11T23:57:04Z"
+}

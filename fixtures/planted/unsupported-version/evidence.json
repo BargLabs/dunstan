@@ -1,0 +1,20 @@
+{
+  "pullRequest": {
+    "status": "ok",
+    "number": 123,
+    "state": "open",
+    "merged": false,
+    "mergedAt": null,
+    "headSha": "a11ce5e0c0ffee00d00dfeed0000111122223333",
+    "mergeSha": null,
+    "changedFiles": 0
+  },
+  "sources": [
+    {
+      "kind": "pull_request",
+      "locator": "GET /repos/example-org/example-repo/pulls/123",
+      "sha256": "39a2c9aec74bd954b92e3aa7abebbe3b86f2a97b034e0fefaabc423010b7f2fc",
+      "readAt": "2026-10-04T12:00:00Z"
+    }
+  ]
+}

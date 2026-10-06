@@ -1,0 +1,5 @@
+{
+  "dunstan": "0.1",
+  "headCommit": "9e7c5a3b1d8f6e4c2a0b7d5f3e1c9a6b4d2f0e8c",
+  "filesChanged": ["src/storage/blob-store.ts", "src/storage/index.ts"]
+}

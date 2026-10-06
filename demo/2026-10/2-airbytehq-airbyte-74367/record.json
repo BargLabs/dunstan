@@ -1,0 +1,225 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "git+https://github.com/airbytehq/airbyte@a9a27be90d8aa555d2325ed2c55e00b44146fccb",
+      "digest": {
+        "gitCommit": "a9a27be90d8aa555d2325ed2c55e00b44146fccb"
+      }
+    },
+    {
+      "name": "handback-block",
+      "digest": {
+        "sha256": "4432d0c87a48599be9b26141aff28b78987a06fe5ec42eb0def00f461de9d221"
+      }
+    }
+  ],
+  "predicateType": "https://barglabs.ai/dunstan/record/v0.1",
+  "predicate": {
+    "spec": "0.1.0",
+    "checker": {
+      "name": "dunstan",
+      "version": "0.1.0",
+      "digest": {
+        "sha256": "8ae2ac4f96ccf814cfb914e475d936e658c49549557ba656020af76d5f31fe10"
+      }
+    },
+    "report": {
+      "sha256": "5af195d88282321c71f2b0f7320f08bc1ed6b03e6e4d6b07a27674da8d95d512",
+      "source": {
+        "kind": "file",
+        "locator": "demo/2026-10/.work/2/report.md"
+      }
+    },
+    "block": {
+      "status": "found",
+      "sha256": "4432d0c87a48599be9b26141aff28b78987a06fe5ec42eb0def00f461de9d221",
+      "value": {
+        "dunstan": "0.1",
+        "headCommit": "a9a27be90d8aa555d2325ed2c55e00b44146fccb",
+        "filesChanged": [
+          "airbyte-integrations/connectors/source-amazon-ads/AGENTS.md",
+          "airbyte-integrations/connectors/source-amazon-ads/acceptance-test-config.yml",
+          "airbyte-integrations/connectors/source-amazon-ads/manifest.yaml",
+          "airbyte-integrations/connectors/source-amazon-ads/metadata.yaml",
+          "airbyte-integrations/connectors/source-amazon-ads/unit_tests/integrations/test_report_streams.py",
+          "docs/integrations/sources/amazon-ads.md"
+        ],
+        "references": [
+          {
+            "issue": "airbytehq/oncall#11556",
+            "relation": "closes"
+          }
+        ],
+        "mergedAt": "2026-09-03T21:25:52Z"
+      }
+    },
+    "subject": {
+      "repository": "airbytehq/airbyte",
+      "pullRequest": 74367,
+      "headSha": "a9a27be90d8aa555d2325ed2c55e00b44146fccb",
+      "mergeSha": "a60101992e6948eeb9047fe45ad230236f4a15b6"
+    },
+    "evidence": {
+      "pullRequest": {
+        "status": "ok",
+        "number": 74367,
+        "state": "closed",
+        "merged": true,
+        "mergedAt": "2026-09-03T21:25:52Z",
+        "headSha": "a9a27be90d8aa555d2325ed2c55e00b44146fccb",
+        "mergeSha": "a60101992e6948eeb9047fe45ad230236f4a15b6",
+        "changedFiles": 6
+      },
+      "sources": [
+        {
+          "kind": "closing_references",
+          "locator": "POST /graphql repository(airbytehq/airbyte).pullRequest(74367).closingIssuesReferences",
+          "sha256": "e8d2cea085f97112c903155b904681e2112be3400dcb0b7146f38189128af78c",
+          "readAt": "2026-10-04T19:05:54.872Z"
+        },
+        {
+          "kind": "pull_request",
+          "locator": "GET /repos/airbytehq/airbyte/pulls/74367",
+          "sha256": "d95172b2a62f7cd1fed092024b243aa8e2cba822c61d9082bd78723886263ff3",
+          "readAt": "2026-10-04T19:05:54.111Z",
+          "etag": "W/\"611085926c499c7ed302c68d11da087b53baeb3bf083f256d05a6cd1e6ef4934\""
+        },
+        {
+          "kind": "pull_request_files",
+          "locator": "GET /repos/airbytehq/airbyte/pulls/74367/files?per_page=100&page=1",
+          "sha256": "60a45b2b7c65f13ffea61fb93cefaca8dcdcf8de9a5c71af31d760a9fe2794e4",
+          "readAt": "2026-10-04T19:05:54.475Z",
+          "etag": "W/\"b95730bf3fe6f897d8b79bb0e3ee41161de46791aa864f394e3e6fc04ebbcd53\""
+        }
+      ],
+      "files": {
+        "status": "ok",
+        "complete": true,
+        "entries": [
+          {
+            "path": "airbyte-integrations/connectors/source-amazon-ads/AGENTS.md",
+            "status": "modified"
+          },
+          {
+            "path": "airbyte-integrations/connectors/source-amazon-ads/acceptance-test-config.yml",
+            "status": "modified"
+          },
+          {
+            "path": "airbyte-integrations/connectors/source-amazon-ads/manifest.yaml",
+            "status": "modified"
+          },
+          {
+            "path": "airbyte-integrations/connectors/source-amazon-ads/metadata.yaml",
+            "status": "modified"
+          },
+          {
+            "path": "airbyte-integrations/connectors/source-amazon-ads/unit_tests/integrations/test_report_streams.py",
+            "status": "modified"
+          },
+          {
+            "path": "docs/integrations/sources/amazon-ads.md",
+            "status": "modified"
+          }
+        ]
+      },
+      "closingReferences": {
+        "status": "ok",
+        "issues": []
+      }
+    },
+    "claims": [
+      {
+        "id": "head:/headCommit",
+        "check": "head",
+        "field": "/headCommit",
+        "declared": "a9a27be90d8aa555d2325ed2c55e00b44146fccb",
+        "observed": "a9a27be90d8aa555d2325ed2c55e00b44146fccb",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/0",
+        "check": "scope",
+        "field": "/filesChanged/0",
+        "declared": "airbyte-integrations/connectors/source-amazon-ads/AGENTS.md",
+        "observed": "airbyte-integrations/connectors/source-amazon-ads/AGENTS.md",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/1",
+        "check": "scope",
+        "field": "/filesChanged/1",
+        "declared": "airbyte-integrations/connectors/source-amazon-ads/acceptance-test-config.yml",
+        "observed": "airbyte-integrations/connectors/source-amazon-ads/acceptance-test-config.yml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/2",
+        "check": "scope",
+        "field": "/filesChanged/2",
+        "declared": "airbyte-integrations/connectors/source-amazon-ads/manifest.yaml",
+        "observed": "airbyte-integrations/connectors/source-amazon-ads/manifest.yaml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/3",
+        "check": "scope",
+        "field": "/filesChanged/3",
+        "declared": "airbyte-integrations/connectors/source-amazon-ads/metadata.yaml",
+        "observed": "airbyte-integrations/connectors/source-amazon-ads/metadata.yaml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/4",
+        "check": "scope",
+        "field": "/filesChanged/4",
+        "declared": "airbyte-integrations/connectors/source-amazon-ads/unit_tests/integrations/test_report_streams.py",
+        "observed": "airbyte-integrations/connectors/source-amazon-ads/unit_tests/integrations/test_report_streams.py",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/5",
+        "check": "scope",
+        "field": "/filesChanged/5",
+        "declared": "docs/integrations/sources/amazon-ads.md",
+        "observed": "docs/integrations/sources/amazon-ads.md",
+        "verdict": "pass"
+      },
+      {
+        "id": "reference:/references/0",
+        "check": "reference",
+        "field": "/references/0",
+        "declared": {
+          "issue": "airbytehq/oncall#11556",
+          "relation": "closes"
+        },
+        "observed": {
+          "closing": []
+        },
+        "verdict": "fail",
+        "reason": "not_closing"
+      },
+      {
+        "id": "time:/mergedAt",
+        "check": "time",
+        "field": "/mergedAt",
+        "declared": "2026-09-03T21:25:52Z",
+        "observed": "2026-09-03T21:25:52Z",
+        "verdict": "pass"
+      }
+    ],
+    "verdict": "fail",
+    "digests": {
+      "claims": "edcf056568c1cbe001265bf3fa82e005ffedce8c867d8274ba5860449456d3b3",
+      "evidence": "5d60b421948f3f1ca6cfed122aaa42c7f9b02df9fa1d05a4e5797a68c950300c"
+    },
+    "rerun": {
+      "offline": "dunstan verify record.json",
+      "online": "dunstan rerun record.json"
+    },
+    "assurance": {
+      "status": "unsigned",
+      "issuer": "self-generated"
+    }
+  }
+}

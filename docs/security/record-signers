@@ -1,0 +1,7 @@
+# Allowed signers for hosted Dunstan records (ssh-keygen -Y verify -f, spec section 11).
+#
+# One line per signing key: the principal, the namespace restriction, and the public key. The
+# operator adds the line when the record signing key is created (docs/runbooks/hosted-provisioning.md,
+# step 5); no key has been created yet, so no record can verify against this file until then.
+#
+# A key that is retired is moved to docs/security/record-revocations, never deleted from history.

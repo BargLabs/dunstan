@@ -1,0 +1,22 @@
+{
+  "data": {
+    "repository": {
+      "pullRequest": {
+        "closingIssuesReferences": {
+          "nodes": [
+            {
+              "number": 1346,
+              "repository": {
+                "nameWithOwner": "example-org/example-repo"
+              }
+            }
+          ],
+          "pageInfo": {
+            "hasNextPage": false,
+            "endCursor": "Y3Vyc29yOnYyOpHOAAAAAQ=="
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "description": "A handback fence never closed",
+  "blockStatus": "invalid",
+  "blockErrors": ["unterminated_fence"],
+  "verdict": "unverifiable",
+  "claims": []
+}

@@ -1,0 +1,21 @@
+{
+  "name": "Dunstan",
+  "url": "https://github.com/BargLabs/dunstan",
+  "description": "Dunstan checks a coding agent's completion report against the pull request's own record (PR state, changed-file paths, commit ids, check runs, linked issues, deployments, a named test-report artifact) and returns a signed record you can re-run locally for the same verdict. Read-only, and optional: the local CLI and Action need no Barg Labs service. Contents: read is in the permission list because GitHub requires it for the commit and compare APIs; Dunstan uses it only to check that a cited commit exists and is reachable from the head. It never requests file contents: a code-level allowlist refuses every blob, tree, contents, archive, tarball, zipball and raw-content route before the request is made. Records are kept 90 days by default (0 to store nothing); report text is never stored. Controller: Barg Labs Ltd. See docs/hosted.md.",
+  "public": true,
+  "hook_attributes": {
+    "url": "https://HOSTED_ORIGIN/v0.1/webhooks/github",
+    "active": true
+  },
+  "redirect_url": "https://github.com/BargLabs/dunstan/blob/main/docs/runbooks/hosted-provisioning.md",
+  "default_permissions": {
+    "actions": "read",
+    "checks": "read",
+    "contents": "read",
+    "deployments": "read",
+    "issues": "read",
+    "metadata": "read",
+    "pull_requests": "read"
+  },
+  "default_events": []
+}

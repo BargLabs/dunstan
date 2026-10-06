@@ -1,0 +1,56 @@
+name: Dunstan
+description: >-
+  Checks a coding agent's declared handback block against the pull request's own record and reports
+  the verdict as a `dunstan` check run, the job summary and the workflow artifact `dunstan-record`.
+author: Barg Labs
+
+inputs:
+  report-source:
+    description: >-
+      Where the report is, declared, never guessed. One of `pr-body`, `comment:<author-login>` (that
+      author's newest comment on the pull request) or `file:<path>` (a file in the workspace; refused
+      under pull_request_target). Required: with no value the check concludes failure.
+    required: true
+  github-token:
+    description: >-
+      Token for the GitHub API. Needs contents: read, pull-requests: read, issues: read, deployments: read,
+      checks: write and actions: read.
+    required: false
+    default: ${{ github.token }}
+  unverifiable-conclusion:
+    description: >-
+      The check-run conclusion for an `unverifiable` verdict: `failure` (default) or `neutral`.
+      GitHub lets a merge through on a neutral required check, so `neutral` lets claims the record
+      cannot answer merge.
+    required: false
+    default: failure
+  sign-key-path:
+    description: >-
+      Optional. Path to an SSH private key: the record is written as its JCS bytes with a detached
+      signature, uploaded beside it. Needs `signer`.
+    required: false
+  signer:
+    description: The signer principal recorded as the assurance issuer. Required with sign-key-path.
+    required: false
+  advisory:
+    description: >-
+      `true` also reads the report's prose for asserted claims and records each, compared with the
+      evidence, as an advisory (DRAFT 0.2.0, docs/advisory.md). Advisories never change the verdict
+      or the conclusion. `false` (default) leaves the record as it was.
+    required: false
+    default: 'false'
+
+outputs:
+  verdict:
+    description: >-
+      The record's verdict, `pass`, `fail` or `unverifiable`; `error` when no record was written.
+  record-path:
+    description: Path of the record on the runner; empty when no record was written.
+
+runs:
+  using: node24
+  main: action/dist/index.mjs
+
+branding:
+  icon: check-square
+  color: gray-dark

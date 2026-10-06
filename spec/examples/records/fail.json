@@ -1,0 +1,240 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "git+https://github.com/example-org/example-repo@c0ffee12345678abcdef0123456789abcdef0123",
+      "digest": {
+        "gitCommit": "c0ffee12345678abcdef0123456789abcdef0123"
+      }
+    },
+    {
+      "name": "handback-block",
+      "digest": {
+        "sha256": "a72c44d87cb2cadfd24c01b217c244286719cec0c553a3041e2becc22b974343"
+      }
+    }
+  ],
+  "predicateType": "https://barglabs.ai/dunstan/record/v0.1",
+  "predicate": {
+    "spec": "0.1.1",
+    "checker": {
+      "name": "dunstan",
+      "version": "0.1.1",
+      "digest": {
+        "sha256": "73a50031c8bdf06b0bd96062386dc3347ad18d6b3c458c4dae123efd6e6c044a"
+      }
+    },
+    "report": {
+      "sha256": "bfe1a4f517836ae49dbc1183db4b5f06afc544767f5ec86dd50ccfccf4977420",
+      "source": {
+        "kind": "file",
+        "locator": "spec/examples/reports/found.omits-a-file.md"
+      }
+    },
+    "block": {
+      "status": "found",
+      "sha256": "a72c44d87cb2cadfd24c01b217c244286719cec0c553a3041e2becc22b974343",
+      "value": {
+        "dunstan": "0.1",
+        "headCommit": "c0ffee12345678abcdef0123456789abcdef0123",
+        "filesChanged": ["src/cache.ts", "src/cache.test.ts"],
+        "tests": [
+          {
+            "command": "pnpm test",
+            "count": 40,
+            "record": {
+              "kind": "junit",
+              "workflow": ".github/workflows/ci.yml",
+              "job": "test",
+              "artifact": "junit-report",
+              "path": "reports/junit.xml"
+            }
+          }
+        ],
+        "references": [
+          {
+            "issue": "#21",
+            "relation": "closes"
+          }
+        ]
+      }
+    },
+    "subject": {
+      "repository": "example-org/example-repo",
+      "pullRequest": 43,
+      "headSha": "c0ffee12345678abcdef0123456789abcdef0123",
+      "mergeSha": null
+    },
+    "evidence": {
+      "pullRequest": {
+        "status": "ok",
+        "number": 43,
+        "state": "open",
+        "merged": false,
+        "mergedAt": null,
+        "headSha": "c0ffee12345678abcdef0123456789abcdef0123",
+        "mergeSha": null,
+        "changedFiles": 3
+      },
+      "files": {
+        "status": "ok",
+        "complete": true,
+        "entries": [
+          {
+            "path": "package.json",
+            "status": "modified"
+          },
+          {
+            "path": "src/cache.test.ts",
+            "status": "added"
+          },
+          {
+            "path": "src/cache.ts",
+            "status": "added"
+          }
+        ]
+      },
+      "closingReferences": {
+        "status": "ok",
+        "issues": []
+      },
+      "references": [
+        {
+          "kind": "issue",
+          "ref": "example-org/example-repo#21",
+          "status": "ok",
+          "exists": true
+        }
+      ],
+      "testRecords": [
+        {
+          "record": {
+            "kind": "junit",
+            "workflow": ".github/workflows/ci.yml",
+            "job": "test",
+            "artifact": "junit-report",
+            "path": "reports/junit.xml"
+          },
+          "status": "ok",
+          "runs": [
+            {
+              "runId": 7102,
+              "runAttempt": 1,
+              "executed": 38,
+              "failed": 0
+            }
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "kind": "artifact",
+          "locator": "GET /repos/example-org/example-repo/actions/artifacts/3417/zip#reports/junit.xml",
+          "sha256": "0a26c8333ceae47a9e631c0bb6600816917601abfcaf2cf9305b8f5e2220f877",
+          "readAt": "2026-10-02T09:30:02Z"
+        },
+        {
+          "kind": "closing_references",
+          "locator": "POST /graphql repository(example-org/example-repo).pullRequest(43).closingIssuesReferences",
+          "sha256": "62ef0a36081c4528e9898935d5de3145b018ac960de76080afbc63728eb364b5",
+          "readAt": "2026-10-02T09:30:01Z"
+        },
+        {
+          "kind": "issue",
+          "locator": "GET /repos/example-org/example-repo/issues/21",
+          "sha256": "8f35a29748daaff4d20e8c8203bb1e37ca9f0686a483c9786af1fcab99f5cb2b",
+          "readAt": "2026-10-02T09:30:01Z"
+        },
+        {
+          "kind": "pull_request",
+          "locator": "GET /repos/example-org/example-repo/pulls/43",
+          "sha256": "972d26666adaa48fd8f67178186f8fdd059a83c60561da16ee8fe316a71b915e",
+          "readAt": "2026-10-02T09:30:00Z"
+        },
+        {
+          "kind": "pull_request_files",
+          "locator": "GET /repos/example-org/example-repo/pulls/43/files?per_page=100&page=1",
+          "sha256": "7990cde8ad0c62e24fc1edf6951397946c0fbc7aa6cc16ee947818334681f337",
+          "readAt": "2026-10-02T09:30:00Z"
+        },
+        {
+          "kind": "workflow_runs",
+          "locator": "GET /repos/example-org/example-repo/actions/workflows/ci.yml/runs?head_sha=c0ffee12345678abcdef0123456789abcdef0123",
+          "sha256": "af320ac7832789ef04951aa7e5a8dbd604aa34e715f801c195f29cd3a114fd56",
+          "readAt": "2026-10-02T09:30:01Z"
+        }
+      ]
+    },
+    "claims": [
+      {
+        "id": "head:/headCommit",
+        "check": "head",
+        "field": "/headCommit",
+        "declared": "c0ffee12345678abcdef0123456789abcdef0123",
+        "observed": "c0ffee12345678abcdef0123456789abcdef0123",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/0",
+        "check": "scope",
+        "field": "/filesChanged/0",
+        "declared": "src/cache.ts",
+        "observed": "src/cache.ts",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/1",
+        "check": "scope",
+        "field": "/filesChanged/1",
+        "declared": "src/cache.test.ts",
+        "observed": "src/cache.test.ts",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:undeclared:package.json",
+        "check": "scope",
+        "field": "/filesChanged",
+        "declared": null,
+        "observed": "package.json",
+        "verdict": "fail",
+        "reason": "undeclared_file"
+      },
+      {
+        "id": "reference:/references/0",
+        "check": "reference",
+        "field": "/references/0",
+        "declared": {
+          "issue": "#21",
+          "relation": "closes"
+        },
+        "observed": {
+          "closing": []
+        },
+        "verdict": "fail",
+        "reason": "not_closing"
+      },
+      {
+        "id": "count:/tests/0/count",
+        "check": "count",
+        "field": "/tests/0/count",
+        "declared": 40,
+        "observed": 38,
+        "verdict": "fail",
+        "reason": "count_mismatch"
+      }
+    ],
+    "verdict": "fail",
+    "digests": {
+      "claims": "1d33fa2247f153fa87f9efec8b02029f7a81b323159c34bda7a2822446710198",
+      "evidence": "c6a6dd43e1a0cef2350ebaafa8b691efa5a9fe1a565de50d7a0997ac7bb15f33"
+    },
+    "rerun": {
+      "offline": "npx dunstan@0.1.1 verify fail.json",
+      "online": "npx dunstan@0.1.1 rerun fail.json"
+    },
+    "assurance": {
+      "status": "unsigned",
+      "issuer": "self-generated"
+    }
+  }
+}

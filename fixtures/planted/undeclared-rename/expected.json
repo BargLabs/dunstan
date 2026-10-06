@@ -1,0 +1,20 @@
+{
+  "description": "A renamed file declared by neither its old nor its new path",
+  "blockStatus": "found",
+  "verdict": "fail",
+  "claims": [
+    {
+      "id": "head:/headCommit",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/0",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:undeclared:src/storage/blob-store.ts",
+      "verdict": "fail",
+      "reason": "undeclared_file"
+    }
+  ]
+}

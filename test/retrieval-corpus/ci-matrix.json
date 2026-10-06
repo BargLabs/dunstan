@@ -1,0 +1,68 @@
+{
+  "repository": "example-org/example-repo",
+  "evidence": {
+    "files": {
+      "status": "ok",
+      "complete": true,
+      "entries": [
+        { "path": ".github/workflows/ci.yml", "status": "modified" },
+        { "path": "package.json", "status": "modified" }
+      ]
+    },
+    "checkRuns": {
+      "status": "ok",
+      "commit": "abcdef0123456789abcdef0123456789abcdef01",
+      "excludedIds": [],
+      "runs": [
+        { "id": 201, "name": "build", "status": "completed", "conclusion": "success" },
+        {
+          "id": 202,
+          "name": "CI / test (macos-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    "items": {
+      "commits": {
+        "status": "ok",
+        "entries": [
+          {
+            "sha": "abcdef0123456789abcdef0123456789abcdef01",
+            "headline": "Run tests on macOS too"
+          }
+        ]
+      },
+      "timeline": {
+        "status": "ok",
+        "entries": [{ "id": "evt-10", "event": "connected", "ref": "example-org/other-repo#7" }]
+      },
+      "tests": { "status": "unreadable", "source": "artifact" }
+    }
+  },
+  "claims": [
+    {
+      "id": "macos-matrix",
+      "text": "Added macOS to the CI matrix.",
+      "expected": [
+        { "type": "file", "id": ".github/workflows/ci.yml" },
+        { "type": "check_run", "id": "202" },
+        { "type": "commit", "id": "abcdef0123456789abcdef0123456789abcdef01" }
+      ]
+    },
+    {
+      "id": "linked-other-repo",
+      "text": "Linked the work to example-org/other-repo#7.",
+      "kind": "reference_in_timeline",
+      "declaredValue": "example-org/other-repo#7",
+      "expected": [{ "type": "timeline_event", "id": "evt-10" }]
+    },
+    {
+      "id": "build-green",
+      "text": "The build is green.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "expected": [{ "type": "check_run", "id": "201" }]
+    }
+  ]
+}

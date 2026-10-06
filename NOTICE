@@ -1,0 +1,5 @@
+Dunstan — Copyright (C) 2026 Barg Labs Studios.
+The checker, command-line tool, GitHub Action and MCP tool are licensed under the
+GNU Affero General Public License v3.0 only. See LICENSE for the full text.
+The claim format specification, JSON Schema and examples under spec/ are licensed
+under the Apache License, Version 2.0. See spec/LICENSE for the full text.

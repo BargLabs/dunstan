@@ -1,0 +1,16 @@
+node_modules/
+dist/
+# The Action's bundle is committed: action.yml runs it from the ref a workflow pins.
+!action/dist/
+.build/
+coverage/
+*.log
+*.tsbuildinfo
+.pnpm-store/
+.worktrees/
+# The demo's conversion inputs and the reports it passes to `dunstan check --report-file`.
+demo/*/.work/
+
+# Private material never lives in this repository.
+private/
+fixtures-private/

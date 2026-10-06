@@ -1,0 +1,19 @@
+{
+  "description": "Only the three required fields, all true",
+  "blockStatus": "found",
+  "verdict": "pass",
+  "claims": [
+    {
+      "id": "head:/headCommit",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/0",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/1",
+      "verdict": "pass"
+    }
+  ]
+}

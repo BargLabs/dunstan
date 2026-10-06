@@ -1,0 +1,52 @@
+{
+  "description": "Declares 0 failures; the JUnit record has 2 failed test cases",
+  "blockStatus": "found",
+  "verdict": "fail",
+  "claims": [
+    {
+      "id": "head:/headCommit",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/0",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/1",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/2",
+      "verdict": "pass"
+    },
+    {
+      "id": "reference:/references/0",
+      "verdict": "pass"
+    },
+    {
+      "id": "reference:/references/1",
+      "verdict": "pass"
+    },
+    {
+      "id": "reference:/references/2",
+      "verdict": "pass"
+    },
+    {
+      "id": "count:/tests/0/count",
+      "verdict": "pass"
+    },
+    {
+      "id": "count:/tests/0/failures",
+      "verdict": "fail",
+      "reason": "count_mismatch"
+    },
+    {
+      "id": "time:/mergedAt",
+      "verdict": "pass"
+    },
+    {
+      "id": "time:/deployedAt",
+      "verdict": "pass"
+    }
+  ]
+}

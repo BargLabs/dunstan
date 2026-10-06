@@ -1,0 +1,20 @@
+{
+  "description": "Only the required fields, on a pull request that changes a file the block omits",
+  "blockStatus": "found",
+  "verdict": "fail",
+  "claims": [
+    {
+      "id": "head:/headCommit",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/0",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:undeclared:src/cache.test.ts",
+      "verdict": "fail",
+      "reason": "undeclared_file"
+    }
+  ]
+}

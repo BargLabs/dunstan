@@ -1,0 +1,152 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "git+https://github.com/cdcseacave/openMVS@66e9ec39994c81e416b2970fb3d158760389f567",
+      "digest": {
+        "gitCommit": "66e9ec39994c81e416b2970fb3d158760389f567"
+      }
+    },
+    {
+      "name": "handback-block",
+      "digest": {
+        "sha256": "f911a1b6cf1b7cb17586c59570b1ac13b10c7cac1a0f6c7c9260705f05c5941d"
+      }
+    }
+  ],
+  "predicateType": "https://barglabs.ai/dunstan/record/v0.1",
+  "predicate": {
+    "spec": "0.1.0",
+    "checker": {
+      "name": "dunstan",
+      "version": "0.1.0",
+      "digest": {
+        "sha256": "8ae2ac4f96ccf814cfb914e475d936e658c49549557ba656020af76d5f31fe10"
+      }
+    },
+    "report": {
+      "sha256": "421bcb103a30af209071636f9c2c753ccd1e09dc9cbcdcbeb224ddc85749e73e",
+      "source": {
+        "kind": "file",
+        "locator": "demo/2026-10/.work/4/report.md"
+      }
+    },
+    "block": {
+      "status": "found",
+      "sha256": "f911a1b6cf1b7cb17586c59570b1ac13b10c7cac1a0f6c7c9260705f05c5941d",
+      "value": {
+        "dunstan": "0.1",
+        "headCommit": "66e9ec39994c81e416b2970fb3d158760389f567",
+        "filesChanged": ["apps/Tests/Tests.cpp", "libs/IO/ImageTIFF.cpp", "libs/IO/ImageTIFF.h"],
+        "mergedAt": "2026-09-11T23:57:04Z"
+      }
+    },
+    "subject": {
+      "repository": "cdcseacave/openMVS",
+      "pullRequest": 1246,
+      "headSha": "66e9ec39994c81e416b2970fb3d158760389f567",
+      "mergeSha": "5a7ca144404e3aa3fcf550e84ee325a798e157a1"
+    },
+    "evidence": {
+      "pullRequest": {
+        "status": "ok",
+        "number": 1246,
+        "state": "closed",
+        "merged": true,
+        "mergedAt": "2026-09-11T23:57:04Z",
+        "headSha": "66e9ec39994c81e416b2970fb3d158760389f567",
+        "mergeSha": "5a7ca144404e3aa3fcf550e84ee325a798e157a1",
+        "changedFiles": 3
+      },
+      "sources": [
+        {
+          "kind": "pull_request",
+          "locator": "GET /repos/cdcseacave/openMVS/pulls/1246",
+          "sha256": "4b13d603f389b13cf4029a3bf58f6a311351672ed13d497b388d2b0870287b96",
+          "readAt": "2026-10-04T19:07:37.051Z",
+          "etag": "W/\"f4c996138d8e017b0b3485da83b2143bebf07c0983c8c9d97afb89782e5221fd\""
+        },
+        {
+          "kind": "pull_request_files",
+          "locator": "GET /repos/cdcseacave/openMVS/pulls/1246/files?per_page=100&page=1",
+          "sha256": "4848832d862de06e1b443efc107c184824cf3bd7d917be4917ec8bdc699ae228",
+          "readAt": "2026-10-04T19:07:37.398Z",
+          "etag": "W/\"dc4d79599d6937f8d3c0444e5d35cc10aa526a4c5ea75227ac288faaaea44d49\""
+        }
+      ],
+      "files": {
+        "status": "ok",
+        "complete": true,
+        "entries": [
+          {
+            "path": "apps/Tests/Tests.cpp",
+            "status": "modified"
+          },
+          {
+            "path": "libs/IO/ImageTIFF.cpp",
+            "status": "modified"
+          },
+          {
+            "path": "libs/IO/ImageTIFF.h",
+            "status": "modified"
+          }
+        ]
+      }
+    },
+    "claims": [
+      {
+        "id": "head:/headCommit",
+        "check": "head",
+        "field": "/headCommit",
+        "declared": "66e9ec39994c81e416b2970fb3d158760389f567",
+        "observed": "66e9ec39994c81e416b2970fb3d158760389f567",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/0",
+        "check": "scope",
+        "field": "/filesChanged/0",
+        "declared": "apps/Tests/Tests.cpp",
+        "observed": "apps/Tests/Tests.cpp",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/1",
+        "check": "scope",
+        "field": "/filesChanged/1",
+        "declared": "libs/IO/ImageTIFF.cpp",
+        "observed": "libs/IO/ImageTIFF.cpp",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/2",
+        "check": "scope",
+        "field": "/filesChanged/2",
+        "declared": "libs/IO/ImageTIFF.h",
+        "observed": "libs/IO/ImageTIFF.h",
+        "verdict": "pass"
+      },
+      {
+        "id": "time:/mergedAt",
+        "check": "time",
+        "field": "/mergedAt",
+        "declared": "2026-09-11T23:57:04Z",
+        "observed": "2026-09-11T23:57:04Z",
+        "verdict": "pass"
+      }
+    ],
+    "verdict": "pass",
+    "digests": {
+      "claims": "466390a0b74775a93e629a98e7ad85e454b785d6e652405a563493ac306838a1",
+      "evidence": "e25ff0c0e9ba643626d49d02dc03304995106732fdcd703eddeabe62d6e48185"
+    },
+    "rerun": {
+      "offline": "dunstan verify record.json",
+      "online": "dunstan rerun record.json"
+    },
+    "assurance": {
+      "status": "unsigned",
+      "issuer": "self-generated"
+    }
+  }
+}

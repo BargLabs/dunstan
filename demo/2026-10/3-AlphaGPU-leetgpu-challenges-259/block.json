@@ -1,0 +1,15 @@
+{
+  "dunstan": "0.1",
+  "headCommit": "5c8ab314dff324a413dc81c6a37690705aca0ccb",
+  "filesChanged": [
+    "challenges/medium/98_beam_search_step/challenge.html",
+    "challenges/medium/98_beam_search_step/challenge.py",
+    "challenges/medium/98_beam_search_step/starter/starter.cu",
+    "challenges/medium/98_beam_search_step/starter/starter.cute.py",
+    "challenges/medium/98_beam_search_step/starter/starter.jax.py",
+    "challenges/medium/98_beam_search_step/starter/starter.mojo",
+    "challenges/medium/98_beam_search_step/starter/starter.pytorch.py",
+    "challenges/medium/98_beam_search_step/starter/starter.triton.py"
+  ],
+  "mergedAt": "2026-09-30T11:44:15Z"
+}

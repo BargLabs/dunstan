@@ -1,0 +1,41 @@
+# The hosted tier's Worker (docs/hosted.md). No account id and no secret lives here: wrangler takes
+# the account from the operator's login, and the four secrets are set with `wrangler secret put`
+# (docs/runbooks/hosted-provisioning.md). Deploy only what `pnpm build:hosted` built from a clean
+# checkout of a merged commit: wrangler uploads hosted/dist/ as built and bundles nothing itself, so
+# the checker digest GET /v0.1/health reports is the digest of what runs.
+
+name = "dunstan-hosted"
+main = "dist/worker.mjs"
+# The Workers runtime as it is. nodejs_compat supplies node:crypto (the record digests), node:zlib
+# (the JUnit artifact) and node:fs (imported, unused); there is no node:child_process in the bundle
+# and no shim for one (hosted/build/build.ts refuses a graph that reaches it).
+compatibility_date = "2026-07-01"
+compatibility_flags = ["nodejs_compat"]
+no_bundle = true
+find_additional_modules = true
+workers_dev = false
+
+[[rules]]
+type = "ESModule"
+globs = ["**/*.mjs"]
+
+[vars]
+# The principal hosted records are signed as; docs/security/record-signers carries its key.
+RECORD_SIGNER = "dunstan-hosted@barglabs.ai"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dunstan-hosted"
+# Printed by `wrangler d1 create` (runbook step 2). Not a secret.
+database_id = "REPLACE_WITH_THE_ID_WRANGLER_D1_CREATE_PRINTS"
+migrations_dir = "migrations"
+
+[[r2_buckets]]
+binding = "RECORDS"
+bucket_name = "dunstan-records"
+# Records stay in the EU jurisdiction (docs/hosted.md, "What is kept, and for how long").
+jurisdiction = "eu"
+
+[triggers]
+# The retention and uninstall sweep, daily.
+crons = ["17 3 * * *"]

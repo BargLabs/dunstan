@@ -1,0 +1,5 @@
+{
+  "dunstan": "0.1",
+  "headCommit": "C0FFEE12345678ABCDEF0123456789ABCDEF0123",
+  "filesChanged": ["src/cache.ts"]
+}

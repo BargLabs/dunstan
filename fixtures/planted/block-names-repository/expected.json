@@ -1,0 +1,7 @@
+{
+  "description": "A block that names its own repository, which the subject never comes from",
+  "blockStatus": "invalid",
+  "blockErrors": ["schema_violation"],
+  "verdict": "unverifiable",
+  "claims": []
+}

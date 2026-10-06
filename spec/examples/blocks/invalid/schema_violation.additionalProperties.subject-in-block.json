@@ -1,0 +1,7 @@
+{
+  "dunstan": "0.1",
+  "repository": "example-org/example-repo",
+  "pullRequest": 43,
+  "headCommit": "c0ffee12345678abcdef0123456789abcdef0123",
+  "filesChanged": ["src/cache.ts"]
+}

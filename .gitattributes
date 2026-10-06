@@ -1,0 +1,5 @@
+* text=auto eol=lf
+
+# The example records carry the SHA-256 of these reports' bytes; a line-ending conversion on
+# checkout would break that.
+spec/examples/** -text

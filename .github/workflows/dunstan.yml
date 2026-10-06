@@ -1,0 +1,38 @@
+# Dogfood: Dunstan checks this repository's own pull requests, reading the handback block from the
+# pull request body (see .github/pull_request_template.md). A pull request without a filled block
+# concludes `failure` with `unverifiable: block_missing`. That is the Action failing closed, not a
+# bug to suppress.
+#
+# It runs on every pull_request event, with no path filter and no job condition: a job that never
+# runs leaves the required check missing (or, for a skipped job, reported as passing).
+name: Dunstan
+
+on:
+  pull_request:
+    # `edited` re-checks when the body, and so the block, changes.
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+  deployments: read
+  checks: write
+  actions: read
+
+jobs:
+  # Not named `dunstan`: the check run the Action writes is `dunstan`, and the required check is that
+  # one. This job's own check run (`handback`) concludes by the step's exit status.
+  handback:
+    runs-on: ubuntu-latest
+    steps:
+      # Only because the Action under test is this repository at the pull request's commit. A consumer
+      # uses BargLabs/dunstan@<sha> and checks nothing out: the Action reads metadata only.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Check the handback block
+        uses: ./
+        with:
+          report-source: pr-body

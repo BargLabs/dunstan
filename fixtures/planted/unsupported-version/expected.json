@@ -1,0 +1,7 @@
+{
+  "description": "A block written to version 0.2, which a 0.1 checker refuses",
+  "blockStatus": "invalid",
+  "blockErrors": ["unsupported_version"],
+  "verdict": "unverifiable",
+  "claims": []
+}

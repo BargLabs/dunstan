@@ -1,0 +1,6 @@
+# esbuild's and workerd's install scripts only re-check the platform binary, which pnpm already
+# installs from the matching @esbuild/<platform> or @cloudflare/workerd-<platform> optional
+# dependency. No dependency runs install scripts.
+allowBuilds:
+  esbuild: false
+  workerd: false

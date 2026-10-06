@@ -1,0 +1,35 @@
+{
+  "id": 1,
+  "account": {
+    "login": "example-org",
+    "id": 1,
+    "node_id": "MDEyOk9yZ2FuaXphdGlvbjE=",
+    "type": "Organization",
+    "site_admin": false
+  },
+  "access_tokens_url": "https://api.github.com/app/installations/1/access_tokens",
+  "repositories_url": "https://api.github.com/installation/repositories",
+  "html_url": "https://github.com/organizations/example-org/settings/installations/1",
+  "app_id": 1,
+  "target_id": 1,
+  "target_type": "Organization",
+  "permissions": {
+    "actions": "read",
+    "checks": "read",
+    "contents": "read",
+    "deployments": "read",
+    "issues": "read",
+    "metadata": "read",
+    "pull_requests": "read"
+  },
+  "events": [],
+  "single_file_name": null,
+  "has_multiple_single_files": false,
+  "single_file_paths": [],
+  "repository_selection": "selected",
+  "created_at": "2017-07-08T16:18:44-04:00",
+  "updated_at": "2017-07-08T16:18:44-04:00",
+  "app_slug": "dunstan",
+  "suspended_at": null,
+  "suspended_by": null
+}

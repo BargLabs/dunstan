@@ -1,0 +1,965 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "git+https://github.com/FluidSynth/fluidsynth@8a2f22f0209c3a88b513e82d4e9040d754d9646d",
+      "digest": {
+        "gitCommit": "8a2f22f0209c3a88b513e82d4e9040d754d9646d"
+      }
+    },
+    {
+      "name": "handback-block",
+      "digest": {
+        "sha256": "9aa9eed7200053ee06729d685dde4d0c7ddacad8951ca93880666a5c9a857b8a"
+      }
+    }
+  ],
+  "predicateType": "https://barglabs.ai/dunstan/record/v0.1",
+  "predicate": {
+    "spec": "0.1.0",
+    "checker": {
+      "name": "dunstan",
+      "version": "0.1.0",
+      "digest": {
+        "sha256": "8ae2ac4f96ccf814cfb914e475d936e658c49549557ba656020af76d5f31fe10"
+      }
+    },
+    "report": {
+      "sha256": "6d3e6ec575da7cdc4e57046bf3ff490004ff7e8a841f446301a25f29885c8023",
+      "source": {
+        "kind": "file",
+        "locator": "demo/2026-10/.work/1/report.md"
+      }
+    },
+    "block": {
+      "status": "found",
+      "sha256": "9aa9eed7200053ee06729d685dde4d0c7ddacad8951ca93880666a5c9a857b8a",
+      "value": {
+        "dunstan": "0.1",
+        "headCommit": "8a2f22f0209c3a88b513e82d4e9040d754d9646d",
+        "filesChanged": [
+          ".azure/azure-pipelines-alpine.yml",
+          ".azure/azure-pipelines-android.yml",
+          ".azure/azure-pipelines-mac.yml",
+          ".azure/cmake-android.yml",
+          ".github/workflows/api_doc_build.yml",
+          ".github/workflows/freebsd.yml",
+          ".github/workflows/ios.yml",
+          ".github/workflows/linux.yml",
+          ".github/workflows/os2.yml",
+          ".github/workflows/rendering-regression.yml",
+          ".github/workflows/solaris.yml",
+          ".github/workflows/sonarcloud.yml",
+          ".github/workflows/windows.yml",
+          "CMakeLists.txt",
+          "cmake_admin/FluidUnitTest.cmake",
+          "test-android/.gitignore",
+          "test-android/README.md",
+          "test-android/app/.gitignore",
+          "test-android/app/build.gradle",
+          "test-android/app/proguard-rules.pro",
+          "test-android/app/src/androidTest/java/org/fluidsynth/fluidsynth_tests/ExampleInstrumentedTest.kt",
+          "test-android/app/src/main/AndroidManifest.xml",
+          "test-android/app/src/main/cpp/CMakeLists.txt",
+          "test-android/app/src/main/cpp/native-lib.cpp",
+          "test-android/app/src/main/java/org/fluidsynth/fluidsynthtests/MainActivity.kt",
+          "test-android/app/src/main/java/org/fluidsynth/fluidsynthtests/TestRunner.kt",
+          "test-android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml",
+          "test-android/app/src/main/res/drawable/ic_launcher_background.xml",
+          "test-android/app/src/main/res/layout/activity_main.xml",
+          "test-android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+          "test-android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml",
+          "test-android/app/src/main/res/mipmap-hdpi/ic_launcher.png",
+          "test-android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png",
+          "test-android/app/src/main/res/mipmap-mdpi/ic_launcher.png",
+          "test-android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png",
+          "test-android/app/src/main/res/mipmap-xhdpi/ic_launcher.png",
+          "test-android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png",
+          "test-android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png",
+          "test-android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png",
+          "test-android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
+          "test-android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png",
+          "test-android/app/src/main/res/values-night/themes.xml",
+          "test-android/app/src/main/res/values/colors.xml",
+          "test-android/app/src/main/res/values/strings.xml",
+          "test-android/app/src/main/res/values/themes.xml",
+          "test-android/app/src/test/java/org/fluidsynth/fluidsynth_tests/ExampleUnitTest.kt",
+          "test-android/build-scripts/.gitignore",
+          "test-android/build-scripts/build-all-archs.sh",
+          "test-android/build-scripts/build-call-cmake.sh",
+          "test-android/build-scripts/build-env.sh",
+          "test-android/build-scripts/build.sh",
+          "test-android/build-scripts/download.sh",
+          "test-android/build-scripts/extract.sh",
+          "test-android/build.gradle",
+          "test-android/convert-tests.sh",
+          "test-android/gradle.properties",
+          "test-android/gradle/wrapper/gradle-wrapper.jar",
+          "test-android/gradle/wrapper/gradle-wrapper.properties",
+          "test-android/gradlew",
+          "test-android/gradlew.bat",
+          "test-android/settings.gradle",
+          "test/CMakeLists.txt",
+          "test/run-android-tests.sh"
+        ],
+        "references": [
+          {
+            "issue": "#912",
+            "relation": "closes"
+          }
+        ],
+        "mergedAt": "2026-09-27T13:06:24Z"
+      }
+    },
+    "subject": {
+      "repository": "FluidSynth/fluidsynth",
+      "pullRequest": 1639,
+      "headSha": "8a2f22f0209c3a88b513e82d4e9040d754d9646d",
+      "mergeSha": "1a6132ad1ce0f4de52f970bc1c49cd8f46ced384"
+    },
+    "evidence": {
+      "pullRequest": {
+        "status": "ok",
+        "number": 1639,
+        "state": "closed",
+        "merged": true,
+        "mergedAt": "2026-09-27T13:06:24Z",
+        "headSha": "8a2f22f0209c3a88b513e82d4e9040d754d9646d",
+        "mergeSha": "1a6132ad1ce0f4de52f970bc1c49cd8f46ced384",
+        "changedFiles": 63
+      },
+      "sources": [
+        {
+          "kind": "closing_references",
+          "locator": "POST /graphql repository(FluidSynth/fluidsynth).pullRequest(1639).closingIssuesReferences",
+          "sha256": "407b9027f3bcfabdcef5750ddcfb6e0158134d69fc962841b65b03be435e4577",
+          "readAt": "2026-10-04T19:04:42.130Z"
+        },
+        {
+          "kind": "pull_request",
+          "locator": "GET /repos/FluidSynth/fluidsynth/pulls/1639",
+          "sha256": "cf64310f7f375fdd47f56293df2716688136cbf68c4df62be4132692bf8f1158",
+          "readAt": "2026-10-04T19:04:41.451Z",
+          "etag": "W/\"0ad26613f31f2341ddb4a5b29d50b0e0a2f4967362421c69b4df9b33fd7c0e41\""
+        },
+        {
+          "kind": "pull_request_files",
+          "locator": "GET /repos/FluidSynth/fluidsynth/pulls/1639/files?per_page=100&page=1",
+          "sha256": "b2237671633965a50593fde331160a9309a1440203dcff490cdfc5887ae2810b",
+          "readAt": "2026-10-04T19:04:41.832Z",
+          "etag": "W/\"48ff37039eadaa667c6d3c437e194a3350354ee007206c2596d22e158317958a\""
+        }
+      ],
+      "files": {
+        "status": "ok",
+        "complete": true,
+        "entries": [
+          {
+            "path": ".azure/azure-pipelines-alpine.yml",
+            "status": "modified"
+          },
+          {
+            "path": ".azure/azure-pipelines-android.yml",
+            "status": "modified"
+          },
+          {
+            "path": ".azure/azure-pipelines-mac.yml",
+            "status": "modified"
+          },
+          {
+            "path": ".azure/cmake-android.yml",
+            "status": "modified"
+          },
+          {
+            "path": ".github/workflows/api_doc_build.yml",
+            "status": "modified"
+          },
+          {
+            "path": ".github/workflows/freebsd.yml",
+            "status": "modified"
+          },
+          {
+            "path": ".github/workflows/ios.yml",
+            "status": "modified"
+          },
+          {
+            "path": ".github/workflows/linux.yml",
+            "status": "modified"
+          },
+          {
+            "path": ".github/workflows/os2.yml",
+            "status": "modified"
+          },
+          {
+            "path": ".github/workflows/rendering-regression.yml",
+            "status": "modified"
+          },
+          {
+            "path": ".github/workflows/solaris.yml",
+            "status": "modified"
+          },
+          {
+            "path": ".github/workflows/sonarcloud.yml",
+            "status": "modified"
+          },
+          {
+            "path": ".github/workflows/windows.yml",
+            "status": "modified"
+          },
+          {
+            "path": "CMakeLists.txt",
+            "status": "modified"
+          },
+          {
+            "path": "cmake_admin/FluidUnitTest.cmake",
+            "status": "modified"
+          },
+          {
+            "path": "test-android/.gitignore",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/README.md",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/.gitignore",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/build.gradle",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/proguard-rules.pro",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/androidTest/java/org/fluidsynth/fluidsynth_tests/ExampleInstrumentedTest.kt",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/AndroidManifest.xml",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/cpp/CMakeLists.txt",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/cpp/native-lib.cpp",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/java/org/fluidsynth/fluidsynthtests/MainActivity.kt",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/java/org/fluidsynth/fluidsynthtests/TestRunner.kt",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/res/drawable/ic_launcher_background.xml",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/res/layout/activity_main.xml",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/res/mipmap-hdpi/ic_launcher.png",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/res/mipmap-mdpi/ic_launcher.png",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/res/mipmap-xhdpi/ic_launcher.png",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/res/values-night/themes.xml",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/res/values/colors.xml",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/res/values/strings.xml",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/main/res/values/themes.xml",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/app/src/test/java/org/fluidsynth/fluidsynth_tests/ExampleUnitTest.kt",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/build-scripts/.gitignore",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/build-scripts/build-all-archs.sh",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/build-scripts/build-call-cmake.sh",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/build-scripts/build-env.sh",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/build-scripts/build.sh",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/build-scripts/download.sh",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/build-scripts/extract.sh",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/build.gradle",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/convert-tests.sh",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/gradle.properties",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/gradle/wrapper/gradle-wrapper.jar",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/gradle/wrapper/gradle-wrapper.properties",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/gradlew",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/gradlew.bat",
+            "status": "removed"
+          },
+          {
+            "path": "test-android/settings.gradle",
+            "status": "removed"
+          },
+          {
+            "path": "test/CMakeLists.txt",
+            "status": "modified"
+          },
+          {
+            "path": "test/run-android-tests.sh",
+            "status": "added"
+          }
+        ]
+      },
+      "closingReferences": {
+        "status": "ok",
+        "issues": ["FluidSynth/fluidsynth#912"]
+      }
+    },
+    "claims": [
+      {
+        "id": "head:/headCommit",
+        "check": "head",
+        "field": "/headCommit",
+        "declared": "8a2f22f0209c3a88b513e82d4e9040d754d9646d",
+        "observed": "8a2f22f0209c3a88b513e82d4e9040d754d9646d",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/0",
+        "check": "scope",
+        "field": "/filesChanged/0",
+        "declared": ".azure/azure-pipelines-alpine.yml",
+        "observed": ".azure/azure-pipelines-alpine.yml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/1",
+        "check": "scope",
+        "field": "/filesChanged/1",
+        "declared": ".azure/azure-pipelines-android.yml",
+        "observed": ".azure/azure-pipelines-android.yml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/2",
+        "check": "scope",
+        "field": "/filesChanged/2",
+        "declared": ".azure/azure-pipelines-mac.yml",
+        "observed": ".azure/azure-pipelines-mac.yml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/3",
+        "check": "scope",
+        "field": "/filesChanged/3",
+        "declared": ".azure/cmake-android.yml",
+        "observed": ".azure/cmake-android.yml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/4",
+        "check": "scope",
+        "field": "/filesChanged/4",
+        "declared": ".github/workflows/api_doc_build.yml",
+        "observed": ".github/workflows/api_doc_build.yml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/5",
+        "check": "scope",
+        "field": "/filesChanged/5",
+        "declared": ".github/workflows/freebsd.yml",
+        "observed": ".github/workflows/freebsd.yml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/6",
+        "check": "scope",
+        "field": "/filesChanged/6",
+        "declared": ".github/workflows/ios.yml",
+        "observed": ".github/workflows/ios.yml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/7",
+        "check": "scope",
+        "field": "/filesChanged/7",
+        "declared": ".github/workflows/linux.yml",
+        "observed": ".github/workflows/linux.yml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/8",
+        "check": "scope",
+        "field": "/filesChanged/8",
+        "declared": ".github/workflows/os2.yml",
+        "observed": ".github/workflows/os2.yml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/9",
+        "check": "scope",
+        "field": "/filesChanged/9",
+        "declared": ".github/workflows/rendering-regression.yml",
+        "observed": ".github/workflows/rendering-regression.yml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/10",
+        "check": "scope",
+        "field": "/filesChanged/10",
+        "declared": ".github/workflows/solaris.yml",
+        "observed": ".github/workflows/solaris.yml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/11",
+        "check": "scope",
+        "field": "/filesChanged/11",
+        "declared": ".github/workflows/sonarcloud.yml",
+        "observed": ".github/workflows/sonarcloud.yml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/12",
+        "check": "scope",
+        "field": "/filesChanged/12",
+        "declared": ".github/workflows/windows.yml",
+        "observed": ".github/workflows/windows.yml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/13",
+        "check": "scope",
+        "field": "/filesChanged/13",
+        "declared": "CMakeLists.txt",
+        "observed": "CMakeLists.txt",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/14",
+        "check": "scope",
+        "field": "/filesChanged/14",
+        "declared": "cmake_admin/FluidUnitTest.cmake",
+        "observed": "cmake_admin/FluidUnitTest.cmake",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/15",
+        "check": "scope",
+        "field": "/filesChanged/15",
+        "declared": "test-android/.gitignore",
+        "observed": "test-android/.gitignore",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/16",
+        "check": "scope",
+        "field": "/filesChanged/16",
+        "declared": "test-android/README.md",
+        "observed": "test-android/README.md",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/17",
+        "check": "scope",
+        "field": "/filesChanged/17",
+        "declared": "test-android/app/.gitignore",
+        "observed": "test-android/app/.gitignore",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/18",
+        "check": "scope",
+        "field": "/filesChanged/18",
+        "declared": "test-android/app/build.gradle",
+        "observed": "test-android/app/build.gradle",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/19",
+        "check": "scope",
+        "field": "/filesChanged/19",
+        "declared": "test-android/app/proguard-rules.pro",
+        "observed": "test-android/app/proguard-rules.pro",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/20",
+        "check": "scope",
+        "field": "/filesChanged/20",
+        "declared": "test-android/app/src/androidTest/java/org/fluidsynth/fluidsynth_tests/ExampleInstrumentedTest.kt",
+        "observed": "test-android/app/src/androidTest/java/org/fluidsynth/fluidsynth_tests/ExampleInstrumentedTest.kt",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/21",
+        "check": "scope",
+        "field": "/filesChanged/21",
+        "declared": "test-android/app/src/main/AndroidManifest.xml",
+        "observed": "test-android/app/src/main/AndroidManifest.xml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/22",
+        "check": "scope",
+        "field": "/filesChanged/22",
+        "declared": "test-android/app/src/main/cpp/CMakeLists.txt",
+        "observed": "test-android/app/src/main/cpp/CMakeLists.txt",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/23",
+        "check": "scope",
+        "field": "/filesChanged/23",
+        "declared": "test-android/app/src/main/cpp/native-lib.cpp",
+        "observed": "test-android/app/src/main/cpp/native-lib.cpp",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/24",
+        "check": "scope",
+        "field": "/filesChanged/24",
+        "declared": "test-android/app/src/main/java/org/fluidsynth/fluidsynthtests/MainActivity.kt",
+        "observed": "test-android/app/src/main/java/org/fluidsynth/fluidsynthtests/MainActivity.kt",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/25",
+        "check": "scope",
+        "field": "/filesChanged/25",
+        "declared": "test-android/app/src/main/java/org/fluidsynth/fluidsynthtests/TestRunner.kt",
+        "observed": "test-android/app/src/main/java/org/fluidsynth/fluidsynthtests/TestRunner.kt",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/26",
+        "check": "scope",
+        "field": "/filesChanged/26",
+        "declared": "test-android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml",
+        "observed": "test-android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/27",
+        "check": "scope",
+        "field": "/filesChanged/27",
+        "declared": "test-android/app/src/main/res/drawable/ic_launcher_background.xml",
+        "observed": "test-android/app/src/main/res/drawable/ic_launcher_background.xml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/28",
+        "check": "scope",
+        "field": "/filesChanged/28",
+        "declared": "test-android/app/src/main/res/layout/activity_main.xml",
+        "observed": "test-android/app/src/main/res/layout/activity_main.xml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/29",
+        "check": "scope",
+        "field": "/filesChanged/29",
+        "declared": "test-android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+        "observed": "test-android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/30",
+        "check": "scope",
+        "field": "/filesChanged/30",
+        "declared": "test-android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml",
+        "observed": "test-android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/31",
+        "check": "scope",
+        "field": "/filesChanged/31",
+        "declared": "test-android/app/src/main/res/mipmap-hdpi/ic_launcher.png",
+        "observed": "test-android/app/src/main/res/mipmap-hdpi/ic_launcher.png",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/32",
+        "check": "scope",
+        "field": "/filesChanged/32",
+        "declared": "test-android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png",
+        "observed": "test-android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/33",
+        "check": "scope",
+        "field": "/filesChanged/33",
+        "declared": "test-android/app/src/main/res/mipmap-mdpi/ic_launcher.png",
+        "observed": "test-android/app/src/main/res/mipmap-mdpi/ic_launcher.png",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/34",
+        "check": "scope",
+        "field": "/filesChanged/34",
+        "declared": "test-android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png",
+        "observed": "test-android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/35",
+        "check": "scope",
+        "field": "/filesChanged/35",
+        "declared": "test-android/app/src/main/res/mipmap-xhdpi/ic_launcher.png",
+        "observed": "test-android/app/src/main/res/mipmap-xhdpi/ic_launcher.png",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/36",
+        "check": "scope",
+        "field": "/filesChanged/36",
+        "declared": "test-android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png",
+        "observed": "test-android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/37",
+        "check": "scope",
+        "field": "/filesChanged/37",
+        "declared": "test-android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png",
+        "observed": "test-android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/38",
+        "check": "scope",
+        "field": "/filesChanged/38",
+        "declared": "test-android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png",
+        "observed": "test-android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/39",
+        "check": "scope",
+        "field": "/filesChanged/39",
+        "declared": "test-android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
+        "observed": "test-android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/40",
+        "check": "scope",
+        "field": "/filesChanged/40",
+        "declared": "test-android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png",
+        "observed": "test-android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/41",
+        "check": "scope",
+        "field": "/filesChanged/41",
+        "declared": "test-android/app/src/main/res/values-night/themes.xml",
+        "observed": "test-android/app/src/main/res/values-night/themes.xml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/42",
+        "check": "scope",
+        "field": "/filesChanged/42",
+        "declared": "test-android/app/src/main/res/values/colors.xml",
+        "observed": "test-android/app/src/main/res/values/colors.xml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/43",
+        "check": "scope",
+        "field": "/filesChanged/43",
+        "declared": "test-android/app/src/main/res/values/strings.xml",
+        "observed": "test-android/app/src/main/res/values/strings.xml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/44",
+        "check": "scope",
+        "field": "/filesChanged/44",
+        "declared": "test-android/app/src/main/res/values/themes.xml",
+        "observed": "test-android/app/src/main/res/values/themes.xml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/45",
+        "check": "scope",
+        "field": "/filesChanged/45",
+        "declared": "test-android/app/src/test/java/org/fluidsynth/fluidsynth_tests/ExampleUnitTest.kt",
+        "observed": "test-android/app/src/test/java/org/fluidsynth/fluidsynth_tests/ExampleUnitTest.kt",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/46",
+        "check": "scope",
+        "field": "/filesChanged/46",
+        "declared": "test-android/build-scripts/.gitignore",
+        "observed": "test-android/build-scripts/.gitignore",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/47",
+        "check": "scope",
+        "field": "/filesChanged/47",
+        "declared": "test-android/build-scripts/build-all-archs.sh",
+        "observed": "test-android/build-scripts/build-all-archs.sh",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/48",
+        "check": "scope",
+        "field": "/filesChanged/48",
+        "declared": "test-android/build-scripts/build-call-cmake.sh",
+        "observed": "test-android/build-scripts/build-call-cmake.sh",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/49",
+        "check": "scope",
+        "field": "/filesChanged/49",
+        "declared": "test-android/build-scripts/build-env.sh",
+        "observed": "test-android/build-scripts/build-env.sh",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/50",
+        "check": "scope",
+        "field": "/filesChanged/50",
+        "declared": "test-android/build-scripts/build.sh",
+        "observed": "test-android/build-scripts/build.sh",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/51",
+        "check": "scope",
+        "field": "/filesChanged/51",
+        "declared": "test-android/build-scripts/download.sh",
+        "observed": "test-android/build-scripts/download.sh",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/52",
+        "check": "scope",
+        "field": "/filesChanged/52",
+        "declared": "test-android/build-scripts/extract.sh",
+        "observed": "test-android/build-scripts/extract.sh",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/53",
+        "check": "scope",
+        "field": "/filesChanged/53",
+        "declared": "test-android/build.gradle",
+        "observed": "test-android/build.gradle",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/54",
+        "check": "scope",
+        "field": "/filesChanged/54",
+        "declared": "test-android/convert-tests.sh",
+        "observed": "test-android/convert-tests.sh",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/55",
+        "check": "scope",
+        "field": "/filesChanged/55",
+        "declared": "test-android/gradle.properties",
+        "observed": "test-android/gradle.properties",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/56",
+        "check": "scope",
+        "field": "/filesChanged/56",
+        "declared": "test-android/gradle/wrapper/gradle-wrapper.jar",
+        "observed": "test-android/gradle/wrapper/gradle-wrapper.jar",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/57",
+        "check": "scope",
+        "field": "/filesChanged/57",
+        "declared": "test-android/gradle/wrapper/gradle-wrapper.properties",
+        "observed": "test-android/gradle/wrapper/gradle-wrapper.properties",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/58",
+        "check": "scope",
+        "field": "/filesChanged/58",
+        "declared": "test-android/gradlew",
+        "observed": "test-android/gradlew",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/59",
+        "check": "scope",
+        "field": "/filesChanged/59",
+        "declared": "test-android/gradlew.bat",
+        "observed": "test-android/gradlew.bat",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/60",
+        "check": "scope",
+        "field": "/filesChanged/60",
+        "declared": "test-android/settings.gradle",
+        "observed": "test-android/settings.gradle",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/61",
+        "check": "scope",
+        "field": "/filesChanged/61",
+        "declared": "test/CMakeLists.txt",
+        "observed": "test/CMakeLists.txt",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/62",
+        "check": "scope",
+        "field": "/filesChanged/62",
+        "declared": "test/run-android-tests.sh",
+        "observed": "test/run-android-tests.sh",
+        "verdict": "pass"
+      },
+      {
+        "id": "reference:/references/0",
+        "check": "reference",
+        "field": "/references/0",
+        "declared": {
+          "issue": "#912",
+          "relation": "closes"
+        },
+        "observed": {
+          "closing": ["FluidSynth/fluidsynth#912"]
+        },
+        "verdict": "pass"
+      },
+      {
+        "id": "time:/mergedAt",
+        "check": "time",
+        "field": "/mergedAt",
+        "declared": "2026-09-27T13:06:24Z",
+        "observed": "2026-09-27T13:06:24Z",
+        "verdict": "pass"
+      }
+    ],
+    "verdict": "pass",
+    "digests": {
+      "claims": "36e3a3a292ff28d6f081dd0cb2f1e6b77d396cd1a2dfb063c6b42656462038a4",
+      "evidence": "df47f18785fe9ecdb70c149f4a4eaaca03b99104ddb1affdc953b716c1ed4f1f"
+    },
+    "rerun": {
+      "offline": "dunstan verify record.json",
+      "online": "dunstan rerun record.json"
+    },
+    "assurance": {
+      "status": "unsigned",
+      "issuer": "self-generated"
+    }
+  }
+}

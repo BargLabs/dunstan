@@ -1,0 +1,447 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://barglabs.ai/dunstan/spec/schema/record-0.2-draft.schema.json",
+  "title": "Dunstan record, DRAFT 0.2.0",
+  "description": "DRAFT, not normative, for the operator to check (spec/claim-format.md, \"DRAFT 0.2.0\"). A 0.1 record plus an optional readerClaims member and an evidence items section. Every member it shares with 0.1 is a reference into record-0.1.schema.json, which this file does not change.",
+  "type": "object",
+  "required": ["_type", "subject", "predicateType", "predicate"],
+  "additionalProperties": false,
+  "properties": {
+    "_type": { "$ref": "record-0.1.schema.json#/properties/_type" },
+    "subject": { "$ref": "record-0.1.schema.json#/properties/subject" },
+    "predicateType": { "const": "https://barglabs.ai/dunstan/record/v0.2-draft" },
+    "predicate": { "$ref": "#/$defs/predicate" }
+  },
+  "allOf": [{ "$ref": "record-0.1.schema.json#/allOf/0" }],
+  "$defs": {
+    "predicate": {
+      "type": "object",
+      "required": [
+        "spec",
+        "checker",
+        "report",
+        "block",
+        "subject",
+        "evidence",
+        "claims",
+        "verdict",
+        "digests",
+        "rerun",
+        "assurance"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "spec": { "const": "0.2.0-draft" },
+        "checker": { "$ref": "record-0.1.schema.json#/$defs/predicate/properties/checker" },
+        "report": { "$ref": "record-0.1.schema.json#/$defs/predicate/properties/report" },
+        "block": { "$ref": "record-0.1.schema.json#/$defs/block" },
+        "subject": { "$ref": "record-0.1.schema.json#/$defs/predicate/properties/subject" },
+        "evidence": { "$ref": "#/$defs/evidence" },
+        "claims": { "$ref": "record-0.1.schema.json#/$defs/predicate/properties/claims" },
+        "verdict": { "$ref": "record-0.1.schema.json#/$defs/verdict" },
+        "readerClaims": {
+          "description": "Typed claims a reader extracted from a prose report, each with the candidate record items retrieval proposed and the check's verdict. They do not enter the record's verdict in this draft.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/readerClaim" }
+        },
+        "advisory": { "$ref": "#/$defs/advisory" },
+        "digests": {
+          "type": "object",
+          "required": ["claims", "evidence"],
+          "additionalProperties": false,
+          "properties": {
+            "claims": { "$ref": "record-0.1.schema.json#/$defs/sha256" },
+            "evidence": { "$ref": "record-0.1.schema.json#/$defs/sha256" },
+            "readerClaims": { "$ref": "record-0.1.schema.json#/$defs/sha256" },
+            "advisory": { "$ref": "record-0.1.schema.json#/$defs/sha256" }
+          }
+        },
+        "rerun": { "$ref": "record-0.1.schema.json#/$defs/predicate/properties/rerun" },
+        "assurance": { "$ref": "record-0.1.schema.json#/$defs/predicate/properties/assurance" }
+      },
+      "dependentSchemas": {
+        "readerClaims": {
+          "properties": { "digests": { "required": ["readerClaims"] } }
+        },
+        "advisory": {
+          "properties": { "digests": { "required": ["advisory"] } }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["pullRequest", "sources"],
+      "additionalProperties": false,
+      "properties": {
+        "pullRequest": {
+          "$ref": "record-0.1.schema.json#/$defs/evidence/properties/pullRequest"
+        },
+        "files": { "$ref": "record-0.1.schema.json#/$defs/evidence/properties/files" },
+        "closingReferences": {
+          "$ref": "record-0.1.schema.json#/$defs/evidence/properties/closingReferences"
+        },
+        "references": { "$ref": "record-0.1.schema.json#/$defs/evidence/properties/references" },
+        "checkRuns": { "$ref": "record-0.1.schema.json#/$defs/evidence/properties/checkRuns" },
+        "testRecords": {
+          "$ref": "record-0.1.schema.json#/$defs/evidence/properties/testRecords"
+        },
+        "deployments": {
+          "$ref": "record-0.1.schema.json#/$defs/evidence/properties/deployments"
+        },
+        "items": { "$ref": "#/$defs/items" },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["kind", "locator", "sha256", "readAt"],
+            "additionalProperties": false,
+            "properties": {
+              "kind": { "$ref": "#/$defs/sourceKind" },
+              "locator": { "type": "string", "minLength": 1, "maxLength": 2000 },
+              "sha256": { "$ref": "record-0.1.schema.json#/$defs/sha256" },
+              "etag": { "type": "string", "minLength": 1 },
+              "readAt": { "$ref": "record-0.1.schema.json#/$defs/timestamp" },
+              "error": {
+                "type": "string",
+                "pattern": "^(?:http_[1-5][0-9]{2}|network|parse)$"
+              }
+            }
+          }
+        }
+      }
+    },
+    "sourceKind": {
+      "description": "The 0.1 source kinds, plus the two reads the items section adds.",
+      "anyOf": [
+        { "$ref": "record-0.1.schema.json#/$defs/sourceKind" },
+        { "enum": ["pull_request_commits", "timeline"] }
+      ]
+    },
+    "itemsUnread": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["status", "source"],
+          "additionalProperties": false,
+          "properties": {
+            "status": { "const": "unreadable" },
+            "source": { "enum": ["pull_request_commits", "timeline", "artifact"] }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["status", "field"],
+          "additionalProperties": false,
+          "properties": {
+            "status": { "const": "unpopulated" },
+            "field": { "type": "string", "pattern": "^[A-Za-z0-9_.]+$" }
+          }
+        }
+      ]
+    },
+    "items": {
+      "description": "The record items a reader claim can be about that the 0.1 sections do not list. Changed files and check runs come from files and checkRuns.",
+      "type": "object",
+      "required": ["commits", "timeline", "tests"],
+      "additionalProperties": false,
+      "properties": {
+        "commits": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["status", "entries"],
+              "additionalProperties": false,
+              "properties": {
+                "status": { "const": "ok" },
+                "entries": {
+                  "description": "The pull request's commits, in the order the API lists them.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["sha", "headline"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "sha": { "$ref": "record-0.1.schema.json#/$defs/commitSha" },
+                      "headline": { "type": "string", "maxLength": 1000 }
+                    }
+                  }
+                }
+              }
+            },
+            { "$ref": "#/$defs/itemsUnread" }
+          ]
+        },
+        "timeline": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["status", "entries"],
+              "additionalProperties": false,
+              "properties": {
+                "status": { "const": "ok" },
+                "entries": {
+                  "description": "The pull request's timeline events, in the order the API lists them.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["id", "event"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "id": { "type": "string", "minLength": 1, "maxLength": 200 },
+                      "event": { "type": "string", "minLength": 1, "maxLength": 100 },
+                      "ref": {
+                        "oneOf": [
+                          { "$ref": "record-0.1.schema.json#/$defs/issueRef" },
+                          { "$ref": "record-0.1.schema.json#/$defs/commitSha" }
+                        ]
+                      },
+                      "detail": { "type": "string", "minLength": 1, "maxLength": 200 }
+                    }
+                  }
+                }
+              }
+            },
+            { "$ref": "#/$defs/itemsUnread" }
+          ]
+        },
+        "tests": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["status", "entries"],
+              "additionalProperties": false,
+              "properties": {
+                "status": { "const": "ok" },
+                "entries": {
+                  "description": "The test cases of one JUnit record, in code-unit order of classname.name, one entry each.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["name", "outcome"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": { "type": "string", "minLength": 1, "maxLength": 1000 },
+                      "classname": { "type": "string", "minLength": 1, "maxLength": 1000 },
+                      "outcome": { "enum": ["passed", "failed", "skipped"] }
+                    }
+                  }
+                }
+              }
+            },
+            { "$ref": "#/$defs/itemsUnread" }
+          ]
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "required": ["type", "id", "score", "matchedField"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "enum": ["commit", "timeline_event", "check_run", "file", "test"] },
+        "id": { "type": "string", "minLength": 1 },
+        "score": {
+          "description": "null for an exact identifier match; otherwise the BM25 score, rounded to 6 places. It ranks candidates and is read by no check.",
+          "oneOf": [{ "type": "number", "minimum": 0 }, { "type": "null" }]
+        },
+        "matchedField": { "type": "string", "minLength": 1 }
+      }
+    },
+    "readerClaim": {
+      "type": "object",
+      "required": [
+        "text",
+        "kind",
+        "declaredValue",
+        "reader",
+        "retrieval",
+        "candidates",
+        "observed",
+        "verdict"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "text": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "kind": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$" },
+        "declaredValue": true,
+        "reader": {
+          "type": "object",
+          "required": ["name", "version"],
+          "additionalProperties": false,
+          "properties": {
+            "name": { "type": "string", "minLength": 1, "maxLength": 214 },
+            "version": { "type": "string", "minLength": 1, "maxLength": 100 }
+          }
+        },
+        "probability": {
+          "description": "The reader's output, recorded as given. Never read by a check.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "retrieval": {
+          "type": "object",
+          "required": ["arm", "floor"],
+          "additionalProperties": false,
+          "properties": {
+            "arm": { "const": "A" },
+            "floor": { "type": "number", "minimum": 0 }
+          }
+        },
+        "candidates": { "type": "array", "items": { "$ref": "#/$defs/candidate" } },
+        "observed": true,
+        "verdict": { "$ref": "record-0.1.schema.json#/$defs/verdict" },
+        "reason": { "$ref": "#/$defs/readerReason" }
+      },
+      "if": { "properties": { "verdict": { "const": "pass" } } },
+      "then": { "not": { "required": ["reason"] } },
+      "else": { "required": ["reason"] }
+    },
+    "advisory": {
+      "description": "Claims the advisory extractor proposed from the report's prose, each compared with the evidence by a 0.1 gate check. Advisories never enter the record's verdict or claims, and none is a fail (spec/claim-format.md, \"DRAFT 0.2.0\", D.11).",
+      "type": "object",
+      "required": ["extractor", "comparison", "precision", "differsAccuracy", "advisories"],
+      "additionalProperties": false,
+      "properties": {
+        "comparison": {
+          "description": "The version of the rules that turn a proposed claim and the evidence into its note, separate from the extractor's. 0.1.0 compared a file claim by exact path only; 0.2.0 also matches it by name (D.11.4).",
+          "type": "object",
+          "required": ["version"],
+          "additionalProperties": false,
+          "properties": { "version": { "type": "string", "minLength": 1, "maxLength": 100 } }
+        },
+        "extractor": {
+          "type": "object",
+          "required": ["version", "digest"],
+          "additionalProperties": false,
+          "properties": {
+            "version": { "type": "string", "minLength": 1, "maxLength": 100 },
+            "digest": {
+              "description": "SHA-256 over the JCS bytes of the extractor's written grammar.",
+              "type": "object",
+              "required": ["sha256"],
+              "additionalProperties": false,
+              "properties": { "sha256": { "$ref": "record-0.1.schema.json#/$defs/sha256" } }
+            }
+          }
+        },
+        "precision": {
+          "description": "The extractor's precision from a published measurement of this very grammar, or null: unmeasured.",
+          "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/advisoryFigure" }]
+        },
+        "differsAccuracy": {
+          "description": "The share of differs notes that marked a genuinely false claim, from a published measurement of this very grammar and this very comparison, with the corpus's base rate beside it; or null: unmeasured.",
+          "oneOf": [
+            { "type": "null" },
+            {
+              "$ref": "#/$defs/advisoryFigureFields",
+              "required": ["baseRate"],
+              "properties": { "baseRate": { "$ref": "#/$defs/advisoryFigure" } },
+              "unevaluatedProperties": false
+            }
+          ]
+        },
+        "advisories": { "type": "array", "items": { "$ref": "#/$defs/advisoryItem" } }
+      }
+    },
+    "advisoryFigure": {
+      "$ref": "#/$defs/advisoryFigureFields",
+      "unevaluatedProperties": false
+    },
+    "advisoryFigureFields": {
+      "description": "A published measurement of the advisory layer: a share, how many items it is over, its interval, the corpus size, how the items were drawn and adjudicated, and who adjudicated on what and when. Never a row, a clause or a label.",
+      "type": "object",
+      "required": ["value", "n", "interval", "pullRequests", "method", "source"],
+      "properties": {
+        "value": { "type": "number", "minimum": 0, "maximum": 1 },
+        "n": { "type": "integer", "minimum": 1 },
+        "interval": {
+          "type": "object",
+          "required": ["method", "level", "low", "high"],
+          "additionalProperties": false,
+          "properties": {
+            "method": { "const": "wilson" },
+            "level": { "const": 0.95 },
+            "low": { "type": "number", "minimum": 0, "maximum": 1 },
+            "high": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "pullRequests": { "type": "integer", "minimum": 1 },
+        "method": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "source": { "type": "string", "minLength": 1, "maxLength": 2000 }
+      }
+    },
+    "advisoryItem": {
+      "type": "object",
+      "required": ["clause", "kind", "value", "observed", "note"],
+      "additionalProperties": false,
+      "properties": {
+        "clause": { "type": "string", "minLength": 1, "maxLength": 300 },
+        "kind": {
+          "enum": [
+            "file_changed",
+            "reference_closes",
+            "commit",
+            "head_commit",
+            "checks_succeeded",
+            "check_count",
+            "tests_passed",
+            "test_count",
+            "merged_at"
+          ]
+        },
+        "value": true,
+        "observed": true,
+        "note": { "$ref": "#/$defs/advisoryNote" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "file_changed" } } },
+          "then": {
+            "properties": { "value": { "$ref": "handback-block-0.1.schema.json#/$defs/repoPath" } }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "reference_closes" } } },
+          "then": {
+            "properties": {
+              "value": {
+                "type": "string",
+                "pattern": "^(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})/[A-Za-z0-9._-]{1,100})?#[1-9][0-9]{0,9}$"
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "enum": ["commit", "head_commit"] } } },
+          "then": {
+            "properties": { "value": { "type": "string", "pattern": "^[0-9a-f]{7,40}$" } }
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "enum": ["checks_succeeded", "tests_passed"] } } },
+          "then": { "properties": { "value": { "type": "boolean" } } }
+        },
+        {
+          "if": { "properties": { "kind": { "enum": ["check_count", "test_count"] } } },
+          "then": { "properties": { "value": { "type": "integer", "minimum": 0 } } }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "merged_at" } } },
+          "then": {
+            "properties": { "value": { "$ref": "record-0.1.schema.json#/$defs/timestamp" } }
+          }
+        }
+      ]
+    },
+    "advisoryNote": {
+      "description": "agrees when the gate check would pass; differs:<reason> when it would fail; unanswered:<reason> when it would be unverifiable. The reasons are the 0.1 claim reasons. A file claim matched by name only is agrees_by_name, or unanswered:ambiguous_path when more than one changed path has that name (D.11.4). Never a verdict.",
+      "type": "string",
+      "pattern": "^(?:agrees|agrees_by_name|unanswered:ambiguous_path|(?:differs|unanswered):(?:head_mismatch|declared_not_changed|file_list_truncated|not_closing|not_found|not_reachable|count_mismatch|all_succeeded_mismatch|checks_incomplete|no_check_runs|no_comparable_record_field|not_merged|premature|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request|pull_request_files|closing_references|repository|issue|commit|compare|check_runs)))$"
+    },
+    "readerReason": {
+      "type": "string",
+      "pattern": "^(?:no_matching_record_item|declared_item_not_among_candidates|candidate_not_in_evidence|no_comparable_record_field|file_list_truncated|checks_incomplete|all_succeeded_mismatch|test_not_executed|test_outcome_mismatch|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request_files|check_runs|pull_request_commits|timeline|artifact))$"
+    }
+  }
+}

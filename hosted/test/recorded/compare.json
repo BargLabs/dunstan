@@ -1,0 +1,133 @@
+{
+  "url": "https://api.github.com/repos/example-org/example-repo/compare/7638417db6d59f3c431d3e1f261cc637155684cd...6dcb09b5b57875f334f61aebed695e2e4193db5e",
+  "html_url": "https://github.com/example-org/example-repo/compare/7638417db6d59f3c431d3e1f261cc637155684cd...6dcb09b5b57875f334f61aebed695e2e4193db5e",
+  "permalink_url": "https://github.com/example-org/example-repo/compare/example-org:7638417...example-org:6dcb09b",
+  "diff_url": "https://github.com/example-org/example-repo/compare/7638417db6d59f3c431d3e1f261cc637155684cd...6dcb09b5b57875f334f61aebed695e2e4193db5e.diff",
+  "patch_url": "https://github.com/example-org/example-repo/compare/7638417db6d59f3c431d3e1f261cc637155684cd...6dcb09b5b57875f334f61aebed695e2e4193db5e.patch",
+  "base_commit": {
+    "url": "https://api.github.com/repos/example-org/example-repo/commits/7638417db6d59f3c431d3e1f261cc637155684cd",
+    "sha": "7638417db6d59f3c431d3e1f261cc637155684cd",
+    "node_id": "MDY6Q29tbWl0NmRjYjA5YjViNTc4NzVmMzM0ZjYxYWViZWQ2OTVlMmU0MTkzZGI1ZQ==",
+    "html_url": "https://github.com/example-org/example-repo/commit/7638417db6d59f3c431d3e1f261cc637155684cd",
+    "commit": {
+      "url": "https://api.github.com/repos/example-org/example-repo/git/commits/7638417db6d59f3c431d3e1f261cc637155684cd",
+      "author": {
+        "name": "Monalisa Octocat",
+        "email": "support@github.com",
+        "date": "2011-04-14T16:00:49Z"
+      },
+      "committer": {
+        "name": "Monalisa Octocat",
+        "email": "support@github.com",
+        "date": "2011-04-14T16:00:49Z"
+      },
+      "message": "Fix all the bugs",
+      "tree": {
+        "url": "https://api.github.com/repos/example-org/example-repo/tree/6dcb09b5b57875f334f61aebed695e2e4193db5e",
+        "sha": "6dcb09b5b57875f334f61aebed695e2e4193db5e"
+      },
+      "comment_count": 0,
+      "verification": {
+        "verified": false,
+        "reason": "unsigned",
+        "signature": null,
+        "payload": null,
+        "verified_at": null
+      }
+    },
+    "author": {
+      "login": "octocat",
+      "id": 1,
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "octocat",
+      "id": 1,
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "url": "https://api.github.com/repos/example-org/example-repo/commits/1acc419d4d6a9ce985db7be48c6349a0475975b5",
+        "sha": "1acc419d4d6a9ce985db7be48c6349a0475975b5"
+      }
+    ]
+  },
+  "merge_base_commit": {
+    "url": "https://api.github.com/repos/example-org/example-repo/commits/7638417db6d59f3c431d3e1f261cc637155684cd",
+    "sha": "7638417db6d59f3c431d3e1f261cc637155684cd",
+    "commit": {
+      "author": {
+        "name": "Monalisa Octocat",
+        "email": "support@github.com",
+        "date": "2011-04-14T16:00:49Z"
+      },
+      "committer": {
+        "name": "Monalisa Octocat",
+        "email": "support@github.com",
+        "date": "2011-04-14T16:00:49Z"
+      },
+      "message": "Fix all the bugs"
+    },
+    "parents": []
+  },
+  "status": "ahead",
+  "ahead_by": 1,
+  "behind_by": 0,
+  "total_commits": 1,
+  "commits": [
+    {
+      "url": "https://api.github.com/repos/example-org/example-repo/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e",
+      "sha": "6dcb09b5b57875f334f61aebed695e2e4193db5e",
+      "html_url": "https://github.com/example-org/example-repo/commit/6dcb09b5b57875f334f61aebed695e2e4193db5e",
+      "commit": {
+        "url": "https://api.github.com/repos/example-org/example-repo/git/commits/6dcb09b5b57875f334f61aebed695e2e4193db5e",
+        "author": {
+          "name": "Monalisa Octocat",
+          "email": "support@github.com",
+          "date": "2011-04-14T16:00:49Z"
+        },
+        "committer": {
+          "name": "Monalisa Octocat",
+          "email": "support@github.com",
+          "date": "2011-04-14T16:00:49Z"
+        },
+        "message": "Fix all the bugs",
+        "comment_count": 0
+      },
+      "author": {
+        "login": "octocat",
+        "id": 1,
+        "type": "User",
+        "site_admin": false
+      },
+      "committer": {
+        "login": "octocat",
+        "id": 1,
+        "type": "User",
+        "site_admin": false
+      },
+      "parents": [
+        {
+          "url": "https://api.github.com/repos/example-org/example-repo/commits/7638417db6d59f3c431d3e1f261cc637155684cd",
+          "sha": "7638417db6d59f3c431d3e1f261cc637155684cd"
+        }
+      ]
+    }
+  ],
+  "files": [
+    {
+      "sha": "bbcd538c8e72b8c175046e27cc8f907076331401",
+      "filename": "file1.txt",
+      "status": "added",
+      "additions": 103,
+      "deletions": 21,
+      "changes": 124,
+      "blob_url": "https://github.com/example-org/example-repo/blob/6dcb09b5b57875f334f61aebed695e2e4193db5e/file1.txt",
+      "raw_url": "https://github.com/example-org/example-repo/raw/6dcb09b5b57875f334f61aebed695e2e4193db5e/file1.txt",
+      "contents_url": "https://api.github.com/repos/example-org/example-repo/contents/file1.txt?ref=6dcb09b5b57875f334f61aebed695e2e4193db5e",
+      "patch": "@@ -132,7 +132,7 @@ module Test @@ -1000,7 +1000,7 @@ module Test"
+    }
+  ]
+}

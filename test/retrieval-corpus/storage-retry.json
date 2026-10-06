@@ -1,0 +1,152 @@
+{
+  "repository": "example-org/example-repo",
+  "evidence": {
+    "files": {
+      "status": "ok",
+      "complete": true,
+      "entries": [
+        { "path": "docs/storage.md", "status": "modified" },
+        {
+          "path": "src/storage/blob-store.ts",
+          "status": "renamed",
+          "previousPath": "src/storage/blobs.ts"
+        },
+        { "path": "src/storage/retry.ts", "status": "added" },
+        { "path": "test/storage/retry.test.ts", "status": "added" }
+      ]
+    },
+    "checkRuns": {
+      "status": "ok",
+      "commit": "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
+      "excludedIds": [],
+      "runs": [
+        { "id": 101, "name": "lint", "status": "completed", "conclusion": "success" },
+        {
+          "id": 102,
+          "name": "test (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        { "id": 103, "name": "typecheck", "status": "completed", "conclusion": "failure" }
+      ]
+    },
+    "items": {
+      "commits": {
+        "status": "ok",
+        "entries": [
+          {
+            "sha": "1234567890abcdef1234567890abcdef12345678",
+            "headline": "Document retry settings"
+          },
+          {
+            "sha": "0f1e2d3c4b5a69788796a5b4c3d2e1f001234567",
+            "headline": "Rename blobs module to blob-store"
+          },
+          {
+            "sha": "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
+            "headline": "Add exponential backoff to blob uploads"
+          }
+        ]
+      },
+      "timeline": {
+        "status": "ok",
+        "entries": [
+          { "id": "evt-1", "event": "cross-referenced", "ref": "example-org/example-repo#41" },
+          { "id": "evt-2", "event": "labeled", "detail": "storage" },
+          { "id": "evt-3", "event": "review_requested", "detail": "storage-maintainers" },
+          { "id": "evt-4", "event": "reviewed", "detail": "approved" }
+        ]
+      },
+      "tests": {
+        "status": "ok",
+        "entries": [
+          { "classname": "storage.blobStore", "name": "uploads a blob", "outcome": "failed" },
+          {
+            "classname": "storage.retry",
+            "name": "gives up after five attempts",
+            "outcome": "passed"
+          },
+          {
+            "classname": "storage.retry",
+            "name": "waits longer after each failure",
+            "outcome": "passed"
+          }
+        ]
+      }
+    }
+  },
+  "claims": [
+    {
+      "id": "renamed-module",
+      "text": "Renamed src/storage/blobs.ts to src/storage/blob-store.ts.",
+      "kind": "file_changed",
+      "declaredValue": "src/storage/blob-store.ts",
+      "expected": [{ "type": "file", "id": "src/storage/blob-store.ts" }]
+    },
+    {
+      "id": "backoff-commit",
+      "text": "Added exponential backoff for blob uploads.",
+      "expected": [{ "type": "commit", "id": "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678" }]
+    },
+    {
+      "id": "typecheck-passes",
+      "text": "The typecheck job passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "expected": [{ "type": "check_run", "id": "103" }]
+    },
+    {
+      "id": "ubuntu-tests-green",
+      "text": "Unit tests on Ubuntu are green.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "expected": [{ "type": "check_run", "id": "102" }]
+    },
+    {
+      "id": "fixes-41",
+      "text": "Fixes #41.",
+      "kind": "reference_in_timeline",
+      "declaredValue": "#41",
+      "expected": [{ "type": "timeline_event", "id": "evt-1" }]
+    },
+    {
+      "id": "documented-settings",
+      "text": "Documented the retry settings in the storage docs.",
+      "expected": [
+        { "type": "file", "id": "docs/storage.md" },
+        { "type": "commit", "id": "1234567890abcdef1234567890abcdef12345678" }
+      ]
+    },
+    {
+      "id": "gives-up-test",
+      "text": "The test for giving up after five attempts passes.",
+      "kind": "test_passed",
+      "declaredValue": true,
+      "expected": [{ "type": "test", "id": "storage.retry.gives up after five attempts" }]
+    },
+    {
+      "id": "upload-test",
+      "text": "The upload test passes now.",
+      "kind": "test_passed",
+      "declaredValue": true,
+      "expected": [{ "type": "test", "id": "storage.blobStore.uploads a blob" }]
+    },
+    {
+      "id": "rename-commit",
+      "text": "Commit 0f1e2d3 renames the module.",
+      "kind": "commit_present",
+      "declaredValue": "0f1e2d3",
+      "expected": [{ "type": "commit", "id": "0f1e2d3c4b5a69788796a5b4c3d2e1f001234567" }]
+    },
+    {
+      "id": "approved",
+      "text": "A maintainer approved the change.",
+      "expected": [{ "type": "timeline_event", "id": "evt-4" }]
+    },
+    {
+      "id": "resilient",
+      "text": "Made the client more resilient to flaky networks.",
+      "expected": [{ "type": "commit", "id": "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678" }]
+    }
+  ]
+}
