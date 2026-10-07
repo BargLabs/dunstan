@@ -1,7 +1,12 @@
 // Builds the record: an in-toto Statement v1 whose predicate is spec section 9. Every digest is
 // SHA-256 over RFC 8785 bytes (section 10), computed with the src/spec helpers.
 
-import { type AdvisorySection, advisoryDigest, advisorySection } from '../advisory/advise.js';
+import {
+  type AdvisorySection,
+  advisoryDigest,
+  advisorySection,
+  type PathAnswer,
+} from '../advisory/advise.js';
 import type { ProposedClaim } from '../advisory/extract.js';
 import { runChecks } from '../check/index.js';
 import type { Block, Claim, Evidence, Verdict } from '../check/types.js';
@@ -162,6 +167,10 @@ export interface BuildInput {
   // Claims the advisory extractor proposed from the report (src/advisory/). Given, even empty, the
   // record is written to DRAFT 0.2.0 with an advisory section; the verdict and claims are the same.
   advisory?: readonly ProposedClaim[];
+  // What the existence query answered for those claims' `pathsToRead` (comparison 0.3.0). A path
+  // with no answer here is recorded unreadable. Never evidence: it is recorded in the advisory
+  // section, so `digests.evidence` and `digests.claims` are the same with or without it.
+  pathsAtHead?: readonly PathAnswer[];
 }
 
 export function readerClaimsDigest(readerClaims: readonly ReaderClaim[]): string {
@@ -183,7 +192,7 @@ export function buildRecord(input: BuildInput): DunstanRecord {
   const advisory =
     input.advisory === undefined
       ? undefined
-      : advisorySection(input.advisory, evidence, repository);
+      : advisorySection(input.advisory, evidence, repository, input.pathsAtHead ?? []);
   const record: DunstanRecord = {
     _type: STATEMENT_TYPE,
     subject: statementSubjects(block, subject),

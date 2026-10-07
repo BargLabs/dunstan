@@ -787,12 +787,18 @@ A checker writes the section only when asked to (`dunstan check --advisory`; the
 ```json
 "advisory": {
   "extractor": { "version": "0.1.3", "digest": { "sha256": "<64 hex>" } },
-  "comparison": { "version": "0.2.0" },
+  "comparison": { "version": "0.3.0" },
   "precision": null,
   "differsAccuracy": null,
+  "pathsAtHead": [
+    { "path": "docs/y.md", "status": "ok", "object": null },
+    { "path": "src/z.ts", "status": "ok", "object": "Blob" }
+  ],
   "advisories": [
-    { "clause": "I changed src/a.ts and src/z.ts.", "kind": "file_changed", "value": "src/z.ts",
-      "observed": null, "note": "differs:declared_not_changed" }
+    { "clause": "I changed src/a.ts, src/z.ts and docs/y.md.", "kind": "file_changed",
+      "value": "src/z.ts", "observed": null, "note": "differs:declared_not_changed" },
+    { "clause": "I changed src/a.ts, src/z.ts and docs/y.md.", "kind": "file_changed",
+      "value": "docs/y.md", "observed": null, "note": "unanswered:no_such_path" }
   ]
 }
 ```
@@ -803,7 +809,13 @@ A checker writes the section only when asked to (`dunstan check --advisory`; the
 - `comparison` names the rules that turned each proposed claim and the evidence into its note
   (D.11.4). Its `version` is separate from the extractor's: a change to the comparison leaves the
   grammar and its digest as they were. `0.1.0` compared a file claim by exact path only. `0.2.0`
-  also matches it by name. A record written before `comparison` existed was compared by `0.1.0`.
+  also matches it by name. `0.3.0` also asks whether a path not among the changed files exists at
+  the head. A record written before `comparison` existed was compared by `0.1.0`.
+- `pathsAtHead` (comparison 0.3.0) holds the answers a file claim's note was computed from (D.11.4,
+  D.11.5): one entry for each distinct path in `pathsToRead`, in code-unit order of `path`. An
+  entry is `{path, status: "ok", object}`, where `object` is `"Blob"` (a file), `"Tree"` (a
+  directory) or `null` (nothing at that path at the head), or `{path, status: "unreadable"}`. It
+  never holds an object's content, size or id.
 - `precision` is a **figure**, taken from a published measurement of the extractor with this very
   digest: the share of adjudicated advisories that were real claims of the report. Otherwise it is
   `null`, meaning **unmeasured**.
@@ -923,6 +935,18 @@ code-unit order.
   `differs:declared_not_changed`.
 - A file list not read in full gives the 7.3 row's `unanswered:<reason>`, never a name match.
 
+Comparison 0.3.0 then asks about each value the rules above leave `differs:declared_not_changed`:
+these values are `pathsToRead`. Its note is decided by the recorded answer for the object at
+`<head>:<value>` in `pathsAtHead` (D.11.2), the value read as a path from the repository root:
+
+- a `Blob` keeps `differs:declared_not_changed`;
+- `null` gives `unanswered:no_such_path`;
+- a `Tree` gives `unanswered:directory`;
+- an `unreadable` answer, or none, gives `unanswered:source_unreadable:path`. It is never `differs`
+  and never `agrees`.
+
+`observed` stays `null` for each. Every other note is the one comparison 0.2.0 gives.
+
 `agrees_by_name` MUST NOT be shown or counted as `agrees`: the report may have meant another file
 of the same name. A `differs:<reason>` note MUST be shown to a person as "possible disagreement,
 unverified", then what the record shows and the observed value, and never as an accusation
@@ -942,10 +966,27 @@ cited commit; and the check runs at the block's `headCommit`, or at the pull req
 there is no block. Each claim row reads only the evidence of its own field, so reading more never
 changes a row. With no block and no proposed claim that needs more, only the pull request is read.
 
+Then, for each path in `pathsToRead` (D.11.4), and for nothing else, the checker reads the type of
+the object at `<head>:<path>`, where `<head>` is the pull request's head as read, with one fixed
+GraphQL query that asks for `__typename` only:
+
+```graphql
+query($owner: String!, $name: String!, $expression: String!) {
+  repository(owner: $owner, name: $name) {
+    object(expression: $expression) { __typename }
+  }
+}
+```
+
+A failed read, a GraphQL error, or an answer of any other shape or type is `unreadable`. The answers
+are not 0.1 evidence: they are written to `pathsAtHead`, so `digests.evidence` does not cover them
+and `digests.advisory` does. No gate check reads them.
+
 #### D.11.6 Re-running
 
 Offline verify recomputes each advisory's `observed` and `note` from its **recorded** `kind` and
-`value` and the evidence. It compares `extractor` and `comparison` with the running checker's,
+`value`, the evidence and the **recorded** `pathsAtHead`, never from a fresh read, and checks that
+`pathsAtHead` lists exactly the paths in `pathsToRead`. It compares `extractor` and `comparison` with the running checker's,
 `precision` with the measurement published for that digest, `differsAccuracy` with the measurement
 published for that digest and that comparison version, and `digests.advisory`. The record holds no report text
 beyond each `clause`, so extraction is not re-run. As in D.8, an online re-run of a draft record is
@@ -954,8 +995,9 @@ not defined.
 #### D.11.7 What a record would newly publish
 
 Beyond section 14 and D.9: one clause of the report for each advisory, its kind and value, the
-extractor's version, digest and precision, the comparison's version, and the accuracy of `differs`
-notes with its base rate.
+extractor's version, digest and precision, the comparison's version, the accuracy of `differs`
+notes with its base rate, and, for each path in `pathsToRead`, whether a file, a directory or
+nothing is at that path at the head.
 
 #### D.11.8 Open questions for the operator
 
@@ -976,6 +1018,36 @@ notes with its base rate.
    unchanged.
 
 ### D.12 Changes to this draft
+
+- **2026-10-07.** Advisory comparison 0.3.0: a `file_changed` advisory that comparison 0.2.0 notes
+  `differs:declared_not_changed` keeps that note only when its path is a file at the pull
+  request's head. Nothing there gives `unanswered:no_such_path`, a directory
+  `unanswered:directory`, and an answer not read `unanswered:source_unreadable:path` (D.11.4). The
+  checker reads the type of the object at each such path with one fixed GraphQL query that asks
+  for `__typename` only (D.11.5), and the advisory section gains `pathsAtHead`, the answers the
+  notes were computed from (D.11.2), which offline verify reads (D.11.6). The DRAFT record schema
+  gains `pathsAtHead` and the three notes. Every other note, the extractor, the gate and sections
+  1 to 17 are unchanged. The published `differs` figure stays bound to comparison 0.2.0, so a
+  record compared by 0.3.0 carries `null` for `differsAccuracy`, shown as "unmeasured". The
+  checker that runs it is 0.1.5.
+
+- **2026-10-07.** Advisory extractor 0.1.4 reverted to 0.1.3, exactly: its lists, rules and
+  version, so the grammar digest is `2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37`
+  again. 0.1.4's rules did not generalise: on the held-out half of the open-source study they left
+  the share of false accusations where the 0.1.3 baseline had it (`docs/advisory.md`, "Labels,
+  used names and descriptions"). D.11.3 is as it was before 0.1.4. No figure was published for
+  0.1.4, and none is for 0.1.3 on real pull requests.
+
+- **2026-10-07.** Advisory extractor 0.1.4: a third-person form that closes a bold label is a noun,
+  and an operand phrase (`use of`, `command for`, …) stops the binding (D.11.3, item 4); a path put
+  into another path, a path in a generic clause opened by `a` or `an`, and a path in a relative
+  clause in the past passive propose no file claim (D.11.3, item 6; `docs/advisory.md`, "Labels,
+  used names and descriptions"). Each rule only drops a file claim. The grammar digest changes from
+  `2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37` to
+  `78b92a682063464faf3cf1de13123d2b232bb3575effd5f31f0e12905643d45c`. No figure is published for
+  0.1.4, so a record it writes carries `null` for `precision` and `differsAccuracy`, shown as
+  "unmeasured". The checker that runs it is 0.1.4. The comparison (0.2.0), the schemas, the record
+  members and sections 1 to 17 are unchanged.
 
 - **2026-10-06.** Spec 0.1.2 (section 17). A `reference_closes` advisory is compared by the 7.4
   `closes` check, so on an open pull request whose closing references do not list an existing

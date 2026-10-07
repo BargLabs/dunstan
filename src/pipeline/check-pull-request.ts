@@ -5,13 +5,15 @@
 // GitHub. A caller that has read the pull request or the block already passes it in, and that read
 // is not repeated; nothing after it differs.
 
-import { readingBlock } from '../advisory/advise.js';
+import { type PathAnswer, pathsToRead, readingBlock } from '../advisory/advise.js';
 import { extractClaims } from '../advisory/extract.js';
 import type { Evidence } from '../check/types.js';
 import {
   type PullRequestRead,
   type ReadEvidenceInput,
+  type ReadPathObjectsInput,
   readEvidence,
+  readPathObjects,
   readPullRequest,
 } from '../evidence/github.js';
 import type { GitHubClient } from '../evidence/http.js';
@@ -31,12 +33,16 @@ import { sha256Hex } from '../spec/jcs.js';
 export interface EvidenceReaders {
   pullRequest: (repository: string, number: number) => Promise<PullRequestRead>;
   evidence: (input: ReadEvidenceInput) => Promise<Evidence>;
+  // The advisory's existence query (comparison 0.3.0). Called only with advisories on, and only
+  // for paths the evidence leaves a file claim `differs:declared_not_changed`; never for the gate.
+  pathObjects: (input: ReadPathObjectsInput) => Promise<PathAnswer[]>;
 }
 
 export function githubReaders(client: GitHubClient): EvidenceReaders {
   return {
     pullRequest: (repository, number) => readPullRequest(client, repository, number),
     evidence: (input) => readEvidence(client, input),
+    pathObjects: (input) => readPathObjects(client, input),
   };
 }
 
@@ -82,6 +88,13 @@ export async function checkPullRequest(input: CheckPullRequestInput): Promise<Du
     block: proposed === undefined ? found : readingBlock(found, proposed, pr.evidence.headSha),
     excludedCheckRunIds: [...(input.excludedCheckRunIds ?? []), ...ownRuns],
   });
+  // After the evidence, which decides which paths need asking. The answers go to the advisory
+  // section, never into the evidence.
+  const paths = proposed === undefined ? [] : pathsToRead(proposed, evidence, repository);
+  const pathsAtHead =
+    paths.length === 0
+      ? []
+      : await input.readers.pathObjects({ repository, headSha: pr.evidence.headSha, paths });
 
   return buildRecord({
     checker: input.checker,
@@ -91,6 +104,6 @@ export async function checkPullRequest(input: CheckPullRequestInput): Promise<Du
     evidence,
     rerun: rerunCommands(input.recordFile),
     ...(input.assurance === undefined ? {} : { assurance: input.assurance }),
-    ...(proposed === undefined ? {} : { advisory: proposed }),
+    ...(proposed === undefined ? {} : { advisory: proposed, pathsAtHead }),
   });
 }

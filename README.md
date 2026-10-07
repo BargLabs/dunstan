@@ -143,8 +143,12 @@ figure and base rate to the comparison version too. Any later extractor or compa
 0.1.3. Since 0.1.2 it stops reading statements about another pull request, an undone change, a
 baseline, a negated list or a deliberate test failure as claims, and since 0.1.3 it reads a file
 list or a merge time after a colon ([`docs/advisory.md`](docs/advisory.md), "Attribution" and
-"Lists, merge times and own references"). No figure is published for it, so a record it writes
-says "unmeasured".
+"Lists, merge times and own references"). Extractor 0.1.4's rules did not generalise to held-out
+pull requests and were reverted ("Labels, used names and descriptions"). No figure is published
+for 0.1.3, so a record it writes says "unmeasured". The comparison that runs is 0.3.0: a file claim
+not among the changed files is a possible disagreement only when its path is a file at the head,
+and is unanswered when nothing or a directory is there ("Paths that are not at the head"). It is
+unmeasured too: the `differs` figure stays bound to comparison 0.2.0.
 
 The base rate is always shown next to the `differs` figure: among the 44 advisories the record
 could check, none was a false claim (0 of 44), so 0 of 20 means there was little to find, not that

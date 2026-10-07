@@ -29,7 +29,7 @@ import {
   webhook,
 } from './support.js';
 
-const CHECKER = { name: 'dunstan', version: '0.1.3', digest: { sha256: 'a'.repeat(64) } };
+const CHECKER = { name: 'dunstan', version: '0.1.5', digest: { sha256: 'a'.repeat(64) } };
 const NOW = new Date('2026-10-04T12:00:00Z');
 
 let emulated: Emulated;
@@ -270,6 +270,7 @@ describe('POST /v0.1/check', () => {
               return real.pullRequest(repository, number);
             },
             evidence: real.evidence,
+            pathObjects: real.pathObjects,
           };
         },
       },

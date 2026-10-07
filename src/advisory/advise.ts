@@ -2,8 +2,11 @@
 // compared with the evidence by the same 0.1 gate check a block's claim of that field gets. The
 // check's row becomes a note: `agrees`, `differs:<reason>` or `unanswered:<reason>`. A file named in
 // prose may be a bare name or a partial path, so a file claim is also matched by name (D.11.4):
-// `agrees_by_name` or `unanswered:ambiguous_path`. An advisory has no verdict. It never enters the
-// record's `verdict` or `claims`, and it is never `fail`.
+// `agrees_by_name` or `unanswered:ambiguous_path`. A file claim that is still not among the changed
+// files is a disagreement only when its path is a file at the head (D.11.4, comparison 0.3.0): the
+// evidence reader asks GitHub for the type of the object there, and the answers are recorded in the
+// section as `pathsAtHead`. An advisory has no verdict. It never enters the record's `verdict` or
+// `claims`, and it is never `fail`.
 
 import { checkCounts, checkHead, checkReferences, checkScope, checkTime } from '../check/checks.js';
 import { compareCodeUnits } from '../check/rows.js';
@@ -29,9 +32,10 @@ export interface Advisory {
 }
 
 // The version of the comparison from a proposed claim to its note, separate from the extractor's:
-// 0.1.0 compared a file claim by exact path only; 0.2.0 also matches it by name. A
-// record names the comparison its notes came from, as it names the grammar that proposed them.
-export const COMPARISON_VERSION = '0.2.0';
+// 0.1.0 compared a file claim by exact path only; 0.2.0 also matches it by name; 0.3.0 also asks
+// whether a path not among the changed files exists at the head. A record names the comparison its
+// notes came from, as it names the grammar that proposed them.
+export const COMPARISON_VERSION = '0.3.0';
 
 export interface ComparisonIdentity {
   version: string;
@@ -39,11 +43,22 @@ export interface ComparisonIdentity {
 
 export const COMPARISON: ComparisonIdentity = { version: COMPARISON_VERSION };
 
+// What GitHub answered for the object at `<head>:<path>`: its type only (`Blob`, a file; `Tree`, a
+// directory), or null when there is none. A read that failed, or answered in any other shape or
+// type, is unreadable. Never the object's content, size or id.
+export type PathObject = 'Blob' | 'Tree' | null;
+
+export type PathAnswer =
+  | { path: string; status: 'ok'; object: PathObject }
+  | { path: string; status: 'unreadable' };
+
 export interface AdvisorySection {
   extractor: ExtractorIdentity;
   comparison: ComparisonIdentity;
   precision: Precision | null;
   differsAccuracy: DiffersAccuracy | null;
+  // Comparison 0.3.0: one answer per path in `pathsToRead`, in code-unit order of path.
+  pathsAtHead: PathAnswer[];
   advisories: Advisory[];
 }
 
@@ -140,8 +155,63 @@ function byName(value: string, evidence: Evidence): string[] {
   return [...new Set(matches)].sort(compareCodeUnits);
 }
 
-// The comparison for one advisory: a pure function of its kind, its value and the evidence.
+// The note comparison 0.3.0 leaves to the existence query: a file claim that the changed files,
+// read in full, hold neither at its path nor by name.
+const NOT_CHANGED = 'differs:declared_not_changed';
+
+// The comparison for one advisory: a pure function of its kind, its value, the evidence and the
+// recorded answers of the existence query. A file claim noted `differs:declared_not_changed` by the
+// changed files keeps that note only when its path is a file at the head (a `Blob`). No object
+// there is `unanswered:no_such_path`, a directory `unanswered:directory`, and an answer that is
+// unreadable or missing `unanswered:source_unreadable:path`: never `differs`, never `agrees`.
 export function compareAdvisory(
+  claim: Pick<Advisory, 'kind' | 'value'>,
+  evidence: Evidence,
+  repository: string,
+  pathsAtHead: readonly PathAnswer[],
+): { observed: JsonValue; note: string } {
+  const compared = compareByList(claim, evidence, repository);
+  if (claim.kind !== 'file_changed' || compared.note !== NOT_CHANGED) return compared;
+  const answer = pathsAtHead.find((p) => p.path === claim.value);
+  if (answer === undefined || answer.status !== 'ok') {
+    return { observed: null, note: 'unanswered:source_unreadable:path' };
+  }
+  if (answer.object === null) return { observed: null, note: 'unanswered:no_such_path' };
+  if (answer.object === 'Tree') return { observed: null, note: 'unanswered:directory' };
+  return compared;
+}
+
+// The paths the existence query is asked for: each distinct value of a file claim the changed
+// files note `differs:declared_not_changed`, in code-unit order. Nothing else is asked: not a
+// claim on a changed path, a name match, or a file list not read in full.
+export function pathsToRead(
+  claims: readonly Pick<Advisory, 'kind' | 'value'>[],
+  evidence: Evidence,
+  repository: string,
+): string[] {
+  const paths = claims
+    .filter(
+      (c) =>
+        c.kind === 'file_changed' &&
+        typeof c.value === 'string' &&
+        compareByList(c, evidence, repository).note === NOT_CHANGED,
+    )
+    .map((c) => c.value as string);
+  return [...new Set(paths)].sort(compareCodeUnits);
+}
+
+// The answers a record carries: one per path to read, in that order, taken from what the reader
+// answered. A path it did not answer is unreadable.
+function answersFor(paths: readonly string[], answered: readonly PathAnswer[]): PathAnswer[] {
+  return paths.map((path) => {
+    const answer = answered.find((a) => a.path === path);
+    if (answer === undefined || answer.status !== 'ok') return { path, status: 'unreadable' };
+    return { path, status: 'ok', object: answer.object };
+  });
+}
+
+// Comparison 0.2.0: the gate check of the claim's field, then a match by name for a file claim.
+function compareByList(
   claim: Pick<Advisory, 'kind' | 'value'>,
   evidence: Evidence,
   repository: string,
@@ -221,6 +291,7 @@ export function adviseClaims(
   proposed: readonly ProposedClaim[],
   evidence: Evidence,
   repository: string,
+  pathsAtHead: readonly PathAnswer[] = [],
 ): Advisory[] {
   const out: Advisory[] = [];
   for (const p of proposed) {
@@ -229,23 +300,27 @@ export function adviseClaims(
       clause: p.clause,
       kind: p.kind,
       value: p.value,
-      ...compareAdvisory(p, evidence, repository),
+      ...compareAdvisory(p, evidence, repository, pathsAtHead),
     });
   }
   return out;
 }
 
+// `answered` is what the evidence reader's existence query answered for `pathsToRead(proposed)`.
 export function advisorySection(
   proposed: readonly ProposedClaim[],
   evidence: Evidence,
   repository: string,
+  answered: readonly PathAnswer[],
 ): AdvisorySection {
+  const pathsAtHead = answersFor(pathsToRead(proposed, evidence, repository), answered);
   return {
     extractor: { version: EXTRACTOR.version, digest: { sha256: EXTRACTOR.digest.sha256 } },
     comparison: { version: COMPARISON.version },
     precision: precisionFor(EXTRACTOR.digest.sha256),
     differsAccuracy: differsAccuracyFor(EXTRACTOR.digest.sha256, COMPARISON.version),
-    advisories: adviseClaims(proposed, evidence, repository),
+    pathsAtHead,
+    advisories: adviseClaims(proposed, evidence, repository, pathsAtHead),
   };
 }
 

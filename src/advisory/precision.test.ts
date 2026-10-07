@@ -18,9 +18,12 @@ import {
 } from './precision.js';
 
 // The grammar the figures were measured on: extractor 0.1.1. The extractor that runs is 0.1.3 (0.1.2
-// before it), which no figure is published for.
+// before it, and 0.1.4 reverted to it), which no figure is published for.
 const DIGEST = 'ab77ce47d1c5172ec912d1221e03bbe5b312ff5dc2acb594c4b8549fe602c360';
 const SOURCE = 'operator-adjudicated, Barg Labs internal corpus, 2026-10-05';
+// The comparison the differs figure was measured on. The one that runs is 0.3.0, which no figure
+// is published for.
+const MEASURED_COMPARISON = '0.2.0';
 
 // The Wilson score interval at 95% (z = 1.96).
 function wilson(k: number, n: number): [number, number] {
@@ -38,14 +41,16 @@ describe('the published figures', () => {
   it('are bound to extractor 0.1.1 by its digest, and differs to comparison 0.2.0 too', () => {
     expect(PUBLISHED_PRECISION.map((p) => p.extractorDigest)).toEqual([DIGEST]);
     expect(PUBLISHED_DIFFERS_ACCURACY.map((p) => [p.extractorDigest, p.comparisonVersion])).toEqual(
-      [[DIGEST, '0.2.0']],
+      [[DIGEST, MEASURED_COMPARISON]],
     );
-    expect(COMPARISON_VERSION).toBe('0.2.0');
+    // Comparison 0.3.0 runs, and inherits nothing from 0.2.0.
+    expect(COMPARISON_VERSION).toBe('0.3.0');
+    expect(differsAccuracyFor(DIGEST, COMPARISON_VERSION)).toBeNull();
   });
 
   it('state the operator-signed values, n and intervals', () => {
     const precision = precisionFor(DIGEST);
-    const differs = differsAccuracyFor(DIGEST, COMPARISON_VERSION);
+    const differs = differsAccuracyFor(DIGEST, MEASURED_COMPARISON);
     if (precision === null || differs === null) throw new Error('unpublished');
     const shown = (f: Figure) => [
       countOf(f),
@@ -61,7 +66,7 @@ describe('the published figures', () => {
   });
 
   it('carry each interval as the Wilson 95% interval of its count, to five places', () => {
-    const differs = differsAccuracyFor(DIGEST, COMPARISON_VERSION);
+    const differs = differsAccuracyFor(DIGEST, MEASURED_COMPARISON);
     const precision = precisionFor(DIGEST);
     if (precision === null || differs === null) throw new Error('unpublished');
     for (const f of [precision, differs, differs.baseRate]) {
@@ -77,7 +82,7 @@ describe('the published figures', () => {
   });
 
   it('carry value, n, interval and method with the source note, and nothing private', () => {
-    const differs = differsAccuracyFor(DIGEST, COMPARISON_VERSION);
+    const differs = differsAccuracyFor(DIGEST, MEASURED_COMPARISON);
     const precision = precisionFor(DIGEST);
     if (precision === null || differs === null) throw new Error('unpublished');
     for (const f of [precision, differs.baseRate]) {
@@ -129,18 +134,22 @@ describe('the binding: a changed digest or comparison is unmeasured', () => {
     expect(differsAccuracyFor(DIGEST, '0.3.0')).toBeNull();
   });
 
-  // Extractors 0.1.2 and then 0.1.3 changed the grammar. The figures stay bound to 0.1.1 and are
-  // not rebound: 0.1.2 and 0.1.3 show "unmeasured" until measured anew.
+  // Extractors 0.1.2, 0.1.3 and then 0.1.4 changed the grammar, and 0.1.4 was reverted to 0.1.3.
+  // The figures stay bound to 0.1.1 and are not rebound: 0.1.2, 0.1.3 and 0.1.4 show "unmeasured"
+  // until measured anew.
   it('extractor 0.1.3, the one that runs, is unmeasured: it inherits nothing from 0.1.1', () => {
     expect(EXTRACTOR.version).toBe('0.1.3');
     expect(EXTRACTOR.digest.sha256).toBe(
       '2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37',
     );
     expect(EXTRACTOR.digest.sha256).not.toBe(DIGEST);
-    // Nor anything for 0.1.2, the extractor before it.
-    expect(
-      precisionFor('dfd6563a934667a80448e49b7133ade6d2473e5e13cd9d05fd52c761a1a1780b'),
-    ).toBeNull();
+    // Nor anything for 0.1.2, the extractor before it, or 0.1.4, the reverted one.
+    for (const other of [
+      'dfd6563a934667a80448e49b7133ade6d2473e5e13cd9d05fd52c761a1a1780b',
+      '78b92a682063464faf3cf1de13123d2b232bb3575effd5f31f0e12905643d45c',
+    ]) {
+      expect(precisionFor(other)).toBeNull();
+    }
     expect(precisionFor(EXTRACTOR.digest.sha256)).toBeNull();
     expect(differsAccuracyFor(EXTRACTOR.digest.sha256, COMPARISON_VERSION)).toBeNull();
     expect(precisionText(precisionFor(EXTRACTOR.digest.sha256))).toBe(UNMEASURED);

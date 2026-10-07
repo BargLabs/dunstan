@@ -2,7 +2,7 @@
 // block.value and evidence, recompute the three digests, check the subject digests, and compare every
 // recomputed value with the recorded one byte for byte. Uses only the record; no network.
 
-import { advisoryDigest, COMPARISON, compareAdvisory } from '../advisory/advise.js';
+import { advisoryDigest, COMPARISON, compareAdvisory, pathsToRead } from '../advisory/advise.js';
 import { EXTRACTOR } from '../advisory/grammar.js';
 import { differsAccuracyFor, precisionFor } from '../advisory/precision.js';
 import type { Evidence } from '../check/types.js';
@@ -131,9 +131,12 @@ export function verifyRecord(value: unknown): VerifyResult {
   // text is not in the record, so extraction is not re-run; the extractor's version and digest name
   // the grammar that ran, the comparison's version names the rules the notes came from, the
   // precision must be the one published for that grammar, and the accuracy of `differs` notes the
-  // one published for that grammar and that comparison.
+  // one published for that grammar and that comparison. Under comparison 0.3.0 a file claim's note
+  // is recomputed from the recorded answers of the existence query, never from a fresh read, and
+  // the record must answer exactly the paths its claims need.
   if (draft && p.advisory !== undefined) {
     const a = p.advisory;
+    const pathsAtHead = a.pathsAtHead;
     differ('/predicate/advisory/extractor', a.extractor, EXTRACTOR);
     differ('/predicate/advisory/comparison', a.comparison, COMPARISON);
     differ('/predicate/advisory/precision', a.precision, precisionFor(EXTRACTOR.digest.sha256));
@@ -142,11 +145,16 @@ export function verifyRecord(value: unknown): VerifyResult {
       a.differsAccuracy,
       differsAccuracyFor(EXTRACTOR.digest.sha256, COMPARISON.version),
     );
+    differ(
+      '/predicate/advisory/pathsAtHead',
+      pathsAtHead.map((answer) => answer.path),
+      pathsToRead(a.advisories, evidence, p.subject.repository),
+    );
     a.advisories.forEach((advisory, i) => {
       differ(
         `/predicate/advisory/advisories/${i}`,
         { observed: advisory.observed, note: advisory.note },
-        compareAdvisory(advisory, evidence, p.subject.repository),
+        compareAdvisory(advisory, evidence, p.subject.repository, pathsAtHead),
       );
     });
     differ('/predicate/digests/advisory', p.digests.advisory, advisoryDigest(a));

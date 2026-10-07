@@ -1,12 +1,14 @@
-// The GitHub evidence reader (spec section 6). REST plus one GraphQL query over fetch, with a token
-// from GITHUB_TOKEN; no `gh`, so it runs where the GitHub CLI is absent. It reads metadata only: pull
-// request state, file lists, commit ids, check runs, closing references, JUnit test-report counts and
-// deployments. It never reads a repository file.
+// The GitHub evidence reader (spec section 6). REST plus two fixed GraphQL queries over fetch, with a
+// token from GITHUB_TOKEN; no `gh`, so it runs where the GitHub CLI is absent. It reads metadata
+// only: pull request state, file lists, commit ids, check runs, closing references, JUnit
+// test-report counts and deployments, and, for advisories only, the type of the object at a path
+// (comparison 0.3.0). It never reads a repository file.
 //
 // Every section the block needs is written, as `ok` with its data, `unreadable` with the source kind
 // when a read failed, or `unpopulated` with the field when the source answered without it. A failed
 // read is never filled in with a guess.
 
+import type { PathAnswer, PathObject } from '../advisory/advise.js';
 import { qualifyIssue, sameIssue } from '../check/index.js';
 import type {
   Block,
@@ -225,7 +227,8 @@ async function readFiles(
 
 // ---------------------------------------------------------------- closing references (GraphQL)
 
-// The one GraphQL query the reader sends. Exported so the hosted route allowlist admits exactly it.
+// The GraphQL query the gate's evidence reads. Exported so the hosted route allowlist admits
+// exactly it.
 export const CLOSING_QUERY = `query($owner: String!, $name: String!, $number: Int!, $after: String) {
   repository(owner: $owner, name: $name) {
     pullRequest(number: $number) {
@@ -286,6 +289,78 @@ async function readClosingReferences(
     }
   }
   return unreadable('closing_references');
+}
+
+// ---------------------------------------------------------------- object type at a path (GraphQL)
+
+// The second GraphQL query, and the only one the advisory section reads (comparison 0.3.0): the
+// type of the object at `<head>:<path>`, `Blob`, `Tree` or none, and nothing else. It never asks
+// for a blob's content, size or id, or a tree's entries. Exported so the hosted route allowlist
+// admits exactly it. It is never asked for the gate.
+export const PATH_QUERY = `query($owner: String!, $name: String!, $expression: String!) {
+  repository(owner: $owner, name: $name) {
+    object(expression: $expression) { __typename }
+  }
+}`;
+
+// An expression the path query may carry: a full commit id, a colon, and a repository path in the
+// extractor's characters, with no empty, `.` or `..` segment.
+export function isPathExpression(expression: string): boolean {
+  const m = /^[0-9a-f]{40}:([A-Za-z0-9_.+/-]{1,1024})$/.exec(expression);
+  if (m === null) return false;
+  return (m[1] as string).split('/').every((s) => s !== '' && s !== '.' && s !== '..');
+}
+
+export interface ReadPathObjectsInput {
+  repository: string;
+  headSha: string;
+  paths: readonly string[];
+}
+
+// One query per path, in the order given. The answers are not evidence: they are recorded in the
+// advisory section, so no source entry is written and `digests.evidence` does not move. A read
+// that fails, a GraphQL error, or an answer of any other shape or type is unreadable, never a
+// guess. A value that is not a repository path is not asked, and is unreadable.
+export async function readPathObjects(
+  client: GitHubClient,
+  input: ReadPathObjectsInput,
+): Promise<PathAnswer[]> {
+  const { owner, name } = splitRepo(input.repository);
+  const out: PathAnswer[] = [];
+  for (const path of input.paths) {
+    const expression = `${input.headSha}:${path}`;
+    if (!isPathExpression(expression)) {
+      out.push({ path, status: 'unreadable' });
+      continue;
+    }
+    const read = await client.read('path', '/graphql', {
+      method: 'POST',
+      locator: `POST /graphql repository(${input.repository}).object(${expression}).__typename`,
+      requestBody: JSON.stringify({ query: PATH_QUERY, variables: { owner, name, expression } }),
+      record: false,
+    });
+    out.push(read.ok ? { path, ...pathObjectOf(read.json) } : { path, status: 'unreadable' });
+  }
+  return out;
+}
+
+function pathObjectOf(
+  json: unknown,
+): { status: 'ok'; object: PathObject } | { status: 'unreadable' } {
+  try {
+    const body = obj(json);
+    // GraphQL reports errors with HTTP 200. A partial answer is not evidence.
+    if (body.errors !== undefined && body.errors !== null) throw new ShapeError();
+    const object = obj(obj(body.data).repository).object;
+    if (object === null) return { status: 'ok', object: null };
+    const type = obj(object).__typename;
+    // Only the type is kept. A commit (a submodule) or anything else is not an answer this reads.
+    if (type === 'Blob' || type === 'Tree') return { status: 'ok', object: type };
+    throw new ShapeError();
+  } catch (e) {
+    if (!(e instanceof ShapeError)) throw e;
+    return { status: 'unreadable' };
+  }
 }
 
 // ---------------------------------------------------------------- references (cites)

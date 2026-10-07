@@ -6,9 +6,10 @@
 //
 // The App holds Contents: read because GitHub requires it for the git-database commit and compare
 // endpoints (docs/hosted.md, "Contents: read"). This guard is what keeps that permission to commit
-// existence and ancestry: no route that returns a file's contents is on the list.
+// existence and ancestry, and the type of the object at a path: no route that returns a file's
+// contents is on the list, and the two GraphQL routes admit only their own fixed query.
 
-import { CLOSING_QUERY } from '../../src/evidence/github.js';
+import { CLOSING_QUERY, isPathExpression, PATH_QUERY } from '../../src/evidence/github.js';
 
 export const GITHUB_API_ORIGIN = 'https://api.github.com';
 
@@ -45,26 +46,47 @@ function route(name: string, method: Route['method'], path: string, extra: Parti
   return { name, method, path: new RegExp(`^${path}$`), ...extra };
 }
 
-// Exactly the body the reader sends: the closing-references query and its four variables, as
-// JSON.stringify writes them (so no duplicate member, which parsers resolve differently).
-function isClosingReferencesQuery(text: string): boolean {
+// The variables of a body that is exactly `{query, variables}` with this query, as JSON.stringify
+// writes it (so no duplicate member, which parsers resolve differently), or null.
+function fixedQueryVariables(text: string, fixed: string): Record<string, unknown> | null {
   let body: unknown;
   try {
     body = JSON.parse(text);
   } catch {
-    return false;
+    return null;
   }
-  if (body === null || typeof body !== 'object' || JSON.stringify(body) !== text) return false;
+  if (body === null || typeof body !== 'object' || JSON.stringify(body) !== text) return null;
   const { query, variables, ...rest } = body as Record<string, unknown>;
-  if (query !== CLOSING_QUERY || Object.keys(rest).length > 0) return false;
-  if (variables === null || typeof variables !== 'object') return false;
-  const v = variables as Record<string, unknown>;
+  if (query !== fixed || Object.keys(rest).length > 0) return null;
+  if (variables === null || typeof variables !== 'object') return null;
+  return variables as Record<string, unknown>;
+}
+
+// Exactly the body the reader sends: the closing-references query and its four variables.
+function isClosingReferencesQuery(text: string): boolean {
+  const v = fixedQueryVariables(text, CLOSING_QUERY);
   return (
+    v !== null &&
     Object.keys(v).join(',') === 'owner,name,number,after' &&
     typeof v.owner === 'string' &&
     typeof v.name === 'string' &&
     Number.isSafeInteger(v.number) &&
     (v.after === null || typeof v.after === 'string')
+  );
+}
+
+// Exactly the body the advisory's path query sends (comparison 0.3.0): the query, which asks for
+// the type of the object at `<head>:<path>` and nothing else, and its three variables, the
+// expression a full commit id and a repository path.
+function isPathQuery(text: string): boolean {
+  const v = fixedQueryVariables(text, PATH_QUERY);
+  return (
+    v !== null &&
+    Object.keys(v).join(',') === 'owner,name,expression' &&
+    typeof v.owner === 'string' &&
+    typeof v.name === 'string' &&
+    typeof v.expression === 'string' &&
+    isPathExpression(v.expression)
   );
 }
 
@@ -74,6 +96,7 @@ export const ROUTES: readonly Route[] = [
   route('pull request', 'GET', `/repos/${REPO}/pulls/${NUM}`),
   route('pull request files', 'GET', `/repos/${REPO}/pulls/${NUM}/files\\?${PAGE}`),
   route('closing references (GraphQL)', 'POST', '/graphql', { body: isClosingReferencesQuery }),
+  route('object type at a path (GraphQL)', 'POST', '/graphql', { body: isPathQuery }),
   route('repository', 'GET', `/repos/${REPO}`),
   route('issue', 'GET', `/repos/${REPO}/issues/${NUM}`),
   route('commit (git database)', 'GET', `/repos/${REPO}/git/commits/${SHA}`),
@@ -166,9 +189,13 @@ export function checkRoute(
       throw new RouteRefused(`${method} ${target}: ${forbidden.name} reads repository contents`);
     }
   }
-  const match = ROUTES.find((r) => r.method === method && r.path.test(target));
-  if (match === undefined) throw new RouteRefused(`${method} ${target}: not on the allowlist`);
-  if (match.body !== undefined && (body === undefined || !match.body(body))) {
+  // Two routes share POST /graphql; each admits only its own fixed body.
+  const routes = ROUTES.filter((r) => r.method === method && r.path.test(target));
+  if (routes.length === 0) throw new RouteRefused(`${method} ${target}: not on the allowlist`);
+  const match = routes.find(
+    (r) => r.body === undefined || (body !== undefined && r.body(body) === true),
+  );
+  if (match === undefined) {
     throw new RouteRefused(`${method} ${target}: request body is not the one allowed`);
   }
   if (match.body === undefined && body !== undefined && method === 'GET') {

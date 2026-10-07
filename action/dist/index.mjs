@@ -9013,6 +9013,49 @@ async function readClosingReferences(client, repository, number) {
   }
   return unreadable("closing_references");
 }
+var PATH_QUERY = `query($owner: String!, $name: String!, $expression: String!) {
+  repository(owner: $owner, name: $name) {
+    object(expression: $expression) { __typename }
+  }
+}`;
+function isPathExpression(expression) {
+  const m = /^[0-9a-f]{40}:([A-Za-z0-9_.+/-]{1,1024})$/.exec(expression);
+  if (m === null) return false;
+  return m[1].split("/").every((s) => s !== "" && s !== "." && s !== "..");
+}
+async function readPathObjects(client, input2) {
+  const { owner, name } = splitRepo(input2.repository);
+  const out = [];
+  for (const path of input2.paths) {
+    const expression = `${input2.headSha}:${path}`;
+    if (!isPathExpression(expression)) {
+      out.push({ path, status: "unreadable" });
+      continue;
+    }
+    const read = await client.read("path", "/graphql", {
+      method: "POST",
+      locator: `POST /graphql repository(${input2.repository}).object(${expression}).__typename`,
+      requestBody: JSON.stringify({ query: PATH_QUERY, variables: { owner, name, expression } }),
+      record: false
+    });
+    out.push(read.ok ? { path, ...pathObjectOf(read.json) } : { path, status: "unreadable" });
+  }
+  return out;
+}
+function pathObjectOf(json) {
+  try {
+    const body = obj(json);
+    if (body.errors !== void 0 && body.errors !== null) throw new ShapeError();
+    const object = obj(obj(body.data).repository).object;
+    if (object === null) return { status: "ok", object: null };
+    const type = obj(object).__typename;
+    if (type === "Blob" || type === "Tree") return { status: "ok", object: type };
+    throw new ShapeError();
+  } catch (e) {
+    if (!(e instanceof ShapeError)) throw e;
+    return { status: "unreadable" };
+  }
+}
 function isNotFound(read) {
   return !read.ok && (read.status === 404 || read.status === 410);
 }
@@ -9287,7 +9330,7 @@ async function readEvidence(client, input2) {
 // src/record/checker.ts
 import { readFileSync } from "node:fs";
 var CHECKER_NAME = "dunstan";
-var CHECKER_VERSION = "0.1.3";
+var CHECKER_VERSION = "0.1.5";
 function checkerIdentity(artifact) {
   return {
     name: CHECKER_NAME,
@@ -9329,6 +9372,8 @@ var GitHubClient = class {
       (a, b) => a.kind !== b.kind ? a.kind < b.kind ? -1 : 1 : a.locator < b.locator ? -1 : a.locator > b.locator ? 1 : 0
     );
   }
+  // `path` is the advisory's existence query (comparison 0.3.0), whose answers the advisory section
+  // records. It is never evidence, so it is never a source entry.
   async read(kind, path, options = {}) {
     const method = options.method ?? "GET";
     const locator = options.locator ?? `${method} ${path}${options.locatorSuffix ?? ""}`;
@@ -9353,7 +9398,7 @@ var GitHubClient = class {
         read = { ok: false, status: result2.status, error: "parse", body: result2.body };
       }
     }
-    if (options.record !== false) {
+    if (options.record !== false && kind !== "path") {
       const source = {
         kind,
         locator,
@@ -10042,7 +10087,7 @@ function precisionText(precision) {
 }
 
 // src/advisory/advise.ts
-var COMPARISON_VERSION = "0.2.0";
+var COMPARISON_VERSION = "0.3.0";
 var COMPARISON = { version: COMPARISON_VERSION };
 var HEX = /^[0-9a-f]{7,40}$/;
 function blockFor(kind, value, headSha) {
@@ -10100,7 +10145,32 @@ function byName(value, evidence) {
   const matches = files.entries.filter((e) => names(e.path) || e.previousPath !== void 0 && names(e.previousPath)).map((e) => e.path);
   return [...new Set(matches)].sort(compareCodeUnits);
 }
-function compareAdvisory(claim, evidence, repository) {
+var NOT_CHANGED = "differs:declared_not_changed";
+function compareAdvisory(claim, evidence, repository, pathsAtHead) {
+  const compared = compareByList(claim, evidence, repository);
+  if (claim.kind !== "file_changed" || compared.note !== NOT_CHANGED) return compared;
+  const answer = pathsAtHead.find((p) => p.path === claim.value);
+  if (answer === void 0 || answer.status !== "ok") {
+    return { observed: null, note: "unanswered:source_unreadable:path" };
+  }
+  if (answer.object === null) return { observed: null, note: "unanswered:no_such_path" };
+  if (answer.object === "Tree") return { observed: null, note: "unanswered:directory" };
+  return compared;
+}
+function pathsToRead(claims, evidence, repository) {
+  const paths = claims.filter(
+    (c) => c.kind === "file_changed" && typeof c.value === "string" && compareByList(c, evidence, repository).note === NOT_CHANGED
+  ).map((c) => c.value);
+  return [...new Set(paths)].sort(compareCodeUnits);
+}
+function answersFor(paths, answered) {
+  return paths.map((path) => {
+    const answer = answered.find((a) => a.path === path);
+    if (answer === void 0 || answer.status !== "ok") return { path, status: "unreadable" };
+    return { path, status: "ok", object: answer.object };
+  });
+}
+function compareByList(claim, evidence, repository) {
   const row = rowFor(claim.kind, claim.value, evidence, repository);
   if (row === void 0) return { observed: null, note: "unanswered:no_comparable_record_field" };
   const observed = row.observed ?? null;
@@ -10148,7 +10218,7 @@ function sameClaim(a, b, repository) {
   }
   return a.value === b.value;
 }
-function adviseClaims(proposed, evidence, repository) {
+function adviseClaims(proposed, evidence, repository, pathsAtHead = []) {
   const out = [];
   for (const p of proposed) {
     if (out.some((a) => sameClaim(a, p, repository))) continue;
@@ -10156,18 +10226,20 @@ function adviseClaims(proposed, evidence, repository) {
       clause: p.clause,
       kind: p.kind,
       value: p.value,
-      ...compareAdvisory(p, evidence, repository)
+      ...compareAdvisory(p, evidence, repository, pathsAtHead)
     });
   }
   return out;
 }
-function advisorySection(proposed, evidence, repository) {
+function advisorySection(proposed, evidence, repository, answered) {
+  const pathsAtHead = answersFor(pathsToRead(proposed, evidence, repository), answered);
   return {
     extractor: { version: EXTRACTOR.version, digest: { sha256: EXTRACTOR.digest.sha256 } },
     comparison: { version: COMPARISON.version },
     precision: precisionFor(EXTRACTOR.digest.sha256),
     differsAccuracy: differsAccuracyFor(EXTRACTOR.digest.sha256, COMPARISON.version),
-    advisories: adviseClaims(proposed, evidence, repository)
+    pathsAtHead,
+    advisories: adviseClaims(proposed, evidence, repository, pathsAtHead)
   };
 }
 function advisoryDigest(section) {
@@ -11433,7 +11505,7 @@ function buildRecord(input2) {
   };
   const claims = claimsFor(block, evidence, repository);
   const readerClaims = input2.readerClaims?.map((c) => readReaderClaim(c, evidence, repository));
-  const advisory = input2.advisory === void 0 ? void 0 : advisorySection(input2.advisory, evidence, repository);
+  const advisory = input2.advisory === void 0 ? void 0 : advisorySection(input2.advisory, evidence, repository, input2.pathsAtHead ?? []);
   const record = {
     _type: STATEMENT_TYPE,
     subject: statementSubjects(block, subject),
@@ -12538,11 +12610,18 @@ var FILES = { "handback-block-0.1.schema.json": `{
     "advisory": {
       "description": "Claims the advisory extractor proposed from the report's prose, each compared with the evidence by a 0.1 gate check. Advisories never enter the record's verdict or claims, and none is a fail (spec/claim-format.md, \\"DRAFT 0.2.0\\", D.11).",
       "type": "object",
-      "required": ["extractor", "comparison", "precision", "differsAccuracy", "advisories"],
+      "required": [
+        "extractor",
+        "comparison",
+        "precision",
+        "differsAccuracy",
+        "pathsAtHead",
+        "advisories"
+      ],
       "additionalProperties": false,
       "properties": {
         "comparison": {
-          "description": "The version of the rules that turn a proposed claim and the evidence into its note, separate from the extractor's. 0.1.0 compared a file claim by exact path only; 0.2.0 also matches it by name (D.11.4).",
+          "description": "The version of the rules that turn a proposed claim and the evidence into its note, separate from the extractor's. 0.1.0 compared a file claim by exact path only; 0.2.0 also matches it by name; 0.3.0 also asks whether a path not among the changed files exists at the head (D.11.4).",
           "type": "object",
           "required": ["version"],
           "additionalProperties": false,
@@ -12579,8 +12658,26 @@ var FILES = { "handback-block-0.1.schema.json": `{
             }
           ]
         },
+        "pathsAtHead": {
+          "description": "The answers of the existence query, one per file claim's path that is not among the changed files, in code-unit order of path: the type of the object at <head>:<path> (Blob, a file; Tree, a directory; null, none), or unreadable. Never its content, size or id (D.11.5).",
+          "type": "array",
+          "items": { "$ref": "#/$defs/pathAnswer" }
+        },
         "advisories": { "type": "array", "items": { "$ref": "#/$defs/advisoryItem" } }
       }
+    },
+    "pathAnswer": {
+      "type": "object",
+      "required": ["path", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "$ref": "handback-block-0.1.schema.json#/$defs/repoPath" },
+        "status": { "enum": ["ok", "unreadable"] },
+        "object": { "enum": ["Blob", "Tree", null] }
+      },
+      "if": { "properties": { "status": { "const": "ok" } } },
+      "then": { "required": ["object"] },
+      "else": { "not": { "required": ["object"] } }
     },
     "advisoryFigure": {
       "$ref": "#/$defs/advisoryFigureFields",
@@ -12673,9 +12770,9 @@ var FILES = { "handback-block-0.1.schema.json": `{
       ]
     },
     "advisoryNote": {
-      "description": "agrees when the gate check would pass; differs:<reason> when it would fail; unanswered:<reason> when it would be unverifiable. The reasons are the 0.1 claim reasons. A file claim matched by name only is agrees_by_name, or unanswered:ambiguous_path when more than one changed path has that name (D.11.4). Never a verdict.",
+      "description": "agrees when the gate check would pass; differs:<reason> when it would fail; unanswered:<reason> when it would be unverifiable. The reasons are the 0.1 claim reasons. A file claim matched by name only is agrees_by_name, or unanswered:ambiguous_path when more than one changed path has that name. A file claim not among the changed files is unanswered:no_such_path when nothing is at its path at the head, unanswered:directory when a directory is, and unanswered:source_unreadable:path when the answer was not read (D.11.4). Never a verdict.",
       "type": "string",
-      "pattern": "^(?:agrees|agrees_by_name|unanswered:ambiguous_path|(?:differs|unanswered):(?:head_mismatch|declared_not_changed|file_list_truncated|not_closing|closing_link_unsettled|not_found|not_reachable|count_mismatch|all_succeeded_mismatch|checks_incomplete|no_check_runs|no_comparable_record_field|not_merged|premature|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request|pull_request_files|closing_references|repository|issue|commit|compare|check_runs)))$"
+      "pattern": "^(?:agrees|agrees_by_name|unanswered:(?:ambiguous_path|no_such_path|directory|source_unreadable:path)|(?:differs|unanswered):(?:head_mismatch|declared_not_changed|file_list_truncated|not_closing|closing_link_unsettled|not_found|not_reachable|count_mismatch|all_succeeded_mismatch|checks_incomplete|no_check_runs|no_comparable_record_field|not_merged|premature|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request|pull_request_files|closing_references|repository|issue|commit|compare|check_runs)))$"
     },
     "readerReason": {
       "type": "string",
@@ -12839,7 +12936,8 @@ function extractHandbackBlock(reportText) {
 function githubReaders(client) {
   return {
     pullRequest: (repository, number) => readPullRequest(client, repository, number),
-    evidence: (input2) => readEvidence(client, input2)
+    evidence: (input2) => readEvidence(client, input2),
+    pathObjects: (input2) => readPathObjects(client, input2)
   };
 }
 async function checkPullRequest(input2) {
@@ -12857,6 +12955,8 @@ async function checkPullRequest(input2) {
     block: proposed === void 0 ? found : readingBlock(found, proposed, pr.evidence.headSha),
     excludedCheckRunIds: [...input2.excludedCheckRunIds ?? [], ...ownRuns]
   });
+  const paths = proposed === void 0 ? [] : pathsToRead(proposed, evidence, repository);
+  const pathsAtHead = paths.length === 0 ? [] : await input2.readers.pathObjects({ repository, headSha: pr.evidence.headSha, paths });
   return buildRecord({
     checker: input2.checker,
     report: { sha256: sha256Hex(report.bytes), source: report.source },
@@ -12865,7 +12965,7 @@ async function checkPullRequest(input2) {
     evidence,
     rerun: rerunCommands(input2.recordFile),
     ...input2.assurance === void 0 ? {} : { assurance: input2.assurance },
-    ...proposed === void 0 ? {} : { advisory: proposed }
+    ...proposed === void 0 ? {} : { advisory: proposed, pathsAtHead }
   });
 }
 

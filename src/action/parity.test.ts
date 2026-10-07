@@ -30,6 +30,10 @@ function stubbedReaders(c: FixtureCase): EvidenceReaders {
       body: c.report.toString('utf8'),
     }),
     evidence: async () => structuredClone(c.evidence),
+    // Neither run asks for advisories, so the existence query is never asked.
+    pathObjects: async () => {
+      throw new Error('the path query is asked only for advisories');
+    },
   };
 }
 

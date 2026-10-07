@@ -4,7 +4,11 @@
 // none of them reaches the record, the stored object or the response.
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { GitHubClient } from '../../src/evidence/http.js';
+import { checkPullRequest, githubReaders } from '../../src/pipeline/check-pull-request.js';
+import { serializeRecord } from '../../src/record/build.js';
 import { handle } from '../src/app.js';
+import { GuardedTransport } from '../src/transport.js';
 import {
   checkRequest,
   type Emulated,
@@ -96,5 +100,63 @@ describe('what the hosted tier keeps', () => {
       'record',
       'signature',
     ]);
+  });
+});
+
+// Comparison 0.3.0: the advisory's path query, sent through the guarded transport, brings back the
+// type of the object at the head and nothing else. Here GitHub answers it with a blob's content
+// beside its type; none of it reaches the record.
+describe('the path query keeps only the type', () => {
+  const CONTENT = 'const PRIVATE_LINE = "never in a record";';
+  const OID = '0123abcd'.repeat(5);
+
+  it('records Blob, Tree or null for each path, and no content, size or object id', async () => {
+    const base = fakeNetwork();
+    const network = (async (input: string | URL | Request, init?: RequestInit) => {
+      const body = typeof init?.body === 'string' ? init.body : '';
+      if (body.includes('object(expression')) {
+        const object = {
+          __typename: 'Blob',
+          text: CONTENT,
+          byteSize: CONTENT.length,
+          isBinary: false,
+          oid: OID,
+        };
+        return new Response(JSON.stringify({ data: { repository: { object } } }), {
+          status: 200,
+          headers: { 'content-type': 'application/json; charset=utf-8' },
+        });
+      }
+      return base.fetch(input, init);
+    }) as typeof fetch;
+    const transport = new GuardedTransport(network, async () => {});
+    const client = new GitHubClient({
+      token: 'ghs_x',
+      fetch: transport.fetch,
+      sleep: transport.sleep,
+      warn: () => {},
+    });
+    const report = `I changed file1.txt and updated docs/notes.md.\n\n\`\`\`dunstan-handback\n${JSON.stringify(SCENARIO_BLOCK)}\n\`\`\`\n`;
+    const record = await checkPullRequest({
+      readers: githubReaders(client),
+      repository: REPO,
+      number: PR,
+      report: async () => ({
+        bytes: new TextEncoder().encode(report),
+        source: { kind: 'api', locator: 'POST /v0.1/check#report' },
+      }),
+      checker: CHECKER,
+      recordFile: 'r.json',
+      advisory: true,
+    });
+    // The query was on the allowlist, and was asked once, for the path not among the changed files.
+    expect(transport.refused).toEqual([]);
+    expect(record.predicate.advisory?.pathsAtHead).toEqual([
+      { path: 'docs/notes.md', status: 'ok', object: 'Blob' },
+    ]);
+    const bytes = serializeRecord(record);
+    for (const needle of [CONTENT, 'PRIVATE_LINE', 'byteSize', 'isBinary', OID]) {
+      expect(bytes).not.toContain(needle);
+    }
   });
 });

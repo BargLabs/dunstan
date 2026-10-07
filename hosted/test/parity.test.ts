@@ -32,7 +32,7 @@ import {
 } from './support.js';
 
 const cases = [...loadCases('controls'), ...loadCases('planted')];
-const CHECKER = { name: 'dunstan', version: '0.1.3', digest: { sha256: '0'.repeat(64) } };
+const CHECKER = { name: 'dunstan', version: '0.1.5', digest: { sha256: '0'.repeat(64) } };
 
 function stubbedReaders(c: FixtureCase): EvidenceReaders {
   return {
@@ -42,6 +42,10 @@ function stubbedReaders(c: FixtureCase): EvidenceReaders {
       body: null,
     }),
     evidence: async () => structuredClone(c.evidence),
+    // The hosted check asks for no advisories, so the existence query is never asked.
+    pathObjects: async () => {
+      throw new Error('the path query is asked only for advisories');
+    },
   };
 }
 

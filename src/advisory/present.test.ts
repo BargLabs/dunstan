@@ -34,8 +34,10 @@ import {
 
 const OLD_WORDING = /differs|mismatch|false claim/i;
 // The grammar the published figures were measured on. The extractor that runs is 0.1.3 (0.1.2
-// before it), and no figure is published for it.
+// before it, and 0.1.4 reverted to it), and no figure is published for it.
 const EXTRACTOR_0_1_1 = 'ab77ce47d1c5172ec912d1221e03bbe5b312ff5dc2acb594c4b8549fe602c360';
+// The comparison the published differs figure was measured on. The one that runs is 0.3.0.
+const COMPARISON_0_2_0 = '0.2.0';
 
 describe('the words a reader is shown for a note', () => {
   it('shows each differs reason as a possible disagreement and what the record shows', () => {
@@ -87,7 +89,7 @@ describe('the words a reader is shown for a note', () => {
   it('the fixed line for a record with the published figures states them', () => {
     const figures = {
       precision: precisionFor(EXTRACTOR_0_1_1),
-      differsAccuracy: differsAccuracyFor(EXTRACTOR_0_1_1, COMPARISON_VERSION),
+      differsAccuracy: differsAccuracyFor(EXTRACTOR_0_1_1, COMPARISON_0_2_0),
     };
     expect(advisoryLine(figures)).toBe(FIGURES_LINE);
     // A later extractor or comparison finds no figure, and the line falls back to ADVISORY_LINE.
@@ -116,13 +118,15 @@ const FIGURES_LINE =
 // gained the figure fields of the advisory section when the figures were published, and a reader
 // claim's retrieval arm "A-fill" with its k when filling to k became the default; and but for the
 // reason `closing_link_unsettled` of spec 0.1.2, which the 0.1 record schema's claim reason and the
-// DRAFT schema's advisory note both gained. A change to any of them is a record change.
+// DRAFT schema's advisory note both gained; and but for comparison 0.3.0, for which the DRAFT
+// schema's advisory section gained `pathsAtHead` and its note the three existence notes. A change
+// to any of them is a record change.
 const SCHEMA_SHA256: Record<string, string> = {
   'handback-block-0.1.schema.json':
     '331d142be28bf7c9deac7f76cad83731bf00679b952418004270c70344db46a7',
   'record-0.1.schema.json': 'ac398929b30ae0bcaa22298d03a0af0a78af84844223626ccc8bf79bcfcb5e26',
   'record-0.2-draft.schema.json':
-    'bcb717b073ec7616abe6735f22269285cd91f92b90a7e4eb2977184450d8c574',
+    '1b4b0075a2aee668f9689cf5852705c3bdc0707ad28c361b0a60b3846982b22c',
 };
 
 const evidence: Evidence = {
@@ -175,6 +179,8 @@ function build() {
     evidence,
     rerun: { offline: 'dunstan verify r.json', online: 'dunstan rerun r.json' },
     advisory: extractClaims(REPORT),
+    // src/z.ts is a file at the head that the pull request did not change (comparison 0.3.0).
+    pathsAtHead: [{ path: 'src/z.ts', status: 'ok', object: 'Blob' }],
   });
 }
 
@@ -197,8 +203,9 @@ describe('the record does not change, but for the figure fields', () => {
   it('keeps the notes, the comparison and the extractor, and every digest of a record', () => {
     const record = build();
     const a = record.predicate.advisory;
-    expect(a?.comparison).toEqual({ version: '0.2.0' });
-    expect(COMPARISON_VERSION).toBe('0.2.0');
+    expect(a?.comparison).toEqual({ version: '0.3.0' });
+    expect(COMPARISON_VERSION).toBe('0.3.0');
+    expect(a?.pathsAtHead).toEqual([{ path: 'src/z.ts', status: 'ok', object: 'Blob' }]);
     expect(a?.extractor).toEqual(EXTRACTOR);
     expect(EXTRACTOR.version).toBe('0.1.3');
     expect(a?.advisories.map((x) => [x.kind, x.value, x.observed, x.note])).toEqual([
@@ -214,22 +221,26 @@ describe('the record does not change, but for the figure fields', () => {
     ]);
     // Pinned. A digest that moves is a record that changed. The claims and evidence digests are as
     // they were before the presentation change; the advisory digest moved when the section gained
-    // the published figures, again when the extractor became 0.1.2, and again when it became 0.1.3:
-    // each names a new grammar with no figure published.
+    // the published figures, and again when the extractor became 0.1.2, 0.1.3 and 0.1.4: each names
+    // a new grammar with no figure published. 0.1.4 was reverted, and the digest was 0.1.3's
+    // again, 4abc9677…; then comparison 0.3.0 named itself and recorded the answer for src/z.ts.
     expect(record.predicate.digests).toEqual({
       claims: '56cccb4067679d0c95cf609ad87d9ea8eae7198b330baaa9cc0babeb0991b576',
       evidence: '9ff3e3e482ccf21a30847863450476e0594d137006dca39b29f77d543b656951',
-      advisory: '4abc96770cee153fdc3f1284f056f0fc2c0e3092b8252048822d6f117109bd25',
+      advisory: '455e8b97ca3106ed49d07ee8101a81ffe9abbf616e6c8da96654548732d33282',
     });
-    // Named as extractor 0.1.1, with 0.1.1's figures, the section is byte for byte the one pinned
-    // when the figures were published: extractors 0.1.2 and 0.1.3 changed the extractor's identity
-    // and figures here, and no advisory of this report.
+    // Named as extractor 0.1.1 and comparison 0.2.0, with their figures and without the answers
+    // 0.3.0 records, the section is byte for byte the one pinned when the figures were published:
+    // extractors 0.1.2, 0.1.3 and 0.1.4 changed the extractor's identity and figures here, and
+    // comparison 0.3.0 its identity and the answers, and no advisory of this report.
     if (a === undefined) throw new Error('fixture');
+    const { pathsAtHead: _answers, ...section } = a;
     const as011 = {
-      ...a,
+      ...section,
       extractor: { version: '0.1.1', digest: { sha256: EXTRACTOR_0_1_1 } },
+      comparison: { version: COMPARISON_0_2_0 },
       precision: precisionFor(EXTRACTOR_0_1_1),
-      differsAccuracy: differsAccuracyFor(EXTRACTOR_0_1_1, COMPARISON_VERSION),
+      differsAccuracy: differsAccuracyFor(EXTRACTOR_0_1_1, COMPARISON_0_2_0),
     };
     expect(sha256Canonical(as011 as unknown as JsonValue)).toBe(
       'd0c343cfdb569d526fd162ea22444626db57bef3d212cf750020ed4a11f6c6ec',
@@ -264,13 +275,14 @@ describe('the record does not change, but for the figure fields', () => {
 
   it('every surface words each differs note as a possible disagreement, beside the line with the figures', () => {
     // A record written by extractor 0.1.1, which carries the figures published for it. Extractors
-    // 0.1.2 and 0.1.3 have none: the next test.
+    // 0.1.2, 0.1.3 and 0.1.4 have none: the next test.
     const record = build();
     const a = record.predicate.advisory;
     if (a === undefined) throw new Error('fixture');
     a.extractor = { version: '0.1.1', digest: { sha256: EXTRACTOR_0_1_1 } };
+    a.comparison = { version: COMPARISON_0_2_0 };
     a.precision = precisionFor(EXTRACTOR_0_1_1);
-    a.differsAccuracy = differsAccuracyFor(EXTRACTOR_0_1_1, COMPARISON_VERSION);
+    a.differsAccuracy = differsAccuracyFor(EXTRACTOR_0_1_1, COMPARISON_0_2_0);
     const surfaces = surfacesOf(record);
     for (const [name, text] of Object.entries(surfaces)) {
       expect(text.replaceAll(FIGURES_LINE, ''), name).not.toMatch(OLD_WORDING);

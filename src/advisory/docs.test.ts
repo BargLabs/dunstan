@@ -4,10 +4,16 @@
 
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { PATH_QUERY } from '../evidence/github.js';
 import { COMPARISON_VERSION } from './advise.js';
 import { EXTRACTOR, GRAMMAR } from './grammar.js';
 import { differsAccuracyFor, precisionFor } from './precision.js';
 import { ADVISORY_LINE, advisoryLine, noteText, RECORD_SHOWS } from './present.js';
+
+// Extractor 0.1.3's grammar, the one the constructed-report figures below were measured on, and
+// the one that runs again since 0.1.4 was reverted.
+const EXTRACTOR_0_1_3 = '2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37';
+const EXTRACTOR_0_1_4 = '78b92a682063464faf3cf1de13123d2b232bb3575effd5f31f0e12905643d45c';
 
 const doc = readFileSync(new URL('../../docs/advisory.md', import.meta.url), 'utf8');
 const lines = new Map(
@@ -46,10 +52,12 @@ describe('docs/advisory.md', () => {
   });
 
   it('states the fixed line with the published figures, and the figures and their binding', () => {
-    // The figures were measured on extractor 0.1.1; the extractor that runs is 0.1.3.
+    // The figures were measured on extractor 0.1.1 and comparison 0.2.0; the extractor that runs is
+    // 0.1.3, and the comparison 0.3.0.
     const measured = 'ab77ce47d1c5172ec912d1221e03bbe5b312ff5dc2acb594c4b8549fe602c360';
     const precision = precisionFor(measured);
-    const differsAccuracy = differsAccuracyFor(measured, COMPARISON_VERSION);
+    const differsAccuracy = differsAccuracyFor(measured, '0.2.0');
+    expect(differsAccuracy).not.toBeNull();
     expect(doc).toContain(`> ${advisoryLine({ precision, differsAccuracy })}\n`);
     expect(doc).toContain('## Measured figures');
     expect(doc).toContain(measured);
@@ -99,7 +107,7 @@ describe('docs/advisory.md', () => {
     const start = doc.indexOf(heading);
     const raw = doc.slice(start, doc.indexOf('\n## ', start));
     const section = raw.replace(/\s+/g, ' ');
-    expect(section).toContain(`digest \`${EXTRACTOR.digest.sha256}\`, and comparison 0.2.0`);
+    expect(section).toContain(`digest \`${EXTRACTOR_0_1_3}\`, and comparison 0.2.0`);
     expect(section).toContain('on the same 430 constructed reports as the 0.1.2 subsection');
     expect(section).toContain(
       'these figures are never carried in a record: 0.1.3 has no precision measured on real pull requests, so a record extractor 0.1.3 writes carries `null` for both figures',
@@ -128,7 +136,7 @@ describe('docs/advisory.md', () => {
     expect(flat).not.toContain('0.1.3, which runs now, has no published figures');
     expect(flat).not.toContain('No figures are published for it');
     expect(flat).toContain(
-      '0.1.2, and 0.1.3, which runs now, each have figures from constructed reports only, which no record carries, and no precision measured on real pull requests',
+      '0.1.2 and 0.1.3, which runs now, each have figures from constructed reports only, which no record carries, and no precision measured on real pull requests, and 0.1.4, which was reverted, has no figures at all',
     );
     expect(flat).toContain(
       'carries `null` for both figures, shown as "unmeasured", until a precision measured on real pull requests is published for 0.1.3',
@@ -144,10 +152,58 @@ describe('docs/advisory.md', () => {
   it('states the extractor that runs, its digest, and that it is unmeasured', () => {
     expect(precisionFor(EXTRACTOR.digest.sha256)).toBeNull();
     expect(doc.replace(/\s+/g, ' ')).toContain(
-      `The extractor that runs since 2026-10-06 is ${EXTRACTOR.version}, digest \`${EXTRACTOR.digest.sha256}\``,
+      `The extractor that runs since 2026-10-07 is ${EXTRACTOR.version} again, digest \`${EXTRACTOR.digest.sha256}\``,
     );
+    expect(EXTRACTOR.digest.sha256).toBe(EXTRACTOR_0_1_3);
     expect(doc).toContain('### Attribution (extractor 0.1.2)');
     expect(doc).toContain('### Lists, merge times and own references (extractor 0.1.3)');
+    const flat = doc.replace(/\s+/g, ' ');
+    expect(flat).toContain(`Extractor 0.1.3, digest \`${EXTRACTOR_0_1_3}\`, ran from 2026-10-06.`);
+  });
+
+  it('states comparison 0.3.0: the rule, the query as sent, why, and that it is unmeasured', () => {
+    const heading = '### Paths that are not at the head (comparison 0.3.0)';
+    expect(doc).toContain(`\n${heading}\n`);
+    const start = doc.indexOf(heading);
+    const raw = doc.slice(start, doc.indexOf('\n### ', start + 1));
+    const section = raw.replace(/\s+/g, ' ');
+    expect(COMPARISON_VERSION).toBe('0.3.0');
+    for (const row of [
+      '| a file (`Blob`) | `differs:declared_not_changed`, as before |',
+      '| nothing | `unanswered:no_such_path` |',
+      '| a directory (`Tree`) | `unanswered:directory` |',
+      '| the read failed, or answered in any other shape or type | `unanswered:source_unreadable:path` |',
+    ]) {
+      expect(raw).toContain(row);
+    }
+    expect(raw).toContain(`\`\`\`graphql\n${PATH_QUERY}\n\`\`\``);
+    expect(section).toContain('experiments/open-source-advisory-2026-10/result.md');
+    expect(section).toContain('**Comparison 0.3.0 is unmeasured.**');
+    expect(differsAccuracyFor(EXTRACTOR.digest.sha256, COMPARISON_VERSION)).toBeNull();
+  });
+
+  it('keeps the record that extractor 0.1.4 ran and was reverted, with the reason', () => {
+    const heading = '### Labels, used names and descriptions (extractor 0.1.4, reverted)';
+    expect(doc).toContain(`\n${heading}\n`);
+    const start = doc.indexOf(heading);
+    const section = doc.slice(start, doc.indexOf('\n### ', start + 1)).replace(/\s+/g, ' ');
+    expect(section).toContain(`Extractor 0.1.4, digest \`${EXTRACTOR_0_1_4}\`, ran on 2026-10-07`);
+    expect(section).toContain('**Why it was reverted.** The rules did not generalise.');
+    expect(section).toContain("The study's refutation test 2");
+    expect(section).toContain('experiments/open-source-advisory-2026-10/result.md');
+    expect(section).toContain(`so its digest is \`${EXTRACTOR_0_1_3}\` again`);
+    // None of 0.1.4's lists is in the grammar, so none is listed.
+    for (const name of [
+      'operands',
+      'insertVerbs',
+      'insertPrepositions',
+      'genericOpeners',
+      'relatives',
+      'pastPassives',
+    ]) {
+      expect(GRAMMAR).not.toHaveProperty(name);
+      expect(lines.has(name)).toBe(false);
+    }
   });
 
   // Each of these sections is one sentence pointing at the code, which holds the rules and tests.

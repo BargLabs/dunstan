@@ -6,7 +6,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildSync } from 'esbuild';
 import { describe, expect, it } from 'vitest';
-import { CLOSING_QUERY } from '../../src/evidence/github.js';
+import { CLOSING_QUERY, PATH_QUERY } from '../../src/evidence/github.js';
 import {
   checkRoute,
   GuardedTransport,
@@ -133,6 +133,67 @@ describe('the route allowlist', () => {
       body: JSON.stringify({ query: CLOSING_QUERY, variables }),
     });
     expect(calls).toEqual([`${API}/graphql`]);
+  });
+
+  // Comparison 0.3.0: the second fixed GraphQL query, which reads the type of the object at
+  // `<head>:<path>` and nothing of its content.
+  it('admits the path query only as written, with a head and a repository path', async () => {
+    const variables = {
+      owner: 'example-org',
+      name: 'example-repo',
+      expression: `${HEAD}:src/a.ts`,
+    };
+    const { calls, network } = spyNetwork();
+    const transport = new GuardedTransport(network);
+    await transport.fetch(`${API}/graphql`, {
+      method: 'POST',
+      headers: { accept: MEDIA_TYPE },
+      body: JSON.stringify({ query: PATH_QUERY, variables }),
+    });
+    expect(calls).toEqual([`${API}/graphql`]);
+    expect(transport.refused).toEqual([]);
+    const withContent = PATH_QUERY.replace('{ __typename }', '{ __typename ... on Blob { text } }');
+    const withTree = PATH_QUERY.replace('{ __typename }', '{ ... on Tree { entries { name } } }');
+    for (const body of [
+      JSON.stringify({ query: withContent, variables }),
+      JSON.stringify({ query: withTree, variables }),
+      JSON.stringify({ query: PATH_QUERY, variables: { ...variables, expression: 'HEAD:a.ts' } }),
+      JSON.stringify({ query: PATH_QUERY, variables: { ...variables, expression: `main:a.ts` } }),
+      JSON.stringify({ query: PATH_QUERY, variables: { ...variables, expression: `${HEAD}:` } }),
+      JSON.stringify({ query: PATH_QUERY, variables: { ...variables, expression: `${HEAD}` } }),
+      JSON.stringify({
+        query: PATH_QUERY,
+        variables: { ...variables, expression: `${HEAD}:../x` },
+      }),
+      JSON.stringify({
+        query: PATH_QUERY,
+        variables: { ...variables, expression: `${HEAD}:/a.ts` },
+      }),
+      JSON.stringify({
+        query: PATH_QUERY,
+        variables: { ...variables, expression: `${HEAD}:a//b` },
+      }),
+      JSON.stringify({ query: PATH_QUERY, variables: { ...variables, number: 7 } }),
+      JSON.stringify({ query: PATH_QUERY, variables: { owner: 'example-org', name: 'x' } }),
+      JSON.stringify({ query: PATH_QUERY, variables, operationName: 'x' }),
+      JSON.stringify({ query: PATH_QUERY, variables }, null, 1),
+      `{"query":${JSON.stringify(PATH_QUERY)},"query":"query { viewer { login } }","variables":${JSON.stringify(variables)}}`,
+      // The closing-references query with the path query's variables, and the other way round.
+      JSON.stringify({ query: CLOSING_QUERY, variables }),
+      JSON.stringify({
+        query: PATH_QUERY,
+        variables: { owner: 'example-org', name: 'example-repo', number: 7, after: null },
+      }),
+    ]) {
+      expect(() => checkRoute('POST', `${API}/graphql`, body, MEDIA_TYPE), body).toThrow(
+        RouteRefused,
+      );
+    }
+    // The route list names exactly two fixed GraphQL queries.
+    expect(ROUTES.filter((r) => r.path.test('/graphql')).map((r) => r.name)).toEqual([
+      'closing references (GraphQL)',
+      'object type at a path (GraphQL)',
+    ]);
   });
 
   it('admits each evidence read the reader makes', () => {

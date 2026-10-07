@@ -27,11 +27,11 @@ the build to verify it with.
 | Records | Checker | `checker.digest` | Built from |
 |---|---|---|---|
 | `demo/2026-10/*/rerun-v0.1.1-2026-10-06/record.json` | 0.1.1 | `9bbd685b8adbb1cf11beaad7dc294150e30775f50c3c3a2468f596deca7f38e4` | tag `v0.1.1`: `pnpm install --frozen-lockfile && pnpm build` there reproduces this digest |
-| `spec/examples/records/*.json` | 0.1.3 | `73a50031c8bdf06b0bd96062386dc3347ad18d6b3c458c4dae123efd6e6c044a` | nothing: these records are illustrative, regenerated for spec 0.1.2, and this digest is a placeholder (spec section 15) |
+| `spec/examples/records/*.json` | 0.1.5 | `73a50031c8bdf06b0bd96062386dc3347ad18d6b3c458c4dae123efd6e6c044a` | nothing: these records are illustrative, regenerated for spec 0.1.2, and this digest is a placeholder (spec section 15) |
 
 The demo's `rerun-v0.1.1-2026-10-06` records carry checker 0.1.1 and digest `9bbd685b…`. That digest
 is reproduced by `pnpm build` at the tag `v0.1.1`, not at the current head of this repository, which
-builds checker 0.1.3 and another bundle. Verify them with the `v0.1.1` build: checker 0.1.3 refuses
+builds checker 0.1.5 and another bundle. Verify them with the `v0.1.1` build: checker 0.1.5 refuses
 a record that checker 0.1.1 wrote, as spec section 12 requires. The spec examples are recomputed by
 the checker the current head builds, and carry its version.
 

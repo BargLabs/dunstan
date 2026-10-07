@@ -280,6 +280,8 @@ describe('the Action', () => {
         { filename: 'src/a.ts', status: 'modified' },
         { filename: 'pkg/b.ts', status: 'modified' },
       ],
+      // src/zzz.ts is a file at the head that the pull request did not change.
+      objects: { [`${HEAD}:src/zzz.ts`]: { __typename: 'Blob' } },
     });
     const plain = await act(harness(scenario()), { 'report-source': 'pr-body' });
     const h = harness(scenario());
@@ -298,7 +300,7 @@ describe('the Action', () => {
       [null, 'unanswered:evidence_field_unpopulated:closingIssuesReferences'],
     ]);
     expect(r.summary).toContain(
-      '| Advisory (DRAFT, not part of the verdict) | 4 advisories: 1 agree; 1 agree by name only; 1 possible disagreement, unverified; 1 unanswered. Extractor 0.1.3, comparison 0.2.0, precision unmeasured.',
+      '| Advisory (DRAFT, not part of the verdict) | 4 advisories: 1 agree; 1 agree by name only; 1 possible disagreement, unverified; 1 unanswered. Extractor 0.1.3, comparison 0.3.0, precision unmeasured.',
     );
     expect(plain.summary).not.toContain('Advisory');
     expect(plain.summary).not.toContain(ADVISORY_LINE);
@@ -313,6 +315,7 @@ describe('the Action', () => {
         changed_files: 1,
       }),
       files: [{ filename: 'src/a.ts', status: 'modified' }],
+      objects: { [`${HEAD}:src/zzz.ts`]: { __typename: 'Blob' } },
     });
     const plain = await act(harness(scenario()), { 'report-source': 'pr-body' });
     const h = harness(scenario());
@@ -327,7 +330,7 @@ describe('the Action', () => {
     // The title is the gate's alone: the same with and without advisories.
     expect(output.title).toBe('pass: 2 of 2 claims hold');
     expect(r.outcome.title).toBe(plain.outcome.title);
-    // Extractor 0.1.3 is unmeasured, as 0.1.2 was, so the fixed line states no figure.
+    // Extractor 0.1.3 is unmeasured, as 0.1.2 and 0.1.4 are, so the fixed line states no figure.
     const line = advisoryLine(record.predicate.advisory as AdvisorySection);
     expect(line).toBe(ADVISORY_LINE);
     for (const text of [output.summary, r.summary]) {

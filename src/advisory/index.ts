@@ -10,6 +10,9 @@ export {
   COMPARISON_VERSION,
   type ComparisonIdentity,
   compareAdvisory,
+  type PathAnswer,
+  type PathObject,
+  pathsToRead,
   readingBlock,
 } from './advise.js';
 export { extractClaims, type ProposedClaim, repoPath, type Span } from './extract.js';

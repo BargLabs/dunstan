@@ -12,7 +12,13 @@ import {
 import { runChecks } from '../check/index.js';
 import type { Block, Evidence } from '../check/types.js';
 import { validateRecord } from '../spec/schema.js';
-import { PullRequestUnreadable, readEvidence, readPullRequest } from './github.js';
+import {
+  PATH_QUERY,
+  PullRequestUnreadable,
+  readEvidence,
+  readPathObjects,
+  readPullRequest,
+} from './github.js';
 import { GitHubClient } from './http.js';
 
 const CITED = 'c17ed00000000000000000000000000000000001';
@@ -532,5 +538,116 @@ describe('readEvidence', () => {
     });
     expect(evidence.files).toEqual({ status: 'unreadable', source: 'pull_request_files' });
     expect(warnings.join('\n')).toMatch(/giving up with HTTP 502/);
+  });
+});
+
+// The advisory's existence query (comparison 0.3.0): one fixed GraphQL query per path, which
+// reads the type of the object at `<head>:<path>` and never its content.
+describe('readPathObjects', () => {
+  const pr = { pr: basePullRequest() };
+  const ask = async (scenario: Scenario, paths: string[]) => {
+    const { client: c, fake } = client(scenario);
+    const answers = await readPathObjects(c, { repository: REPO, headSha: HEAD, paths });
+    return { answers, fake, c };
+  };
+
+  it('sends the one fixed query per path, the head and the path as its expression', async () => {
+    const { fake } = await ask(pr, ['src/a.ts', 'docs']);
+    expect(fake.requests).toEqual(['POST /graphql', 'POST /graphql']);
+    expect(fake.graphql.map((b) => JSON.parse(b))).toEqual([
+      {
+        query: PATH_QUERY,
+        variables: { owner: 'example-org', name: 'example-repo', expression: `${HEAD}:src/a.ts` },
+      },
+      {
+        query: PATH_QUERY,
+        variables: { owner: 'example-org', name: 'example-repo', expression: `${HEAD}:docs` },
+      },
+    ]);
+    // It asks for the type and nothing else: no field of a blob or a tree.
+    expect(PATH_QUERY.replace(/\s+/g, ' ')).toContain(
+      'object(expression: $expression) { __typename }',
+    );
+    expect(PATH_QUERY).not.toMatch(/\.\.\.|text|oid|byteSize|entries|isBinary/);
+  });
+
+  it('records Blob, Tree or no object, and nothing else of the answer', async () => {
+    const secret = 'export const SECRET_LINE = 1;';
+    const { answers } = await ask(
+      {
+        ...pr,
+        objects: {
+          [`${HEAD}:src/a.ts`]: {
+            __typename: 'Blob',
+            text: secret,
+            byteSize: 29,
+            oid: 'f'.repeat(40),
+          },
+          [`${HEAD}:src`]: { __typename: 'Tree', entries: [{ name: 'SECRET_NAME.ts' }] },
+        },
+      },
+      ['src/a.ts', 'src', 'gone.ts'],
+    );
+    expect(answers).toEqual([
+      { path: 'src/a.ts', status: 'ok', object: 'Blob' },
+      { path: 'src', status: 'ok', object: 'Tree' },
+      { path: 'gone.ts', status: 'ok', object: null },
+    ]);
+    expect(JSON.stringify(answers)).not.toMatch(/SECRET|byteSize|oid|entries/);
+  });
+
+  it('is unreadable on an HTTP error, a GraphQL error, another type or an unexpected shape', async () => {
+    const statuses = await ask(
+      { ...pr, objects: { [`${HEAD}:a.ts`]: 502, [`${HEAD}:b.ts`]: 404 } },
+      ['a.ts', 'b.ts'],
+    );
+    expect(statuses.answers).toEqual([
+      { path: 'a.ts', status: 'unreadable' },
+      { path: 'b.ts', status: 'unreadable' },
+    ]);
+    const types = await ask(
+      {
+        ...pr,
+        objects: {
+          [`${HEAD}:vendor/lib`]: { __typename: 'Commit' },
+          [`${HEAD}:x.ts`]: { text: 'no type' },
+        },
+      },
+      ['vendor/lib', 'x.ts'],
+    );
+    expect(types.answers).toEqual([
+      { path: 'vendor/lib', status: 'unreadable' },
+      { path: 'x.ts', status: 'unreadable' },
+    ]);
+    for (const body of [
+      { errors: [{ message: 'Something went wrong' }], data: { repository: { object: null } } },
+      { data: { repository: null } },
+      { data: null },
+      [],
+    ]) {
+      const c = new GitHubClient({
+        token: 't',
+        fetch: (async () => new Response(JSON.stringify(body), { status: 200 })) as typeof fetch,
+        sleep: async () => {},
+        warn: () => {},
+      });
+      expect(
+        await readPathObjects(c, { repository: REPO, headSha: HEAD, paths: ['a.ts'] }),
+      ).toEqual([{ path: 'a.ts', status: 'unreadable' }]);
+    }
+  });
+
+  it('records no evidence source: its answers belong to the advisory section', async () => {
+    const { c } = await ask(pr, ['src/a.ts']);
+    expect(c.sortedSources()).toEqual([]);
+  });
+
+  it('asks nothing for a value that is not a repository path, and records it unreadable', async () => {
+    const { answers, fake } = await ask(pr, ['../etc/passwd', 'a b.ts']);
+    expect(fake.requests).toEqual([]);
+    expect(answers).toEqual([
+      { path: '../etc/passwd', status: 'unreadable' },
+      { path: 'a b.ts', status: 'unreadable' },
+    ]);
   });
 });

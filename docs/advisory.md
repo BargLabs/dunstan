@@ -94,9 +94,10 @@ from the record:
 > Advisories never affect the verdict. Extraction precision 0.80 (24/30, 95% CI 0.63–0.90). A possible disagreement is unverified: on 170 of our own agent PRs, 0 of 20 marked a false claim, and of the 44 advisories the record could check there, none was a false claim (0 of 44).
 
 For a record that carries no figure (a later extractor or comparison, not yet measured), the line
-states none. Since extractor 0.1.2 that includes every record the running checker writes: 0.1.2,
-and 0.1.3, which runs now, each have figures from constructed reports only, which no record
-carries, and no precision measured on real pull requests ("Measured figures", below).
+states none. Since extractor 0.1.2 that includes every record the running checker writes: 0.1.2 and
+0.1.3, which runs now, each have figures from constructed reports only, which no record carries, and
+no precision measured on real pull requests, and 0.1.4, which was reverted, has no figures at all
+("Measured figures", below).
 
 > Advisories never affect the verdict. A possible disagreement is unverified: on the reports measured so far it usually reflected a misread of the report, not a false claim.
 
@@ -113,9 +114,11 @@ The surfaces are:
 - **The hosted endpoint**: `claimsTable` is the CLI's text. The endpoint does not ask for
   advisories either.
 
-**The wording changes presentation only.** The record's `note` is still `differs:<reason>` and the
-comparison stays 0.2.0. A consumer that reads the record reads the same notes. The only record
-change since is the figure fields of the advisory section ("Measured figures", below).
+**The wording changes presentation only.** The record's `note` is still `differs:<reason>`, and the
+wording left the comparison at 0.2.0. A consumer that reads the record reads the same notes. The
+record changes since are the figure fields of the advisory section ("Measured figures", below) and
+comparison 0.3.0, which keeps `differs:declared_not_changed` only for a path that is a file at the
+head ("Paths that are not at the head", below).
 `src/advisory/present.ts` holds the wording. `src/advisory/present.test.ts` pins the schemas'
 SHA-256 and a record's notes and digests, and checks each surface's text, with and without the
 figures.
@@ -125,16 +128,19 @@ figures.
 1. **Extract** (`extract.ts`): `extractClaims(reportText)` gives proposed claims, each
    `{clause, verb, kind, value, span}`. `span` is the token's code-unit offsets in the report text.
 2. **Read** (`advise.ts`, `readingBlock`): the checker reads the evidence the block needs, plus the
-   sections the proposed claims need (D.11.5).
+   sections the proposed claims need (D.11.5). Then, for each file claim the changed files hold
+   neither at its path nor by name, it asks one fixed query for the type of the object at that path
+   at the head (`pathsToRead`; "Paths that are not at the head", below).
 3. **Compare** (`advise.ts`, `compareAdvisory`): each claim goes to the 0.1 gate check of the same
    field, given a block that holds only that field. The check's row becomes the advisory's
-   `observed` and `note`. A file claim is also matched by name ("Bare file names", below). The
-   rules of this step are the **comparison**, versioned apart from the extractor: the record's
-   `advisory.comparison.version` is `0.2.0`.
+   `observed` and `note`. A file claim is also matched by name ("Bare file names", below), and one
+   still not among the changed files is a disagreement only when its path is a file at the head.
+   The rules of this step are the **comparison**, versioned apart from the extractor: the record's
+   `advisory.comparison.version` is `0.3.0`.
 
 | Kind | Value | Gate check | Notes it can carry |
 | --- | --- | --- | --- |
-| `file_changed` | path | 7.3 scope, one declared path, then by name | `agrees`, `agrees_by_name`, `differs:declared_not_changed`, `unanswered:ambiguous_path`, `unanswered:file_list_truncated` |
+| `file_changed` | path | 7.3 scope, one declared path, then by name, then the path at the head | `agrees`, `agrees_by_name`, `differs:declared_not_changed` (a file at the head), `unanswered:no_such_path`, `unanswered:directory`, `unanswered:source_unreadable:path`, `unanswered:ambiguous_path`, `unanswered:file_list_truncated` |
 | `reference_closes` | `#N`, `owner/repo#N` | 7.4 `closes` | `agrees`, `differs:not_closing` (merged or closed pull request), `differs:not_found`, `unanswered:closing_link_unsettled` (open pull request), `unanswered:…` |
 | `commit` | 7 to 40 hex | 7.2 if the head starts with it, else 7.4 `cites` (40 hex only) | `agrees`, `differs:not_found`, `differs:not_reachable`, `unanswered:…` |
 | `head_commit` | 7 to 40 hex | 7.2 head | `agrees`, `differs:head_mismatch` |
@@ -160,7 +166,8 @@ current path, in code-unit order.
 - **A bare name** (no `/`) is always matched by name, never read as a path at the root:
   - one candidate: `agrees_by_name`, with `observed` that full path;
   - more than one: `unanswered:ambiguous_path`, with every candidate in `observed`;
-  - none: `differs:declared_not_changed`, as before.
+  - none: `differs:declared_not_changed`, as before (since comparison 0.3.0, only when the path is
+    a file at the head: "Paths that are not at the head", below).
 - **A value with a `/`** keeps the exact comparison, so a changed path is `agrees`. Otherwise it may
   be a path relative to some directory: a suffix of one changed path on segment boundaries is
   `agrees_by_name`, of more than one `unanswered:ambiguous_path`, and of none
@@ -180,10 +187,78 @@ The gate is unchanged. A handback block's `filesChanged` holds repository-relati
 files as people do. The extraction grammar is unchanged too: extractor 0.1.1, digest
 `ab77ce47d1c5172ec912d1221e03bbe5b312ff5dc2acb594c4b8549fe602c360`. A measurement of the
 extractor's precision on that digest still holds. (Extractor 0.1.2 later changed the grammar:
-"Attribution", below; and 0.1.3 after it: "Lists, merge times and own references", below.)
+"Attribution", below; and 0.1.3 after it: "Lists, merge times and own references", below. 0.1.4
+changed it again and was reverted to 0.1.3: "Labels, used names and descriptions", below.)
 
 The rules are pinned by synthetic tests in `advise.test.ts`, "a file named by a bare name or a
 partial path (comparison 0.2.0)".
+
+### Paths that are not at the head (comparison 0.3.0)
+
+A file claim that the changed files hold neither at its path nor by name was, through comparison
+0.2.0, always `differs:declared_not_changed`. Comparison 0.3.0 first asks what is at that path at
+the pull request's head, and keeps the note only for a file:
+
+| At `<head>:<path>` | Note |
+| --- | --- |
+| a file (`Blob`) | `differs:declared_not_changed`, as before |
+| nothing | `unanswered:no_such_path` |
+| a directory (`Tree`) | `unanswered:directory` |
+| the read failed, or answered in any other shape or type | `unanswered:source_unreadable:path` |
+
+A failed read is never `differs` and never `agrees`. Every other note is unchanged, and so is the
+gate: a block's `filesChanged` is still compared by exact path (7.3), and no gate check reads the
+answer.
+
+**The query.** The evidence reader (`src/evidence/github.ts`, `readPathObjects`) sends one fixed
+GraphQL query per such path, with the expression `<head>:<path>` as a variable. It asks for the
+object's type and nothing else, never a blob's content, size or id, or a tree's entries:
+
+```graphql
+query($owner: String!, $name: String!, $expression: String!) {
+  repository(owner: $owner, name: $name) {
+    object(expression: $expression) { __typename }
+  }
+}
+```
+
+It is sent only with advisories on, only for a `file_changed` claim the changed files would leave
+`differs:declared_not_changed`, and only after the file list was read in full. A claim on a changed
+file, a name match, an ambiguous name or a truncated list asks nothing. A bare name or a partial
+path is asked at the root, as written: `cli.ts` names `<head>:cli.ts`. The hosted route allowlist
+admits this query and the closing-references query, each only as written (`docs/hosted.md`).
+
+**What the record holds.** The answers are the evidence the note was computed from, so they are
+recorded beside the notes, not in the 0.1 `evidence`: the advisory section's `pathsAtHead` holds
+one entry per path asked, in code-unit order, each `{path, status: "ok", object}` with `object`
+`"Blob"`, `"Tree"` or `null`, or `{path, status: "unreadable"}`. A path the reader did not answer is
+recorded unreadable. `digests.advisory` covers them; `digests.evidence` and `digests.claims` do not
+move. `dunstan verify` recomputes each note from the recorded answers, never from a fresh read, and
+names a record whose `pathsAtHead` does not list exactly the paths its claims need.
+
+**Why.** In the open-source study of the advisory reader on public agent-written pull requests
+([`experiments/open-source-advisory-2026-10/result.md`](../experiments/open-source-advisory-2026-10/result.md)),
+the false accusations were all on `file_changed` claims noted `differs:declared_not_changed`. On the
+study's dev half, every one of them named a path that does not exist at the pull request's head,
+while 2 of the 3 genuine false claims of that kind named a path that does. The study's
+preregistration did not test this, so it is an observation from the dev half only. It is to be
+tested on a new held-out sample, preregistered separately.
+
+What it costs, on purpose:
+
+- A genuine false claim about a file that does not exist at the head (a file the agent said it
+  added and did not) is now unanswered, not a possible disagreement. On the dev half that was 1 of
+  the 3.
+- A bare name or partial path whose file lives below the root reads as `unanswered:no_such_path`,
+  even if that file exists unchanged elsewhere.
+
+**Comparison 0.3.0 is unmeasured.** The published `differs` figure is bound to comparison 0.2.0
+and is not rebound, so a record compared by 0.3.0 carries `null` for `differsAccuracy`, shown as
+"unmeasured", until 0.3.0 is measured.
+
+The rules are pinned by synthetic tests in `advise.test.ts`, "a file claim not among the changed
+files: does the path exist at the head? (comparison 0.3.0)", "pathsToRead" and the 0.3.0 record and
+command-line tests, and in `src/evidence/github.test.ts`, "readPathObjects".
 
 ## The grammar, as written
 
@@ -404,6 +479,28 @@ meant" and "still a claim beside the 0.1.3 rules". For the rules that add a clai
 none of the claims each positive expects; for the rules that drop one, it proposed the claim each
 negative drops.
 
+### Labels, used names and descriptions (extractor 0.1.4, reverted)
+
+Extractor 0.1.4, digest `78b92a682063464faf3cf1de13123d2b232bb3575effd5f31f0e12905643d45c`, ran on
+2026-10-07 and was reverted the same day. It added five rules, each of which only dropped a file
+claim: the plural noun of a bold label ("**Fare updates** — …") was not a verb; an operand phrase
+(`use of`, `command for`, …) stopped the binding as an analogue does; a path put into another path
+("Added `ferry.schedule` to `services.json`") was not a changed file; and neither was a path in a
+clause opened by `a` or `an` with a third-person verb, or in a relative clause in the past passive.
+The rules were written from the misreads labelled in the dev half of the open-source study
+(`experiments/open-source-advisory-2026-10/`).
+
+**Why it was reverted.** The rules did not generalise. The study's refutation test 2 asked whether
+the fixed extractor's share of false accusations on the held-out test half fell below the
+baseline's on the same half. It did not: 18 of 120 checkable advisories for both, 0.150. The rules
+removed misreads only in the dev half they were written from
+([`experiments/open-source-advisory-2026-10/result.md`](../experiments/open-source-advisory-2026-10/result.md)).
+
+The revert is exact: the grammar's lists, rules and version are 0.1.3's, so its digest is
+`2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37` again, and 0.1.4's rules and
+their tests are gone from `src/advisory/`. Records written by 0.1.4 name its digest and verify only
+with checker 0.1.4. No figure was ever published for 0.1.4.
+
 ### The lists
 
 - `verbs.file`: added, adds, adjusted, adjusts, amended, amends, changed, changes, created, creates, deleted, deletes, edited, edits, extended, extends, fixed, fixes, modified, modifies, moved, moves, patched, patches, refactored, refactors, removed, removes, renamed, renames, replaced, replaces, reworked, reworks, rewrites, rewritten, rewrote, touched, touches, tweaked, tweaks, updated, updates
@@ -499,12 +596,18 @@ The table below is for extractor 0.1.1. Extractor 0.1.2, digest
 `dfd6563a934667a80448e49b7133ade6d2473e5e13cd9d05fd52c761a1a1780b`, ran from 2026-10-05. It now
 has figures measured on constructed reports ("Extractor 0.1.2 on constructed reports (recall)",
 below), but no precision measured on real pull requests, so its records still carry `null` for both
-figures. The extractor that runs since 2026-10-06 is 0.1.3, digest
-`2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37`. It too has figures measured on
+figures. Extractor 0.1.3, digest
+`2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37`, ran from 2026-10-06. Extractor
+0.1.4, digest `78b92a682063464faf3cf1de13123d2b232bb3575effd5f31f0e12905643d45c`, ran on 2026-10-07
+and was reverted ("Labels, used names and descriptions", above); no figure of any kind is published
+for it. The extractor that runs since 2026-10-07 is 0.1.3 again, digest
+`2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37`. It has figures measured on
 constructed reports ("Extractor 0.1.3 on constructed reports (recall)", below), and no precision
 measured on real pull requests. So a record the running checker writes carries `null` for both
 figures, shown as "unmeasured", until a precision measured on real pull requests is published for
-0.1.3. No figure here is rebound to it.
+0.1.3. No figure here is rebound to it. The `differs` figure and its base rate are bound to
+comparison 0.2.0 too, and the comparison that runs since 2026-10-07 is 0.3.0 ("Paths that are not
+at the head", above), so `differsAccuracy` stays `null` until 0.3.0 is measured.
 
 | Figure | Value | n | Wilson 95% interval | Bound to |
 | --- | --- | --- | --- | --- |

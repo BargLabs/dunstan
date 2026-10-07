@@ -84,7 +84,9 @@ export class GitHubClient {
     );
   }
 
-  async read(kind: SourceKind, path: string, options: ReadOptions = {}): Promise<Read> {
+  // `path` is the advisory's existence query (comparison 0.3.0), whose answers the advisory section
+  // records. It is never evidence, so it is never a source entry.
+  async read(kind: SourceKind | 'path', path: string, options: ReadOptions = {}): Promise<Read> {
     const method = options.method ?? 'GET';
     const locator = options.locator ?? `${method} ${path}${options.locatorSuffix ?? ''}`;
     const result = await this.#fetchWithRetry(method, path, options.requestBody, locator);
@@ -108,7 +110,7 @@ export class GitHubClient {
         read = { ok: false, status: result.status, error: 'parse', body: result.body };
       }
     }
-    if (options.record !== false) {
+    if (options.record !== false && kind !== 'path') {
       const source: Source = {
         kind,
         locator,

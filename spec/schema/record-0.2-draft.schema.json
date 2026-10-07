@@ -315,11 +315,18 @@
     "advisory": {
       "description": "Claims the advisory extractor proposed from the report's prose, each compared with the evidence by a 0.1 gate check. Advisories never enter the record's verdict or claims, and none is a fail (spec/claim-format.md, \"DRAFT 0.2.0\", D.11).",
       "type": "object",
-      "required": ["extractor", "comparison", "precision", "differsAccuracy", "advisories"],
+      "required": [
+        "extractor",
+        "comparison",
+        "precision",
+        "differsAccuracy",
+        "pathsAtHead",
+        "advisories"
+      ],
       "additionalProperties": false,
       "properties": {
         "comparison": {
-          "description": "The version of the rules that turn a proposed claim and the evidence into its note, separate from the extractor's. 0.1.0 compared a file claim by exact path only; 0.2.0 also matches it by name (D.11.4).",
+          "description": "The version of the rules that turn a proposed claim and the evidence into its note, separate from the extractor's. 0.1.0 compared a file claim by exact path only; 0.2.0 also matches it by name; 0.3.0 also asks whether a path not among the changed files exists at the head (D.11.4).",
           "type": "object",
           "required": ["version"],
           "additionalProperties": false,
@@ -356,8 +363,26 @@
             }
           ]
         },
+        "pathsAtHead": {
+          "description": "The answers of the existence query, one per file claim's path that is not among the changed files, in code-unit order of path: the type of the object at <head>:<path> (Blob, a file; Tree, a directory; null, none), or unreadable. Never its content, size or id (D.11.5).",
+          "type": "array",
+          "items": { "$ref": "#/$defs/pathAnswer" }
+        },
         "advisories": { "type": "array", "items": { "$ref": "#/$defs/advisoryItem" } }
       }
+    },
+    "pathAnswer": {
+      "type": "object",
+      "required": ["path", "status"],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "$ref": "handback-block-0.1.schema.json#/$defs/repoPath" },
+        "status": { "enum": ["ok", "unreadable"] },
+        "object": { "enum": ["Blob", "Tree", null] }
+      },
+      "if": { "properties": { "status": { "const": "ok" } } },
+      "then": { "required": ["object"] },
+      "else": { "not": { "required": ["object"] } }
     },
     "advisoryFigure": {
       "$ref": "#/$defs/advisoryFigureFields",
@@ -450,9 +475,9 @@
       ]
     },
     "advisoryNote": {
-      "description": "agrees when the gate check would pass; differs:<reason> when it would fail; unanswered:<reason> when it would be unverifiable. The reasons are the 0.1 claim reasons. A file claim matched by name only is agrees_by_name, or unanswered:ambiguous_path when more than one changed path has that name (D.11.4). Never a verdict.",
+      "description": "agrees when the gate check would pass; differs:<reason> when it would fail; unanswered:<reason> when it would be unverifiable. The reasons are the 0.1 claim reasons. A file claim matched by name only is agrees_by_name, or unanswered:ambiguous_path when more than one changed path has that name. A file claim not among the changed files is unanswered:no_such_path when nothing is at its path at the head, unanswered:directory when a directory is, and unanswered:source_unreadable:path when the answer was not read (D.11.4). Never a verdict.",
       "type": "string",
-      "pattern": "^(?:agrees|agrees_by_name|unanswered:ambiguous_path|(?:differs|unanswered):(?:head_mismatch|declared_not_changed|file_list_truncated|not_closing|closing_link_unsettled|not_found|not_reachable|count_mismatch|all_succeeded_mismatch|checks_incomplete|no_check_runs|no_comparable_record_field|not_merged|premature|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request|pull_request_files|closing_references|repository|issue|commit|compare|check_runs)))$"
+      "pattern": "^(?:agrees|agrees_by_name|unanswered:(?:ambiguous_path|no_such_path|directory|source_unreadable:path)|(?:differs|unanswered):(?:head_mismatch|declared_not_changed|file_list_truncated|not_closing|closing_link_unsettled|not_found|not_reachable|count_mismatch|all_succeeded_mismatch|checks_incomplete|no_check_runs|no_comparable_record_field|not_merged|premature|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request|pull_request_files|closing_references|repository|issue|commit|compare|check_runs)))$"
     },
     "readerReason": {
       "type": "string",

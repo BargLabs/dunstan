@@ -26,6 +26,10 @@ export interface Scenario {
   deployments?: Record<string, unknown>[];
   statuses?: Record<number, Record<string, unknown>[]>;
   comments?: Record<string, unknown>[];
+  // The advisory's path query: `${commit}:${path}` -> the object GitHub answers (its `__typename`
+  // and whatever else a test puts beside it), null for no object, or an HTTP status when it is a
+  // number. An expression not listed answers null.
+  objects?: Record<string, Record<string, unknown> | null | number>;
   // path (without query) -> sequence of statuses to answer before the real answer.
   flaky?: Record<string, number[]>;
 }
@@ -61,10 +65,13 @@ function page<T>(items: T[], url: URL): T[] {
 export interface FakeGitHub {
   fetch: typeof fetch;
   requests: string[];
+  // The body of every GraphQL request, as sent.
+  graphql: string[];
 }
 
 export function fakeGitHub(scenario: Scenario): FakeGitHub {
   const requests: string[] = [];
+  const graphql: string[] = [];
   const flaky = structuredClone(scenario.flaky ?? {});
   const fake = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
     const url = new URL(
@@ -85,6 +92,17 @@ export function fakeGitHub(scenario: Scenario): FakeGitHub {
     const n = (m: RegExpExecArray) => Number(m[1]);
 
     if (path === '/graphql') {
+      const text = typeof init?.body === 'string' ? init.body : '';
+      graphql.push(text);
+      const body = JSON.parse(text === '' ? '{}' : text) as {
+        query?: string;
+        variables?: { expression?: string };
+      };
+      if (body.query?.includes('object(expression') === true) {
+        const answer = scenario.objects?.[body.variables?.expression ?? ''] ?? null;
+        if (typeof answer === 'number') return json(answer, { message: 'error' });
+        return json(200, { data: { repository: { object: answer } } });
+      }
       if (scenario.closing === undefined) {
         return json(200, { data: { repository: { pullRequest: {} } } });
       }
@@ -201,7 +219,7 @@ export function fakeGitHub(scenario: Scenario): FakeGitHub {
     }
     return json(404, { message: 'Not Found' });
   };
-  return { fetch: fake as typeof fetch, requests };
+  return { fetch: fake as typeof fetch, requests, graphql };
 }
 
 // A ZIP archive (deflated entries) for artifact downloads.

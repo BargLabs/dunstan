@@ -13,7 +13,7 @@
     "spec": "0.1.2",
     "checker": {
       "name": "dunstan",
-      "version": "0.1.3",
+      "version": "0.1.5",
       "digest": {
         "sha256": "73a50031c8bdf06b0bd96062386dc3347ad18d6b3c458c4dae123efd6e6c044a"
       }

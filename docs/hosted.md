@@ -26,6 +26,7 @@ For the one pull request named in a request, and nothing else, the App reads:
 | Check runs at the declared head | `GET /repos/{o}/{r}/commits/{sha}/check-runs` |
 | A named JUnit test-report artifact: element counts only | Actions workflow runs, jobs, artifacts, artifact download |
 | Deployments to the declared environment, and their statuses | `GET /repos/{o}/{r}/deployments`, `.../statuses` |
+| For an advisory only, whether a path a file claim names is a file, a directory or nothing at the head: the object's type, never its content (comparison 0.3.0; the endpoint asks for no advisories today) | GraphQL `object(expression: "<head>:<path>") { __typename }` (one fixed query) |
 
 It reads only what the block declares (spec section 6): a block with no `checks` reads no check runs.
 The full list is the allowlist in [`hosted/src/transport.ts`](../hosted/src/transport.ts); every
@@ -35,14 +36,18 @@ entry is refused.
 ### Contents: read
 
 The App holds **Contents: read**, which GitHub grants as read access to code. GitHub requires it for
-the two commit routes above. Dunstan uses it only for those: to check that a commit the report cites
-exists and is reachable from the pull request's head.
+the two commit routes above, and for the type of the object at a path. Dunstan uses it only for
+those: to check that a commit the report cites exists and is reachable from the pull request's head,
+and, for an advisory, whether a path is a file, a directory or nothing there.
 
 Dunstan never requests file contents. The allowlist refuses, before the request is made, every blob,
 tree, `contents/`, readme, archive, tarball, zipball and raw-content route, any media type other than
 `application/vnd.github+json` (so a pull request cannot be read as its diff), and any GraphQL query
-other than the one fixed closing-references query. `hosted/test/transport.test.ts` proves each of
-those is refused, and that the allowlist is the only path from the hosted code to the network.
+other than the two fixed queries: closing references, and the object's type at a path, whose
+expression must be a full commit id and a repository path. `hosted/test/transport.test.ts` proves
+each of those is refused, and that the allowlist is the only path from the hosted code to the
+network; `hosted/test/privacy.test.ts` proves that nothing of the path query's answer but the type
+reaches a record.
 
 Two answers GitHub gives on the admitted routes carry more than Dunstan reads, and you should know
 it: the compare answer includes the commits' messages, their author and committer names and emails,

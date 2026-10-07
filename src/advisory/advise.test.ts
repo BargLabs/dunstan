@@ -13,6 +13,7 @@ import {
 import { checkScope } from '../check/checks.js';
 import type { Block, Evidence } from '../check/types.js';
 import { main } from '../cli/main.js';
+import { PATH_QUERY } from '../evidence/github.js';
 import { buildRecord, type DunstanRecord, recordBlock, serializeRecord } from '../record/build.js';
 import { CHECKER_NAME, CHECKER_VERSION } from '../record/checker.js';
 import { verifyRecord } from '../record/verify.js';
@@ -27,6 +28,8 @@ import {
   COMPARISON,
   COMPARISON_VERSION,
   compareAdvisory,
+  type PathAnswer,
+  pathsToRead,
   readingBlock,
 } from './advise.js';
 import { extractClaims, type ProposedClaim } from './extract.js';
@@ -41,11 +44,14 @@ import {
 import { ADVISORY_LINE, advisoryLine } from './present.js';
 
 const OTHER = '0123456789abcdef0123456789abcdef01234567';
-// The grammar the published figures were measured on, the one before this, and the one that runs
-// now (0.1.3).
+// The grammar the published figures were measured on, the one after it, the one that runs now
+// (0.1.3), and 0.1.4, which ran on 2026-10-07 and was reverted to 0.1.3.
 const EXTRACTOR_0_1_1 = 'ab77ce47d1c5172ec912d1221e03bbe5b312ff5dc2acb594c4b8549fe602c360';
 const EXTRACTOR_0_1_2 = 'dfd6563a934667a80448e49b7133ade6d2473e5e13cd9d05fd52c761a1a1780b';
 const EXTRACTOR_0_1_3 = '2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37';
+const EXTRACTOR_0_1_4 = '78b92a682063464faf3cf1de13123d2b232bb3575effd5f31f0e12905643d45c';
+// The comparison the published differs figure was measured on. The one that runs is 0.3.0.
+const COMPARISON_0_2_0 = '0.2.0';
 
 const evidence: Evidence = {
   pullRequest: {
@@ -81,8 +87,15 @@ const evidence: Evidence = {
   sources: [],
 };
 
-const note = (kind: Advisory['kind'], value: Advisory['value'], e: Evidence = evidence) =>
-  compareAdvisory({ kind, value }, e, REPO);
+// The answers of the existence query at the head (comparison 0.3.0). Unless a test says otherwise,
+// the path a file claim names exists at the head as a file.
+const blob = (path: string): PathAnswer => ({ path, status: 'ok', object: 'Blob' });
+const note = (
+  kind: Advisory['kind'],
+  value: Advisory['value'],
+  e: Evidence = evidence,
+  paths: readonly PathAnswer[] = typeof value === 'string' ? [blob(value)] : [],
+) => compareAdvisory({ kind, value }, e, REPO, paths);
 
 describe('compareAdvisory: the gate check for each kind', () => {
   it('file_changed is the scope check of one declared path', () => {
@@ -359,20 +372,143 @@ describe('a file named by a bare name or a partial path (comparison 0.2.0)', () 
     ).toMatchObject({ verdict: 'unverifiable', reason: 'declared_item_not_among_candidates' });
   });
 
-  // Comparison 0.2.0 left the grammar at 0.1.1. Extractors 0.1.2 and then 0.1.3 changed it later.
-  it('is extractor 0.1.3; the comparison left 0.1.1 as it was', () => {
+  // Comparison 0.2.0 left the grammar at 0.1.1. Extractors 0.1.2, 0.1.3 and then 0.1.4 changed it
+  // later, and 0.1.4 was reverted: the grammar that runs is 0.1.3's again, digest for digest.
+  it('is extractor 0.1.3, reverted from 0.1.4; the comparison left 0.1.1 as it was', () => {
     expect(EXTRACTOR_VERSION).toBe('0.1.3');
     expect(EXTRACTOR).toEqual({ version: '0.1.3', digest: { sha256: EXTRACTOR_0_1_3 } });
     expect(EXTRACTOR.digest.sha256).not.toBe(EXTRACTOR_0_1_2);
+    expect(EXTRACTOR.digest.sha256).not.toBe(EXTRACTOR_0_1_4);
   });
 
-  it('is comparison 0.2.0, the version the accuracy of differs notes was measured on', () => {
-    expect(COMPARISON_VERSION).toBe('0.2.0');
-    expect(COMPARISON).toEqual({ version: '0.2.0' });
-    expect(differsAccuracyFor(EXTRACTOR_0_1_1, COMPARISON_VERSION)).not.toBeNull();
+  it('is comparison 0.3.0; the accuracy of differs notes stays bound to 0.2.0, where it was measured', () => {
+    expect(COMPARISON_VERSION).toBe('0.3.0');
+    expect(COMPARISON).toEqual({ version: '0.3.0' });
+    expect(differsAccuracyFor(EXTRACTOR_0_1_1, COMPARISON_0_2_0)).not.toBeNull();
     expect(differsAccuracyFor(EXTRACTOR_0_1_1, '0.1.0')).toBeNull();
-    // Measured with extractor 0.1.1 only: 0.1.2 and 0.1.3 are unmeasured.
-    expect(differsAccuracyFor(EXTRACTOR.digest.sha256, COMPARISON_VERSION)).toBeNull();
+    // 0.3.0 is unmeasured, even with the extractor the figure was measured on.
+    expect(differsAccuracyFor(EXTRACTOR_0_1_1, COMPARISON_VERSION)).toBeNull();
+    // Measured with extractor 0.1.1 only: 0.1.2, 0.1.3 and 0.1.4 are unmeasured.
+    expect(differsAccuracyFor(EXTRACTOR.digest.sha256, COMPARISON_0_2_0)).toBeNull();
+  });
+});
+
+describe('a file claim not among the changed files: does the path exist at the head? (comparison 0.3.0)', () => {
+  const answer = (path: string, object: 'Blob' | 'Tree' | null): PathAnswer[] => [
+    { path, status: 'ok', object },
+  ];
+
+  it('a file at the head that the pull request did not change: differs:declared_not_changed', () => {
+    expect(note('file_changed', 'src/z.ts', evidence, answer('src/z.ts', 'Blob'))).toEqual({
+      observed: null,
+      note: 'differs:declared_not_changed',
+    });
+  });
+
+  it('no such path at the head: unanswered:no_such_path', () => {
+    expect(note('file_changed', 'src/z.ts', evidence, answer('src/z.ts', null))).toEqual({
+      observed: null,
+      note: 'unanswered:no_such_path',
+    });
+  });
+
+  it('a directory at the head: unanswered:directory', () => {
+    expect(note('file_changed', 'src/z', evidence, answer('src/z', 'Tree'))).toEqual({
+      observed: null,
+      note: 'unanswered:directory',
+    });
+  });
+
+  it('an unreadable answer, or none, is unanswered:source_unreadable:path, never differs or agrees', () => {
+    const unread: Advisory['note'] = 'unanswered:source_unreadable:path';
+    expect(
+      note('file_changed', 'src/z.ts', evidence, [{ path: 'src/z.ts', status: 'unreadable' }]),
+    ).toEqual({
+      observed: null,
+      note: unread,
+    });
+    expect(note('file_changed', 'src/z.ts', evidence, [])).toEqual({
+      observed: null,
+      note: unread,
+    });
+    // An answer for another path answers nothing about this one.
+    expect(note('file_changed', 'src/z.ts', evidence, answer('src/y.ts', 'Blob'))).toEqual({
+      observed: null,
+      note: unread,
+    });
+  });
+
+  it('a bare name or partial path matched by no changed path is asked at the root', () => {
+    const tool = changed(['packages/tool/src/cli.ts']);
+    expect(note('file_changed', 'main.ts', tool, answer('main.ts', null)).note).toBe(
+      'unanswered:no_such_path',
+    );
+    expect(note('file_changed', 'README.md', tool, answer('README.md', 'Blob')).note).toBe(
+      'differs:declared_not_changed',
+    );
+    expect(note('file_changed', 'ab/cli.ts', tool, answer('ab/cli.ts', null)).note).toBe(
+      'unanswered:no_such_path',
+    );
+  });
+
+  it('leaves every other note as comparison 0.2.0 gave it, whatever the answers say', () => {
+    const tool = changed([
+      'packages/web/index.ts',
+      'apps/api/index.ts',
+      'packages/tool/src/cli.ts',
+    ]);
+    const cases: [Advisory['kind'], Advisory['value'], Evidence, string][] = [
+      ['file_changed', 'packages/tool/src/cli.ts', tool, 'agrees'],
+      ['file_changed', 'cli.ts', tool, 'agrees_by_name'],
+      ['file_changed', 'index.ts', tool, 'unanswered:ambiguous_path'],
+      [
+        'file_changed',
+        'main.ts',
+        changed(['src/main.ts'], false),
+        'unanswered:file_list_truncated',
+      ],
+      ['reference_closes', '#13', evidence, 'differs:not_closing'],
+      ['check_count', 5, evidence, 'differs:count_mismatch'],
+    ];
+    for (const [kind, value, e, expected] of cases) {
+      for (const object of ['Blob', 'Tree', null] as const) {
+        const paths = typeof value === 'string' ? answer(value, object) : [];
+        expect(note(kind, value, e, paths).note).toBe(expected);
+      }
+      expect(note(kind, value, e, []).note).toBe(expected);
+    }
+  });
+});
+
+describe('pathsToRead: the paths the existence query is asked for', () => {
+  const claim = (kind: Advisory['kind'], value: Advisory['value']) => ({ kind, value });
+
+  it('only a file claim the changed files would leave differs:declared_not_changed, each once, in code-unit order', () => {
+    const tool = changed([
+      'src/a.ts',
+      'packages/tool/src/cli.ts',
+      'apps/api/index.ts',
+      'web/index.ts',
+    ]);
+    const proposed = [
+      claim('file_changed', 'src/z.ts'),
+      claim('file_changed', 'src/a.ts'),
+      claim('file_changed', 'cli.ts'),
+      claim('file_changed', 'index.ts'),
+      claim('file_changed', 'docs/y.md'),
+      claim('file_changed', 'src/z.ts'),
+      claim('reference_closes', '#13'),
+      claim('head_commit', '9e8d7c6'),
+    ];
+    expect(pathsToRead(proposed, tool, REPO)).toEqual(['docs/y.md', 'src/z.ts']);
+  });
+
+  it('nothing for a file list not read in full, nor for a claim on a changed file', () => {
+    const proposed = [claim('file_changed', 'src/z.ts'), claim('file_changed', 'src/a.ts')];
+    expect(pathsToRead(proposed, changed(['src/a.ts'], false), REPO)).toEqual([]);
+    const { files: _, ...unread } = evidence;
+    expect(pathsToRead(proposed, unread, REPO)).toEqual([]);
+    expect(pathsToRead([claim('file_changed', 'src/a.ts')], evidence, REPO)).toEqual([]);
   });
 });
 
@@ -552,7 +688,12 @@ const PROSE = [
   'All 42 tests pass. It was merged at 2026-10-01T11:00:00Z.',
 ].join('\n\n');
 
-function build(report: string, advisory: boolean, e: Evidence = evidence): DunstanRecord {
+function build(
+  report: string,
+  advisory: boolean,
+  e: Evidence = evidence,
+  pathsAtHead: readonly PathAnswer[] = [],
+): DunstanRecord {
   return buildRecord({
     checker: { name: CHECKER_NAME, version: CHECKER_VERSION, digest: { sha256: '0'.repeat(64) } },
     report: { sha256: '1'.repeat(64), source: { kind: 'stdin', locator: '-' } },
@@ -560,7 +701,7 @@ function build(report: string, advisory: boolean, e: Evidence = evidence): Dunst
     repository: REPO,
     evidence: e,
     rerun: { offline: 'dunstan verify r.json', online: 'dunstan rerun r.json' },
-    ...(advisory ? { advisory: extractClaims(report) } : {}),
+    ...(advisory ? { advisory: extractClaims(report), pathsAtHead } : {}),
   });
 }
 
@@ -594,10 +735,10 @@ describe('the constructed-report figures are never carried in a record', () => {
     return out;
   }
 
-  it('the tables a record reads hold no figure for extractor 0.1.2 or 0.1.3, nor the constructed counts', () => {
+  it('the tables a record reads hold no figure for extractor 0.1.2, 0.1.3 or 0.1.4, nor the constructed counts', () => {
     expect(PUBLISHED_PRECISION.map((p) => p.extractorDigest)).toEqual([EXTRACTOR_0_1_1]);
     expect(PUBLISHED_DIFFERS_ACCURACY.map((p) => p.extractorDigest)).toEqual([EXTRACTOR_0_1_1]);
-    for (const digest of [EXTRACTOR_0_1_2, EXTRACTOR_0_1_3]) {
+    for (const digest of [EXTRACTOR_0_1_2, EXTRACTOR_0_1_3, EXTRACTOR_0_1_4]) {
       expect(precisionFor(digest)).toBeNull();
       expect(differsAccuracyFor(digest, COMPARISON_VERSION)).toBeNull();
     }
@@ -680,15 +821,18 @@ describe('a record with an advisory section (DRAFT 0.2.0)', () => {
   });
 
   it('carries the extractor, the comparison, the figures published for both and one advisory per claim, and validates', () => {
-    const record = JSON.parse(JSON.stringify(build(PROSE, true))) as DunstanRecord;
+    const record = JSON.parse(
+      JSON.stringify(build(PROSE, true, evidence, [blob('src/z.ts')])),
+    ) as DunstanRecord;
     const a = record.predicate.advisory;
     expect(a?.extractor).toEqual(EXTRACTOR);
     expect(a?.comparison).toEqual({ version: COMPARISON_VERSION });
+    expect(a?.pathsAtHead).toEqual([blob('src/z.ts')]);
     expect(a?.precision).toEqual(precisionFor(EXTRACTOR.digest.sha256));
     expect(a?.differsAccuracy).toEqual(
       differsAccuracyFor(EXTRACTOR.digest.sha256, COMPARISON_VERSION),
     );
-    // None is published for extractor 0.1.2 or 0.1.3: both are unmeasured.
+    // None is published for extractor 0.1.2, 0.1.3 or 0.1.4: each is unmeasured.
     expect(a?.precision).toBeNull();
     expect(a?.differsAccuracy).toBeNull();
     expect(a?.advisories.map((x) => [x.kind, x.value, x.note])).toEqual([
@@ -726,7 +870,121 @@ describe('a record with an advisory section (DRAFT 0.2.0)', () => {
   it('records an empty section when the extractor proposed nothing', () => {
     const record = build('Done.', true);
     expect(record.predicate.advisory?.advisories).toEqual([]);
+    expect(record.predicate.advisory?.pathsAtHead).toEqual([]);
     expect(validateDraftRecord(JSON.parse(JSON.stringify(record)))).toEqual([]);
+  });
+
+  // Comparison 0.3.0: the existence answers are recorded beside the notes they decide, so offline
+  // verify recomputes each note from them, and the advisory digest covers them.
+  const THREE = 'I changed src/a.ts, src/z.ts and docs/gone.md.';
+  const ANSWERS: PathAnswer[] = [
+    { path: 'docs/gone.md', status: 'ok', object: null },
+    { path: 'src/z.ts', status: 'ok', object: 'Blob' },
+  ];
+
+  it('records the answers its notes were computed from, and verify recomputes the notes from them', () => {
+    const record = JSON.parse(
+      JSON.stringify(build(THREE, true, evidence, ANSWERS)),
+    ) as DunstanRecord;
+    const a = record.predicate.advisory;
+    if (a === undefined) throw new Error('fixture');
+    expect(a.comparison).toEqual({ version: '0.3.0' });
+    expect(a.pathsAtHead).toEqual(ANSWERS);
+    expect(a.advisories.map((x) => [x.value, x.note])).toEqual([
+      ['src/a.ts', 'agrees'],
+      ['src/z.ts', 'differs:declared_not_changed'],
+      ['docs/gone.md', 'unanswered:no_such_path'],
+    ]);
+    expect(validateDraftRecord(record)).toEqual([]);
+    expect(verifyRecord(record).problems).toEqual([]);
+    // The gate is the same with or without the answers.
+    const plain = build(THREE, false);
+    expect(record.predicate.verdict).toBe(plain.predicate.verdict);
+    expect(record.predicate.digests.claims).toBe(plain.predicate.digests.claims);
+    expect(record.predicate.digests.evidence).toBe(plain.predicate.digests.evidence);
+  });
+
+  it('verify names a recorded answer that moved, the note it decides and the digest', () => {
+    const record = JSON.parse(
+      JSON.stringify(build(THREE, true, evidence, ANSWERS)),
+    ) as DunstanRecord;
+    const a = record.predicate.advisory;
+    if (a === undefined) throw new Error('fixture');
+    (a.pathsAtHead[1] as PathAnswer & { object: unknown }).object = null;
+    expect(verifyRecord(record).problems.map((p) => p.member)).toEqual([
+      '/predicate/advisory/advisories/1',
+      '/predicate/digests/advisory',
+    ]);
+  });
+
+  it('verify names an answer no claim needs, or a needed one missing', () => {
+    const extra = JSON.parse(
+      JSON.stringify(build(THREE, true, evidence, [...ANSWERS, blob('src/q.ts')])),
+    ) as DunstanRecord;
+    // The builder records exactly the paths the notes need.
+    expect(extra.predicate.advisory?.pathsAtHead).toEqual(ANSWERS);
+    const record = JSON.parse(
+      JSON.stringify(build(THREE, true, evidence, ANSWERS)),
+    ) as DunstanRecord;
+    const a = record.predicate.advisory;
+    if (a === undefined) throw new Error('fixture');
+    a.pathsAtHead.push(blob('src/q.ts'));
+    expect(verifyRecord(record).problems.map((p) => p.member)).toContain(
+      '/predicate/advisory/pathsAtHead',
+    );
+    a.pathsAtHead.splice(0, 3);
+    expect(verifyRecord(record).problems.map((p) => p.member)).toEqual([
+      '/predicate/advisory/pathsAtHead',
+      '/predicate/advisory/advisories/1',
+      '/predicate/advisory/advisories/2',
+      '/predicate/digests/advisory',
+    ]);
+  });
+
+  it('a path the reader did not answer is recorded unreadable, and its note fails closed', () => {
+    const record = JSON.parse(JSON.stringify(build(THREE, true))) as DunstanRecord;
+    const a = record.predicate.advisory;
+    expect(a?.pathsAtHead).toEqual([
+      { path: 'docs/gone.md', status: 'unreadable' },
+      { path: 'src/z.ts', status: 'unreadable' },
+    ]);
+    expect(a?.advisories.map((x) => x.note)).toEqual([
+      'agrees',
+      'unanswered:source_unreadable:path',
+      'unanswered:source_unreadable:path',
+    ]);
+    expect(validateDraftRecord(record)).toEqual([]);
+    expect(verifyRecord(record).problems).toEqual([]);
+  });
+
+  it('the schema takes the type of each answer and nothing else', () => {
+    const record = JSON.parse(
+      JSON.stringify(build(THREE, true, evidence, ANSWERS)),
+    ) as DunstanRecord;
+    const a = record.predicate.advisory;
+    if (a === undefined) throw new Error('fixture');
+    const first = a.pathsAtHead[0] as unknown as Record<string, unknown>;
+    for (const [member, value] of [
+      ['text', 'export const x = 1;\n'],
+      ['oid', 'bbcd538c8e72b8c175046e27cc8f907076331401'],
+      ['byteSize', 20],
+    ] as const) {
+      first[member] = value;
+      expect(validateDraftRecord(record).map((e) => e.pointer)).toContain(
+        '/predicate/advisory/pathsAtHead/0',
+      );
+      delete first[member];
+    }
+    first.object = 'Commit';
+    expect(validateDraftRecord(record).map((e) => e.pointer)).toContain(
+      '/predicate/advisory/pathsAtHead/0/object',
+    );
+    first.object = null;
+    // An unreadable answer carries no type.
+    (a.pathsAtHead[1] as unknown as Record<string, unknown>).status = 'unreadable';
+    expect(validateDraftRecord(record).map((e) => e.pointer)).toContain(
+      '/predicate/advisory/pathsAtHead/1',
+    );
   });
 
   it('verify recomputes each note, the figures and the digest, and names what moved', () => {
@@ -735,7 +993,7 @@ describe('a record with an advisory section (DRAFT 0.2.0)', () => {
     if (a === undefined) throw new Error('fixture');
     (a.advisories[1] as Advisory).note = 'agrees';
     const precision = precisionFor(EXTRACTOR_0_1_1);
-    const differs = differsAccuracyFor(EXTRACTOR_0_1_1, COMPARISON_VERSION);
+    const differs = differsAccuracyFor(EXTRACTOR_0_1_1, COMPARISON_0_2_0);
     if (precision === null || differs === null) throw new Error('fixture');
     a.precision = { ...precision, value: 0.99, n: 1000 };
     a.differsAccuracy = { ...differs, baseRate: { ...differs.baseRate, n: 9 } };
@@ -746,8 +1004,8 @@ describe('a record with an advisory section (DRAFT 0.2.0)', () => {
     expect(members).toContain('/predicate/digests/advisory');
   });
 
-  // Before extractor 0.1.2 this was "a figure the record leaves out where one is published". 0.1.2
-  // and 0.1.3 have none published, so the case to name is the other one: a record that carries
+  // Before extractor 0.1.2 this was "a figure the record leaves out where one is published". 0.1.2,
+  // 0.1.3 and 0.1.4 have none published, so the case to name is the other one: a record that carries
   // 0.1.1's figures for the extractor that runs. No version inherits a figure.
   it('verify names a figure the record carries where none is published', () => {
     const record = JSON.parse(JSON.stringify(build(PROSE, true))) as DunstanRecord;
@@ -755,7 +1013,7 @@ describe('a record with an advisory section (DRAFT 0.2.0)', () => {
     if (a === undefined) throw new Error('fixture');
     expect(verifyRecord(record).problems).toEqual([]);
     a.precision = precisionFor(EXTRACTOR_0_1_1);
-    a.differsAccuracy = differsAccuracyFor(EXTRACTOR_0_1_1, COMPARISON_VERSION);
+    a.differsAccuracy = differsAccuracyFor(EXTRACTOR_0_1_1, COMPARISON_0_2_0);
     expect(validateDraftRecord(record)).toEqual([]);
     expect(verifyRecord(record).problems.map((p) => p.member)).toEqual([
       '/predicate/advisory/precision',
@@ -769,10 +1027,10 @@ describe('a record with an advisory section (DRAFT 0.2.0)', () => {
     const a = record.predicate.advisory as unknown as Record<string, Record<string, unknown>>;
     // The figures published for 0.1.1, carried here only to put a figure's shape to the schema.
     a.precision = precisionFor(EXTRACTOR_0_1_1) as unknown as Record<string, unknown>;
-    a.differsAccuracy = differsAccuracyFor(
-      EXTRACTOR_0_1_1,
-      COMPARISON_VERSION,
-    ) as unknown as Record<string, unknown>;
+    a.differsAccuracy = differsAccuracyFor(EXTRACTOR_0_1_1, COMPARISON_0_2_0) as unknown as Record<
+      string,
+      unknown
+    >;
     const differs = a.differsAccuracy as Record<string, unknown>;
     const { baseRate: _, ...noBaseRate } = differs;
     a.differsAccuracy = noBaseRate;
@@ -865,7 +1123,11 @@ describe('a record with an advisory section (DRAFT 0.2.0)', () => {
 
 // ---------------------------------------------------------------- the command line
 
-function scenario(body: string): Scenario {
+// src/c.ts is a file at the head that the pull request did not change.
+type Objects = NonNullable<Scenario['objects']>;
+const OBJECTS: Objects = { [`${HEAD}:src/c.ts`]: { __typename: 'Blob' } };
+
+function scenario(body: string, objects: Objects = OBJECTS): Scenario {
   return {
     pr: basePullRequest({ body }),
     files: [
@@ -877,15 +1139,16 @@ function scenario(body: string): Scenario {
       { id: 11, name: 'lint', status: 'completed', conclusion: 'success' },
       { id: 12, name: 'test', status: 'completed', conclusion: 'failure' },
     ],
+    objects,
   };
 }
 
-async function check(body: string, flags: string[]) {
+async function check(body: string, flags: string[], objects?: Objects) {
   const dir = mkdtempSync(join(tmpdir(), 'dunstan-advisory-'));
   try {
     const out = join(dir, 'r.json');
     let text = '';
-    const fake = fakeGitHub(scenario(body));
+    const fake = fakeGitHub(scenario(body, objects));
     const io = {
       out: (t: string) => {
         text += t;
@@ -908,7 +1171,7 @@ async function check(body: string, flags: string[]) {
       writeFileSync(out, serializeRecord(record));
       verified = await main(['verify', out], { ...io, out: () => {}, err: () => {} });
     }
-    return { code, text, record, requests: fake.requests, verified };
+    return { code, text, record, requests: fake.requests, graphql: fake.graphql, verified };
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -962,7 +1225,7 @@ describe('dunstan check --advisory', () => {
     );
     const lines = advised.text.split('\n');
     const header = lines.findIndex((l) => l.startsWith('advisory (DRAFT'));
-    // Extractor 0.1.3 is unmeasured, as 0.1.2 was, so the fixed line states no figure.
+    // Extractor 0.1.3 is unmeasured, as 0.1.2 and 0.1.4 are, so the fixed line states no figure.
     const section = advised.record.predicate.advisory;
     if (section === undefined) throw new Error('fixture');
     const line = advisoryLine(section);
@@ -991,5 +1254,64 @@ describe('dunstan check --advisory', () => {
     const r = await check('All done.', ['--advisory']);
     expect(r.requests).toEqual([`GET /repos/${REPO}/pulls/7`]);
     expect(r.record.predicate.advisory?.advisories).toEqual([]);
+  });
+
+  // Comparison 0.3.0: the existence query at the head.
+  const paths = (graphql: string[]) =>
+    graphql
+      .map((b) => JSON.parse(b) as { query: string; variables: Record<string, unknown> })
+      .filter((b) => b.query.includes('object(expression'));
+
+  it('sends the one fixed path query, only for a file claim not among the changed files', async () => {
+    const r = await check(body, ['--advisory']);
+    const sent = paths(r.graphql);
+    expect(sent).toEqual([
+      {
+        query: PATH_QUERY,
+        variables: { owner: 'example-org', name: 'example-repo', expression: `${HEAD}:src/c.ts` },
+      },
+    ]);
+    expect(PATH_QUERY).toBe(`query($owner: String!, $name: String!, $expression: String!) {
+  repository(owner: $owner, name: $name) {
+    object(expression: $expression) { __typename }
+  }
+}`);
+    expect(r.record.predicate.advisory?.pathsAtHead).toEqual([blob('src/c.ts')]);
+    // A claim on a changed file asks nothing, and neither does a run without --advisory.
+    expect(
+      paths((await check(`I changed src/a.ts.\n\n${block(['src/a.ts'])}`, ['--advisory'])).graphql),
+    ).toEqual([]);
+    expect(paths((await check(body, [])).graphql)).toEqual([]);
+  });
+
+  it('a path that is not at the head is unanswered:no_such_path, and the record verifies offline', async () => {
+    const r = await check(body, ['--advisory'], {});
+    expect(r.record.predicate.advisory?.pathsAtHead).toEqual([
+      { path: 'src/c.ts', status: 'ok', object: null },
+    ]);
+    expect(r.record.predicate.advisory?.advisories.map((a) => [a.value, a.note])).toContainEqual([
+      'src/c.ts',
+      'unanswered:no_such_path',
+    ]);
+    expect(r.record.predicate.verdict).toBe('pass');
+    expect(r.verified).toBe(0);
+  });
+
+  it('a directory is unanswered:directory, and a failed read unanswered:source_unreadable:path', async () => {
+    const tree = await check(body, ['--advisory'], {
+      [`${HEAD}:src/c.ts`]: { __typename: 'Tree' },
+    });
+    expect(tree.record.predicate.advisory?.advisories[1]?.note).toBe('unanswered:directory');
+    expect(tree.verified).toBe(0);
+    // A 403 is final; a 5xx would be retried with the client's real backoff.
+    const failed = await check(body, ['--advisory'], { [`${HEAD}:src/c.ts`]: 403 });
+    expect(failed.record.predicate.advisory?.pathsAtHead).toEqual([
+      { path: 'src/c.ts', status: 'unreadable' },
+    ]);
+    expect(failed.record.predicate.advisory?.advisories[1]?.note).toBe(
+      'unanswered:source_unreadable:path',
+    );
+    expect(failed.code).toBe((await check(body, [])).code);
+    expect(failed.verified).toBe(0);
   });
 });
