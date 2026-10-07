@@ -9287,7 +9287,7 @@ async function readEvidence(client, input2) {
 // src/record/checker.ts
 import { readFileSync } from "node:fs";
 var CHECKER_NAME = "dunstan";
-var CHECKER_VERSION = "0.1.3";
+var CHECKER_VERSION = "0.1.4";
 function checkerIdentity(artifact) {
   return {
     name: CHECKER_NAME,
@@ -9487,7 +9487,7 @@ async function reportFromComment(client, repository, number, login) {
 }
 
 // src/advisory/grammar.ts
-var EXTRACTOR_VERSION = "0.1.3";
+var EXTRACTOR_VERSION = "0.1.4";
 var ADVISORY_KINDS = [
   "file_changed",
   "reference_closes",
@@ -9788,6 +9788,24 @@ var GRAMMAR = {
     "similar to",
     "unlike"
   ],
+  // Between a file verb and a path, one of these makes the path what the verb's object uses or acts
+  // on, not the object (extractor 0.1.4): "fixed an unsafe use of `math.floor`", "replaced the
+  // `awk` command for `fares.csv` with a script".
+  operands: ["command for", "commands for", "usage of", "use of", "uses of"],
+  // After one of these verbs, a path followed by one of `insertPrepositions` and another path, with
+  // only `determiners` between, is what was put into that path, not a changed file (extractor
+  // 0.1.4): "Added `ferry.schedule` to `services.json`". The second path binds as before.
+  insertVerbs: ["added", "adds"],
+  insertPrepositions: ["into", "to"],
+  // A clause that opens with one of these and binds a path to a third-person file verb says what such
+  // a thing does, not what this pull request did (extractor 0.1.4): "A nightly job updates
+  // `fares.json` on disk".
+  genericOpeners: ["a", "an"],
+  // A clause that opens with one of `relatives` and then one of `pastPassives` describes the noun
+  // before it as it already stood (extractor 0.1.4): "the flag that was added to `ferry.toml` has no
+  // effect".
+  relatives: ["that", "which"],
+  pastPassives: ["was", "were"],
   // Bracket pairs. A path inside a pair still open at the path binds only to a verb inside it:
   // "edited the timetable (like ports/north.csv)". A markdown link's [text] is not an aside.
   brackets: ["()", "[]"],
@@ -10226,6 +10244,13 @@ var EXTENSIONLESS = words(GRAMMAR.extensionlessFiles);
 var HOST_EXTENSIONS = words(GRAMMAR.hostExtensions);
 var LOG_LEVELS = words(GRAMMAR.logLevels);
 var ANALOGUES = phrases(GRAMMAR.analogues);
+var OPERANDS = phrases(GRAMMAR.operands);
+var PATH_BARRIERS = [...ANALOGUES, ...OPERANDS];
+var INSERT_VERBS = words(GRAMMAR.insertVerbs);
+var INSERT_PREPOSITIONS = words(GRAMMAR.insertPrepositions);
+var GENERIC_OPENERS = words(GRAMMAR.genericOpeners);
+var RELATIVES = words(GRAMMAR.relatives);
+var PAST_PASSIVES = words(GRAMMAR.pastPassives);
 var SELF_NAMES = phrases(GRAMMAR.selfNames);
 var REPOSITORY_NOUNS = words(GRAMMAR.repositoryNouns);
 var OWN_REPOSITORY = words(GRAMMAR.ownRepository);
@@ -10305,12 +10330,24 @@ function makeWord(raw, start, atom, bracketAt) {
   const rawEnd = start + raw.length;
   if (atom !== void 0) {
     const bracket = bracketAt(start);
-    return { text: raw, lower: "", start, end: rawEnd, rawEnd, bracket, comma: false, atom };
+    return {
+      text: raw,
+      lower: "",
+      start,
+      end: rawEnd,
+      rawEnd,
+      bracket,
+      comma: false,
+      opensEmphasis: false,
+      closesEmphasis: false,
+      atom
+    };
   }
   const lead = LEADING.exec(raw)?.[0].length ?? 0;
   const text = raw.slice(lead).replace(TRAILING, "");
   if (text === "") return void 0;
   const begin = start + lead;
+  const trail = raw.slice(lead + text.length);
   return {
     text,
     lower: text.toLowerCase(),
@@ -10318,7 +10355,9 @@ function makeWord(raw, start, atom, bracketAt) {
     end: begin + text.length,
     rawEnd,
     bracket: bracketAt(begin),
-    comma: raw.slice(lead + text.length).includes(",")
+    comma: trail.includes(","),
+    opensEmphasis: raw.slice(0, lead).includes("*"),
+    closesEmphasis: trail.includes("*")
   };
 }
 function bracketCursor(prep) {
@@ -10494,11 +10533,27 @@ var Clause = class {
     for (let k = from; k < to; k++) if (this.phraseAt(k, list)) return true;
     return false;
   }
-  // A verb form after a determiner is an adjective or a noun: "the updated docs", "the fix".
+  // A verb form after a determiner is an adjective or a noun: "the updated docs", "the fix". So,
+  // since 0.1.4, is one that closes a bold label: "**Timetable fixes** — …".
   nominal(i) {
+    if (this.label(i)) return true;
     const before = this.lower(i - 1);
     if (!DETERMINERS.has(before)) return false;
     return !(SUBJECT_DETERMINERS.has(before) && this.lower(i).endsWith("s"));
+  }
+  // A third-person form that closes an emphasis opened by an earlier word of its clause is the
+  // plural noun of a label (0.1.4): "**Timetable fixes** — …", "**Fare updates**:". A form that
+  // opens the label asserts as before: "**Fixes**: #12", "**Files changed**:".
+  label(i) {
+    const word = this.words[i];
+    if (word === void 0 || !word.closesEmphasis || word.opensEmphasis) return false;
+    if (!word.lower.endsWith("s")) return false;
+    for (let k = i - 1; k >= 0; k--) {
+      const before = this.words[k];
+      if (before.closesEmphasis) return false;
+      if (before.opensEmphasis) return true;
+    }
+    return false;
   }
   isVerb(i) {
     return ALL_VERBS.has(this.lower(i)) && !this.nominal(i);
@@ -10521,15 +10576,15 @@ var Clause = class {
     if (i === 0 && l.endsWith("s") && NOUN_PREPOSITIONS.has(this.lower(1))) return false;
     return true;
   }
-  // An analogue phrase starts at k and ends before j.
+  // An analogue phrase, or since 0.1.4 an operand phrase, starts at k and ends before j.
   analogue(k, j) {
-    return ANALOGUES.some(
+    return PATH_BARRIERS.some(
       (phrase) => k + phrase.length <= j && phrase.every((w, n) => this.lower(k + n) === w)
     );
   }
   // The nearest verb to the left of j, if no negation, modal or infinitive stands between, and it
   // is within the window. Tokens of the same class (a list) do not count toward the window. For a
-  // path, a bracket still open at it and an analogue phrase are barriers too.
+  // path, a bracket still open at it and an analogue or operand phrase are barriers too.
   leftVerb(j, cls) {
     const bracket = cls === "path" ? this.words[j].bracket : -1;
     let distance = 0;
@@ -10570,7 +10625,9 @@ function bindPath(c, j, value, emit) {
   if (passive === -1 || c.staged) return;
   const k = c.leftVerb(j, "path");
   if (c.binds(k, FILE_VERBS)) {
-    emit("file_changed", value, k, span);
+    if (!inserted(c, k, j) && !generic(c, k) && !pastRelative(c, k)) {
+      emit("file_changed", value, k, span);
+    }
     return;
   }
   if (passive !== void 0) {
@@ -10580,6 +10637,18 @@ function bindPath(c, j, value, emit) {
   if (c.fileList !== void 0 && listed(c, j, c.fileList)) {
     emit("file_changed", value, -1, span, c.fileList);
   }
+}
+function inserted(c, k, j) {
+  if (!INSERT_VERBS.has(c.lower(k)) || !INSERT_PREPOSITIONS.has(c.lower(j + 1))) return false;
+  let r = j + 2;
+  while (DETERMINERS.has(c.lower(r))) r++;
+  return c.tokens[r]?.cls === "path";
+}
+function generic(c, k) {
+  return k > 0 && GENERIC_OPENERS.has(c.lower(0)) && c.lower(k).endsWith("s");
+}
+function pastRelative(c, k) {
+  return k === 2 && RELATIVES.has(c.lower(0)) && PAST_PASSIVES.has(c.lower(1));
 }
 function listed(c, j, head) {
   for (let k = 0; k < c.words.length; k++) {

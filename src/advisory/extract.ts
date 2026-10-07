@@ -14,6 +14,10 @@
 // Since extractor 0.1.3 a file list or a merge time after a colon binds to the clause before it, a
 // pull request's own closing keyword or commit beside another issue is kept, and a closing keyword
 // in a parenthetical history or an edit staged to cause a failure is not read.
+//
+// Since extractor 0.1.4 a path is not read as changed when it is what the verb's object uses, what
+// was put into another file, what a generic subject or a past relative clause describes, or when
+// its verb is the plural noun of a bold label.
 
 import { type AdvisoryKind, GRAMMAR } from './grammar.js';
 
@@ -84,6 +88,13 @@ const EXTENSIONLESS = words(GRAMMAR.extensionlessFiles);
 const HOST_EXTENSIONS = words(GRAMMAR.hostExtensions);
 const LOG_LEVELS = words(GRAMMAR.logLevels);
 const ANALOGUES = phrases(GRAMMAR.analogues);
+const OPERANDS = phrases(GRAMMAR.operands);
+const PATH_BARRIERS = [...ANALOGUES, ...OPERANDS];
+const INSERT_VERBS = words(GRAMMAR.insertVerbs);
+const INSERT_PREPOSITIONS = words(GRAMMAR.insertPrepositions);
+const GENERIC_OPENERS = words(GRAMMAR.genericOpeners);
+const RELATIVES = words(GRAMMAR.relatives);
+const PAST_PASSIVES = words(GRAMMAR.pastPassives);
 const SELF_NAMES = phrases(GRAMMAR.selfNames);
 const REPOSITORY_NOUNS = words(GRAMMAR.repositoryNouns);
 const OWN_REPOSITORY = words(GRAMMAR.ownRepository);
@@ -188,6 +199,9 @@ interface Word {
   bracket: number;
   // A comma follows the word.
   comma: boolean;
+  // An emphasis mark (`*`) opens before the word, or closes after it (0.1.4).
+  opensEmphasis: boolean;
+  closesEmphasis: boolean;
   atom?: 'code' | 'url';
 }
 
@@ -204,12 +218,24 @@ function makeWord(
   const rawEnd = start + raw.length;
   if (atom !== undefined) {
     const bracket = bracketAt(start);
-    return { text: raw, lower: '', start, end: rawEnd, rawEnd, bracket, comma: false, atom };
+    return {
+      text: raw,
+      lower: '',
+      start,
+      end: rawEnd,
+      rawEnd,
+      bracket,
+      comma: false,
+      opensEmphasis: false,
+      closesEmphasis: false,
+      atom,
+    };
   }
   const lead = LEADING.exec(raw)?.[0].length ?? 0;
   const text = raw.slice(lead).replace(TRAILING, '');
   if (text === '') return undefined;
   const begin = start + lead;
+  const trail = raw.slice(lead + text.length);
   return {
     text,
     lower: text.toLowerCase(),
@@ -217,7 +243,9 @@ function makeWord(
     end: begin + text.length,
     rawEnd,
     bracket: bracketAt(begin),
-    comma: raw.slice(lead + text.length).includes(','),
+    comma: trail.includes(','),
+    opensEmphasis: raw.slice(0, lead).includes('*'),
+    closesEmphasis: trail.includes('*'),
   };
 }
 
@@ -449,11 +477,28 @@ class Clause {
     return false;
   }
 
-  // A verb form after a determiner is an adjective or a noun: "the updated docs", "the fix".
+  // A verb form after a determiner is an adjective or a noun: "the updated docs", "the fix". So,
+  // since 0.1.4, is one that closes a bold label: "**Timetable fixes** — …".
   nominal(i: number): boolean {
+    if (this.label(i)) return true;
     const before = this.lower(i - 1);
     if (!DETERMINERS.has(before)) return false;
     return !(SUBJECT_DETERMINERS.has(before) && this.lower(i).endsWith('s'));
+  }
+
+  // A third-person form that closes an emphasis opened by an earlier word of its clause is the
+  // plural noun of a label (0.1.4): "**Timetable fixes** — …", "**Fare updates**:". A form that
+  // opens the label asserts as before: "**Fixes**: #12", "**Files changed**:".
+  label(i: number): boolean {
+    const word = this.words[i];
+    if (word === undefined || !word.closesEmphasis || word.opensEmphasis) return false;
+    if (!word.lower.endsWith('s')) return false;
+    for (let k = i - 1; k >= 0; k--) {
+      const before = this.words[k] as Word;
+      if (before.closesEmphasis) return false;
+      if (before.opensEmphasis) return true;
+    }
+    return false;
   }
 
   isVerb(i: number): boolean {
@@ -481,16 +526,16 @@ class Clause {
     return true;
   }
 
-  // An analogue phrase starts at k and ends before j.
+  // An analogue phrase, or since 0.1.4 an operand phrase, starts at k and ends before j.
   analogue(k: number, j: number): boolean {
-    return ANALOGUES.some(
+    return PATH_BARRIERS.some(
       (phrase) => k + phrase.length <= j && phrase.every((w, n) => this.lower(k + n) === w),
     );
   }
 
   // The nearest verb to the left of j, if no negation, modal or infinitive stands between, and it
   // is within the window. Tokens of the same class (a list) do not count toward the window. For a
-  // path, a bracket still open at it and an analogue phrase are barriers too.
+  // path, a bracket still open at it and an analogue or operand phrase are barriers too.
   leftVerb(j: number, cls: Token['cls']): number | undefined {
     const bracket = cls === 'path' ? (this.words[j] as Word).bracket : -1;
     let distance = 0;
@@ -554,7 +599,9 @@ function bindPath(c: Clause, j: number, value: string, emit: Emit): void {
   if (passive === -1 || c.staged) return;
   const k = c.leftVerb(j, 'path');
   if (c.binds(k, FILE_VERBS)) {
-    emit('file_changed', value, k, span);
+    if (!inserted(c, k, j) && !generic(c, k) && !pastRelative(c, k)) {
+      emit('file_changed', value, k, span);
+    }
     return;
   }
   // The passive: "src/a.ts was updated". A negation before the list the path ends covers every path
@@ -569,9 +616,32 @@ function bindPath(c: Clause, j: number, value: string, emit: Emit): void {
   }
 }
 
+// The path at j, bound to the verb at k, is what was put into another path (0.1.4): k is one of
+// `insertVerbs`, and after the path stand one of `insertPrepositions`, any `determiners`, and a
+// path. "Added `ferry.schedule` to `services.json`" puts the first into the second.
+function inserted(c: Clause, k: number, j: number): boolean {
+  if (!INSERT_VERBS.has(c.lower(k)) || !INSERT_PREPOSITIONS.has(c.lower(j + 1))) return false;
+  let r = j + 2;
+  while (DETERMINERS.has(c.lower(r))) r++;
+  return c.tokens[r]?.cls === 'path';
+}
+
+// The clause opens with one of `genericOpeners` and the file verb at k is a third-person form after
+// it: it says what such a thing does (0.1.4), "A nightly job updates `fares.json` on disk".
+function generic(c: Clause, k: number): boolean {
+  return k > 0 && GENERIC_OPENERS.has(c.lower(0)) && c.lower(k).endsWith('s');
+}
+
+// The clause opens with one of `relatives` and then one of `pastPassives`, and the file verb at k
+// follows them directly: it describes the noun before it as it already stood (0.1.4), "the flag
+// that was added to `ferry.toml` has no effect".
+function pastRelative(c: Clause, k: number): boolean {
+  return k === 2 && RELATIVES.has(c.lower(0)) && PAST_PASSIVES.has(c.lower(1));
+}
+
 // The path at j is in the list a file-list head introduces: the clause holds no verb, negation or
 // modal of its own, and the scan left from the path reaches the clause's start with no bracket
-// opened since the head, no analogue, and within the window.
+// opened since the head, no analogue or operand phrase, and within the window.
 function listed(c: Clause, j: number, head: Via): boolean {
   for (let k = 0; k < c.words.length; k++) {
     if (c.isVerb(k) || c.isNegation(k) || c.isModal(k)) return false;

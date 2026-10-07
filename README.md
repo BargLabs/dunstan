@@ -140,11 +140,13 @@ the record could check 44 of the 149 (24 agreed with it, 20 differed) and none w
 other 105 could not be compared with the record and were not judged. Each figure is bound to the extractor digest, and the `differs`
 figure and base rate to the comparison version too. Any later extractor or comparison is
 "unmeasured" until it is measured anew; it never inherits a figure. The extractor that runs now is
-0.1.3. Since 0.1.2 it stops reading statements about another pull request, an undone change, a
-baseline, a negated list or a deliberate test failure as claims, and since 0.1.3 it reads a file
-list or a merge time after a colon ([`docs/advisory.md`](docs/advisory.md), "Attribution" and
-"Lists, merge times and own references"). No figure is published for it, so a record it writes
-says "unmeasured".
+0.1.4. Since 0.1.2 it stops reading statements about another pull request, an undone change, a
+baseline, a negated list or a deliberate test failure as claims, since 0.1.3 it reads a file list
+or a merge time after a colon, and since 0.1.4 it stops reading a name the change uses, an entry put
+into another file, a generic or past description, or a bold label as a changed file
+([`docs/advisory.md`](docs/advisory.md), "Attribution", "Lists, merge times and own references" and
+"Labels, used names and descriptions"). No figure is published for it, so a record it writes says
+"unmeasured".
 
 The base rate is always shown next to the `differs` figure: among the 44 advisories the record
 could check, none was a false claim (0 of 44), so 0 of 20 means there was little to find, not that

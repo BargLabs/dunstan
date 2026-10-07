@@ -7,7 +7,7 @@
 import { sha256Canonical } from '../spec/jcs.js';
 import type { JsonValue } from '../spec/json.js';
 
-export const EXTRACTOR_VERSION = '0.1.3';
+export const EXTRACTOR_VERSION = '0.1.4';
 
 // The kinds of claim the extractor proposes, each compared by one 0.1 gate check (advise.ts).
 export const ADVISORY_KINDS = [
@@ -313,6 +313,24 @@ export const GRAMMAR = {
     'similar to',
     'unlike',
   ],
+  // Between a file verb and a path, one of these makes the path what the verb's object uses or acts
+  // on, not the object (extractor 0.1.4): "fixed an unsafe use of `math.floor`", "replaced the
+  // `awk` command for `fares.csv` with a script".
+  operands: ['command for', 'commands for', 'usage of', 'use of', 'uses of'],
+  // After one of these verbs, a path followed by one of `insertPrepositions` and another path, with
+  // only `determiners` between, is what was put into that path, not a changed file (extractor
+  // 0.1.4): "Added `ferry.schedule` to `services.json`". The second path binds as before.
+  insertVerbs: ['added', 'adds'],
+  insertPrepositions: ['into', 'to'],
+  // A clause that opens with one of these and binds a path to a third-person file verb says what such
+  // a thing does, not what this pull request did (extractor 0.1.4): "A nightly job updates
+  // `fares.json` on disk".
+  genericOpeners: ['a', 'an'],
+  // A clause that opens with one of `relatives` and then one of `pastPassives` describes the noun
+  // before it as it already stood (extractor 0.1.4): "the flag that was added to `ferry.toml` has no
+  // effect".
+  relatives: ['that', 'which'],
+  pastPassives: ['was', 'were'],
   // Bracket pairs. A path inside a pair still open at the path binds only to a verb inside it:
   // "edited the timetable (like ports/north.csv)". A markdown link's [text] is not an aside.
   brackets: ['()', '[]'],

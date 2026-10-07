@@ -786,7 +786,7 @@ A checker writes the section only when asked to (`dunstan check --advisory`; the
 
 ```json
 "advisory": {
-  "extractor": { "version": "0.1.3", "digest": { "sha256": "<64 hex>" } },
+  "extractor": { "version": "0.1.4", "digest": { "sha256": "<64 hex>" } },
   "comparison": { "version": "0.2.0" },
   "precision": null,
   "differsAccuracy": null,
@@ -850,9 +850,11 @@ in full. In outline:
    nearest verb to the token's left in the same clause, within the window (8 words), with no
    negation, modal or infinitive between them. For subjects (`CI`, `checks`, `tests`), the verb is
    the predicate after the subject. A verb form after a determiner is an adjective or a noun ("the
-   updated file"). A verb with a modal or a negation before it asserts nothing. A path inside a
+   updated file"), and since 0.1.4 so is a third-person form that closes a bold label ("**Fare
+   updates** — …"). A verb with a modal or a negation before it asserts nothing. A path inside a
    bracket still open at the path binds only to a verb inside the bracket, and an analogue phrase
-   (`like`, `based on`, `similar to`, …) between a verb and a path stops the binding.
+   (`like`, `based on`, `similar to`, …), or since 0.1.4 an operand phrase (`use of`,
+   `command for`, …), between a verb and a path stops the binding.
 5. **Token classes:** a repository path (with an extension, or a known extensionless name), an
    issue (`#N`, `owner/repo#N`), a SHA (7 to 40 hex digits holding both a digit and a letter, and
    not after `run`, `job`, `user`, `id` and the like), a UTC timestamp, a count.
@@ -874,7 +876,11 @@ in full. In outline:
    - since 0.1.3, an issue that is not the verb's subject leaves a closing keyword or a commit in
      the clause this pull request's ("Builds on #10 and closes #12"), and a closing keyword inside
      a bracket binds only when it opens the bracket ("(closes #12)", but not "(the earlier fix
-     closed #12)").
+     closed #12)");
+   - since 0.1.4, a path put into another path ("Added `ferry.schedule` to `services.json`"), a
+     path a clause opened by `a` or `an` binds to a third-person verb ("A nightly job updates
+     `fares.json`"), and a path in a relative clause in the past passive ("the flag that was added
+     to `ferry.toml`") propose no file claim.
 7. **Across a colon** (0.1.3). A clause that ends in a colon and holds an asserting file verb with
    a files noun ("Files changed:", "Changed the following files:") heads a list: the paths of the
    clause after it on the same line, or of the list items on the lines after it, bind to its verb
@@ -976,6 +982,17 @@ notes with its base rate.
    unchanged.
 
 ### D.12 Changes to this draft
+
+- **2026-10-07.** Advisory extractor 0.1.4: a third-person form that closes a bold label is a noun,
+  and an operand phrase (`use of`, `command for`, …) stops the binding (D.11.3, item 4); a path put
+  into another path, a path in a generic clause opened by `a` or `an`, and a path in a relative
+  clause in the past passive propose no file claim (D.11.3, item 6; `docs/advisory.md`, "Labels,
+  used names and descriptions"). Each rule only drops a file claim. The grammar digest changes from
+  `2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37` to
+  `78b92a682063464faf3cf1de13123d2b232bb3575effd5f31f0e12905643d45c`. No figure is published for
+  0.1.4, so a record it writes carries `null` for `precision` and `differsAccuracy`, shown as
+  "unmeasured". The checker that runs it is 0.1.4. The comparison (0.2.0), the schemas, the record
+  members and sections 1 to 17 are unchanged.
 
 - **2026-10-06.** Spec 0.1.2 (section 17). A `reference_closes` advisory is compared by the 7.4
   `closes` check, so on an open pull request whose closing references do not list an existing

@@ -843,6 +843,114 @@ describe('still a claim beside the 0.1.3 rules', () => {
   });
 });
 
+// Extractor 0.1.4 (docs/advisory.md, "Labels, used names and descriptions"): five rules, each only
+// dropping a file claim. Every negative below was proposed by 0.1.3, and every positive is proposed
+// by both.
+describe('a third-person form that closes a bold label (0.1.4)', () => {
+  it.each([
+    '**Timetable fixes** — the `FERRY_LIMIT` was capped at `12` despite `harbour.toml` allowing `20`.',
+    '- **Config changes** — `berth.yaml` is read once at start-up.',
+  ])('%s', (text) => {
+    expect(claims(text)).toEqual([]);
+  });
+
+  // The label's first word, a past form, or a verb after the label still asserts.
+  it.each([
+    ['**Fixes**: #12', [{ kind: 'reference_closes', value: '#12' }]],
+    ['**Files changed**: `src/a.ts`', files('src/a.ts')],
+    ['**Updated** `docs/ferry.md` for the summer timetable.', files('docs/ferry.md')],
+    ['**Fares** — updates `src/fares.ts` for the winter rates.', files('src/fares.ts')],
+  ])('%s', (text, expected) => {
+    expect(claims(text)).toEqual(expected);
+  });
+});
+
+describe("a path that the verb's object uses or acts on (0.1.4)", () => {
+  it.each([
+    'Fixed an unsafe use of `math.floor` in the fare rounding.',
+    'Replaced the `awk` command for `fares.csv` with a short script.',
+  ])('%s', (text) => {
+    expect(claims(text)).toEqual([]);
+  });
+
+  it.each([
+    ['Fixed a typo in `docs/ferry.md`.', 'docs/ferry.md'],
+    ['Updated the usage notes in `docs/ferry.md`.', 'docs/ferry.md'],
+    ['Replaced the `awk` command in `scripts/fares.sh`.', 'scripts/fares.sh'],
+  ])('%s', (text, path) => {
+    expect(claims(text)).toEqual(files(path));
+  });
+});
+
+describe('a name put into another file (0.1.4)', () => {
+  it.each([
+    ['Added `ferry.schedule` to `services.json`.', 'services.json'],
+    ['Adds `tide.offsets` to the `harbour.toml`.', 'harbour.toml'],
+  ])('only the file it was put into: %s', (text, path) => {
+    expect(claims(text)).toEqual(files(path));
+  });
+
+  it.each([
+    ['Moved `src/old.ts` to `src/new.ts`.', ['src/old.ts', 'src/new.ts']],
+    ['Added `src/fares.ts` to handle the winter rates.', ['src/fares.ts']],
+    ['Adds a guard to `src/fares.ts`.', ['src/fares.ts']],
+    ['Added `src/fares.ts` and `src/tides.ts`.', ['src/fares.ts', 'src/tides.ts']],
+  ])('%s', (text, paths) => {
+    expect(claims(text)).toEqual(files(...paths));
+  });
+});
+
+describe('a generic subject: what such a thing does (0.1.4)', () => {
+  it.each([
+    'A nightly job updates `fares.json` on disk.',
+    'An import script rewrites `ports/north.csv` at start-up.',
+  ])('%s', (text) => {
+    expect(claims(text)).toEqual([]);
+  });
+
+  it.each([
+    ['A new helper was added in `src/tides.ts`.', 'src/tides.ts'],
+    ['This updates `docs/ferry.md`.', 'docs/ferry.md'],
+    ['Adds `src/tides.ts` for the tide tables.', 'src/tides.ts'],
+  ])('%s', (text, path) => {
+    expect(claims(text)).toEqual(files(path));
+  });
+});
+
+describe('a relative clause in the past passive: the noun as it already stood (0.1.4)', () => {
+  it.each([
+    'The flag that was added to `ferry.toml` has no effect.',
+    'The rows, which were removed from `fares.csv` last year, are back.',
+  ])('%s', (text) => {
+    expect(claims(text)).toEqual([]);
+  });
+
+  it.each([
+    ['I confirmed that `src/a.ts` was updated.', 'src/a.ts'],
+    ['The rows that I removed from `fares.csv` were stale.', 'fares.csv'],
+    ['Removed the stale rows from `fares.csv`, which was then sorted.', 'fares.csv'],
+  ])('%s', (text, path) => {
+    expect(claims(text)).toEqual(files(path));
+  });
+});
+
+// The cost of the 0.1.4 rules: claims a writer meant for this pull request that 0.1.3 read and
+// 0.1.4 does not.
+describe('not read since 0.1.4, even where it was meant', () => {
+  it.each([
+    // A bold label's later third-person form is a noun, even when it was meant as the verb.
+    ['**This PR fixes** #12', []],
+    // A path put into another path is not read as changed, even a new file.
+    ['Added `src/fares.test.ts` to `vitest.workspace.ts`.', files('vitest.workspace.ts')],
+    // An indefinite subject is generic, even when it names this pull request's change.
+    ['A one-line fix updates `src/fares.ts`.', []],
+    // An operand phrase stops the scan, even when the file did change.
+    ['Fixed the use of `src/fares.ts` in the importer.', []],
+  ])('%s', (text, expected) => {
+    expect(claims(text)).toEqual(expected);
+  });
+});
+
 describe('false-positive class: user ids and run ids read as SHAs', () => {
   it.each([
     'Pushed after workflow run 18234567890 finished.',

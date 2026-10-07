@@ -94,9 +94,10 @@ from the record:
 > Advisories never affect the verdict. Extraction precision 0.80 (24/30, 95% CI 0.63–0.90). A possible disagreement is unverified: on 170 of our own agent PRs, 0 of 20 marked a false claim, and of the 44 advisories the record could check there, none was a false claim (0 of 44).
 
 For a record that carries no figure (a later extractor or comparison, not yet measured), the line
-states none. Since extractor 0.1.2 that includes every record the running checker writes: 0.1.2,
-and 0.1.3, which runs now, each have figures from constructed reports only, which no record
-carries, and no precision measured on real pull requests ("Measured figures", below).
+states none. Since extractor 0.1.2 that includes every record the running checker writes: 0.1.2 and
+0.1.3 each have figures from constructed reports only, which no record carries, and no precision
+measured on real pull requests, and 0.1.4, which runs now, has no figures at all ("Measured
+figures", below).
 
 > Advisories never affect the verdict. A possible disagreement is unverified: on the reports measured so far it usually reflected a misread of the report, not a false claim.
 
@@ -180,7 +181,8 @@ The gate is unchanged. A handback block's `filesChanged` holds repository-relati
 files as people do. The extraction grammar is unchanged too: extractor 0.1.1, digest
 `ab77ce47d1c5172ec912d1221e03bbe5b312ff5dc2acb594c4b8549fe602c360`. A measurement of the
 extractor's precision on that digest still holds. (Extractor 0.1.2 later changed the grammar:
-"Attribution", below; and 0.1.3 after it: "Lists, merge times and own references", below.)
+"Attribution", below; 0.1.3 after it: "Lists, merge times and own references", below; and 0.1.4
+after that: "Labels, used names and descriptions", below.)
 
 The rules are pinned by synthetic tests in `advise.test.ts`, "a file named by a bare name or a
 partial path (comparison 0.2.0)".
@@ -238,12 +240,13 @@ A token is a claim only when it is bound to an asserting verb in its own clause.
    after `window` (8) words. Tokens of the token's own class do not count toward the window, so
    every path in "updated a.ts, b.ts and c.ts" binds. For a path, two more barriers stop the scan
    (see "Asides and analogues" below): an opening bracket from `brackets` still unclosed at the
-   path, and a phrase from `analogues`.
+   path, and a phrase from `analogues`, or since 0.1.4 from `operands`.
 2. **Asserting.** The verb must not follow `to`. It must not be an adjective or noun: a verb form
    after a word in `determiners` is one ("the updated docs", "the fix"), unless that word is in
    `subjectDeterminers` and the verb is a third-person form ("This updates…"). No modal or negation
    may stand in the three words before it. A third-person form that opens its clause and is
-   followed by a word in `nounPrepositions` is a noun ("Changes to src/a.ts…").
+   followed by a word in `nounPrepositions` is a noun ("Changes to src/a.ts…"), and since 0.1.4 so
+   is one that closes a bold label after its first word ("**Fare updates** — …").
 3. **By class:**
    - a path binds to a verb in `verbs.file`, or to a past participle after one or more
      `passiveFillers` ("src/a.ts was updated"). A path after a word in `commandWords`, or after a
@@ -268,7 +271,9 @@ A token is a claim only when it is bound to an asserting verb in its own clause.
 4. **Once.** Each `(kind, value)` is proposed once, at its first clause.
 5. **This pull request's.** A bound claim is still dropped when its clause is about another pull
    request or repository, a change made and undone, a baseline head, a negated list, or a failure
-   staged on purpose (see "Attribution" below).
+   staged on purpose (see "Attribution" below). Since 0.1.4 a file claim is also dropped when the
+   path is a name put into another file, or its clause is generic or a past relative clause (see
+   "Labels, used names and descriptions" below).
 
 ### Asides and analogues (extractor 0.1.1)
 
@@ -404,6 +409,70 @@ meant" and "still a claim beside the 0.1.3 rules". For the rules that add a clai
 none of the claims each positive expects; for the rules that drop one, it proposed the claim each
 negative drops.
 
+### Labels, used names and descriptions (extractor 0.1.4)
+
+Through 0.1.3 a path bound to the nearest file verb on its left whatever stood between them, and a
+verb form was a verb unless a determiner stood before it. So the plural noun of a bold label, a
+file named as something the change uses, a name put into another file, a sentence about what some
+program does, and a past description of a file were each read as a claim that the path changed.
+0.1.4 adds one rule for each. Every rule only drops a file claim: none adds a claim or changes a
+value. The rules were written from the misreads labelled in the dev half of the open-source study
+(`experiments/open-source-advisory-2026-10/`), as its fix rules require, and every test sentence is
+synthetic.
+
+1. **A bold label.** A third-person verb form that closes an emphasis (`*` or `**`) opened by an
+   earlier word of its clause is the plural noun of a label, not a verb: in "**Timetable fixes** —
+   the `FERRY_LIMIT` was capped at `12` despite `harbour.toml` allowing `20`", `fixes` binds
+   nothing. The label's first word still asserts ("**Fixes**: #12", "**Updated** `docs/ferry.md`"),
+   and so does a past form ("**Files changed**:"), so 0.1.3's file-list heads read as before.
+2. **A path the verb's object uses or acts on.** A phrase from `operands` between a file verb and
+   a path stops the scan, as an analogue does, and so does one in a file list after a colon: "Fixed
+   an unsafe use of `math.floor`", "Replaced the `awk` command for `fares.csv` with a short
+   script". With another preposition the path still binds: "Replaced the `awk` command in
+   `scripts/fares.sh`".
+3. **A name put into another file.** A path bound to a verb in `insertVerbs` and followed by a word
+   in `insertPrepositions`, any `determiners` and another path, is what was put into that path:
+   "Added `ferry.schedule` to `services.json`" claims `services.json` only. A word after the
+   preposition is not a path, so "Added `src/fares.ts` to handle the winter rates" binds.
+4. **A generic subject.** A clause that opens with a word in `genericOpeners` and binds a path to a
+   third-person file verb says what such a thing does, not what this pull request did: "A nightly
+   job updates `fares.json` on disk". A past form still binds: "A new helper was added in
+   `src/tides.ts`".
+5. **A past relative clause.** A clause that opens with a word in `relatives`, then a word in
+   `pastPassives`, then the file verb that binds the path, describes the noun before it as it
+   already stood: "The flag that was added to `ferry.toml` has no effect". A relative clause with a
+   subject of its own ("The rows that I removed from `fares.csv` were stale") and a passive whose
+   path stands before its verb ("I confirmed that `src/a.ts` was updated") bind as before.
+
+What each costs, on purpose:
+
+- A later third-person form in a bold label is a noun even when it was meant as the verb:
+  "**This PR fixes** #12" closes nothing.
+- A path put into another path is not read as changed, even a new file: "Added
+  `src/fares.test.ts` to `vitest.workspace.ts`" claims only the workspace file.
+- An indefinite subject is generic even when it names this pull request's change: "A one-line fix
+  updates `src/fares.ts`" is not read.
+- An operand phrase stops the scan even when the file did change: "Fixed the use of `src/fares.ts`
+  in the importer" is not read.
+
+Left as they were, on purpose:
+
+- **A code name shaped like a file name.** A dotted name whose last segment is capitalised, such as
+  `Harbour.Tides.Schedule`, is a path with an extension to the grammar. A rule that dropped every
+  such name would also drop names that are the changed thing, so none is written.
+- **What a function does, in a list item under it.** A third-person form that opens a list item
+  ("Creates `ferry.lock` atomically") is also how a summary is written. Telling the two apart needs
+  the item above, which is context in a neighbouring clause.
+- **A misread only the comparison could fix.** A closing reference to a repository that has since
+  moved, and a path abbreviated with `...`, read as the report wrote them. The comparison stays
+  0.2.0.
+
+Each rule is pinned by synthetic tests in `extract.test.ts`: "a third-person form that closes a
+bold label (0.1.4)", "a path that the verb's object uses or acts on (0.1.4)", "a name put into
+another file (0.1.4)", "a generic subject: what such a thing does (0.1.4)", "a relative clause in
+the past passive: the noun as it already stood (0.1.4)" and "not read since 0.1.4, even where it
+was meant". 0.1.3 proposed the claim each negative drops, and both propose every positive.
+
 ### The lists
 
 - `verbs.file`: added, adds, adjusted, adjusts, amended, amends, changed, changes, created, creates, deleted, deletes, edited, edits, extended, extends, fixed, fixes, modified, modifies, moved, moves, patched, patches, refactored, refactors, removed, removes, renamed, renames, replaced, replaces, reworked, reworks, rewrites, rewritten, rewrote, touched, touches, tweaked, tweaks, updated, updates
@@ -435,6 +504,12 @@ negative drops.
 - `exceptions`: apart, besides, except, excluding, other, save
 - `headFillers`: at, commit, is, now, sha, was
 - `analogues`: analogous to, as in, based on, cf, compared to, compared with, like, matching, mirroring, modeled on, modelled on, same as, similar to, unlike
+- `operands`: command for, commands for, usage of, use of, uses of
+- `insertVerbs`: added, adds
+- `insertPrepositions`: into, to
+- `genericOpeners`: a, an
+- `relatives`: that, which
+- `pastPassives`: was, were
 - `brackets`: (), []
 - `selfNames`: this change, this pr, this pull request
 - `repositoryNouns`: repo, repos, repositories, repository
@@ -499,12 +574,14 @@ The table below is for extractor 0.1.1. Extractor 0.1.2, digest
 `dfd6563a934667a80448e49b7133ade6d2473e5e13cd9d05fd52c761a1a1780b`, ran from 2026-10-05. It now
 has figures measured on constructed reports ("Extractor 0.1.2 on constructed reports (recall)",
 below), but no precision measured on real pull requests, so its records still carry `null` for both
-figures. The extractor that runs since 2026-10-06 is 0.1.3, digest
-`2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37`. It too has figures measured on
-constructed reports ("Extractor 0.1.3 on constructed reports (recall)", below), and no precision
-measured on real pull requests. So a record the running checker writes carries `null` for both
-figures, shown as "unmeasured", until a precision measured on real pull requests is published for
-0.1.3. No figure here is rebound to it.
+figures. Extractor 0.1.3, digest
+`2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37`, ran from 2026-10-06. It too
+has figures measured on constructed reports ("Extractor 0.1.3 on constructed reports (recall)",
+below), and no precision measured on real pull requests. The extractor that runs since 2026-10-07
+is 0.1.4, digest `78b92a682063464faf3cf1de13123d2b232bb3575effd5f31f0e12905643d45c`. It is
+unmeasured: no figure of any kind is published for it. So a record the running checker writes
+carries `null` for both figures, shown as "unmeasured", until a precision measured on real pull
+requests is published for 0.1.4. No figure here is rebound to it.
 
 | Figure | Value | n | Wilson 95% interval | Bound to |
 | --- | --- | --- | --- | --- |

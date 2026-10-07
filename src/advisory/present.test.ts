@@ -33,8 +33,8 @@ import {
 } from './present.js';
 
 const OLD_WORDING = /differs|mismatch|false claim/i;
-// The grammar the published figures were measured on. The extractor that runs is 0.1.3 (0.1.2
-// before it), and no figure is published for it.
+// The grammar the published figures were measured on. The extractor that runs is 0.1.4 (0.1.2 and
+// 0.1.3 before it), and no figure is published for it.
 const EXTRACTOR_0_1_1 = 'ab77ce47d1c5172ec912d1221e03bbe5b312ff5dc2acb594c4b8549fe602c360';
 
 describe('the words a reader is shown for a note', () => {
@@ -200,7 +200,7 @@ describe('the record does not change, but for the figure fields', () => {
     expect(a?.comparison).toEqual({ version: '0.2.0' });
     expect(COMPARISON_VERSION).toBe('0.2.0');
     expect(a?.extractor).toEqual(EXTRACTOR);
-    expect(EXTRACTOR.version).toBe('0.1.3');
+    expect(EXTRACTOR.version).toBe('0.1.4');
     expect(a?.advisories.map((x) => [x.kind, x.value, x.observed, x.note])).toEqual([
       ['file_changed', 'src/a.ts', 'src/a.ts', 'agrees'],
       ['file_changed', 'b.ts', 'pkg/b.ts', 'agrees_by_name'],
@@ -214,16 +214,16 @@ describe('the record does not change, but for the figure fields', () => {
     ]);
     // Pinned. A digest that moves is a record that changed. The claims and evidence digests are as
     // they were before the presentation change; the advisory digest moved when the section gained
-    // the published figures, again when the extractor became 0.1.2, and again when it became 0.1.3:
-    // each names a new grammar with no figure published.
+    // the published figures, and again when the extractor became 0.1.2, 0.1.3 and 0.1.4: each names
+    // a new grammar with no figure published.
     expect(record.predicate.digests).toEqual({
       claims: '56cccb4067679d0c95cf609ad87d9ea8eae7198b330baaa9cc0babeb0991b576',
       evidence: '9ff3e3e482ccf21a30847863450476e0594d137006dca39b29f77d543b656951',
-      advisory: '4abc96770cee153fdc3f1284f056f0fc2c0e3092b8252048822d6f117109bd25',
+      advisory: '05ac2fe7651650030544bc695ca67bd5c6a9d38b6a2c82a83ca5ced356ce31a7',
     });
     // Named as extractor 0.1.1, with 0.1.1's figures, the section is byte for byte the one pinned
-    // when the figures were published: extractors 0.1.2 and 0.1.3 changed the extractor's identity
-    // and figures here, and no advisory of this report.
+    // when the figures were published: extractors 0.1.2, 0.1.3 and 0.1.4 changed the extractor's
+    // identity and figures here, and no advisory of this report.
     if (a === undefined) throw new Error('fixture');
     const as011 = {
       ...a,
@@ -264,7 +264,7 @@ describe('the record does not change, but for the figure fields', () => {
 
   it('every surface words each differs note as a possible disagreement, beside the line with the figures', () => {
     // A record written by extractor 0.1.1, which carries the figures published for it. Extractors
-    // 0.1.2 and 0.1.3 have none: the next test.
+    // 0.1.2, 0.1.3 and 0.1.4 have none: the next test.
     const record = build();
     const a = record.predicate.advisory;
     if (a === undefined) throw new Error('fixture');
@@ -294,7 +294,7 @@ describe('the record does not change, but for the figure fields', () => {
 
   it('every surface falls back to the line with no figure for a record that carries none', () => {
     // A record from a later extractor or comparison, which no published figure is bound to. That
-    // includes the extractor that runs, 0.1.3; a later one, 9.9.9, is the same.
+    // includes the extractor that runs, 0.1.4; a later one, 9.9.9, is the same.
     for (const extractor of [EXTRACTOR, { version: '9.9.9', digest: { sha256: 'f'.repeat(64) } }]) {
       const record = build();
       const a = record.predicate.advisory;

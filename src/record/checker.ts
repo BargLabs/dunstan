@@ -10,7 +10,7 @@ import type { CheckerIdentity } from './build.js';
 export const CHECKER_NAME = 'dunstan';
 
 // Kept equal to package.json's version by src/record/record.test.ts.
-export const CHECKER_VERSION = '0.1.3';
+export const CHECKER_VERSION = '0.1.4';
 
 // `artifact` is the URL of the running entry module (import.meta.url). Run from the bundle, that is
 // dist/dunstan.mjs. Run from source (tests), it is the entry .ts file, which identifies only that file.
