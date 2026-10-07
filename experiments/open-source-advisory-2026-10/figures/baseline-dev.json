@@ -1,0 +1,101 @@
+{
+  "run": "baseline-dev",
+  "instrument": {
+    "name": "baseline",
+    "checkerVersion": "0.1.3",
+    "bundleSha256": "fd1377c058a928bf30e54c000bfb19e5eb3cd5eb71408ea4b093cc9ccf7170a5",
+    "extractorVersion": "0.1.3",
+    "extractorDigest": "2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37",
+    "comparison": "0.2.0"
+  },
+  "pullRequests": 150,
+  "errors": 0,
+  "descriptive": {
+    "advisories": 112,
+    "advisoriesPerPr": {
+      "mean": 0.74667,
+      "median": 0,
+      "max": 7,
+      "histogram": {
+        "0": 77,
+        "1": 50,
+        "2": 15,
+        "3": 5,
+        "4": 1,
+        "6": 1,
+        "7": 1
+      }
+    },
+    "checkableShare": {
+      "k": 102,
+      "n": 112,
+      "value": 0.91071,
+      "wilson95": {
+        "low": 0.84341,
+        "high": 0.95078
+      }
+    },
+    "prsWithCheckable": {
+      "k": 69,
+      "n": 150,
+      "value": 0.46,
+      "wilson95": {
+        "low": 0.38224,
+        "high": 0.53976
+      }
+    }
+  },
+  "M1": {
+    "k": 55,
+    "n": 60,
+    "value": 0.91667,
+    "wilson95": {
+      "low": 0.81931,
+      "high": 0.96388
+    }
+  },
+  "M2": {
+    "differs": 17,
+    "false_claim": {
+      "k": 4,
+      "n": 17,
+      "value": 0.23529,
+      "wilson95": {
+        "low": 0.09555,
+        "high": 0.47262
+      }
+    },
+    "claim_holds": {
+      "k": 3,
+      "n": 17,
+      "value": 0.17647,
+      "wilson95": {
+        "low": 0.06191,
+        "high": 0.41029
+      }
+    },
+    "not_a_claim": {
+      "k": 10,
+      "n": 17,
+      "value": 0.58824,
+      "wilson95": {
+        "low": 0.36005,
+        "high": 0.78389
+      }
+    }
+  },
+  "M3": {
+    "falseAccusations": 13,
+    "checkable": 102,
+    "k": 13,
+    "n": 102,
+    "value": 0.12745,
+    "wilson95": {
+      "low": 0.07602,
+      "high": 0.20593
+    }
+  },
+  "bar": {
+    "applies": false
+  }
+}

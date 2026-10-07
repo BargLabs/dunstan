@@ -1,0 +1,10 @@
+{
+  "name": "fixed",
+  "checkerVersion": "0.1.4",
+  "bundleSha256": "01e9d02a416d896427f55f9e34dcf139cbab3ab4c0fcab043d15fab01f5fd7de",
+  "extractorVersion": "0.1.4",
+  "extractorDigest": "78b92a682063464faf3cf1de13123d2b232bb3575effd5f31f0e12905643d45c",
+  "comparison": "0.2.0",
+  "sourceCommit": "c69e63fe636e711804958bfe9da19a303705a196",
+  "frozenAt": "2026-10-07T13:33:34.154Z"
+}
