@@ -1,18 +1,31 @@
-// Executes the selection rule of preregistration.md and writes selection.json with its audit record.
+// Executes the selection rule of preregistration.md and writes selection.json with its audit record;
+// with --wave 2, executes amendment-1.md's second wave and appends it to selection.json.
 //
 //   pnpm exec node experiments/open-source-advisory-2026-10/tools/select.mjs --rule-commit <sha>
+//   pnpm exec node experiments/open-source-advisory-2026-10/tools/select.mjs --wave 2 \
+//     --rule-commit <public commit of amendment-1.md>
 //
 // Reads only what the rule allows before selection: search results, repository metadata and each
 // candidate's body as its search result gives it, for filter 3. It writes each selected pull
 // request's body, as read, to the git-ignored .work/bodies/ (the label offsets index into it) and its
 // SHA-256 to selection.json. It never reads a pull request's files, commits, checks, reviews or
-// comments. It refuses to overwrite selection.json.
+// comments. It refuses to overwrite selection.json, and refuses wave 2 once selection.json has a
+// split or a wave 2.
 //
 // DUNSTAN_READ_TOKEN is sent as a bearer token and is never written anywhere.
 
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileStem, flags, isMain, paths, sha256, writeJson } from './common.mjs';
+import {
+  fileStem,
+  flags,
+  isMain,
+  paths,
+  readJson,
+  sha256,
+  splitKey,
+  writeJson,
+} from './common.mjs';
 
 const API = 'https://api.github.com';
 
@@ -24,7 +37,9 @@ export const AGENTS = [
   { id: 'D', agent: 'OpenAI Codex', qualifier: 'author:app/chatgpt-codex-connector' },
   { id: 'E', agent: 'Google Jules', qualifier: 'author:app/google-labs-jules' },
 ];
-export const QUERY_PREFIX = 'is:pr is:merged is:public merged:2026-06-01..2026-10-06';
+export const QUALIFIERS = 'is:pr is:merged is:public';
+export const WINDOW = Object.freeze({ start: '2026-06-01', end: '2026-10-06' });
+export const QUERY_PREFIX = `${QUALIFIERS} merged:${WINDOW.start}..${WINDOW.end}`;
 export const PER_PAGE = 100;
 export const RESULT_CAP = 1000;
 export const WANTED = 300;
@@ -39,6 +54,33 @@ export const EXCLUDED_REPOSITORIES = [
   'cdcseacave/openMVS',
   'QuantEcon/QuantEcon.py',
 ];
+
+export const AMENDMENT_1 = 'experiments/open-source-advisory-2026-10/amendment-1.md';
+const TOOL = 'experiments/open-source-advisory-2026-10/tools/select.mjs';
+const DAY = 86_400_000;
+
+// amendment-1.md, "Weekly queries": the window cut into consecutive seven-day sub-windows from its
+// first day, both ends inclusive; the last ends on the window's last day and may be shorter.
+export function weeks(window = WINDOW) {
+  const iso = (t) => new Date(t).toISOString().slice(0, 10);
+  const end = Date.parse(`${window.end}T00:00:00Z`);
+  const out = [];
+  for (let t = Date.parse(`${window.start}T00:00:00Z`); t <= end; t += 7 * DAY) {
+    out.push({ start: iso(t), end: iso(Math.min(t + 6 * DAY, end)) });
+  }
+  return out;
+}
+
+// amendment-1.md, "Week order": the weeks in ascending SHA-256 (hex) of the UTF-8 string
+// "week:<start>".
+export function weekOrder(window = WINDOW) {
+  return weeks(window)
+    .map((w) => {
+      const key = `week:${w.start}`;
+      return { ...w, key, sha256: sha256(Buffer.from(key, 'utf8')) };
+    })
+    .sort((a, b) => (a.sha256 < b.sha256 ? -1 : a.sha256 > b.sha256 ? 1 : 0));
+}
 
 export class HttpError extends Error {
   constructor(path, status, body) {
@@ -80,21 +122,20 @@ export function cleanBody(body) {
 }
 
 const same = (a, b) => a.toLowerCase() === b.toLowerCase();
+const RULE_COMMIT = /^[0-9a-f]{40}$/;
 
-// The rule, executed. `get(path)` returns the API's JSON or throws an HttpError; `now()` gives the
-// timestamps. Returns the selection and the bodies of the selected pull requests, by file stem.
-export async function select({ get, ruleCommit, now = () => new Date().toISOString() }) {
-  if (!/^[0-9a-f]{40}$/.test(ruleCommit ?? '')) throw new Error('--rule-commit <40-hex sha>');
-  const startedAt = now();
-  const queries = [];
+// The rule's steps, shared by both waves. `get(path)` returns the API's JSON or throws an HttpError;
+// `now()` gives the timestamps. `selected` starts with what is already selected, so filter 4 holds
+// across it; a candidate whose key (splitKey) is in `skip` was examined in wave 1 and is recorded
+// as skipped, with no filter applied and nothing read.
+function selector({ get, now, selected = [], skip = new Set() }) {
   const repos = new Map();
   const candidates = [];
-  const selected = [];
   const bodies = new Map();
 
-  // One agent's results, read page by page in order, only as far as the round-robin needs.
-  function stream(agent) {
-    const q = `${QUERY_PREFIX} ${agent.qualifier}`;
+  // One query's results, read page by page in order, only as far as the round-robin needs. The
+  // query and each page read are recorded in `queries`.
+  function stream(agent, q, queries) {
     const query = {
       agent: agent.id,
       q,
@@ -156,11 +197,13 @@ export async function select({ get, ruleCommit, now = () => new Date().toISOStri
     return repos.get(fullName);
   }
 
-  async function examine(agent, item) {
+  // `tag` is what wave 2 adds to each candidate and selected pull request: its wave and week.
+  async function examine(agent, item, tag) {
     const fullName = item.repository_url.replace(`${API}/repos/`, '');
     const [owner] = fullName.split('/');
     const candidate = {
       agent: agent.id,
+      ...tag,
       url: item.html_url,
       repository: fullName,
       number: item.number,
@@ -169,6 +212,10 @@ export async function select({ get, ruleCommit, now = () => new Date().toISOStri
       mergedAt: item.pull_request?.merged_at ?? null,
     };
     candidates.push(candidate);
+    if (skip.has(splitKey(candidate))) {
+      candidate.result = { skipped: 'wave 1' };
+      return false;
+    }
     if (EXCLUDED_OWNERS.some((o) => same(o, owner))) {
       candidate.result = { rejectedBy: 1, reason: `repository owner is ${owner}` };
       return false;
@@ -212,6 +259,7 @@ export async function select({ get, ruleCommit, now = () => new Date().toISOStri
     const s = {
       n: selected.length + 1,
       agent: agent.id,
+      ...tag,
       url: item.html_url,
       repository: fullName,
       number: item.number,
@@ -225,28 +273,49 @@ export async function select({ get, ruleCommit, now = () => new Date().toISOStri
     return true;
   }
 
-  const streams = AGENTS.map((agent) => ({ agent, next: stream(agent), done: false }));
-  while (selected.length < WANTED && streams.some((s) => !s.done)) {
-    for (const s of streams) {
-      if (selected.length >= WANTED) break;
-      if (s.done) continue;
-      for (;;) {
-        const item = await s.next();
-        if (item === undefined) {
-          s.done = true;
-          break;
+  // Round-robin from A over one query per agent until WANTED are selected or every query has run
+  // out. Returns the agents whose queries ran out.
+  async function roundRobin(queryFor, queries, tag = {}) {
+    const streams = AGENTS.map((agent) => ({
+      agent,
+      next: stream(agent, queryFor(agent), queries),
+      done: false,
+    }));
+    while (selected.length < WANTED && streams.some((s) => !s.done)) {
+      for (const s of streams) {
+        if (selected.length >= WANTED) break;
+        if (s.done) continue;
+        for (;;) {
+          const item = await s.next();
+          if (item === undefined) {
+            s.done = true;
+            break;
+          }
+          if (await examine(s.agent, item, tag)) break;
         }
-        if (await examine(s.agent, item)) break;
       }
     }
+    return streams.filter((s) => s.done).map((s) => s.agent.id);
   }
+
+  return { selected, candidates, bodies, roundRobin };
+}
+
+// The rule, executed. Returns the selection and the bodies of the selected pull requests, by file
+// stem.
+export async function select({ get, ruleCommit, now = () => new Date().toISOString() }) {
+  if (!RULE_COMMIT.test(ruleCommit ?? '')) throw new Error('--rule-commit <40-hex sha>');
+  const startedAt = now();
+  const queries = [];
+  const run = selector({ get, now });
+  const exhaustedAgents = await run.roundRobin((a) => `${QUERY_PREFIX} ${a.qualifier}`, queries);
 
   const selection = {
     rule: {
       path: 'experiments/open-source-advisory-2026-10/preregistration.md',
       commit: ruleCommit,
     },
-    tool: 'experiments/open-source-advisory-2026-10/tools/select.mjs',
+    tool: TOOL,
     startedAt,
     finishedAt: now(),
     measures: {
@@ -257,13 +326,81 @@ export async function select({ get, ruleCommit, now = () => new Date().toISOStri
     agents: AGENTS,
     exclusions: { owners: EXCLUDED_OWNERS, repositories: EXCLUDED_REPOSITORIES },
     queries,
-    exhaustedAgents: streams.filter((s) => s.done).map((s) => s.agent.id),
+    exhaustedAgents,
     wanted: WANTED,
-    complete: selected.length === WANTED,
-    selected,
-    candidates,
+    complete: run.selected.length === WANTED,
+    selected: run.selected,
+    candidates: run.candidates,
   };
-  return { selection, bodies };
+  return { selection, bodies: run.bodies };
+}
+
+// Why wave 2 cannot run on `previous`, wave 1's selection.json, or null if it can.
+function wave2Refusal(previous, ruleCommit) {
+  if (!Array.isArray(previous?.selected) || !Array.isArray(previous?.candidates)) {
+    return 'selection.json holds no wave 1';
+  }
+  if (previous.split !== undefined) return 'selection.json has a split; wave 2 comes before it';
+  if (previous.wave2 !== undefined)
+    return 'selection.json already holds wave 2; it is never redone';
+  if (!RULE_COMMIT.test(ruleCommit ?? '')) {
+    return '--rule-commit <40-hex sha of the public commit of amendment-1.md>';
+  }
+  return null;
+}
+
+// amendment-1.md, wave 2, executed on `previous`, wave 1's selection.json: the weekly queries in
+// the fixed week order, round-robin within each week, wave 1's candidates skipped, filter 4 across
+// both waves, until WANTED are selected in total. Returns selection.json with wave 2 appended and
+// the bodies of wave 2's selected pull requests. Refuses, reading nothing, as wave2Refusal says.
+export async function selectWave2({
+  get,
+  ruleCommit,
+  previous,
+  now = () => new Date().toISOString(),
+}) {
+  const refusal = wave2Refusal(previous, ruleCommit);
+  if (refusal !== null) throw new Error(refusal);
+  const startedAt = now();
+  const run = selector({
+    get,
+    now,
+    selected: [...previous.selected],
+    skip: new Set(previous.candidates.map(splitKey)),
+  });
+  const weeksRun = [];
+  for (const week of weekOrder()) {
+    if (run.selected.length >= WANTED) break;
+    const prefix = `${QUALIFIERS} merged:${week.start}..${week.end}`;
+    const record = { ...week, queries: [] };
+    weeksRun.push(record);
+    record.exhaustedAgents = await run.roundRobin(
+      (a) => `${prefix} ${a.qualifier}`,
+      record.queries,
+      { wave: 2, week: week.start },
+    );
+  }
+
+  const finalN = run.selected.length;
+  const selection = {
+    ...previous,
+    complete: finalN === WANTED,
+    finalN,
+    selected: run.selected,
+    wave2: {
+      amendment: 'amendment-1.md',
+      rule: { path: AMENDMENT_1, commit: ruleCommit },
+      tool: TOOL,
+      startedAt,
+      finishedAt: now(),
+      wave1: { selected: previous.selected.length, complete: previous.complete },
+      weekOrder: 'ascending SHA-256 (hex) of the UTF-8 string "week:<start>"',
+      weeks: weeksRun,
+      selected: finalN - previous.selected.length,
+      candidates: run.candidates,
+    },
+  };
+  return { selection, bodies: run.bodies };
 }
 
 // Writes selection.json and the bodies. Refuses when selection.json exists.
@@ -275,12 +412,44 @@ export function writeSelection({ selection, bodies }, p = paths()) {
   writeJson(p.selection, selection);
 }
 
+// Writes selection.json with wave 2 appended, and wave 2's bodies. Refuses when selection.json on
+// disk can no longer take wave 2, or its wave 1 is not the one wave 2 ran on.
+export function writeWave2({ selection, bodies }, p = paths()) {
+  const onDisk = readJson(p.selection);
+  const refusal = wave2Refusal(onDisk, selection.wave2.rule.commit);
+  if (refusal !== null) throw new Error(refusal);
+  const wave1 = selection.selected.slice(0, onDisk.selected.length);
+  if (JSON.stringify(wave1) !== JSON.stringify(onDisk.selected)) {
+    throw new Error(`${p.selection} changed while wave 2 ran`);
+  }
+  mkdirSync(p.bodies, { recursive: true });
+  for (const [stem, body] of bodies) writeFileSync(join(p.bodies, `${stem}.md`), body);
+  writeJson(p.selection, selection);
+}
+
 if (isMain(import.meta.url)) {
   const args = flags(process.argv.slice(2));
-  const result = await select({ get: githubGet, ruleCommit: args['rule-commit'] });
-  writeSelection(result);
-  const { selected, candidates, complete } = result.selection;
-  process.stdout.write(
-    `${candidates.length} candidate(s) examined; ${selected.length} selected${complete ? '' : ` (fewer than ${WANTED}: the rule ran out)`}\n`,
-  );
+  if (args.wave === undefined) {
+    const result = await select({ get: githubGet, ruleCommit: args['rule-commit'] });
+    writeSelection(result);
+    const { selected, candidates, complete } = result.selection;
+    process.stdout.write(
+      `${candidates.length} candidate(s) examined; ${selected.length} selected${complete ? '' : ` (fewer than ${WANTED}: the rule ran out)`}\n`,
+    );
+  } else if (args.wave === '2') {
+    const p = paths();
+    if (!existsSync(p.selection)) throw new Error(`${p.selection} does not exist: wave 1 first`);
+    const result = await selectWave2({
+      get: githubGet,
+      ruleCommit: args['rule-commit'],
+      previous: readJson(p.selection),
+    });
+    writeWave2(result, p);
+    const { wave2, finalN, complete } = result.selection;
+    process.stdout.write(
+      `wave 2: ${wave2.candidates.length} candidate(s) examined; ${wave2.selected} selected; ${finalN} in total${complete ? '' : ` (fewer than ${WANTED}: wave 2 ran out)`}\n`,
+    );
+  } else {
+    throw new Error(`--wave ${args.wave}: amendment-1.md adds wave 2 only`);
+  }
 }

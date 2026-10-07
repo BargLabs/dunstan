@@ -28,11 +28,17 @@ import {
   HttpError,
   MIN_BODY,
   MIN_STARS,
+  QUALIFIERS,
   QUERY_PREFIX,
   RESULT_CAP,
   select,
+  selectWave2,
   WANTED,
+  WINDOW,
+  weekOrder,
+  weeks,
   writeSelection,
+  writeWave2,
 } from './select.mjs';
 import { halfOf, recordSplit, selectedIn, split } from './split.mjs';
 import { buildWorksheet, publishLabels } from './worksheet.mjs';
@@ -51,9 +57,10 @@ const SHA = 'a'.repeat(40);
 const longBody = (n, tag = '') => `${tag}${'x'.repeat(n - tag.length)}`;
 
 // ---------------------------------------------------------------------------------------------
-// A fake GitHub: per agent, an ordered list of search items; per repository, its metadata.
+// A fake GitHub: per agent, an ordered list of search items for the whole window (wave 1) and, by
+// week start, for each week (wave 2); per repository, its metadata.
 
-function fakeGitHub({ items, repos }) {
+function fakeGitHub({ items = {}, weekItems = {}, repos }) {
   const calls = [];
   const get = async (path) => {
     calls.push(path);
@@ -61,7 +68,8 @@ function fakeGitHub({ items, repos }) {
       const params = new URLSearchParams(path.slice('/search/issues?'.length));
       const q = params.get('q');
       const agent = AGENTS.find((a) => q.endsWith(a.qualifier));
-      const all = items[agent.id] ?? [];
+      const week = q.match(/ merged:(\d{4}-\d{2}-\d{2})\.\./)[1];
+      const all = (q.startsWith(QUERY_PREFIX) ? items : (weekItems[week] ?? {}))[agent.id] ?? [];
       const page = Number(params.get('page'));
       const per = Number(params.get('per_page'));
       const reachable = all.slice(0, RESULT_CAP);
@@ -264,6 +272,272 @@ const selectedPr = (n, repository, number = n, body = `body ${n}`) => ({
   cleanedBodyLength: MIN_BODY,
   body: { sha256: sha256(Buffer.from(body, 'utf8')), codePoints: [...body].length },
   selectedAt: '2026-10-08T00:00:00.000Z',
+});
+
+// ---------------------------------------------------------------------------------------------
+// Wave 2 (amendment-1.md) on a constructed wave 1: its selected pull requests, each also a
+// candidate, and further candidates it rejected, as [repository, number].
+
+function wave1(selected = [selectedPr(1, 'w1/kept')], rejected = []) {
+  const candidate = (repository, number, result) => ({
+    agent: 'A',
+    url: `https://github.com/${repository}/pull/${number}`,
+    repository,
+    number,
+    result,
+  });
+  return {
+    rule: { path: 'experiments/open-source-advisory-2026-10/preregistration.md', commit: SHA },
+    wanted: WANTED,
+    complete: false,
+    selected,
+    candidates: [
+      ...selected.map((s) => candidate(s.repository, s.number, 'selected')),
+      ...rejected.map(([repository, number]) =>
+        candidate(repository, number, { rejectedBy: 2, reason: 'stargazers_count 0 < 200' }),
+      ),
+    ],
+  };
+}
+
+const numbered = (i, number) => ({
+  ...i,
+  number,
+  html_url: i.html_url.replace(/\d+$/, String(number)),
+});
+const reposOf = (...lists) =>
+  Object.fromEntries(lists.flat().map((i) => [i.repository_url.split('/repos/')[1], {}]));
+const searches = (calls) =>
+  calls
+    .filter((c) => c.startsWith('/search/issues?'))
+    .map((c) => new URLSearchParams(c.split('?')[1]));
+
+describe('select.mjs --wave 2: amendment 1', () => {
+  const ORDER = weekOrder();
+  const amendment = readFileSync(join(STUDY, 'amendment-1.md'), 'utf8');
+
+  it('cuts the window into consecutive weeks and orders them by the SHA-256 of "week:<start>"', () => {
+    const w = weeks();
+    expect(w).toHaveLength(19);
+    expect(w[0]).toEqual({ start: '2026-06-01', end: '2026-06-07' });
+    expect(w.at(-2)).toEqual({ start: '2026-09-28', end: '2026-10-04' });
+    expect(w.at(-1)).toEqual({ start: '2026-10-05', end: '2026-10-06' });
+    // Every day of the window is in exactly one week.
+    const days = w.flatMap(({ start, end }) => {
+      const out = [];
+      for (let t = Date.parse(start); t <= Date.parse(end); t += 86_400_000) {
+        out.push(new Date(t).toISOString().slice(0, 10));
+      }
+      return out;
+    });
+    expect(days).toHaveLength(128);
+    expect(new Set(days).size).toBe(128);
+    expect([days[0], days.at(-1)]).toEqual([WINDOW.start, WINDOW.end]);
+    for (const o of ORDER) expect(o.sha256).toBe(sha256(Buffer.from(`week:${o.start}`, 'utf8')));
+    expect(ORDER.map((o) => o.sha256)).toEqual(ORDER.map((o) => o.sha256).toSorted());
+    expect(ORDER.map((o) => o.start)).toEqual([
+      '2026-07-13',
+      '2026-06-01',
+      '2026-08-17',
+      '2026-06-22',
+      '2026-08-31',
+      '2026-07-06',
+      '2026-09-28',
+      '2026-08-24',
+      '2026-09-07',
+      '2026-10-05',
+      '2026-09-21',
+      '2026-07-20',
+      '2026-08-10',
+      '2026-06-29',
+      '2026-06-08',
+      '2026-09-14',
+      '2026-08-03',
+      '2026-06-15',
+      '2026-07-27',
+    ]);
+  });
+
+  it('is the order amendment-1.md lists, and the amendment states the queries', () => {
+    const rows = [
+      ...amendment.matchAll(/^\| (\d+) \| (\S+) \| (\S+) \| `([0-9a-f]{64})` \|$/gm),
+    ].map((m) => ({ position: Number(m[1]), start: m[2], end: m[3], sha256: m[4] }));
+    expect(rows).toEqual(
+      ORDER.map((o, i) => ({ position: i + 1, start: o.start, end: o.end, sha256: o.sha256 })),
+    );
+    expect(amendment).toContain(`merged:${WINDOW.start}..${WINDOW.end}`);
+    expect(amendment).toContain(`${QUALIFIERS} merged:<start>..<end> <qualifier>`);
+    expect(amendment).toContain('"week:<start>"');
+    expect(amendment).toContain('"skipped": "wave 1"');
+  });
+
+  it('queries the weeks in that order, each agent round-robin from A, with the week as window', async () => {
+    const { get, calls } = fakeGitHub({ repos: {} });
+    const { selection } = await selectWave2({ get, ruleCommit: SHA, previous: wave1(), now });
+    const params = searches(calls);
+    expect(params.map((p) => p.get('q'))).toEqual(
+      ORDER.flatMap((w) =>
+        AGENTS.map((a) => `${QUALIFIERS} merged:${w.start}..${w.end} ${a.qualifier}`),
+      ),
+    );
+    expect(params.every((p) => p.get('sort') === 'created' && p.get('order') === 'asc')).toBe(true);
+    expect(selection.wave2.weeks.map((w) => [w.start, w.end, w.key])).toEqual(
+      ORDER.map((w) => [w.start, w.end, `week:${w.start}`]),
+    );
+    for (const w of selection.wave2.weeks) {
+      expect(w.queries.map((q) => q.agent)).toEqual(['A', 'B', 'C', 'D', 'E']);
+      expect(w.queries.every((q) => q.pages.length === 1 && q.pages[0].runAt)).toBe(true);
+      expect(w.queries.every((q) => q.pages[0].totalCount === 0)).toBe(true);
+      expect(w.exhaustedAgents).toEqual(['A', 'B', 'C', 'D', 'E']);
+    }
+  });
+
+  it('selects round-robin within a week, then moves to the next week', async () => {
+    const [w1, w2] = ORDER;
+    const weekItems = {
+      [w1.start]: { A: [item('a/1'), item('a/2')], C: [item('c/1')] },
+      [w2.start]: { B: [item('b/1')], A: [item('a/3')] },
+    };
+    const all = Object.values(weekItems).flatMap((byAgent) => Object.values(byAgent).flat());
+    const { get } = fakeGitHub({ weekItems, repos: reposOf(all) });
+    const previous = wave1();
+    const { selection } = await selectWave2({ get, ruleCommit: SHA, previous, now });
+    expect(selection.selected.map((s) => [s.n, s.wave, s.week, s.agent, s.repository])).toEqual([
+      [1, undefined, undefined, 'A', 'w1/kept'],
+      [2, 2, w1.start, 'A', 'a/1'],
+      [3, 2, w1.start, 'C', 'c/1'],
+      [4, 2, w1.start, 'A', 'a/2'],
+      [5, 2, w2.start, 'A', 'a/3'],
+      [6, 2, w2.start, 'B', 'b/1'],
+    ]);
+    expect(selection.wave2.candidates.every((c) => c.wave === 2 && c.week)).toBe(true);
+  });
+
+  it('skips every candidate wave 1 examined, reading nothing for it, and records the skip', async () => {
+    const [w1] = ORDER;
+    const seen = numbered(item('o/seen'), 41);
+    const kept = numbered(item('W1/KEPT'), 1);
+    const fresh = numbered(item('o/seen'), 42);
+    const { get, calls } = fakeGitHub({
+      weekItems: { [w1.start]: { B: [seen, kept, fresh] } },
+      repos: reposOf([seen]),
+    });
+    const previous = wave1([selectedPr(1, 'w1/kept')], [['O/Seen', 41]]);
+    const { selection } = await selectWave2({ get, ruleCommit: SHA, previous, now });
+    expect(selection.wave2.candidates.map((c) => [c.repository, c.number, c.result])).toEqual([
+      ['o/seen', 41, { skipped: 'wave 1' }],
+      ['W1/KEPT', 1, { skipped: 'wave 1' }],
+      ['o/seen', 42, 'selected'],
+    ]);
+    // A skipped candidate's repository is not read for it; the fresh one's is, once.
+    expect(calls.filter((c) => c === '/repos/o/seen')).toHaveLength(1);
+    expect(calls).not.toContain('/repos/W1/KEPT');
+    expect(selection.wave2.candidates[0]).not.toHaveProperty('repositoryReadAt');
+    // Wave 1's record stands as it was.
+    expect(selection.candidates).toEqual(previous.candidates);
+  });
+
+  it('applies filter 4 across both waves: one pull request per repository overall', async () => {
+    const [w1] = ORDER;
+    const again = numbered(item('example-org/kept'), 2);
+    const other = item('example-org/other');
+    const { get } = fakeGitHub({
+      weekItems: { [w1.start]: { A: [again, other] } },
+      repos: reposOf([again, other]),
+    });
+    const previous = wave1([selectedPr(1, 'Example-Org/Kept', 1)]);
+    const { selection } = await selectWave2({ get, ruleCommit: SHA, previous, now });
+    expect(selection.wave2.candidates.map((c) => [c.repository, c.result])).toEqual([
+      [
+        'example-org/kept',
+        { rejectedBy: 4, reason: 'a PR from this repository is already selected' },
+      ],
+      ['example-org/other', 'selected'],
+    ]);
+  });
+
+  it('stops at 300 in total, wave 1 first in its order, then wave 2 in selection order', async () => {
+    const [w1, w2] = ORDER;
+    const first = Array.from({ length: 100 }, (_, i) => item(`w2/a${i}`));
+    const second = Array.from({ length: 100 }, (_, i) => item(`w2/b${i}`));
+    const weekItems = { [w1.start]: { A: first }, [w2.start]: { E: second } };
+    const { get, calls } = fakeGitHub({ weekItems, repos: reposOf(first, second) });
+    const previous = wave1(Array.from({ length: 116 }, (_, i) => selectedPr(i + 1, `w1/r${i}`)));
+    const result = await selectWave2({ get, ruleCommit: SHA, previous, now });
+    const { selection } = result;
+    expect(selection.selected).toHaveLength(WANTED);
+    expect(selection.selected.map((s) => s.n)).toEqual(
+      Array.from({ length: WANTED }, (_, i) => i + 1),
+    );
+    expect(selection.selected.slice(0, 116)).toEqual(previous.selected);
+    expect(selection.selected[116].repository).toBe('w2/a0');
+    expect(selection.selected.at(-1).repository).toBe('w2/b83');
+    expect([selection.complete, selection.finalN]).toEqual([true, WANTED]);
+    expect(selection.wave2).toMatchObject({
+      amendment: 'amendment-1.md',
+      rule: { path: 'experiments/open-source-advisory-2026-10/amendment-1.md', commit: SHA },
+      wave1: { selected: 116, complete: false },
+      selected: 184,
+    });
+    // No week after the one that reached 300 is queried.
+    expect(selection.wave2.weeks.map((w) => w.start)).toEqual([w1.start, w2.start]);
+    expect(
+      searches(calls).every((p) => /merged:(\S+)\.\./.exec(p.get('q'))[1] !== ORDER[2].start),
+    ).toBe(true);
+    // The split, unchanged in rule, halves all 300.
+    expect(split(selection.selected).dev).toHaveLength(150);
+
+    const p = scratch();
+    writeJson(p.selection, previous);
+    writeWave2(result, p);
+    expect(readJson(p.selection)).toEqual(selection);
+    const stem = `w2-a0-${selection.selected[116].number}`;
+    expect(readFileSync(join(p.bodies, `${stem}.md`), 'utf8')).toBe(first[0].body);
+    expect(() => writeWave2(result, p)).toThrow(/already holds wave 2/);
+  });
+
+  it('selects fewer on a shortfall, says so, and queries nothing beyond the weeks', async () => {
+    const [w1, , w3] = ORDER;
+    const few = [item('s/1'), item('s/2')];
+    const late = [item('s/3')];
+    const { get, calls } = fakeGitHub({
+      weekItems: { [w1.start]: { D: few }, [w3.start]: { E: late } },
+      repos: reposOf(few, late),
+    });
+    const previous = wave1(Array.from({ length: 116 }, (_, i) => selectedPr(i + 1, `w1/r${i}`)));
+    const { selection } = await selectWave2({ get, ruleCommit: SHA, previous, now });
+    expect([selection.complete, selection.finalN, selection.wave2.selected]).toEqual([
+      false,
+      119,
+      3,
+    ]);
+    expect(selection.wanted).toBe(WANTED);
+    expect(selection.wave2.weeks).toHaveLength(19);
+    expect(searches(calls)).toHaveLength(19 * AGENTS.length);
+    expect(searches(calls).every((p) => !p.get('q').includes(QUERY_PREFIX))).toBe(true);
+  });
+
+  it('refuses a split, a second wave 2, no wave 1 or no amendment commit, reading nothing', async () => {
+    const { get, calls } = fakeGitHub({ repos: {} });
+    const run = (previous, ruleCommit) => selectWave2({ get, ruleCommit, previous, now });
+    const previous = wave1();
+    await expect(run({ ...previous, split: split(previous.selected) }, SHA)).rejects.toThrow(
+      /has a split/,
+    );
+    await expect(run({ ...previous, wave2: {} }, SHA)).rejects.toThrow(/already holds wave 2/);
+    await expect(run({}, SHA)).rejects.toThrow(/no wave 1/);
+    await expect(run(previous, undefined)).rejects.toThrow(/--rule-commit/);
+    await expect(run(previous, 'HEAD')).rejects.toThrow(/--rule-commit/);
+    expect(calls).toEqual([]);
+
+    // selection.json is checked again when wave 2 is written.
+    const result = await run(previous, SHA);
+    const p = scratch();
+    writeJson(p.selection, { ...previous, split: split(previous.selected) });
+    expect(() => writeWave2(result, p)).toThrow(/has a split/);
+    writeJson(p.selection, { ...previous, selected: [selectedPr(1, 'w1/other')] });
+    expect(() => writeWave2(result, p)).toThrow(/changed while wave 2 ran/);
+  });
 });
 
 describe('split.mjs: the hash split', () => {

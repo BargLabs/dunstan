@@ -3,8 +3,9 @@
 Does the advisory reader (`docs/advisory.md`) read public agent-written pull requests as well as it
 read Barg Labs' own, and do fixes written from one half of them carry to the other? The rule, the
 measures, the labels and the expected values are fixed in
-[`preregistration.md`](preregistration.md), written before any search. Nothing here has been run
-against GitHub yet.
+[`preregistration.md`](preregistration.md), written before any search. Step 2a has run and selected
+116 of the 300 wanted; [`amendment-1.md`](amendment-1.md), written before any search it adds, tops
+them up with a second wave of weekly queries before the split.
 
 ## Order of work
 
@@ -17,6 +18,7 @@ as `pnpm exec node experiments/open-source-advisory-2026-10/tools/<tool> …`.
 |---|---|---|---|---|
 | 1 | Preregister | Operator commits and pushes | (none) | `preregistration.md`, `README.md`, `tools/`, committed to the public repository before any search |
 | 2a | Select | Operator | `select.mjs --rule-commit <public commit of preregistration.md>` | `selection.json`: every query, page time and candidate, with the filter that rejected it |
+| 2a′ | Select, wave 2 (`amendment-1.md`) | Operator, after `amendment-1.md` is public | `select.mjs --wave 2 --rule-commit <public commit of amendment-1.md>` | `selection.json` with `wave2`: each week's queries and page times, every candidate with its result (wave-1 candidates `skipped`), and the final N |
 | 2b | Split | Session | `split.mjs` | `selection.json` with `split` |
 | 2c | Baseline, both halves | Operator | `run.mjs check --instrument baseline --half dev --dunstan <v0.1.3 dist/dunstan.mjs>`, then `--half test` | `runs/baseline-dev.seal.json`, `runs/baseline-test.seal.json`: each record's SHA-256 only |
 | 2d | Open the dev half | Session | `run.mjs index --instrument baseline --half dev`, `sample.mjs --instrument baseline --half dev`, `worksheet.mjs build --half dev` | `runs/baseline-dev.json` (ids, kinds, notes, offsets), `samples/baseline-dev.m1.json` |
@@ -31,7 +33,8 @@ as `pnpm exec node experiments/open-source-advisory-2026-10/tools/<tool> …`.
 
 The tools hold the order where they can. `run.mjs` refuses the fixed instrument, and refuses to open
 the test half, until `frozen.json` is committed. `figures.mjs` refuses while any label is missing.
-`select.mjs`, `run.mjs check` and `run.mjs freeze` refuse to redo what they have written, and
+`select.mjs`, `run.mjs check` and `run.mjs freeze` refuse to redo what they have written,
+`select.mjs --wave 2` refuses once `selection.json` has a split, and
 `worksheet.mjs publish` refuses to change or withdraw a published label.
 
 ## What is never public
@@ -45,7 +48,7 @@ in any form.
 
 | Tool | Does |
 |---|---|
-| [`tools/select.mjs`](tools/select.mjs) | Executes the selection rule; writes `selection.json` and the bodies. The only tool that calls the GitHub API itself. |
+| [`tools/select.mjs`](tools/select.mjs) | Executes the selection rule; writes `selection.json` and the bodies. With `--wave 2`, executes `amendment-1.md`'s second wave and appends it. The only tool that calls the GitHub API itself. |
 | [`tools/split.mjs`](tools/split.mjs) | The hash split, recorded in `selection.json`. |
 | [`tools/run.mjs`](tools/run.mjs) | Runs the instrument per half and seals it (`check`), freezes the fixed instrument (`freeze`), opens a sealed run (`index`). The checker it runs makes the GitHub reads. |
 | [`tools/sample.mjs`](tools/sample.mjs) | M1's seeded sample. |
