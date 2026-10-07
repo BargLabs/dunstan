@@ -1,6 +1,6 @@
 # The Dunstan claim format
 
-Version 0.1.2. Draft. Licensed under Apache-2.0 (`spec/LICENSE`).
+Version 0.1.3. Draft. Licensed under Apache-2.0 (`spec/LICENSE`).
 
 A coding agent that finishes a task writes a completion report. This specification defines a block
 the agent declares inside that report, the checks a checker runs on each declared field against the
@@ -27,7 +27,7 @@ verdict.
 16. [Reason codes](#16-reason-codes)
 17. [Changes](#17-changes)
 
-Not part of 0.1.2: [DRAFT 0.2.0: reader claims and retrieval](#draft-020-reader-claims-and-retrieval),
+Not part of 0.1.3: [DRAFT 0.2.0: reader claims and retrieval](#draft-020-reader-claims-and-retrieval),
 with [advisories from prose](#d11-advisories-from-prose), for the operator to check.
 
 ## 1. Conventions
@@ -185,7 +185,7 @@ The record schema defines its shape. Its sections:
 | `pullRequest` | always | state, `merged`, `mergedAt`, `headSha`, `mergeSha`, `changedFiles` |
 | `files` | always, if a block was found | the changed-file entries `{path, status, previousPath?}` and `complete` |
 | `closingReferences` | a `closes` reference is declared | the pull request's closing issues, as `owner/repo#N` |
-| `references` | a `cites` reference is declared, or a `closes` issue is not among the closing references | per cited issue or commit, and per such `closes` issue: `exists`, and for a commit `reachableFromHead` |
+| `references` | a `cites` reference is declared, or a `closes` issue is not among the closing references | per cited issue or commit, and per such `closes` issue: `exists`, for a commit `reachableFromHead`, and for an issue GitHub answers as another issue `resolvedAs` |
 | `checkRuns` | `checks` is declared | the check runs at `headCommit`, and any `excludedIds` |
 | `testRecords` | a `junit` test record is declared | per distinct record: the candidate runs and their counts |
 | `deployments` | `deployedAt` is declared | the candidate deployments to that environment (section 7.6), each with its `relation` to the pull request |
@@ -210,6 +210,15 @@ never taken from the block.
 was read successfully and the item's own read answered not found (HTTP 404 or 410). GitHub answers not
 found for a repository the reader cannot see, so a not-found repository is `unreadable` with kind
 `repository`, never `exists: false`.
+
+**Resolved identity.** GitHub answers the read of an issue that was transferred to another
+repository with a redirect to the issue's new identity. A checker follows that redirect, and only
+from the issue read to another issue on the same API. The issue's answer names the issue it is (its
+`repository_url`, ending in `/repos/<owner>/<repo>`, and its `number`). When that is another issue
+than the one read, the `references` entry records it as `resolvedAs`, `owner/repo#N`, compared as
+section 7.4 compares issues; the entry's `ref` stays the issue read. An answer that does not name its
+issue is unparseable, so the read is `unreadable` with kind `issue`, as is a redirect the checker
+cannot follow or read. `resolvedAs` is in the evidence, so offline verify reads it as recorded.
 
 **Source kinds.** `pull_request`, `pull_request_files`, `closing_references`, `repository`, `issue`,
 `commit`, `compare`, `check_runs`, `workflow_runs`, `artifact`, `deployments`.
@@ -290,6 +299,8 @@ subject repository.
   - `unverifiable` with `source_unreadable:repository` if the issue's repository is unreadable;
   - `unverifiable` with `source_unreadable:issue` if the issue's read errors;
   - `fail` with `not_found` if the issue does not exist;
+  - `pass` if the issue exists, its entry records `resolvedAs` (section 6, "Resolved identity": an
+    issue transferred to another repository), and that issue is among the closing references;
   - `unverifiable` with `closing_link_unsettled` if the issue exists and the pull request is open
     (`pullRequest.state` is `open` and `merged` is `false`);
   - `fail` with `not_closing` if the issue exists and the pull request is merged or closed.
@@ -297,7 +308,10 @@ subject repository.
   GitHub computes the closing references asynchronously after a pull request is opened or its body
   is edited, so while it is open an issue missing from the list may yet be added. The list of a
   merged or closed pull request is read as settled. `observed` is `{closing: [...]}`, with
-  `exists: false` added for `not_found`, and `null` for `closing_link_unsettled` (section 7.1).
+  `exists: false` added for `not_found`, `ref` (the issue read) and `resolvedAs` added for a pass
+  under the resolved identity, and `null` for `closing_link_unsettled` (section 7.1). A `resolvedAs`
+  that is not among the closing references changes nothing: the claim is `closing_link_unsettled` or
+  `not_closing` as above.
 - **`cites`, issue or pull request,** passes if it exists, and otherwise fails with `not_found`.
   `observed` is `{exists}`.
 - **`cites`, commit,** passes if the commit exists in the subject repository and is reachable from the
@@ -405,7 +419,7 @@ one ingests the other.
 
 | Member | Value |
 | --- | --- |
-| `spec` | The full version of this specification the checker implements, `"0.1.2"`. |
+| `spec` | The full version of this specification the checker implements, `"0.1.3"`. |
 | `checker` | `{name, version, digest: {sha256}}`; the digest is of the distributed checker artifact that ran. |
 | `report` | `{sha256, source: {kind, locator}}`, `kind` one of `pr-body`, `pr-comment`, `file`, `stdin`, `api`. |
 | `block` | `{status, sha256, value}`, plus `reason` and `count` or `errors` when not `found`. |
@@ -552,6 +566,23 @@ against the schemas and check each record's block, report and claim and evidence
 
 ## 17. Changes
 
+- **0.1.3** (2026-10-07). Erratum to sections 6 and 7.4, corrected in checker 0.1.6. In 0.1.2 a
+  `closes` issue that had been transferred to another repository failed with `not_closing` when the
+  report named it as it was before the transfer. GitHub lists it among the closing references under
+  its new repository and number, and answers the read of its old name with a redirect to the new
+  one, so it "exists"; the check compared only the old name with the list. That fail rested on an
+  absence under a name the issue no longer has, not on evidence that the pull request does not close
+  it, which section 2 forbids. The checker now follows the issue read's redirect, and only that one,
+  records the identity the answer gives as `resolvedAs` in the issue's `references` entry (section
+  6, "Resolved identity"), and the claim passes when that identity is among the closing references
+  (section 7.4). Every other outcome is unchanged: `not_found`, `closing_link_unsettled`,
+  `not_closing` and every `unverifiable` reason, and a redirect that cannot be read is
+  `unverifiable`, never `pass`. `resolvedAs` is inside the evidence, so `digests.evidence` covers it
+  and offline verify reproduces the verdict. `record-0.1.schema.json` gains the optional member, which
+  requires `exists: true`; a 0.1.2 record stays valid. The block format and
+  `handback-block-0.1.schema.json` are unchanged; a 0.1 block stays valid. No example record changes
+  verdict or digest: none reads an issue GitHub resolved elsewhere. The positive control
+  `closes-transferred` is added to the acceptance cases; the preregistered tables are unchanged.
 - **0.1.2** (2026-10-06). Erratum to section 7.4, corrected in checker 0.1.3. In 0.1.1 a `closes`
   issue that exists and is missing from the closing references failed with `not_closing` whatever
   the pull request's state. GitHub computes `closingIssuesReferences` asynchronously after a pull
@@ -580,8 +611,8 @@ against the schemas and check each record's block, report and claim and evidence
 ## DRAFT 0.2.0: reader claims and retrieval
 
 > **DRAFT. Not normative. For the operator to check.** Nothing in this section changes version
-> 0.1.2. Sections 1 to 17, `handback-block-0.1.schema.json`, `record-0.1.schema.json` and every 0.1
-> verdict stand as written. A 0.1.2 checker ignores this section. The key words of section 1 are
+> 0.1.3. Sections 1 to 17, `handback-block-0.1.schema.json`, `record-0.1.schema.json` and every 0.1
+> verdict stand as written. A 0.1.3 checker ignores this section. The key words of section 1 are
 > used here to say what 0.2.0 would require if it is adopted. Until then they bind nothing. Open
 > questions are in D.10 and D.11.8. The reference implementations are `src/retrieval/` and
 > `src/advisory/`, and the rationale is in `docs/retrieval.md` and `docs/advisory.md`.
@@ -1018,6 +1049,14 @@ nothing is at that path at the head.
    unchanged.
 
 ### D.12 Changes to this draft
+
+- **2026-10-07.** Spec 0.1.3 (section 17). A `reference_closes` advisory is compared by the 7.4
+  `closes` check, so an advisory naming an issue since transferred to another repository, which the
+  closing references list under the identity GitHub resolves it to, is now `agrees`, with that
+  identity in `observed`, not `differs:not_closing`. The comparison stays 0.3.0: its own rules are
+  unchanged, and the gate check under it is named by the record's `spec` and `checker`. No published
+  figure applies to comparison 0.3.0, so none changes. The extractor, the DRAFT schema and the record
+  members are unchanged. The checker that runs it is 0.1.6.
 
 - **2026-10-07.** Advisory comparison 0.3.0: a `file_changed` advisory that comparison 0.2.0 notes
   `differs:declared_not_changed` keeps that note only when its path is a file at the pull

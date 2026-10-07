@@ -32,7 +32,7 @@ import {
 } from './support.js';
 
 const cases = [...loadCases('controls'), ...loadCases('planted')];
-const CHECKER = { name: 'dunstan', version: '0.1.5', digest: { sha256: '0'.repeat(64) } };
+const CHECKER = { name: 'dunstan', version: '0.1.6', digest: { sha256: '0'.repeat(64) } };
 
 function stubbedReaders(c: FixtureCase): EvidenceReaders {
   return {

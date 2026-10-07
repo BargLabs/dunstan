@@ -116,6 +116,15 @@ expected `fail` with `not_closing`.
 | --- | --- | --- |
 | `closes-unsettled-open` | `unverifiable` | `reference:/references/0` `closing_link_unsettled` (a `closes` of an existing issue missing from the closing references of an open, unmerged pull request, which GitHub may not have computed yet) |
 
+Addendum, 2026-10-07, spec 0.1.3. Added case. The rows above are unchanged, and every case above
+keeps its expected values: none reads an issue GitHub resolves to another identity. The case passes,
+so it is a positive control (`fixtures/controls/`): decision rule 1 below requires every planted case
+to be non-pass.
+
+| Case | What it is | Expected |
+| --- | --- | --- |
+| `closes-transferred` | A merged pull request whose block declares `closes #17`. The issue was transferred to `example-org/example-tracker`, where it is #4; the closing references list `example-org/example-tracker#4`, and the evidence records the read of #17 with `resolvedAs: "example-org/example-tracker#4"` | `pass`, every row; `reference:/references/0` passes under the resolved identity |
+
 ### Cross-machine (d)
 
 CI runs every fixture, planted and control, through `runChecks` and the record builder on

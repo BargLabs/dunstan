@@ -153,6 +153,17 @@ export function checkReferences(block: Block, evidence: Evidence, repository: st
       if (!entry.exists) {
         return fail('reference', field, reference, { ...observed, exists: false }, 'not_found');
       }
+      // An issue transferred to another repository is listed under its new identity, and GitHub
+      // answered the read of its old one with that identity (spec 0.1.3). Only that recorded identity
+      // is compared; nothing is inferred.
+      const resolved = entry.kind === 'issue' ? entry.resolvedAs : undefined;
+      if (resolved !== undefined && closing.issues.some((issue) => sameIssue(issue, resolved))) {
+        return pass('reference', field, reference, {
+          ...observed,
+          ref: target,
+          resolvedAs: resolved,
+        });
+      }
       // GitHub computes the closing references asynchronously after the pull request is opened or
       // its body is edited, so while it is open an absence may not be settled yet.
       const pr = evidence.pullRequest;

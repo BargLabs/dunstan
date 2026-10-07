@@ -8028,7 +8028,7 @@ import { join } from "node:path";
 import { createHash } from "node:crypto";
 
 // src/spec/constants.ts
-var SPEC_VERSION = "0.1.2";
+var SPEC_VERSION = "0.1.3";
 var BLOCK_VERSION = "0.1";
 var SUPPORTED_BLOCK_VERSIONS = [BLOCK_VERSION];
 var BLOCK_INFO_STRING = "dunstan-handback";
@@ -8444,6 +8444,14 @@ function checkReferences(block, evidence, repository) {
       }
       if (!entry2.exists) {
         return fail("reference", field, reference, { ...observed2, exists: false }, "not_found");
+      }
+      const resolved = entry2.kind === "issue" ? entry2.resolvedAs : void 0;
+      if (resolved !== void 0 && closing.issues.some((issue) => sameIssue(issue, resolved))) {
+        return pass("reference", field, reference, {
+          ...observed2,
+          ref: target,
+          resolvedAs: resolved
+        });
       }
       const pr = evidence.pullRequest;
       return pr.state === "open" && !pr.merged ? unverifiable("reference", field, reference, "closing_link_unsettled") : fail("reference", field, reference, observed2, "not_closing");
@@ -9059,6 +9067,25 @@ function pathObjectOf(json) {
 function isNotFound(read) {
   return !read.ok && (read.status === 404 || read.status === 410);
 }
+var ISSUE_REF = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})\/[A-Za-z0-9._-]{1,100}#[1-9][0-9]{0,9}$/;
+function answeredIssue(json) {
+  const issue = obj(json);
+  const number = int(issue.number);
+  let url;
+  try {
+    url = new URL(str(issue.repository_url));
+  } catch (e) {
+    if (e instanceof TypeError) throw new ShapeError();
+    throw e;
+  }
+  const m = /\/repos\/([^/]+)\/([^/]+)$/.exec(url.pathname);
+  if (m === null || url.search !== "" || url.hash !== "" || m[2] === "." || m[2] === "..") {
+    throw new ShapeError();
+  }
+  const answered = `${m[1]}/${m[2]}#${number}`;
+  if (!ISSUE_REF.test(answered)) throw new ShapeError();
+  return answered;
+}
 async function isAncestor(client, repository, base, head) {
   const path = `/repos/${repository}/compare/${base}...${head}?per_page=1`;
   const read = await client.read("compare", path);
@@ -9098,10 +9125,28 @@ async function readReferences(client, block, repository, headSha, closing) {
         out.push({ kind: "issue", ref: ref2, ...unreadable("repository") });
         continue;
       }
-      const read2 = await client.read("issue", `/repos/${repo}/issues/${num}`);
-      if (read2.ok) out.push({ kind: "issue", ref: ref2, status: "ok", exists: true });
-      else if (isNotFound(read2)) out.push({ kind: "issue", ref: ref2, status: "ok", exists: false });
-      else out.push({ kind: "issue", ref: ref2, ...unreadable("issue") });
+      const path = `/repos/${repo}/issues/${num}`;
+      const read2 = await client.read("issue", path);
+      if (isNotFound(read2)) {
+        out.push({ kind: "issue", ref: ref2, status: "ok", exists: false });
+        continue;
+      }
+      if (!read2.ok) {
+        out.push({ kind: "issue", ref: ref2, ...unreadable("issue") });
+        continue;
+      }
+      let answered;
+      try {
+        answered = answeredIssue(read2.json);
+      } catch (e) {
+        if (!(e instanceof ShapeError)) throw e;
+        client.markParseError(`GET ${path}`);
+        out.push({ kind: "issue", ref: ref2, ...unreadable("issue") });
+        continue;
+      }
+      out.push(
+        sameIssue(answered, ref2) ? { kind: "issue", ref: ref2, status: "ok", exists: true } : { kind: "issue", ref: ref2, status: "ok", exists: true, resolvedAs: answered }
+      );
       continue;
     }
     const ref = reference.commit;
@@ -9330,7 +9375,7 @@ async function readEvidence(client, input2) {
 // src/record/checker.ts
 import { readFileSync } from "node:fs";
 var CHECKER_NAME = "dunstan";
-var CHECKER_VERSION = "0.1.5";
+var CHECKER_VERSION = "0.1.6";
 function checkerIdentity(artifact) {
   return {
     name: CHECKER_NAME,
@@ -11358,7 +11403,7 @@ function lookup(type, evidence) {
   }
   return entries;
 }
-var ISSUE_REF = /^(?:[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9._-]{1,100})?#[1-9][0-9]{0,9}$/;
+var ISSUE_REF2 = /^(?:[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9._-]{1,100})?#[1-9][0-9]{0,9}$/;
 function checkReaderClaim(claim, evidence, repository) {
   const type = READER_CLAIM_KINDS.get(claim.kind);
   if (type === void 0) return unverifiable2("no_comparable_record_field");
@@ -11396,7 +11441,7 @@ function checkReaderClaim(claim, evidence, repository) {
     case "timeline_event": {
       const ref = declared;
       const events = observed;
-      const match = ISSUE_REF.test(ref) ? events.find((e) => e.ref !== void 0 && sameIssue(qualifyIssue(ref, repository), e.ref)) : void 0;
+      const match = ISSUE_REF2.test(ref) ? events.find((e) => e.ref !== void 0 && sameIssue(qualifyIssue(ref, repository), e.ref)) : void 0;
       return match === void 0 ? unverifiable2("declared_item_not_among_candidates") : verdictOf("pass", { event: match.event, ref: match.ref ?? null });
     }
     case "check_run": {
@@ -12127,8 +12172,14 @@ var FILES = { "handback-block-0.1.schema.json": `{
                   "kind": { "const": "issue" },
                   "ref": { "$ref": "#/$defs/issueRef" },
                   "status": { "const": "ok" },
-                  "exists": { "type": "boolean" }
-                }
+                  "exists": { "type": "boolean" },
+                  "resolvedAs": {
+                    "description": "Spec 0.1.3: the owner/repo#N GitHub answered the read of ref with, when it is another issue (an issue transferred to another repository).",
+                    "$ref": "#/$defs/issueRef"
+                  }
+                },
+                "if": { "required": ["resolvedAs"] },
+                "then": { "properties": { "exists": { "const": true } } }
               },
               {
                 "type": "object",

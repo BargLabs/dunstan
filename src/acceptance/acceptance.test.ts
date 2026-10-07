@@ -67,7 +67,13 @@ describe('acceptance (c): planted defects', () => {
 describe('acceptance (c): positive controls', () => {
   it('has at least the three controls the preregistration names', () => {
     expect(controls.map((c) => c.name)).toEqual(
-      expect.arrayContaining(['full', 'minimal', 'rename']),
+      expect.arrayContaining([
+        'full',
+        'minimal',
+        'rename',
+        // Spec 0.1.3: a closes on an issue since transferred to another repository.
+        'closes-transferred',
+      ]),
     );
   });
 

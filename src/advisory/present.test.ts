@@ -119,12 +119,13 @@ const FIGURES_LINE =
 // claim's retrieval arm "A-fill" with its k when filling to k became the default; and but for the
 // reason `closing_link_unsettled` of spec 0.1.2, which the 0.1 record schema's claim reason and the
 // DRAFT schema's advisory note both gained; and but for comparison 0.3.0, for which the DRAFT
-// schema's advisory section gained `pathsAtHead` and its note the three existence notes. A change
-// to any of them is a record change.
+// schema's advisory section gained `pathsAtHead` and its note the three existence notes; and but
+// for spec 0.1.3, for which the 0.1 record schema's issue reference evidence gained `resolvedAs`. A
+// change to any of them is a record change.
 const SCHEMA_SHA256: Record<string, string> = {
   'handback-block-0.1.schema.json':
     '331d142be28bf7c9deac7f76cad83731bf00679b952418004270c70344db46a7',
-  'record-0.1.schema.json': 'ac398929b30ae0bcaa22298d03a0af0a78af84844223626ccc8bf79bcfcb5e26',
+  'record-0.1.schema.json': '0ba4c7ff6a7a1412179e12d6696fa86cd25ab2c58908924da34bd5e7fc8ab411',
   'record-0.2-draft.schema.json':
     '1b4b0075a2aee668f9689cf5852705c3bdc0707ad28c361b0a60b3846982b22c',
 };

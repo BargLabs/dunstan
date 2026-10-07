@@ -21,7 +21,7 @@ For the one pull request named in a request, and nothing else, the App reads:
 | The pull request: state, merged, merge time, head and merge commit ids, changed-file count | `GET /repos/{o}/{r}/pulls/{n}` |
 | The changed-file paths and statuses | `GET /repos/{o}/{r}/pulls/{n}/files` |
 | The issues the pull request closes | GraphQL `closingIssuesReferences` (one fixed query) |
-| Whether a cited issue exists, and whether its repository is readable | `GET /repos/{o}/{r}/issues/{n}`, `GET /repos/{o}/{r}` |
+| Whether a cited issue exists, and whether its repository is readable; for an issue transferred to another repository, the identity GitHub answers with (spec 0.1.3) | `GET /repos/{o}/{r}/issues/{n}`, `GET /repos/{o}/{r}`; the issue read's redirect only to `GET /repositories/{id}/issues/{n}` or `GET /repos/{o}/{r}/issues/{n}` |
 | Whether a cited commit exists, and is reachable from the head | `GET /repos/{o}/{r}/git/commits/{sha}`, `GET /repos/{o}/{r}/compare/{a}...{b}` |
 | Check runs at the declared head | `GET /repos/{o}/{r}/commits/{sha}/check-runs` |
 | A named JUnit test-report artifact: element counts only | Actions workflow runs, jobs, artifacts, artifact download |
@@ -31,7 +31,9 @@ For the one pull request named in a request, and nothing else, the App reads:
 It reads only what the block declares (spec section 6): a block with no `checks` reads no check runs.
 The full list is the allowlist in [`hosted/src/transport.ts`](../hosted/src/transport.ts); every
 request the Worker makes is checked against it before it is sent, and a request that matches no
-entry is refused.
+entry is refused. Two redirects are followed, and no other: an artifact download's, to Actions
+storage, without the token; and an issue read's, which GitHub sends for an issue transferred to
+another repository, only to another issue on the API, written in full with no query.
 
 ### Contents: read
 
@@ -142,7 +144,7 @@ A stored record, within retention, for the installation the key belongs to:
 
 ### `GET /v0.1/health`
 
-`{"status": "ok", "checker": {"name", "version", "digest": {"sha256"}}, "spec": "0.1.2"}`. The digest
+`{"status": "ok", "checker": {"name", "version", "digest": {"sha256"}}, "spec": "0.1.3"}`. The digest
 is the SHA-256 of the Worker bundle that is running (`hosted/dist/checker.mjs`, built by
 `pnpm build:hosted`); it is the `checker.digest` every hosted record carries. The build is
 deterministic: check out the commit, run `pnpm install --frozen-lockfile && pnpm build:hosted`, and

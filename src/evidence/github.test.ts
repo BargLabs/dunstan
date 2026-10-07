@@ -355,6 +355,98 @@ describe('readEvidence', () => {
       });
     });
 
+    // Spec 0.1.3: GitHub answers the old name of an issue transferred to another repository with
+    // its new identity, which the reader records as `resolvedAs`.
+    describe('on an issue transferred to another repository', () => {
+      const OLD = 'private-org/oncall#11';
+      const MOVED = 'private-org/tracker#4';
+      const transferred = (closing: string[]) => {
+        const s = fullScenario();
+        s.closing = closing;
+        s.repositories = { 'private-org/oncall': 200 };
+        s.issues = { [OLD]: 200 };
+        s.transferred = { [OLD]: MOVED };
+        return s;
+      };
+
+      it('records the identity GitHub answers with, and the claim passes on it', async () => {
+        const { evidence, fake } = await read(transferred([MOVED]), CLOSES);
+        expect(evidenceSchemaErrors(evidence)).toEqual([]);
+        expect(evidence.references).toEqual([
+          { kind: 'issue', ref: OLD, status: 'ok', exists: true, resolvedAs: MOVED },
+        ]);
+        // The old name is read; nothing is read under the new one.
+        expect(fake.requests).toContain('GET /repos/private-org/oncall/issues/11');
+        expect(fake.requests.some((r) => r.includes('private-org/tracker'))).toBe(false);
+        expect(row(evidence)).toMatchObject({
+          verdict: 'pass',
+          observed: { closing: [MOVED], ref: OLD, resolvedAs: MOVED },
+        });
+      });
+
+      it('that the closing references do not list: not_closing, as before', async () => {
+        const { evidence } = await read(transferred(['private-org/tracker#5']), CLOSES);
+        expect(evidence.references).toEqual([
+          { kind: 'issue', ref: OLD, status: 'ok', exists: true, resolvedAs: MOVED },
+        ]);
+        expect(row(evidence)).toMatchObject({ verdict: 'fail', reason: 'not_closing' });
+      });
+
+      it('records no resolvedAs when GitHub answers under the name read, in any case', async () => {
+        const s = transferred([MOVED]);
+        s.transferred = {};
+        s.issueBodies = {
+          [OLD]: { number: 11, repository_url: 'https://api.github.com/repos/Private-Org/OnCall' },
+        };
+        const { evidence } = await read(s, CLOSES);
+        expect(evidence.references).toEqual([
+          { kind: 'issue', ref: OLD, status: 'ok', exists: true },
+        ]);
+        expect(row(evidence)).toMatchObject({ verdict: 'fail', reason: 'not_closing' });
+      });
+
+      it('whose answer does not say what it is: unreadable, never a guess', async () => {
+        for (const body of [
+          { number: 4 },
+          { repository_url: 'https://api.github.com/repos/private-org/tracker' },
+          { number: '4', repository_url: 'https://api.github.com/repos/private-org/tracker' },
+          { number: 4, repository_url: 'https://api.github.com/repos/private-org' },
+          { number: 4, repository_url: 'https://api.github.com/repos/private-org/tracker/x' },
+          { number: 4, repository_url: 'https://api.github.com/repos/private-org/../x' },
+          { number: 4, repository_url: 'https://api.github.com/repositories/42' },
+          { number: 4, repository_url: 'repos/private-org/tracker' },
+          { number: 4, repository_url: 'https://api.github.com/repos/private-org/tracker?x=1' },
+          { number: 0, repository_url: 'https://api.github.com/repos/private-org/tracker' },
+          [],
+        ]) {
+          const s = transferred([MOVED]);
+          s.issueBodies = { [OLD]: body };
+          const { evidence } = await read(s, CLOSES);
+          expect(evidence.references, JSON.stringify(body)).toEqual([
+            { kind: 'issue', ref: OLD, status: 'unreadable', source: 'issue' },
+          ]);
+          expect(evidence.sources.find((x) => x.kind === 'issue')?.error).toBe('parse');
+          expect(row(evidence)).toMatchObject({
+            verdict: 'unverifiable',
+            reason: 'source_unreadable:issue',
+          });
+        }
+      });
+
+      it('whose redirect cannot be read: unreadable issue, and the claim is unverifiable', async () => {
+        const s = transferred([MOVED]);
+        s.issues = { [OLD]: 502 };
+        const { evidence } = await read(s, CLOSES);
+        expect(evidence.references).toEqual([
+          { kind: 'issue', ref: OLD, status: 'unreadable', source: 'issue' },
+        ]);
+        expect(row(evidence)).toMatchObject({
+          verdict: 'unverifiable',
+          reason: 'source_unreadable:issue',
+        });
+      });
+    });
+
     it('is not read when the closing references themselves could not be read', async () => {
       const s = fullScenario();
       s.closing = null;

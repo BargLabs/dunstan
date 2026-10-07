@@ -13,6 +13,12 @@ export interface Scenario {
   files?: Record<string, unknown>[];
   closing?: string[] | null;
   issues?: Record<string, number>;
+  // An issue transferred to another repository: `owner/repo#N` -> the `owner/repo#M` GitHub answers
+  // it as. GitHub answers the old name with a 301 to the new one; fetch follows it, so the old path
+  // answers with the new identity here.
+  transferred?: Record<string, string>;
+  // `owner/repo#N` -> the body the issue read answers with, in place of the one GitHub would send.
+  issueBodies?: Record<string, unknown>;
   repositories?: Record<string, number>;
   commits?: Record<string, number>;
   // `${base}...${head}` -> behind_by, or an HTTP status when it is >= 400.
@@ -146,7 +152,15 @@ export function fakeGitHub(scenario: Scenario): FakeGitHub {
       ],
       [
         /^\/repos\/([^/]+\/[^/]+)\/issues\/([0-9]+)$/,
-        (m) => json(scenario.issues?.[`${m[1]}#${m[2]}`] ?? 404, { number: Number(m[2]) }),
+        (m) => {
+          const key = `${m[1]}#${m[2]}`;
+          const [repo, number] = (scenario.transferred?.[key] ?? key).split('#');
+          const body = scenario.issueBodies?.[key] ?? {
+            number: Number(number),
+            repository_url: `https://api.github.com/repos/${repo}`,
+          };
+          return json(scenario.issues?.[key] ?? 404, body);
+        },
       ],
       [
         /^\/repos\/[^/]+\/[^/]+\/git\/commits\/([0-9a-f]{40})$/,

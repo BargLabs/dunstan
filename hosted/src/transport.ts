@@ -2,7 +2,9 @@
 // and the GitHub App's own, goes through `GuardedTransport.fetch`, which checks it against a fixed
 // allowlist of GitHub API routes before anything is sent. A request that matches no route, or that
 // names a route which reads repository contents (a blob, a tree, `contents/`, a readme, an archive,
-// a tarball or zipball, raw content), is refused and never made.
+// a tarball or zipball, raw content), is refused and never made. Two redirects are followed, each
+// only where its route allows: the artifact download's, to Actions storage, and the issue read's, to
+// another issue on the API.
 //
 // The App holds Contents: read because GitHub requires it for the git-database commit and compare
 // endpoints (docs/hosted.md, "Contents: read"). This guard is what keeps that permission to commit
@@ -28,8 +30,11 @@ export interface Route {
   name: string;
   method: 'GET' | 'POST';
   path: RegExp;
-  // The artifact download answers with a redirect to Actions storage, which is followed here.
-  followsRedirect?: boolean;
+  // Where an answer of this route may redirect, if anywhere; the redirect is followed here and
+  // nowhere else. The artifact download answers with a redirect to Actions storage. The issue read
+  // of an issue transferred to another repository answers with a redirect to the issue's new
+  // identity on the API (spec 0.1.3).
+  redirectsTo?: 'artifact storage' | 'issue';
   body?: (text: string) => boolean;
 }
 
@@ -98,7 +103,7 @@ export const ROUTES: readonly Route[] = [
   route('closing references (GraphQL)', 'POST', '/graphql', { body: isClosingReferencesQuery }),
   route('object type at a path (GraphQL)', 'POST', '/graphql', { body: isPathQuery }),
   route('repository', 'GET', `/repos/${REPO}`),
-  route('issue', 'GET', `/repos/${REPO}/issues/${NUM}`),
+  route('issue', 'GET', `/repos/${REPO}/issues/${NUM}`, { redirectsTo: 'issue' }),
   route('commit (git database)', 'GET', `/repos/${REPO}/git/commits/${SHA}`),
   route('compare', 'GET', `/repos/${REPO}/compare/${SHA}\\.\\.\\.${SHA}\\?per_page=1`),
   route('check runs', 'GET', `/repos/${REPO}/commits/${SHA}/check-runs\\?filter=latest&${PAGE}`),
@@ -118,7 +123,7 @@ export const ROUTES: readonly Route[] = [
     `/repos/${REPO}/actions/runs/${NUM}/artifacts\\?name=${ENCODED}&${PAGE}`,
   ),
   route('artifact download', 'GET', `/repos/${REPO}/actions/artifacts/${NUM}/zip`, {
-    followsRedirect: true,
+    redirectsTo: 'artifact storage',
   }),
   route(
     'deployments',
@@ -146,6 +151,11 @@ export const FORBIDDEN: readonly { name: string; path: RegExp }[] = [
 
 // Where an artifact download may redirect: GitHub Actions' artifact storage.
 const REDIRECT_HOSTS = [/\.actions\.githubusercontent\.com$/, /\.blob\.core\.windows\.net$/];
+// Where an issue read may redirect: another issue on the API, by repository id (as GitHub answers
+// for a transferred issue) or by name, written in full, with no query or fragment.
+const ISSUE_REDIRECT = new RegExp(
+  `^https://api\\.github\\.com/(?:repositories/${NUM}|repos/${REPO})/issues/${NUM}$`,
+);
 const MAX_REDIRECTS = 3;
 
 function isDotSegment(segment: string): boolean {
@@ -204,10 +214,29 @@ export function checkRoute(
   return match;
 }
 
-function checkRedirect(location: URL): void {
-  if (location.protocol !== 'https:' || !REDIRECT_HOSTS.some((h) => h.test(location.hostname))) {
-    throw new RouteRefused(`redirect to ${location.origin}: not Actions artifact storage`);
+// The URL a redirect of a route that may redirect is followed to, or a RouteRefused. An issue read's
+// target is checked as written, as a request is, so no parser resolves it to another route.
+function redirectTarget(to: NonNullable<Route['redirectsTo']>, location: string, from: URL): URL {
+  if (to === 'issue') {
+    if (
+      !ISSUE_REDIRECT.test(location) ||
+      location.split('/').some(isDotSegment) ||
+      new URL(location).href !== location
+    ) {
+      throw new RouteRefused('redirect of an issue read: not another issue on the GitHub API');
+    }
+    return new URL(location);
   }
+  let next: URL;
+  try {
+    next = new URL(location, from);
+  } catch {
+    throw new RouteRefused('redirect of an artifact download: not a URL');
+  }
+  if (next.protocol !== 'https:' || !REDIRECT_HOSTS.some((h) => h.test(next.hostname))) {
+    throw new RouteRefused(`redirect to ${next.origin}: not Actions artifact storage`);
+  }
+  return next;
 }
 
 function bodyText(body: RequestInit['body']): string | undefined {
@@ -257,17 +286,21 @@ export class GuardedTransport {
       this.#refuse(e);
     }
     let response = await this.#network(url.href, { ...init, method, redirect: 'manual' });
-    for (let hop = 0; route.followsRedirect === true && isRedirect(response.status); hop++) {
+    for (let hop = 0; route.redirectsTo !== undefined && isRedirect(response.status); hop++) {
       const location = response.headers.get('location');
       if (hop === MAX_REDIRECTS || location === null) break;
-      const next = new URL(location, url);
+      let next: URL;
       try {
-        checkRedirect(next);
+        next = redirectTarget(route.redirectsTo, location, url);
       } catch (e) {
         this.#refuse(e);
       }
-      // Storage is addressed by a signed URL; the GitHub token is not sent to it.
-      response = await this.#network(next.href, { method: 'GET', redirect: 'manual' });
+      // Storage is addressed by a signed URL; the GitHub token is not sent to it. Another issue on
+      // the API is the same read under the issue's new identity, sent as the request was.
+      response =
+        route.redirectsTo === 'issue'
+          ? await this.#network(next.href, { ...init, method, redirect: 'manual' })
+          : await this.#network(next.href, { method: 'GET', redirect: 'manual' });
     }
     return response;
   }) as typeof fetch;

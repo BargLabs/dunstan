@@ -172,6 +172,97 @@ describe('runChecks', () => {
     });
   });
 
+  // Spec 0.1.3: an issue transferred to another repository is listed among the closing references
+  // under its new identity, and GitHub answers its old name with that identity, which the reader
+  // records as `resolvedAs`.
+  describe('a closes on a transferred issue is compared under the identity GitHub resolves', () => {
+    const MOVED = 'example-org/example-tracker#4';
+    const closes = block({ references: [{ issue: '#15', relation: 'closes' }] });
+    const verdictOf = (
+      issues: string[],
+      entry: NonNullable<Evidence['references']>[number],
+      state: 'open' | 'closed' = 'closed',
+      merged = state === 'closed',
+    ) => {
+      const e = evidence({ closingReferences: { status: 'ok', issues }, references: [entry] });
+      e.pullRequest = { ...e.pullRequest, state, merged };
+      return row(runChecks(closes, e, REPO), 'reference:/references/0');
+    };
+    const transferred = {
+      kind: 'issue',
+      ref: `${REPO}#15`,
+      status: 'ok',
+      exists: true,
+      resolvedAs: MOVED,
+    } as const;
+
+    it('passes when the closing references list the resolved identity, and shows both', () => {
+      for (const state of ['closed', 'open'] as const) {
+        expect(verdictOf([MOVED], transferred, state)).toEqual({
+          id: 'reference:/references/0',
+          check: 'reference',
+          field: '/references/0',
+          declared: { issue: '#15', relation: 'closes' },
+          observed: { closing: [MOVED], ref: `${REPO}#15`, resolvedAs: MOVED },
+          verdict: 'pass',
+        });
+      }
+      // Owner and repository compare case-insensitively under the resolved identity too.
+      expect(verdictOf(['Example-Org/Example-Tracker#4'], transferred)?.verdict).toBe('pass');
+    });
+
+    it('is not_closing (merged) or closing_link_unsettled (open) when the list lacks it, as before', () => {
+      for (const issues of [[], ['example-org/example-tracker#5'], [`${REPO}#4`]]) {
+        expect(verdictOf(issues, transferred)).toMatchObject({
+          verdict: 'fail',
+          reason: 'not_closing',
+          observed: { closing: issues },
+        });
+        expect(verdictOf(issues, transferred, 'open')).toMatchObject({
+          verdict: 'unverifiable',
+          reason: 'closing_link_unsettled',
+          observed: null,
+        });
+      }
+    });
+
+    it('is unverifiable when the redirect could not be read, never pass', () => {
+      expect(
+        verdictOf([MOVED], {
+          kind: 'issue',
+          ref: `${REPO}#15`,
+          status: 'unreadable',
+          source: 'issue',
+        }),
+      ).toMatchObject({ verdict: 'unverifiable', reason: 'source_unreadable:issue' });
+      expect(
+        verdictOf([MOVED], {
+          kind: 'issue',
+          ref: `${REPO}#15`,
+          status: 'unreadable',
+          source: 'repository',
+        }),
+      ).toMatchObject({ verdict: 'unverifiable', reason: 'source_unreadable:repository' });
+    });
+
+    it('never passes on the resolved identity without a recorded resolvedAs', () => {
+      const { resolvedAs: _, ...unresolved } = transferred;
+      expect(verdictOf([MOVED], unresolved)).toMatchObject({
+        verdict: 'fail',
+        reason: 'not_closing',
+      });
+    });
+
+    it('changes nothing for a cites issue', () => {
+      const cites = block({ references: [{ issue: '#15', relation: 'cites' }] });
+      const e = evidence({ references: [transferred] });
+      expect(row(runChecks(cites, e, REPO), 'reference:/references/0')).toMatchObject({
+        verdict: 'pass',
+        observed: { exists: true },
+      });
+    });
+  });
+
   it('compares times to the second', () => {
     const e = evidence();
     e.pullRequest.mergedAt = '2026-10-01T14:05:09.900Z';

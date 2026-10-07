@@ -79,7 +79,9 @@ export type FilesEvidence = { status: 'ok'; complete: boolean; entries: FileEntr
 export type ClosingReferencesEvidence = { status: 'ok'; issues: string[] } | Unread;
 
 export type ReferenceEvidence =
-  | { kind: 'issue'; ref: string; status: 'ok'; exists: boolean }
+  // `resolvedAs`: the owner/repo#N GitHub answered the read with, when it is not `ref` (an issue
+  // transferred to another repository; spec 0.1.3).
+  | { kind: 'issue'; ref: string; status: 'ok'; exists: boolean; resolvedAs?: string }
   | { kind: 'commit'; ref: string; status: 'ok'; exists: boolean; reachableFromHead: boolean }
   | ({ kind: 'issue' | 'commit'; ref: string } & Unread);
 

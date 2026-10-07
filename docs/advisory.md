@@ -85,7 +85,9 @@ never shows it as "differs", "mismatch" or "false", nor as anything that says th
 references asynchronously after a pull request is opened or its body is edited, so on an open pull
 request an issue missing from them is `unanswered:closing_link_unsettled`, as the gate's own claim
 is `unverifiable` there (spec 0.1.2, section 7.4). An advisory never gates, but a note should not
-claim more than the evidence holds.
+claim more than the evidence holds. An issue since transferred to another repository is compared
+under the identity GitHub resolves its old name to, as the gate's claim is (spec 0.1.3, sections 6
+and 7.4): when the closing references list it there, the note is `agrees`, not `differs:not_closing`.
 
 Every surface that shows advisories also prints one fixed line beside them. For a record that
 carries the published figures (extractor 0.1.1 and comparison 0.2.0), the line states them, filled

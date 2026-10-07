@@ -144,8 +144,8 @@ describe('the built Worker on the Workers runtime', () => {
     expect(status).toBe(200);
     expect(body).toEqual({
       status: 'ok',
-      checker: { name: 'dunstan', version: '0.1.5', digest: { sha256: built.digest } },
-      spec: '0.1.2',
+      checker: { name: 'dunstan', version: '0.1.6', digest: { sha256: built.digest } },
+      spec: '0.1.3',
     });
   });
 

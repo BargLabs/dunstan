@@ -76,6 +76,35 @@ describe('verifyRecord', () => {
     expect(result.problems.map((p) => p.member)).toContain(member);
   });
 
+  // Spec 0.1.3: the identity GitHub resolved a transferred issue to is in the evidence, so offline
+  // verify recomputes the pass from the record alone, and a record without it does not verify.
+  it('recomputes a closes on a transferred issue from the recorded resolvedAs', () => {
+    const c = loadCases('controls').find((x) => x.name === 'closes-transferred');
+    if (c === undefined) throw new Error('no closes-transferred control');
+    const record = JSON.parse(serializeRecord(runCase(c)));
+    expect(record.predicate.verdict).toBe('pass');
+    expect(record.predicate.claims[4]).toMatchObject({
+      id: 'reference:/references/0',
+      verdict: 'pass',
+      observed: {
+        closing: ['example-org/example-tracker#4'],
+        ref: 'example-org/example-repo#17',
+        resolvedAs: 'example-org/example-tracker#4',
+      },
+    });
+    expect(verifyRecord(record).problems).toEqual([]);
+
+    delete record.predicate.evidence.references[0].resolvedAs;
+    const result = verifyRecord(record);
+    expect(result.ok).toBe(false);
+    expect(result.problems.map((p) => p.member)).toEqual([
+      '/predicate/claims/4',
+      '/predicate/verdict',
+      '/predicate/digests/claims',
+      '/predicate/digests/evidence',
+    ]);
+  });
+
   it('ignores read times and other provenance in sources', () => {
     const record = full();
     for (const s of record.predicate.evidence.sources) s.readAt = '2031-01-01T00:00:00Z';

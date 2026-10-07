@@ -4,6 +4,11 @@
     "claims": "b9ddb9fe63bfb372b1495bac677fc4d3c347e597963b804250ead5e0221f7082",
     "evidence": "7874be56da279a561cc55b8fba76dc73ff097ffae1a70fb477dc3dc8dc64423c"
   },
+  "closes-transferred": {
+    "block": "058898970d24c7731d3293421a54a85b5916442449e3f98aacde2229cb8a4d83",
+    "claims": "10327e29f1bac7ed5553407b3456f9c7ba2877ee3d8dfb924c6a6bfbdd9869d4",
+    "evidence": "126f9cc2e211f70a37e959ef44e6de5b5bde5cbe132ef88fa01753da0b740af9"
+  },
   "descendant-deploy-excluded-run": {
     "block": "058898970d24c7731d3293421a54a85b5916442449e3f98aacde2229cb8a4d83",
     "claims": "589e4c9d8c050a9dd961c6c233799a8e412a7d36a1490d07a8a78e51937c13b9",

@@ -261,6 +261,124 @@ describe('the route allowlist', () => {
     ).rejects.toThrow(/not Actions artifact storage/);
   });
 
+  // Spec 0.1.3: GitHub answers the read of an issue transferred to another repository with a 301 to
+  // the issue's new identity. That redirect, from the issue route to another issue on the API, is the
+  // only one followed besides the artifact download's.
+  describe('the issue read redirect', () => {
+    const ISSUE = `${API}/repos/${REPO}/issues/17`;
+    const headers = { accept: MEDIA_TYPE, authorization: 'Bearer ghs_x' };
+    const redirecting = (location: string, status = 301) => {
+      const calls: { url: string; authorization: string | null; accept: string | null }[] = [];
+      const network = (async (input: string | URL | Request, init?: RequestInit) => {
+        const h = new Headers(init?.headers);
+        calls.push({
+          url: String(input),
+          authorization: h.get('authorization'),
+          accept: h.get('accept'),
+        });
+        if (String(input) === ISSUE) return new Response(null, { status, headers: { location } });
+        return new Response('{"number":4}', { status: 200 });
+      }) as typeof fetch;
+      return { calls, transport: new GuardedTransport(network) };
+    };
+
+    it('is followed to another issue on the API, with the request headers', async () => {
+      for (const location of [
+        `${API}/repositories/42/issues/4`,
+        `${API}/repos/example-org/example-tracker/issues/4`,
+      ]) {
+        for (const status of [301, 302, 307, 308]) {
+          const { calls, transport } = redirecting(location, status);
+          const response = await transport.fetch(ISSUE, { headers });
+          expect(response.status).toBe(200);
+          expect(await response.text()).toBe('{"number":4}');
+          expect(calls).toEqual([
+            { url: ISSUE, authorization: 'Bearer ghs_x', accept: MEDIA_TYPE },
+            { url: location, authorization: 'Bearer ghs_x', accept: MEDIA_TYPE },
+          ]);
+          expect(transport.refused).toEqual([]);
+        }
+      }
+    });
+
+    it('is refused anywhere else, before the second request is made', async () => {
+      for (const location of [
+        `${API}/repos/${REPO}/contents/README.md`,
+        `${API}/repos/${REPO}/pulls/4`,
+        `${API}/repos/${REPO}`,
+        `${API}/repositories/42`,
+        `${API}/repositories/42/contents/x`,
+        `${API}/repositories/42/issues/4/comments`,
+        `${API}/repositories/42/issues/4?per_page=100`,
+        `${API}/repositories/42/issues/4#x`,
+        `${API}/repositories/x/issues/4`,
+        `${API}/repos/example-org/../issues/4`,
+        `${API}/repos/example-org/%2e%2e/issues/4`,
+        `${API}/repos/example-org/x/issues/..%2F..%2Fcontents`,
+        `${API}/repos/example-org\\x/issues/4`,
+        `/repositories/42/issues/4`,
+        `//api.github.com/repositories/42/issues/4`,
+        `http://api.github.com/repositories/42/issues/4`,
+        `https://user:pass@api.github.com/repositories/42/issues/4`,
+        `https://api.github.com:8443/repositories/42/issues/4`,
+        `https://api.github.com.example.org/repositories/42/issues/4`,
+        `https://github.com/${REPO}/issues/4`,
+        `https://raw.githubusercontent.com/${REPO}/main/x`,
+        'https://productionresultssa1.blob.core.windows.net/a?sig=x',
+      ]) {
+        const { calls, transport } = redirecting(location);
+        await expect(transport.fetch(ISSUE, { headers }), location).rejects.toThrow(RouteRefused);
+        expect(calls.map((c) => c.url)).toEqual([ISSUE]);
+        expect(transport.refused, location).toHaveLength(1);
+      }
+    });
+
+    it('stops after three hops, and the read is left a redirect, never followed further', async () => {
+      const calls: string[] = [];
+      const network = (async (input: string | URL | Request) => {
+        calls.push(String(input));
+        return new Response(null, {
+          status: 301,
+          headers: { location: `${API}/repositories/42/issues/${calls.length + 1}` },
+        });
+      }) as typeof fetch;
+      const response = await new GuardedTransport(network).fetch(ISSUE, { headers });
+      expect(response.status).toBe(301);
+      expect(calls).toHaveLength(4);
+    });
+
+    it('is followed from no other route', async () => {
+      for (const url of [
+        `${API}/repos/${REPO}`,
+        `${API}/repos/${REPO}/pulls/7`,
+        `${API}/repos/${REPO}/git/commits/${CITED}`,
+      ]) {
+        const calls: string[] = [];
+        const network = (async (input: string | URL | Request) => {
+          calls.push(String(input));
+          return new Response(null, {
+            status: 301,
+            headers: { location: `${API}/repositories/42/issues/4` },
+          });
+        }) as typeof fetch;
+        const response = await new GuardedTransport(network).fetch(url, { headers });
+        expect(response.status).toBe(301);
+        expect(calls).toEqual([url]);
+      }
+      // An artifact download still redirects only to Actions storage.
+      const artifact = new GuardedTransport(
+        (async () =>
+          new Response(null, {
+            status: 302,
+            headers: { location: `${API}/repositories/42/issues/4` },
+          })) as typeof fetch,
+      );
+      await expect(
+        artifact.fetch(`${API}/repos/${REPO}/actions/artifacts/9/zip`, { headers }),
+      ).rejects.toThrow(/not Actions artifact storage/);
+    });
+  });
+
   it('has no allowlist entry that a forbidden name would match', () => {
     for (const route of ROUTES) {
       expect(route.path.source).not.toMatch(

@@ -129,7 +129,7 @@ pnpm exec wrangler deploy --config hosted/wrangler.toml
 curl -sS "https://$HOST/v0.1/health"
 ```
 
-`health` must report the digest `pnpm build:hosted` printed, and `"spec": "0.1.2"`. Wrangler uploads
+`health` must report the digest `pnpm build:hosted` printed, and `"spec": "0.1.3"`. Wrangler uploads
 `hosted/dist/` as built (`no_bundle = true`), so that digest is the digest of what runs.
 
 ## 7. An installation and its API key

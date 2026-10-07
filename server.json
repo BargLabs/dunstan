@@ -3,7 +3,7 @@
   "name": "io.github.BargLabs/dunstan",
   "title": "Dunstan",
   "description": "Checks a coding agent's handback block against the pull request's record. No model decides.",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "repository": {
     "url": "https://github.com/BargLabs/dunstan",
     "source": "github"
@@ -12,7 +12,7 @@
     {
       "registryType": "npm",
       "identifier": "dunstan",
-      "version": "0.1.5",
+      "version": "0.1.6",
       "transport": {
         "type": "stdio"
       },

@@ -369,6 +369,32 @@ function isNotFound(read: Read): boolean {
   return !read.ok && (read.status === 404 || read.status === 410);
 }
 
+// An owner/repo#N as record-0.1.schema.json's issueRef admits it.
+const ISSUE_REF = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})\/[A-Za-z0-9._-]{1,100}#[1-9][0-9]{0,9}$/;
+
+// The issue an issue read answered for, as owner/repo#N: the answer's `number`, and the owner and
+// name its `repository_url` ends in (`…/repos/{owner}/{repo}`; the API's host is not checked, as the
+// Action reads from GITHUB_API_URL). GitHub answers the read of an issue transferred to another
+// repository with a redirect to the issue's new identity, which the client follows (spec 0.1.3).
+function answeredIssue(json: unknown): string {
+  const issue = obj(json);
+  const number = int(issue.number);
+  let url: URL;
+  try {
+    url = new URL(str(issue.repository_url));
+  } catch (e) {
+    if (e instanceof TypeError) throw new ShapeError();
+    throw e;
+  }
+  const m = /\/repos\/([^/]+)\/([^/]+)$/.exec(url.pathname);
+  if (m === null || url.search !== '' || url.hash !== '' || m[2] === '.' || m[2] === '..') {
+    throw new ShapeError();
+  }
+  const answered = `${m[1]}/${m[2]}#${number}`;
+  if (!ISSUE_REF.test(answered)) throw new ShapeError();
+  return answered;
+}
+
 // base...head: base is an ancestor of head (or equal to it) exactly when head is not behind base.
 async function isAncestor(
   client: GitHubClient,
@@ -426,10 +452,32 @@ async function readReferences(
         out.push({ kind: 'issue', ref, ...unreadable('repository') });
         continue;
       }
-      const read = await client.read('issue', `/repos/${repo}/issues/${num}`);
-      if (read.ok) out.push({ kind: 'issue', ref, status: 'ok', exists: true });
-      else if (isNotFound(read)) out.push({ kind: 'issue', ref, status: 'ok', exists: false });
-      else out.push({ kind: 'issue', ref, ...unreadable('issue') });
+      const path = `/repos/${repo}/issues/${num}`;
+      const read = await client.read('issue', path);
+      if (isNotFound(read)) {
+        out.push({ kind: 'issue', ref, status: 'ok', exists: false });
+        continue;
+      }
+      if (!read.ok) {
+        out.push({ kind: 'issue', ref, ...unreadable('issue') });
+        continue;
+      }
+      let answered: string;
+      try {
+        answered = answeredIssue(read.json);
+      } catch (e) {
+        if (!(e instanceof ShapeError)) throw e;
+        client.markParseError(`GET ${path}`);
+        out.push({ kind: 'issue', ref, ...unreadable('issue') });
+        continue;
+      }
+      // An answer for another issue is the one GitHub resolves the name read to. It is recorded, so
+      // the closes check reads it offline too; the issue is not read again under it.
+      out.push(
+        sameIssue(answered, ref)
+          ? { kind: 'issue', ref, status: 'ok', exists: true }
+          : { kind: 'issue', ref, status: 'ok', exists: true, resolvedAs: answered },
+      );
       continue;
     }
 

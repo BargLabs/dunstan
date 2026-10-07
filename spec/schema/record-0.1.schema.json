@@ -420,8 +420,14 @@
                   "kind": { "const": "issue" },
                   "ref": { "$ref": "#/$defs/issueRef" },
                   "status": { "const": "ok" },
-                  "exists": { "type": "boolean" }
-                }
+                  "exists": { "type": "boolean" },
+                  "resolvedAs": {
+                    "description": "Spec 0.1.3: the owner/repo#N GitHub answered the read of ref with, when it is another issue (an issue transferred to another repository).",
+                    "$ref": "#/$defs/issueRef"
+                  }
+                },
+                "if": { "required": ["resolvedAs"] },
+                "then": { "properties": { "exists": { "const": true } } }
               },
               {
                 "type": "object",

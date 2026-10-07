@@ -129,6 +129,22 @@ describe('compareAdvisory: the gate check for each kind', () => {
     });
   });
 
+  it('reference_closes on a transferred issue is compared under its resolved identity (spec 0.1.3)', () => {
+    const moved = 'example-org/example-tracker#4';
+    const transferred = (issues: string[]): Evidence => ({
+      ...evidence,
+      closingReferences: { status: 'ok', issues },
+      references: [
+        { kind: 'issue', ref: `${REPO}#13`, status: 'ok', exists: true, resolvedAs: moved },
+      ],
+    });
+    expect(note('reference_closes', '#13', transferred([moved]))).toEqual({
+      observed: { closing: [moved], ref: `${REPO}#13`, resolvedAs: moved },
+      note: 'agrees',
+    });
+    expect(note('reference_closes', '#13', transferred([])).note).toBe('differs:not_closing');
+  });
+
   it('commit and head_commit read the head, or a cited commit', () => {
     expect(note('commit', HEAD.slice(0, 8))).toEqual({ observed: HEAD, note: 'agrees' });
     expect(note('head_commit', HEAD.slice(0, 10))).toEqual({ observed: HEAD, note: 'agrees' });
