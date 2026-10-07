@@ -1,0 +1,920 @@
+{
+  "run": "fixed-test",
+  "instrument": {
+    "name": "fixed",
+    "checkerVersion": "0.1.4",
+    "bundleSha256": "01e9d02a416d896427f55f9e34dcf139cbab3ab4c0fcab043d15fab01f5fd7de",
+    "extractorVersion": "0.1.4",
+    "extractorDigest": "78b92a682063464faf3cf1de13123d2b232bb3575effd5f31f0e12905643d45c",
+    "comparison": "0.2.0",
+    "sourceCommit": "c69e63fe636e711804958bfe9da19a303705a196",
+    "frozenAt": "2026-10-07T13:33:34.154Z",
+    "frozenCommit": "e5cac07022334e9079f99da0f01377181f17d3c1"
+  },
+  "command": "node <dunstan> check --repo <owner/repo> --pr <n> --report-pr-body --advisory --out <record>",
+  "node": "v22.15.0",
+  "startedAt": "2026-10-07T13:38:15.884Z",
+  "finishedAt": "2026-10-07T13:40:44.349Z",
+  "records": [
+    {
+      "pr": "dotnet/macios#25576",
+      "file": "dotnet-macios-25576.json",
+      "sha256": "d24fd98f0cbb6111f45d1b16d28626677e7ffee73c7dcc6bc68161fad364338d",
+      "exit": 2
+    },
+    {
+      "pr": "nodetool-ai/nodetool#3442",
+      "file": "nodetool-ai-nodetool-3442.json",
+      "sha256": "26c04857a73bbcb67b0337a7214ce4112dcd54b3b4e076bf15e96801d49c371a",
+      "exit": 2
+    },
+    {
+      "pr": "useblocks/sphinx-needs#1630",
+      "file": "useblocks-sphinx-needs-1630.json",
+      "sha256": "7f8bf01e28658e5aa8b2e4dbc32203bc28a6131ebde76396b7dd2b7438f09388",
+      "exit": 2
+    },
+    {
+      "pr": "mono/SkiaSharp#3997",
+      "file": "mono-SkiaSharp-3997.json",
+      "sha256": "323bc57a581fba2451996fffbd0c04b8ceb00b8b8863709cef1ba86e42fc4c67",
+      "exit": 2
+    },
+    {
+      "pr": "stakater/application#436",
+      "file": "stakater-application-436.json",
+      "sha256": "50b4cb6368e3fde57a50912c2d644bf7a95890218cfa3447cca809dfc3ee574e",
+      "exit": 2
+    },
+    {
+      "pr": "handsontable/handsontable#12976",
+      "file": "handsontable-handsontable-12976.json",
+      "sha256": "d97c01652e64e5564687afe452d27ff8e122d42adad0afcc1b904c61b99196a4",
+      "exit": 2
+    },
+    {
+      "pr": "OpenRefine/OpenRefine#7640",
+      "file": "OpenRefine-OpenRefine-7640.json",
+      "sha256": "3a6956febdc5954c979cc525dde74aab1a9df6fbfac5b6d0423e0053da40da4e",
+      "exit": 2
+    },
+    {
+      "pr": "adobe/jsonschema2md#679",
+      "file": "adobe-jsonschema2md-679.json",
+      "sha256": "93b575d297c2881d14e5f1a8fafac3d2f17b40ac288b95d3139edb4489441a07",
+      "exit": 2
+    },
+    {
+      "pr": "ShukeBta/MediaStationGo#29",
+      "file": "ShukeBta-MediaStationGo-29.json",
+      "sha256": "3d64e0e593f27cf76645abd8728d55ee9e6f1819ace83a0f584ebfdb2a172e48",
+      "exit": 2
+    },
+    {
+      "pr": "pwa-builder/PWABuilder#5862",
+      "file": "pwa-builder-PWABuilder-5862.json",
+      "sha256": "1cb9319b6a6ddcc367b23c322d501a0e4413a61cf537d435f3686a40dcedd372",
+      "exit": 2
+    },
+    {
+      "pr": "JeffSteinbok/hass-dreo#831",
+      "file": "JeffSteinbok-hass-dreo-831.json",
+      "sha256": "ee917e799a57a10b0db52869f69764ea67ec1269daf0b22d09c7f2e80512462b",
+      "exit": 2
+    },
+    {
+      "pr": "callstack/agent-device#1225",
+      "file": "callstack-agent-device-1225.json",
+      "sha256": "c5d11a4d17146c96da457f5ac4c37220838ccacbb5030d82fbabe223edd770e8",
+      "exit": 2
+    },
+    {
+      "pr": "ARM-software/CMSIS_6#298",
+      "file": "ARM-software-CMSIS_6-298.json",
+      "sha256": "16f588ea1750c26765a52ba92379cba9a63e5cd3f537893cb7f551068e51daf3",
+      "exit": 2
+    },
+    {
+      "pr": "ErikEJ/EFCorePowerTools#3294",
+      "file": "ErikEJ-EFCorePowerTools-3294.json",
+      "sha256": "9cb4982a7006503aa8be8057365ac8456b67f8bc5030b894bb92eacf78eb8c40",
+      "exit": 2
+    },
+    {
+      "pr": "nRF24/RF24Mesh#266",
+      "file": "nRF24-RF24Mesh-266.json",
+      "sha256": "f0a931e1651a254fbe2d4adc986f6938c96f42c7aa62ced203c602535bca9ac1",
+      "exit": 2
+    },
+    {
+      "pr": "Alfresco/alfresco-ng2-components#12024",
+      "file": "Alfresco-alfresco-ng2-components-12024.json",
+      "sha256": "8d65aa94ffb3e10036ffae5f62ba9ef105e15766a68cba05cb2d4245abdbf435",
+      "exit": 2
+    },
+    {
+      "pr": "github/gh-aw#44465",
+      "file": "github-gh-aw-44465.json",
+      "sha256": "4787a8604dfc5defc38162044a1dd65f8292cde8921b8a3cc6cd05742a662df0",
+      "exit": 2
+    },
+    {
+      "pr": "dotnet/fsharp#19186",
+      "file": "dotnet-fsharp-19186.json",
+      "sha256": "7351b791e0d3a10c1709f88bff7c9443a830c3386aaaaa54436a98a2c9d9c50f",
+      "exit": 2
+    },
+    {
+      "pr": "NewFuture/DDNS#628",
+      "file": "NewFuture-DDNS-628.json",
+      "sha256": "709db0137e6077100ce493022165a44548b08177270f661c1fcbb1df3dc6cd02",
+      "exit": 2
+    },
+    {
+      "pr": "hugerte/hugerte#142",
+      "file": "hugerte-hugerte-142.json",
+      "sha256": "9cc31d2e1637199a1c9bbb448a1ca04c7263fbf140eeabd1a4f4f197a41946f9",
+      "exit": 2
+    },
+    {
+      "pr": "OrchardCMS/OrchardCore#19303",
+      "file": "OrchardCMS-OrchardCore-19303.json",
+      "sha256": "eb66b86db462971de8217d27b26f156d93020d3186784a10cb1e1a6b39857785",
+      "exit": 2
+    },
+    {
+      "pr": "dhondta/python-codext#38",
+      "file": "dhondta-python-codext-38.json",
+      "sha256": "1f7be58083c1524645911d43733ad24be0f5304b10a7bb38151641933f0bb45c",
+      "exit": 2
+    },
+    {
+      "pr": "modelcontextprotocol/csharp-sdk#1491",
+      "file": "modelcontextprotocol-csharp-sdk-1491.json",
+      "sha256": "cc65bc21353a19f4f88a4156f7cb8d23d9aa0ced8f251422d8ef97ecb85c209c",
+      "exit": 2
+    },
+    {
+      "pr": "tarlepp/symfony-flex-backend#3264",
+      "file": "tarlepp-symfony-flex-backend-3264.json",
+      "sha256": "1572e440657efa4806a0fbf705d6232b23786650a13c92a269fa303f8b7ef394",
+      "exit": 2
+    },
+    {
+      "pr": "cmderdev/cmder#3059",
+      "file": "cmderdev-cmder-3059.json",
+      "sha256": "dcc974708b8f7e122699b90ae3e8bc20e27f982761e87551d619d5d0a6ed6249",
+      "exit": 2
+    },
+    {
+      "pr": "XRPLF/rippled#5706",
+      "file": "XRPLF-rippled-5706.json",
+      "sha256": "47abfbcff29e1d28f10b4bbe3d3f076efae5ab7ddf2dfe53aaa30e765d54c9db",
+      "exit": 2
+    },
+    {
+      "pr": "dotnet/efcore#37601",
+      "file": "dotnet-efcore-37601.json",
+      "sha256": "542a353075b59e163473cfbd91e6555832c56bf3c7b0c7d8dec01d3658d52b53",
+      "exit": 2
+    },
+    {
+      "pr": "pingcap/docs-cn#21677",
+      "file": "pingcap-docs-cn-21677.json",
+      "sha256": "1e4f87bde76c7b356fc86ac927ebe7b835d2228ea533bf8f8c7fe0ad794e778c",
+      "exit": 2
+    },
+    {
+      "pr": "AzureAD/microsoft-authentication-library-for-objc#3033",
+      "file": "AzureAD-microsoft-authentication-library-for-objc-3033.json",
+      "sha256": "f770a0b3f8bd89f9f238015fdf539f34f94cd10d9ac4ea98cac6e985e97cf173",
+      "exit": 2
+    },
+    {
+      "pr": "motioneye-project/motioneye#3274",
+      "file": "motioneye-project-motioneye-3274.json",
+      "sha256": "f29c4de60bf3ca3aa29c6c323a5ba05991ef517a1ce1cc2d354f363174a9feb1",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/vsts-extension-retrospectives#1782",
+      "file": "microsoft-vsts-extension-retrospectives-1782.json",
+      "sha256": "f116ec87665038d33860be121a77e296ce9705ead9b99fba0678e46e6c57e0f3",
+      "exit": 2
+    },
+    {
+      "pr": "opensanctions/opensanctions#4337",
+      "file": "opensanctions-opensanctions-4337.json",
+      "sha256": "ab54abc99f90f1319ba0ed5756a647d1c01118f4f5c712aa9fd9d79eb665f95a",
+      "exit": 2
+    },
+    {
+      "pr": "beercss/beercss#609",
+      "file": "beercss-beercss-609.json",
+      "sha256": "74fc8e62aef1d2a38b26dba273a2e4fedab496d2dac1e557877fc755c116b3bf",
+      "exit": 2
+    },
+    {
+      "pr": "OWASP/mastg#3522",
+      "file": "OWASP-mastg-3522.json",
+      "sha256": "e6142f56863bdc598ba8a2ba58d9cdff8283660b0ed99a5439ce5a144a1ac6ca",
+      "exit": 2
+    },
+    {
+      "pr": "prometheus-community/elasticsearch_exporter#1147",
+      "file": "prometheus-community-elasticsearch_exporter-1147.json",
+      "sha256": "e285b1f6551272463716675964b9b297f779db57adeb2a86c4466cd573b8f127",
+      "exit": 2
+    },
+    {
+      "pr": "Hope2333/opencode-termux#9",
+      "file": "Hope2333-opencode-termux-9.json",
+      "sha256": "18de15da5cd1154acc32702399a79d371a1940f8a52434375fda67ad3a96d2dd",
+      "exit": 2
+    },
+    {
+      "pr": "po-ui/po-angular#2832",
+      "file": "po-ui-po-angular-2832.json",
+      "sha256": "44e51b4a4c60a34e961ac5ed9ee67874dbad7a3cbc8cd78fd4e6fc566af913d8",
+      "exit": 2
+    },
+    {
+      "pr": "SigmaHQ/pySigma#468",
+      "file": "SigmaHQ-pySigma-468.json",
+      "sha256": "c2cceccf872a2c44cbd39f13b02b4c0ce46179d20d4fc6b25ee34610238b31ab",
+      "exit": 2
+    },
+    {
+      "pr": "MrAntares/roBrowserLegacy#1304",
+      "file": "MrAntares-roBrowserLegacy-1304.json",
+      "sha256": "74578d72094078c336e22da5de8d831f99c419f6025aa9a4550285a2d04b5e70",
+      "exit": 2
+    },
+    {
+      "pr": "raineorshine/npm-check-updates#1749",
+      "file": "raineorshine-npm-check-updates-1749.json",
+      "sha256": "e932fbd2b978420e844604c247d8d7774285aabfcec49ecb8f665b166d582a0b",
+      "exit": 2
+    },
+    {
+      "pr": "openfoodfacts/openfoodfacts-server#12780",
+      "file": "openfoodfacts-openfoodfacts-server-12780.json",
+      "sha256": "5e554746ebfe1edc0b641f80056b45a3376358a96b97f63ca0e8b55c493fe51f",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/TypeAgent#2650",
+      "file": "microsoft-TypeAgent-2650.json",
+      "sha256": "67806b6a8d5111fe267ef5da72a921585b55c200ccaea2b970ef815e62f04d3a",
+      "exit": 2
+    },
+    {
+      "pr": "danielgerlag/workflow-core#1404",
+      "file": "danielgerlag-workflow-core-1404.json",
+      "sha256": "626a02a25ea106e21e90ed077bc01faffef86867ef05568e5efd366b84d432c4",
+      "exit": 2
+    },
+    {
+      "pr": "mui/base-ui#3781",
+      "file": "mui-base-ui-3781.json",
+      "sha256": "938e13371f9f7fd28ad4dee571008d956de84c051fcf4851f9aa6d1191416c5f",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/CCF#7977",
+      "file": "microsoft-CCF-7977.json",
+      "sha256": "2f8dd4f95a67efb71343e2ac5e6cad87a9730f9d88e4151c5bd0194df1a82fa4",
+      "exit": 2
+    },
+    {
+      "pr": "fluttercandies/flutter_photo_manager#1332",
+      "file": "fluttercandies-flutter_photo_manager-1332.json",
+      "sha256": "0aec3d6e06aa512a95fda4e823139b865a84fd50680ed0f9707eb25562df37c6",
+      "exit": 2
+    },
+    {
+      "pr": "justrach/nanobrew#266",
+      "file": "justrach-nanobrew-266.json",
+      "sha256": "35dec83b7f72a07332b77e6b590ace7befec59868cf488ec46af606ddf6ee91d",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/FHIR-Converter#620",
+      "file": "microsoft-FHIR-Converter-620.json",
+      "sha256": "e2f445c8f0ce09926ca84bf0487defa771000f33e4ff38dd0a52c2b140e6a9bf",
+      "exit": 2
+    },
+    {
+      "pr": "Azure/git-ape#44",
+      "file": "Azure-git-ape-44.json",
+      "sha256": "e2b627feb141705299b0573ebf9b2f76da0687c27ce698a676b64fe6a1c543b0",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/WSL#40564",
+      "file": "microsoft-WSL-40564.json",
+      "sha256": "b7a6e2144a60738802bac2ce2ffa114ff4b9119db34fb71962fb492dfd506f03",
+      "exit": 2
+    },
+    {
+      "pr": "s3s-project/s3s#632",
+      "file": "s3s-project-s3s-632.json",
+      "sha256": "513bc077d23654820c45d5a1212482184dab0386021b1113160fd8cb2294cd24",
+      "exit": 2
+    },
+    {
+      "pr": "test-kitchen/kitchen-vagrant#523",
+      "file": "test-kitchen-kitchen-vagrant-523.json",
+      "sha256": "6a800f4a6372811b2b18f5776bc1f01ef736e8622c592757c033df2c89bd5de6",
+      "exit": 2
+    },
+    {
+      "pr": "awalsh128/cache-apt-pkgs-action#172",
+      "file": "awalsh128-cache-apt-pkgs-action-172.json",
+      "sha256": "db37f16869132c90d60bf9113d2627b091bed2abaa1aad86c42c4c69bb280719",
+      "exit": 2
+    },
+    {
+      "pr": "gofiber/fiber#4370",
+      "file": "gofiber-fiber-4370.json",
+      "sha256": "bee25faf3250adb311cda6aa014ce0c7bba20169a767cca44d4952faffd63c87",
+      "exit": 2
+    },
+    {
+      "pr": "ModernRelay/omnigraph#86",
+      "file": "ModernRelay-omnigraph-86.json",
+      "sha256": "01477e01401cb0a96f1f2703c91e1cbd3744768de66ded4987168b6037e10b1c",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/onnxscript#2390",
+      "file": "microsoft-onnxscript-2390.json",
+      "sha256": "94e316a1a9827dfe2613582ced58b957d9876b71c367b403d46f36caebe04166",
+      "exit": 2
+    },
+    {
+      "pr": "Azure/azure-sdk-for-js#38770",
+      "file": "Azure-azure-sdk-for-js-38770.json",
+      "sha256": "eca3afe4a287ef2bc9fbc6f66c2a35c7e3b66474e4be07103694caa4ea94423a",
+      "exit": 2
+    },
+    {
+      "pr": "Azure/azure-sdk-for-java#47395",
+      "file": "Azure-azure-sdk-for-java-47395.json",
+      "sha256": "eed36ebcac86d012fef4f682af20830230718095581d813ba0165260a46ce1b6",
+      "exit": 2
+    },
+    {
+      "pr": "Moustachauve/cookie-editor#292",
+      "file": "Moustachauve-cookie-editor-292.json",
+      "sha256": "ec011acdb44b917f4adde1a1ce388d72a8fdfb54d115ecb8a2f6929de7081edb",
+      "exit": 2
+    },
+    {
+      "pr": "Azure/azure-container-networking#4494",
+      "file": "Azure-azure-container-networking-4494.json",
+      "sha256": "c3f4b6e937d2346e8fda4ac8e364ac6ec93470571cb4b8604c393604dcebb10d",
+      "exit": 2
+    },
+    {
+      "pr": "KoalaBear84/OpenDirectoryDownloader#161",
+      "file": "KoalaBear84-OpenDirectoryDownloader-161.json",
+      "sha256": "1cad2c860430d8b3ded7a6b4969efe5c8fb5a5f54ef8b35c82f8800ef3dda0a1",
+      "exit": 2
+    },
+    {
+      "pr": "adoptium/temurin-build#4517",
+      "file": "adoptium-temurin-build-4517.json",
+      "sha256": "61e0dd8988b1560d33c57bc35710c0dfa1bf657b033e524c7b2599a3ca31edfc",
+      "exit": 2
+    },
+    {
+      "pr": "springfall2008/batpred#3937",
+      "file": "springfall2008-batpred-3937.json",
+      "sha256": "b72b2bf12775419710f093cf2d05d78ac1b31310f339ef626c24abf45ea0caf1",
+      "exit": 2
+    },
+    {
+      "pr": "speakeasy-api/gram#4088",
+      "file": "speakeasy-api-gram-4088.json",
+      "sha256": "eccfbf966697a3e4689658d36bbe49991dd2997e476ee8a94fadb150eaeac145",
+      "exit": 2
+    },
+    {
+      "pr": "github/codeql#21324",
+      "file": "github-codeql-21324.json",
+      "sha256": "72090d5b8c3a67c39c4c4dfa4625a5db848b3143b8c22a705c2cec640fbcfeeb",
+      "exit": 2
+    },
+    {
+      "pr": "shader-slang/slang#9085",
+      "file": "shader-slang-slang-9085.json",
+      "sha256": "0932a8c48496c8f6e2879361030dc40207614a0bad9bd181d3027f94f70a4fd2",
+      "exit": 2
+    },
+    {
+      "pr": "majorsilence/Reporting#254",
+      "file": "majorsilence-Reporting-254.json",
+      "sha256": "ad931270f20fbd9e6cf09ed3a2d04db7f9755ad14a3c024ead9e9c2fb5832a13",
+      "exit": 2
+    },
+    {
+      "pr": "NuGet/Home#14985",
+      "file": "NuGet-Home-14985.json",
+      "sha256": "b6aeb6342e7cab8f3d6ae035ba64bfef1c3394e85ebe7232508870886a751c2e",
+      "exit": 2
+    },
+    {
+      "pr": "MirrorNetworking/Mirror#4119",
+      "file": "MirrorNetworking-Mirror-4119.json",
+      "sha256": "a4bb45c86bfd8b3daa5bbc9c22a3dab1fbfc134e4405d015415d9b978ca639af",
+      "exit": 2
+    },
+    {
+      "pr": "egraphs-good/egglog#876",
+      "file": "egraphs-good-egglog-876.json",
+      "sha256": "05045028b47391be5ffa8e504ef9fa1083d0d074c713708279b1bc576d670b67",
+      "exit": 2
+    },
+    {
+      "pr": "TEdit/Terraria-Map-Editor#2272",
+      "file": "TEdit-Terraria-Map-Editor-2272.json",
+      "sha256": "84c6b855c466f2fce40e16fb6a4edcb2a70e87d5fb34061315800e86d4e48679",
+      "exit": 2
+    },
+    {
+      "pr": "kubeshop/testkube#7771",
+      "file": "kubeshop-testkube-7771.json",
+      "sha256": "db50b70da8ec3aedf462d1e77edae5ce13a9154496e9b98d1a3c84ccf9d9243f",
+      "exit": 2
+    },
+    {
+      "pr": "ps2homebrew/wLaunchELF#135",
+      "file": "ps2homebrew-wLaunchELF-135.json",
+      "sha256": "ec831484137dd564619d25546e10abafd268da3fa36a0c49b856c081561934fa",
+      "exit": 2
+    },
+    {
+      "pr": "hove-io/navitia#4550",
+      "file": "hove-io-navitia-4550.json",
+      "sha256": "a5fa0030afcf8a362108fcd9a0f6516a94c32465ec096f2ec06bda783a21c861",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/pylance-release#7836",
+      "file": "microsoft-pylance-release-7836.json",
+      "sha256": "e4334ca0d2b61a0f8698ee36cef07cd98af7afed0342404b04cf8e0a6c9496b2",
+      "exit": 2
+    },
+    {
+      "pr": "wp-cli/wp-cli#6208",
+      "file": "wp-cli-wp-cli-6208.json",
+      "sha256": "89435e27a2722a863f8df7ce5cd19f45b136b26b9159658376cf391f1672501c",
+      "exit": 2
+    },
+    {
+      "pr": "dotnet/dotnet-docker#7209",
+      "file": "dotnet-dotnet-docker-7209.json",
+      "sha256": "bd7c874aca0778bfa60ea7839de1dc5cd96b48d6e2f3ab2a845db316f39d7647",
+      "exit": 2
+    },
+    {
+      "pr": "test-kitchen/kitchen-docker#436",
+      "file": "test-kitchen-kitchen-docker-436.json",
+      "sha256": "b7653e6412fe0ac2bc23a0d053cba1bb965f727f0ec13cf85f8b6348db12d2ba",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/ebpf-for-windows#4506",
+      "file": "microsoft-ebpf-for-windows-4506.json",
+      "sha256": "4c7b07108851976c796a4ba3dc11138f9e0be4fde517d70f36edc5c00f289c5f",
+      "exit": 2
+    },
+    {
+      "pr": "havit/Havit.Blazor#1416",
+      "file": "havit-Havit.Blazor-1416.json",
+      "sha256": "67d65b0cbafdfb8b11e099f9fd43a6ac5396deadaa63aed39131a1b8a6c0a85c",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/AL-Go#2306",
+      "file": "microsoft-AL-Go-2306.json",
+      "sha256": "c7526eaa296c2f528b7ebef12febcf27f99a4f5e99dc672c8a63f167f6afa400",
+      "exit": 2
+    },
+    {
+      "pr": "google-labs-code/stitch-sdk#358",
+      "file": "google-labs-code-stitch-sdk-358.json",
+      "sha256": "2893238e127b32c103f70e4decaad18a08456d571d64943a17a3c3b981c346f2",
+      "exit": 2
+    },
+    {
+      "pr": "Significant-Gravitas/AutoGPT#11219",
+      "file": "Significant-Gravitas-AutoGPT-11219.json",
+      "sha256": "4c71aad570eb6c4b62dec8293cc6c3b430acbbe223baae55c315c45a1a7aa85a",
+      "exit": 2
+    },
+    {
+      "pr": "damus-io/damus#3725",
+      "file": "damus-io-damus-3725.json",
+      "sha256": "7164ae2f795a038180a8967d77669397868c506de4efbb1b901d72d191a794d7",
+      "exit": 2
+    },
+    {
+      "pr": "planetscale/cli#1294",
+      "file": "planetscale-cli-1294.json",
+      "sha256": "19f11ddd27e1296ab16014338c312b029d3c039d788c1670423ca3c45b4c0d86",
+      "exit": 2
+    },
+    {
+      "pr": "fabiocaccamo/django-extra-settings#221",
+      "file": "fabiocaccamo-django-extra-settings-221.json",
+      "sha256": "9a38fda87c0a1f60ef2660dd7d32519a9767d7128697fa3caae4eb835f69b535",
+      "exit": 2
+    },
+    {
+      "pr": "Kunena/Kunena-Forum#10153",
+      "file": "Kunena-Kunena-Forum-10153.json",
+      "sha256": "5b4aee6acf67401a1e23dcce81e3af6cf32a0eebae046909f3048eb9b9df9fc4",
+      "exit": 2
+    },
+    {
+      "pr": "dotnet/roslyn#84466",
+      "file": "dotnet-roslyn-84466.json",
+      "sha256": "9d9d24fa3c301d3d2385b99fb77b7246a0cebc447e1216b7c7d1c383487e716e",
+      "exit": 2
+    },
+    {
+      "pr": "AndyTheFactory/newspaper4k#716",
+      "file": "AndyTheFactory-newspaper4k-716.json",
+      "sha256": "b5c1ea61d075c5e53ce54b293a857159c681bc1e96ca398011c74c4be674ba4f",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/rushstack#5510",
+      "file": "microsoft-rushstack-5510.json",
+      "sha256": "3eee41bc4005b76e36e245b1be9116d69ecb1f39d9d4f8788624a07ccfd8e5c7",
+      "exit": 2
+    },
+    {
+      "pr": "CoreWCF/CoreWCF#1743",
+      "file": "CoreWCF-CoreWCF-1743.json",
+      "sha256": "4320fb7a13167ff56beff1b83245fc96a3e9151ea477e16ede8d7b103ed68136",
+      "exit": 2
+    },
+    {
+      "pr": "vortex-data/vortex#8756",
+      "file": "vortex-data-vortex-8756.json",
+      "sha256": "89a20d76c3c2d13dfd685a4cc91b37c9ba986685aa33e611c79a33a93db3ab87",
+      "exit": 2
+    },
+    {
+      "pr": "stefankoegl/kdtree#55",
+      "file": "stefankoegl-kdtree-55.json",
+      "sha256": "ba7695218b25990c3f92c8f8f7d3340ebba5df7ea61ff3db837b62baefe5c1ea",
+      "exit": 2
+    },
+    {
+      "pr": "coreshop/CoreShop#2963",
+      "file": "coreshop-CoreShop-2963.json",
+      "sha256": "5e622719b926b1aef05df5a4106f56b0cf1b970c72bf8aeb5caab630bb90c696",
+      "exit": 2
+    },
+    {
+      "pr": "apolloconfig/agollo#359",
+      "file": "apolloconfig-agollo-359.json",
+      "sha256": "58accd7431a96707f417713fe843472200d4b58495ba2efb3940bcaf062494c9",
+      "exit": 2
+    },
+    {
+      "pr": "electron/packager#1934",
+      "file": "electron-packager-1934.json",
+      "sha256": "fa5b4fd4504b60fddf2810553473fdae54ee15f2973acb3fcdb3ef2c306ed2ed",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/mfcmapi#990",
+      "file": "microsoft-mfcmapi-990.json",
+      "sha256": "44aa80afc4b0181ff5193ebe412e973ab4d4149a653f374df8ea6507b07802df",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/Agents-for-python#402",
+      "file": "microsoft-Agents-for-python-402.json",
+      "sha256": "aa803849ba03e838479216c4b2c644a204b0dce57d990643b568effc3c0c622f",
+      "exit": 2
+    },
+    {
+      "pr": "vividus-framework/vividus#6652",
+      "file": "vividus-framework-vividus-6652.json",
+      "sha256": "2ea81ee93c4ef9b035b775802f6102fac352d733eb894fef190f1a098b825f8a",
+      "exit": 2
+    },
+    {
+      "pr": "hoc081098/FlowExt#369",
+      "file": "hoc081098-FlowExt-369.json",
+      "sha256": "297294ae69226798e63c85b5ae1451ff0a761796b2463c6b1b6d7bf2d09d65da",
+      "exit": 2
+    },
+    {
+      "pr": "katspaugh/wavesurfer.js#4335",
+      "file": "katspaugh-wavesurfer.js-4335.json",
+      "sha256": "6437a0314c4adb59152fdc5edfda2a362481232b2d284ffcce087e826e124795",
+      "exit": 2
+    },
+    {
+      "pr": "novotnyllc/dotnet-artisan#19",
+      "file": "novotnyllc-dotnet-artisan-19.json",
+      "sha256": "e0b4d9ae84effd6367217d62dccfa85d85770ab8c227f4239f742d4ca7d6da3c",
+      "exit": 2
+    },
+    {
+      "pr": "primer/react#8064",
+      "file": "primer-react-8064.json",
+      "sha256": "a55cee77bf17f8670cdcdce2f8c55c1684b48f3224ac8059f664a9d005633123",
+      "exit": 2
+    },
+    {
+      "pr": "vitest-dev/vitest#10308",
+      "file": "vitest-dev-vitest-10308.json",
+      "sha256": "47e3c959cae2f6e5953ce995fc7e3f1026c47597a6d3fb51788402f7968d43e3",
+      "exit": 2
+    },
+    {
+      "pr": "adamgell/cmtraceopen#220",
+      "file": "adamgell-cmtraceopen-220.json",
+      "sha256": "f808e7c656c8922aa78d010b8fdfc7dbd65aa5c05e10d78d07ade8c4cdfa1106",
+      "exit": 2
+    },
+    {
+      "pr": "AzureAD/microsoft-authentication-library-for-dotnet#6003",
+      "file": "AzureAD-microsoft-authentication-library-for-dotnet-6003.json",
+      "sha256": "03a402ea868e91aff86dd829feee1fb06cd4cb5ed3c5a9b94514c890bf4b9b4f",
+      "exit": 2
+    },
+    {
+      "pr": "doorkeeper-gem/doorkeeper#1801",
+      "file": "doorkeeper-gem-doorkeeper-1801.json",
+      "sha256": "d67ab7627bc5e50b10566481493505447d414a99106ae48392b607fb8d1037ed",
+      "exit": 2
+    },
+    {
+      "pr": "dotnet/maui#33365",
+      "file": "dotnet-maui-33365.json",
+      "sha256": "fd3839badb38ea2b003d60025cbf836dd7930a2527dcbbc692e70925f9d6e0e5",
+      "exit": 2
+    },
+    {
+      "pr": "ail-project/ail-framework#319",
+      "file": "ail-project-ail-framework-319.json",
+      "sha256": "ff64984ccfdbeda9a7f74fedf142873c76dec50292a8ef178c6dc9628960c6a3",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/typespec#10964",
+      "file": "microsoft-typespec-10964.json",
+      "sha256": "34f9f686f70ec8df417c46a3105ca79b52bc27faeb7269d83c1f651245d87d11",
+      "exit": 2
+    },
+    {
+      "pr": "JetBrains/ideavim#1895",
+      "file": "JetBrains-ideavim-1895.json",
+      "sha256": "09d0701a257451f79e41ebee2bfe2adbf91b7e54e5b4b5254bed5ab3fd8243f2",
+      "exit": 2
+    },
+    {
+      "pr": "bghira/SimpleTuner#2731",
+      "file": "bghira-SimpleTuner-2731.json",
+      "sha256": "ebac0c3e8125b1e6ceedfdffabe32675291137b8bb4d9e2225cb7ccf9d508bba",
+      "exit": 2
+    },
+    {
+      "pr": "coder/coder#27147",
+      "file": "coder-coder-27147.json",
+      "sha256": "09c04805f63bc8d0d57417467be539c3ffb915398424c1d33a641093db282d85",
+      "exit": 2
+    },
+    {
+      "pr": "UPC/ravada#2350",
+      "file": "UPC-ravada-2350.json",
+      "sha256": "9e2e9b3edc415a3d913cb1a36a70b4155f17e0007de9ff4805914722810a8052",
+      "exit": 2
+    },
+    {
+      "pr": "browserless/browserless#5499",
+      "file": "browserless-browserless-5499.json",
+      "sha256": "c1a9ba588fb3fd90601734857460ba4edae1d1061e1b35f5da6270f475996fa5",
+      "exit": 2
+    },
+    {
+      "pr": "dotnet/aspnetcore#63813",
+      "file": "dotnet-aspnetcore-63813.json",
+      "sha256": "af066d83fcacc85a6f544d0a1858ca88eeb67c78addd170e31134d7945a84729",
+      "exit": 2
+    },
+    {
+      "pr": "dotnet/docs-desktop#2157",
+      "file": "dotnet-docs-desktop-2157.json",
+      "sha256": "1c7655d8f16554ab654accecf96b902d1b7e4c8cc917bd959e6d3c48b2884c11",
+      "exit": 2
+    },
+    {
+      "pr": "halide/Halide#9160",
+      "file": "halide-Halide-9160.json",
+      "sha256": "9f6793eaf12b3ba028c6f9c7434eedfbc0a41a6b8dad8add689f2999e9cfbd51",
+      "exit": 2
+    },
+    {
+      "pr": "dotnet/sdk#54622",
+      "file": "dotnet-sdk-54622.json",
+      "sha256": "a1855a46abaf2fced5f8b448cce08a9717a08e8fa206817972bcb7ca459120de",
+      "exit": 2
+    },
+    {
+      "pr": "Azure/azure-functions-durable-extension#3302",
+      "file": "Azure-azure-functions-durable-extension-3302.json",
+      "sha256": "00a7bb83ccaa78f8b34d4ef6832fbead5dea514557ef9a36ff46a97766aa2750",
+      "exit": 2
+    },
+    {
+      "pr": "taskforcesh/bullmq#4276",
+      "file": "taskforcesh-bullmq-4276.json",
+      "sha256": "47e2e65bb8b6ee198f27b1c1105c6feb9a2a588ddbd07a5ba9d59a4b705aa763",
+      "exit": 2
+    },
+    {
+      "pr": "inference-gateway/inference-gateway#349",
+      "file": "inference-gateway-inference-gateway-349.json",
+      "sha256": "099c99e1077ef7d5c942c8b116f949a58b74805ce057d938b73e42cc00576d23",
+      "exit": 2
+    },
+    {
+      "pr": "modelcontextprotocol/modelcontextprotocol#3065",
+      "file": "modelcontextprotocol-modelcontextprotocol-3065.json",
+      "sha256": "d84a94890acc45154a90779c6a1a368f398f19ed6480e567b1ec421e3da6cf96",
+      "exit": 2
+    },
+    {
+      "pr": "BindsNET/bindsnet#715",
+      "file": "BindsNET-bindsnet-715.json",
+      "sha256": "2ceae0b337f2c253ea854e19b29fc6fc92bc9ca622bf35447e667a1e3ed76f19",
+      "exit": 2
+    },
+    {
+      "pr": "NeuroTechX/moabb#1123",
+      "file": "NeuroTechX-moabb-1123.json",
+      "sha256": "e1ac9601519232912a614b85bd22b0e9adc42687cfc243a9715bf0758040558e",
+      "exit": 2
+    },
+    {
+      "pr": "ngrok/ngrok-operator#818",
+      "file": "ngrok-ngrok-operator-818.json",
+      "sha256": "4dd57146668b91e416058bc20f140cd9f5c3e86396a5c31a3241d7f74b7b9fdf",
+      "exit": 2
+    },
+    {
+      "pr": "caxy/php-htmldiff#140",
+      "file": "caxy-php-htmldiff-140.json",
+      "sha256": "c9a136c0dcb421d3789115c4d31466c3488022fc8312d0e6d1cdb3a73f1ef5f9",
+      "exit": 2
+    },
+    {
+      "pr": "flux-rs/flux#1665",
+      "file": "flux-rs-flux-1665.json",
+      "sha256": "ded0c2cdcb214ef717d08a97a488b335a2e1c0d6c760c6f672bbb65cb27ff651",
+      "exit": 2
+    },
+    {
+      "pr": "AzureAD/microsoft-authentication-library-for-js#8683",
+      "file": "AzureAD-microsoft-authentication-library-for-js-8683.json",
+      "sha256": "7cffdd08ba3b3c60070f127d7587d1e8f470172b27a992c828f7953347739921",
+      "exit": 2
+    },
+    {
+      "pr": "rokucommunity/brighterscript#1539",
+      "file": "rokucommunity-brighterscript-1539.json",
+      "sha256": "83d4ec5b0487176561f6191272fb9f28011f0717da1e5941793f1c942f45ac6c",
+      "exit": 2
+    },
+    {
+      "pr": "jellydn/hurl.nvim#253",
+      "file": "jellydn-hurl.nvim-253.json",
+      "sha256": "bc02f09e719a4d1e7cfd1334176f087a05daf8f7af9ac79b3b7cba4feba7f265",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/vs-mef#594",
+      "file": "microsoft-vs-mef-594.json",
+      "sha256": "4e1251a917ee51bc3954e484249411928c4d1e2c63e803bf87f5fcce2526360f",
+      "exit": 2
+    },
+    {
+      "pr": "tramhao/termusic#741",
+      "file": "tramhao-termusic-741.json",
+      "sha256": "81c6519ea1d5b22d7db847f9c416f9189e34b2a0be6bac33ef97bd2fbfc14bcb",
+      "exit": 2
+    },
+    {
+      "pr": "PhantomBot/PhantomBot#3733",
+      "file": "PhantomBot-PhantomBot-3733.json",
+      "sha256": "b9ff4b76734c529cfabfb7b0dad31ad60bd6d17e2fa1bc9e73afee4016249ef2",
+      "exit": 2
+    },
+    {
+      "pr": "firecrawl/firecrawl#3747",
+      "file": "firecrawl-firecrawl-3747.json",
+      "sha256": "a574c1c7019bb4a31a1287228a89b248c03ff66db7a1da6d04de667c23606d4b",
+      "exit": 2
+    },
+    {
+      "pr": "1600822305/AetherLink#73",
+      "file": "1600822305-AetherLink-73.json",
+      "sha256": "cc7153bcd9a64cde41e865085ed3e239e89722ec161a984c770e3f79fbb3eb9b",
+      "exit": 2
+    },
+    {
+      "pr": "E3SM-Project/E3SM#8390",
+      "file": "E3SM-Project-E3SM-8390.json",
+      "sha256": "a9266004266b3b7e235a26545fa09d008604037a2e6ab04bde621e9d34839cad",
+      "exit": 2
+    },
+    {
+      "pr": "Shopify/ruby-lsp#4051",
+      "file": "Shopify-ruby-lsp-4051.json",
+      "sha256": "859c86dc2d9bddb57a2b376cd38040f4ba167b3349134ca0910d2aff27bbb107",
+      "exit": 2
+    },
+    {
+      "pr": "cognizant-ai-lab/neuro-san-studio#1243",
+      "file": "cognizant-ai-lab-neuro-san-studio-1243.json",
+      "sha256": "91dca1f60ad845835d80bb87451844f76ad875c081cf635f53536d6a9260540a",
+      "exit": 2
+    },
+    {
+      "pr": "dotnet/android-libraries#1490",
+      "file": "dotnet-android-libraries-1490.json",
+      "sha256": "5a9a75f3220d5a0acd2d0fc370a9e117f37d4c81210ad561ac71b121cc395a71",
+      "exit": 2
+    },
+    {
+      "pr": "aio-libs/aiobotocore#1606",
+      "file": "aio-libs-aiobotocore-1606.json",
+      "sha256": "682041d7918e8ef32e5f31aac3367e36de62c6425fd0a0fc788b519655096a36",
+      "exit": 2
+    },
+    {
+      "pr": "Azure/azure-dev#8887",
+      "file": "Azure-azure-dev-8887.json",
+      "sha256": "1239dc3560cb24de11304bfdaca9bb99a643ecda4f3ee4570b186eb250af2a87",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/semantic-link-labs#1276",
+      "file": "microsoft-semantic-link-labs-1276.json",
+      "sha256": "157f2c53e002b7417e785fe1b8d25fadc261d770c76365c957f05912c787f4aa",
+      "exit": 2
+    },
+    {
+      "pr": "twentyhq/twenty#21295",
+      "file": "twentyhq-twenty-21295.json",
+      "sha256": "74073e6f3999b0cf4838978c0c1c9b8e155f43d1815f6eed59172904f17fc30f",
+      "exit": 2
+    },
+    {
+      "pr": "slidevjs/slidev#2346",
+      "file": "slidevjs-slidev-2346.json",
+      "sha256": "904a54476b9b2781e4766ef5574e9ae58775e99e2ed1a70ab0524c95ff99b37d",
+      "exit": 2
+    },
+    {
+      "pr": "mkb79/audible-cli#255",
+      "file": "mkb79-audible-cli-255.json",
+      "sha256": "71bd7749a936acb8a7da8e2a0521759d07cad37db90256c3a236f422facd178a",
+      "exit": 2
+    },
+    {
+      "pr": "Azure/data-api-builder#3688",
+      "file": "Azure-data-api-builder-3688.json",
+      "sha256": "8d65b2feb53893282c6836d03e23faf22dded5861e23c77b82e9dd8f16a21c27",
+      "exit": 2
+    },
+    {
+      "pr": "rolldown/rolldown#9505",
+      "file": "rolldown-rolldown-9505.json",
+      "sha256": "32c64cf59a5ecef49d7897b619579feb89f30ada4c9756538780e60015683755",
+      "exit": 2
+    },
+    {
+      "pr": "PrefectHQ/prefect#22144",
+      "file": "PrefectHQ-prefect-22144.json",
+      "sha256": "b5d6966e0d12c9810768d427490b8245a11a42d126887acfcd55068244e2378b",
+      "exit": 2
+    },
+    {
+      "pr": "Azure/azure-sdk-for-net#59365",
+      "file": "Azure-azure-sdk-for-net-59365.json",
+      "sha256": "9d98a808ce7175786383858f90e22f5aa680e172be0d83d64cf136cbeb4348d6",
+      "exit": 2
+    }
+  ]
+}

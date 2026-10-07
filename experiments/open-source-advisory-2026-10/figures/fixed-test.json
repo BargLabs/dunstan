@@ -1,0 +1,110 @@
+{
+  "run": "fixed-test",
+  "instrument": {
+    "name": "fixed",
+    "checkerVersion": "0.1.4",
+    "bundleSha256": "01e9d02a416d896427f55f9e34dcf139cbab3ab4c0fcab043d15fab01f5fd7de",
+    "extractorVersion": "0.1.4",
+    "extractorDigest": "78b92a682063464faf3cf1de13123d2b232bb3575effd5f31f0e12905643d45c",
+    "comparison": "0.2.0",
+    "sourceCommit": "c69e63fe636e711804958bfe9da19a303705a196",
+    "frozenAt": "2026-10-07T13:33:34.154Z",
+    "frozenCommit": "e5cac07022334e9079f99da0f01377181f17d3c1"
+  },
+  "pullRequests": 150,
+  "errors": 0,
+  "descriptive": {
+    "advisories": 135,
+    "advisoriesPerPr": {
+      "mean": 0.9,
+      "median": 0,
+      "max": 10,
+      "histogram": {
+        "0": 76,
+        "1": 46,
+        "2": 17,
+        "3": 5,
+        "4": 2,
+        "5": 1,
+        "7": 1,
+        "10": 2
+      }
+    },
+    "checkableShare": {
+      "k": 120,
+      "n": 135,
+      "value": 0.88889,
+      "wilson95": {
+        "low": 0.82476,
+        "high": 0.9315
+      }
+    },
+    "prsWithCheckable": {
+      "k": 71,
+      "n": 150,
+      "value": 0.47333,
+      "wilson95": {
+        "low": 0.3951,
+        "high": 0.5529
+      }
+    }
+  },
+  "M1": {
+    "k": 54,
+    "n": 60,
+    "value": 0.9,
+    "wilson95": {
+      "low": 0.79851,
+      "high": 0.95336
+    }
+  },
+  "M2": {
+    "differs": 28,
+    "false_claim": {
+      "k": 10,
+      "n": 28,
+      "value": 0.35714,
+      "wilson95": {
+        "low": 0.20706,
+        "high": 0.5417
+      }
+    },
+    "claim_holds": {
+      "k": 1,
+      "n": 28,
+      "value": 0.03571,
+      "wilson95": {
+        "low": 0.00633,
+        "high": 0.17712
+      }
+    },
+    "not_a_claim": {
+      "k": 17,
+      "n": 28,
+      "value": 0.60714,
+      "wilson95": {
+        "low": 0.42409,
+        "high": 0.76434
+      }
+    }
+  },
+  "M3": {
+    "falseAccusations": 18,
+    "checkable": 120,
+    "k": 18,
+    "n": 120,
+    "value": 0.15,
+    "wilson95": {
+      "low": 0.09704,
+      "high": 0.22468
+    }
+  },
+  "bar": {
+    "applies": true,
+    "m3WilsonHighAtMost": 0.05,
+    "m2FalseClaimShareAtLeast": 0.8,
+    "m3Met": false,
+    "m2Met": false,
+    "met": false
+  }
+}

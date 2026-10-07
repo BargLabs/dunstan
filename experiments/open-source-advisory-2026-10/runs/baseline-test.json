@@ -1,0 +1,2359 @@
+{
+  "run": "baseline-test",
+  "instrument": {
+    "name": "baseline",
+    "checkerVersion": "0.1.3",
+    "bundleSha256": "fd1377c058a928bf30e54c000bfb19e5eb3cd5eb71408ea4b093cc9ccf7170a5",
+    "extractorVersion": "0.1.3",
+    "extractorDigest": "2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37",
+    "comparison": "0.2.0"
+  },
+  "seal": {
+    "path": "runs/baseline-test.seal.json",
+    "sha256": "7e605e9c9580403dda41e29ed4b91e0af48be507b0540a6034a8e2a4f77a66e8"
+  },
+  "advisoryId": "<instrument>:<owner>/<repo>#<n>:<i>, i the 0-based position in the record's advisory list",
+  "clause": "[start, end) in Unicode code points of the pull request body at selection time, or null",
+  "prs": [
+    {
+      "pr": "dotnet/macios#25576",
+      "recordSha256": "5da9eeeab77630713fa865ae954d62d6bcb8e04f08122c6da7b55c0b5e3bcc74",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "nodetool-ai/nodetool#3442",
+      "recordSha256": "2fd30dd6646d94679a398076ef05b5daefd21f9918845c9f7e59429f2a90addc",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "useblocks/sphinx-needs#1630",
+      "recordSha256": "de242b3d75ccd728f6802a5410e6db80dae647babf9ab19652a5ba26df3b49fa",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "mono/SkiaSharp#3997",
+      "recordSha256": "ec04dca0a2d045826efebc065210a35e367d17136c2c92a8c9cebd274fdd44f6",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "stakater/application#436",
+      "recordSha256": "b521644e1683c05740cfb6e243077d9bd794e5209dfeb12179899ecbf78e366c",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "handsontable/handsontable#12976",
+      "recordSha256": "2182a05ab6085cc96c6ae9cac0c38549f36d5e63b877fc5435a0b7701fd495e5",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "OpenRefine/OpenRefine#7640",
+      "recordSha256": "a6b330dcc636824a0ddf0cfeab14ad4c4e13ac49a8b6f8b3cec42a6bda4b2bd7",
+      "advisoryDigest": "99cb66ee82d8bf8dbbc751aec90dbc64b94d6c7ce5ef17c8fa84cbe658d31c06",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:OpenRefine/OpenRefine#7640:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 2143,
+            "end": 2175
+          }
+        }
+      ]
+    },
+    {
+      "pr": "adobe/jsonschema2md#679",
+      "recordSha256": "d4acd551322c1beb315b612faaa14b2e35aa02c62101f901a5f6d705e32e0f68",
+      "advisoryDigest": "a21c010370bb40978e35292e58abb9749ad9680d1a13a8ac6594457e2ef5d885",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:adobe/jsonschema2md#679:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 6578,
+            "end": 6607
+          }
+        }
+      ]
+    },
+    {
+      "pr": "ShukeBta/MediaStationGo#29",
+      "recordSha256": "8c2e982f78cf7710a19e0831092288cf0e73a32021f472d95340581909864d41",
+      "advisoryDigest": "286cc682e2dcd532b9631145848f132b4d2257a505d96c79a8cf37bfe1142479",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:ShukeBta/MediaStationGo#29:0",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 689,
+            "end": 895
+          }
+        }
+      ]
+    },
+    {
+      "pr": "pwa-builder/PWABuilder#5862",
+      "recordSha256": "c986e16963748a7df64d0a8e54d6d52325fb8d19095f88684882b33c99cd82f5",
+      "advisoryDigest": "ddae21e949e0277caf34d404e647110be06d5e68cc898bd1b825f65d2a519cd0",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:pwa-builder/PWABuilder#5862:0",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 347,
+            "end": 489
+          }
+        },
+        {
+          "advisoryId": "baseline:pwa-builder/PWABuilder#5862:1",
+          "kind": "file_changed",
+          "note": "agrees",
+          "clause": {
+            "start": 549,
+            "end": 591
+          }
+        },
+        {
+          "advisoryId": "baseline:pwa-builder/PWABuilder#5862:2",
+          "kind": "file_changed",
+          "note": "agrees",
+          "clause": {
+            "start": 658,
+            "end": 709
+          }
+        }
+      ]
+    },
+    {
+      "pr": "JeffSteinbok/hass-dreo#831",
+      "recordSha256": "b7f87786f9fa06fbe459b40831172b9509ac97a566ec91b6e6ad892259b35c34",
+      "advisoryDigest": "af59609577b324a5c9d297f7cf40e36ceda2a7dd4b20773103cb19375222e361",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:JeffSteinbok/hass-dreo#831:0",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 1449,
+            "end": 1546
+          }
+        },
+        {
+          "advisoryId": "baseline:JeffSteinbok/hass-dreo#831:1",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 1449,
+            "end": 1546
+          }
+        }
+      ]
+    },
+    {
+      "pr": "callstack/agent-device#1225",
+      "recordSha256": "4cc7b8e93b3e93700b58cb8f4052346baa35fc291f0eb78251bae07304432f69",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "ARM-software/CMSIS_6#298",
+      "recordSha256": "e65fedca6941067c1f2c8ed210d5cb1bb0d2b2e0b488e112e893250cf5dc5c6b",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "ErikEJ/EFCorePowerTools#3294",
+      "recordSha256": "5a51b515f0ce85f68d1862a9b373ce0962b773cb39ea8b939c456b65b738a138",
+      "advisoryDigest": "0b7cf923bf68fb6bb36fed642fd00e95281bfb3987c90415dc3215d481cf71d2",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:ErikEJ/EFCorePowerTools#3294:0",
+          "kind": "file_changed",
+          "note": "differs:declared_not_changed",
+          "clause": {
+            "start": 1644,
+            "end": 1851
+          }
+        },
+        {
+          "advisoryId": "baseline:ErikEJ/EFCorePowerTools#3294:1",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 1644,
+            "end": 1851
+          }
+        },
+        {
+          "advisoryId": "baseline:ErikEJ/EFCorePowerTools#3294:2",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 1644,
+            "end": 1851
+          }
+        },
+        {
+          "advisoryId": "baseline:ErikEJ/EFCorePowerTools#3294:3",
+          "kind": "file_changed",
+          "note": "differs:declared_not_changed",
+          "clause": {
+            "start": 1644,
+            "end": 1851
+          }
+        },
+        {
+          "advisoryId": "baseline:ErikEJ/EFCorePowerTools#3294:4",
+          "kind": "file_changed",
+          "note": "differs:declared_not_changed",
+          "clause": {
+            "start": 1644,
+            "end": 1851
+          }
+        },
+        {
+          "advisoryId": "baseline:ErikEJ/EFCorePowerTools#3294:5",
+          "kind": "file_changed",
+          "note": "differs:declared_not_changed",
+          "clause": {
+            "start": 2059,
+            "end": 2185
+          }
+        },
+        {
+          "advisoryId": "baseline:ErikEJ/EFCorePowerTools#3294:6",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 2059,
+            "end": 2185
+          }
+        },
+        {
+          "advisoryId": "baseline:ErikEJ/EFCorePowerTools#3294:7",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 2201,
+            "end": 2275
+          }
+        },
+        {
+          "advisoryId": "baseline:ErikEJ/EFCorePowerTools#3294:8",
+          "kind": "tests_passed",
+          "note": "unanswered:no_comparable_record_field",
+          "clause": {
+            "start": 2679,
+            "end": 2978
+          }
+        },
+        {
+          "advisoryId": "baseline:ErikEJ/EFCorePowerTools#3294:9",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 8236,
+            "end": 8270
+          }
+        }
+      ]
+    },
+    {
+      "pr": "nRF24/RF24Mesh#266",
+      "recordSha256": "38e591bb9349c94f6574ca1af25c703ad389f3a34f9ff977435cf07b721fd87f",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "Alfresco/alfresco-ng2-components#12024",
+      "recordSha256": "9af8236245cd192286e0636427c91cd7886e6689a8a30d088e98b52ee26c594e",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "github/gh-aw#44465",
+      "recordSha256": "2b8b9b314f4d2e3cb5520517587e75ca3f3c418375d335dcab7960ee2c7f97a8",
+      "advisoryDigest": "1e387e3d855c42204c0d7131716e81570a50ef8a00befcebf532ff66244078d6",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:github/gh-aw#44465:0",
+          "kind": "file_changed",
+          "note": "differs:declared_not_changed",
+          "clause": {
+            "start": 405,
+            "end": 507
+          }
+        },
+        {
+          "advisoryId": "baseline:github/gh-aw#44465:1",
+          "kind": "file_changed",
+          "note": "differs:declared_not_changed",
+          "clause": {
+            "start": 405,
+            "end": 507
+          }
+        }
+      ]
+    },
+    {
+      "pr": "dotnet/fsharp#19186",
+      "recordSha256": "a53e540538c454c867bbf2712b53700206a7048a9ad70cbe9e12871d41b42459",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "NewFuture/DDNS#628",
+      "recordSha256": "7deabba5253e2689af3720062321b2d5230afaad6a103f33c27171dc95237d0f",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "hugerte/hugerte#142",
+      "recordSha256": "ce9ae470b129884efd55a96b2b02bdc12ce103865b0e12b3e704b1fb25b1d0fe",
+      "advisoryDigest": "50d3981902f1cfb1f45fbb076fa869aec3f6a5df1c7511bb0255d17c562dabe6",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:hugerte/hugerte#142:0",
+          "kind": "file_changed",
+          "note": "agrees",
+          "clause": {
+            "start": 1365,
+            "end": 1443
+          }
+        },
+        {
+          "advisoryId": "baseline:hugerte/hugerte#142:1",
+          "kind": "file_changed",
+          "note": "agrees",
+          "clause": {
+            "start": 1447,
+            "end": 1530
+          }
+        },
+        {
+          "advisoryId": "baseline:hugerte/hugerte#142:2",
+          "kind": "file_changed",
+          "note": "unanswered:ambiguous_path",
+          "clause": {
+            "start": 1447,
+            "end": 1530
+          }
+        }
+      ]
+    },
+    {
+      "pr": "OrchardCMS/OrchardCore#19303",
+      "recordSha256": "5c15346038d56f1ada34575d004ca280d21c16629de8b816d92a54410272e0f2",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "dhondta/python-codext#38",
+      "recordSha256": "b391e746bfb3247287289260786659940811119ce60643585c7aa66ec351d121",
+      "advisoryDigest": "4c27139c7f07bdb9fb5522a5c39d938b9d06c5d9663befdb03717d47da99715b",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:dhondta/python-codext#38:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 2527,
+            "end": 2557
+          }
+        }
+      ]
+    },
+    {
+      "pr": "modelcontextprotocol/csharp-sdk#1491",
+      "recordSha256": "8e093e6588c67a1b700d4e3b211375055176beddf8659309229a6bf15548799e",
+      "advisoryDigest": "7640132f735072a1a8c3624e6721f1e2082d7fabddf4e15595983185082e02e0",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:modelcontextprotocol/csharp-sdk#1491:0",
+          "kind": "file_changed",
+          "note": "differs:declared_not_changed",
+          "clause": {
+            "start": 0,
+            "end": 82
+          }
+        }
+      ]
+    },
+    {
+      "pr": "tarlepp/symfony-flex-backend#3264",
+      "recordSha256": "af505a32e91fd8c47d8d3f9cf27b2daf1ddb3fd7737d7a5fcd9de86193b29080",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "cmderdev/cmder#3059",
+      "recordSha256": "cc45e34b7aaf39827095f8e596b5a4d16cb60867061f3fbc65f816e6313bfe10",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "XRPLF/rippled#5706",
+      "recordSha256": "fffe7dab83418e34dbfa34f052349baadc9b3a22e37fe960f84de49132332b26",
+      "advisoryDigest": "8be8bb05569ba76336402ee5fd81026ead95f17c2a05fe32dd563ff8775926fa",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:XRPLF/rippled#5706:0",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 2429,
+            "end": 2504
+          }
+        }
+      ]
+    },
+    {
+      "pr": "dotnet/efcore#37601",
+      "recordSha256": "e98139034a79794c67374fd7873a72bb28e79c8479ff75760b91c2e7d94f06d3",
+      "advisoryDigest": "17e6c779441e294a8553cef1697dc764f824afca7d0c60cf12e270b76db682ff",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:dotnet/efcore#37601:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 6233,
+            "end": 6258
+          }
+        }
+      ]
+    },
+    {
+      "pr": "pingcap/docs-cn#21677",
+      "recordSha256": "7bf6a25497bb6128073b6c43fe3f2f0ee09ec3b42666282243c1398548e1ff9d",
+      "advisoryDigest": "7efc340e57b115004d0acda63bd653331e5bedfd5befd8b83ae673f2081a565d",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:pingcap/docs-cn#21677:0",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 335,
+            "end": 465
+          }
+        }
+      ]
+    },
+    {
+      "pr": "AzureAD/microsoft-authentication-library-for-objc#3033",
+      "recordSha256": "2890aeeeade21cdd12f5a435d36e836505312f428c7c71df4dedf3c721284583",
+      "advisoryDigest": "87fb7c326c4248bf451f3e38a5cc7201bade7b91739feb85dfd204092af1e4b6",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:AzureAD/microsoft-authentication-library-for-objc#3033:0",
+          "kind": "file_changed",
+          "note": "differs:declared_not_changed",
+          "clause": {
+            "start": 2126,
+            "end": 2195
+          }
+        }
+      ]
+    },
+    {
+      "pr": "motioneye-project/motioneye#3274",
+      "recordSha256": "a07d88b55c65e4a4971364981eca05400490df2f5bc5ddd75ad9c2cd2c0fd0fa",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "microsoft/vsts-extension-retrospectives#1782",
+      "recordSha256": "c5794d0bb9560ea86af4dbcacc2c2d9f23479a87f1649b15914ee4ce6c29d0b7",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "opensanctions/opensanctions#4337",
+      "recordSha256": "bc90eebf09c336a9c6bad09903f3d3cf62e191be0d203da2ad05ca9497f2e2f2",
+      "advisoryDigest": "d6eb9ae4bb5a7e8310d95a56515245c7fbfdd5f6fcd92d14b9724d1091a36dae",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:opensanctions/opensanctions#4337:0",
+          "kind": "file_changed",
+          "note": "differs:declared_not_changed",
+          "clause": {
+            "start": 97,
+            "end": 252
+          }
+        }
+      ]
+    },
+    {
+      "pr": "beercss/beercss#609",
+      "recordSha256": "726c1420cc3944ed865ed51de2cd073c75bf92b8d669c33801c090ecb8c8fa8b",
+      "advisoryDigest": "8a99bcb5ed894c5a6b4d8c6eedffefcd1117f676eb9bdfd7c0737fc52723a735",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:beercss/beercss#609:0",
+          "kind": "tests_passed",
+          "note": "unanswered:no_comparable_record_field",
+          "clause": {
+            "start": 198,
+            "end": 215
+          }
+        }
+      ]
+    },
+    {
+      "pr": "OWASP/mastg#3522",
+      "recordSha256": "1c2d4db81c7427fde03ede70eed3a6f649f6ef76c88ea016a0bd8d961343e6e5",
+      "advisoryDigest": "ffecf40ffa17997e51565e2d3008dd979c27f0b66f53e25329494c3c466aae2c",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:OWASP/mastg#3522:0",
+          "kind": "reference_closes",
+          "note": "differs:not_closing",
+          "clause": {
+            "start": 0,
+            "end": 20
+          }
+        },
+        {
+          "advisoryId": "baseline:OWASP/mastg#3522:1",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 2346,
+            "end": 2368
+          }
+        }
+      ]
+    },
+    {
+      "pr": "prometheus-community/elasticsearch_exporter#1147",
+      "recordSha256": "7e7b108b28617538a77a4bebfc40c87523129b171064a0cb5331dff7840ee8d5",
+      "advisoryDigest": "a31dcaa42bc429936d694d091e7836a3d8daba4dbc909e8b21edc9575006e1f0",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:prometheus-community/elasticsearch_exporter#1147:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 1172,
+            "end": 1226
+          }
+        }
+      ]
+    },
+    {
+      "pr": "Hope2333/opencode-termux#9",
+      "recordSha256": "644eb7dd636cbc63a702a10b83704181347e465064f68ed3486d86d34731e33a",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "po-ui/po-angular#2832",
+      "recordSha256": "a78be22a8532b483f5fab9df49ec2b0310ca317a484fe36207bdcb53851c9c20",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "SigmaHQ/pySigma#468",
+      "recordSha256": "bf3fc7d2a81750620a753f0b5a4b5087935f8ed5ab79b02ce2983e7003891798",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "MrAntares/roBrowserLegacy#1304",
+      "recordSha256": "67daf18388512e6c54d85b0ab2bcb257ce9b0f25f0fceef82911d96d881512e7",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "raineorshine/npm-check-updates#1749",
+      "recordSha256": "af6d4cc13aef0da39f42fa900c6800c584e8c593d726e530fc4146b4bd8444d4",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "openfoodfacts/openfoodfacts-server#12780",
+      "recordSha256": "ef2ae99541fc39bbf5c918f23aa6468768a5d26295d7bd489bd0cbd5a0f5af97",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "microsoft/TypeAgent#2650",
+      "recordSha256": "7379b8127f9e929b6198e4e11d11241d09cef92d46263b172802400ee9654553",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "danielgerlag/workflow-core#1404",
+      "recordSha256": "fecd03fe239ae84b7a431d2b9a1019e9949b7202f8d2aaae8875c31b6aca876b",
+      "advisoryDigest": "adae86a04ad39751823bf046ef7c4388d89819ecbf6dc10ce7a2e6ab73ce62c6",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:danielgerlag/workflow-core#1404:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 2381,
+            "end": 2418
+          }
+        }
+      ]
+    },
+    {
+      "pr": "mui/base-ui#3781",
+      "recordSha256": "decc1628457b76858f48caefd8485bf24ad02b7dcc0e4bf53cd3d41424d02578",
+      "advisoryDigest": "d35037fecf9c40f7ae0c6ad72148d4398abfa690c7a6157d1f3c4bc336da3c07",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:mui/base-ui#3781:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 2388,
+            "end": 2410
+          }
+        }
+      ]
+    },
+    {
+      "pr": "microsoft/CCF#7977",
+      "recordSha256": "2fbd773176eb88d41b1e2717c056484ebc9158aaf15c293e2011f43b9e014ce4",
+      "advisoryDigest": "4ab5f01553a0c8e1541fcecd78d803fed387a579d98b4b25f7840bf174ce2cfc",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:microsoft/CCF#7977:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 0,
+            "end": 13
+          }
+        },
+        {
+          "advisoryId": "baseline:microsoft/CCF#7977:1",
+          "kind": "file_changed",
+          "note": "agrees",
+          "clause": {
+            "start": 228,
+            "end": 415
+          }
+        },
+        {
+          "advisoryId": "baseline:microsoft/CCF#7977:2",
+          "kind": "file_changed",
+          "note": "agrees",
+          "clause": {
+            "start": 567,
+            "end": 604
+          }
+        }
+      ]
+    },
+    {
+      "pr": "fluttercandies/flutter_photo_manager#1332",
+      "recordSha256": "ebeede3f9c2aaee02ac22552ae2f93b568cc2c266da114455c0cbcbd929eb808",
+      "advisoryDigest": "bde7a562c963e9d93f7ac2a259fc963e81903c1af533fe3a70ef7cdebd48af5b",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:fluttercandies/flutter_photo_manager#1332:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 983,
+            "end": 997
+          }
+        }
+      ]
+    },
+    {
+      "pr": "justrach/nanobrew#266",
+      "recordSha256": "dc84c57c819ec5485aefa60b11d941b9d7a20ed6e49490287f0f93b98df0e0bf",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "microsoft/FHIR-Converter#620",
+      "recordSha256": "51dba06fc05ef5311cefa1659befa5e83cd371b7de8f424691465e10ae1ecce4",
+      "advisoryDigest": "65c6a6b95715643151cfd5a7604e3920c2beb39662b2eaa84a03eec0e86681c7",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:microsoft/FHIR-Converter#620:0",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 272,
+            "end": 347
+          }
+        },
+        {
+          "advisoryId": "baseline:microsoft/FHIR-Converter#620:1",
+          "kind": "file_changed",
+          "note": "differs:declared_not_changed",
+          "clause": {
+            "start": 422,
+            "end": 484
+          }
+        }
+      ]
+    },
+    {
+      "pr": "Azure/git-ape#44",
+      "recordSha256": "31155dd8a744b50d22a529d5e1b841a078f182a8dce118414a0567e50968812f",
+      "advisoryDigest": "62e12e96a86be3402b5f069d4199b6b1592e2e99395ea1f610487cc30b95e00e",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:Azure/git-ape#44:0",
+          "kind": "file_changed",
+          "note": "differs:declared_not_changed",
+          "clause": {
+            "start": 1433,
+            "end": 1510
+          }
+        },
+        {
+          "advisoryId": "baseline:Azure/git-ape#44:1",
+          "kind": "file_changed",
+          "note": "differs:declared_not_changed",
+          "clause": {
+            "start": 1566,
+            "end": 1616
+          }
+        }
+      ]
+    },
+    {
+      "pr": "microsoft/WSL#40564",
+      "recordSha256": "08c117adbcaa0b66e6be714df717baa04f5647bd1050e44cf82e14f5c1dba7ae",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "s3s-project/s3s#632",
+      "recordSha256": "e4b56196a2a9fb98e877ab44445a7d1bf6f46b89537535b897d4c6f217a5ca13",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "test-kitchen/kitchen-vagrant#523",
+      "recordSha256": "a68533a77736348114491abf2234b24254e872dacc38089a986cfab434f967ca",
+      "advisoryDigest": "85f3af68d8f2be13bfccfbb2886c0cf3e76391aba0669f4b025c619518dc13a7",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:test-kitchen/kitchen-vagrant#523:0",
+          "kind": "file_changed",
+          "note": "agrees",
+          "clause": {
+            "start": 560,
+            "end": 657
+          }
+        },
+        {
+          "advisoryId": "baseline:test-kitchen/kitchen-vagrant#523:1",
+          "kind": "tests_passed",
+          "note": "unanswered:no_comparable_record_field",
+          "clause": {
+            "start": 1115,
+            "end": 1169
+          }
+        },
+        {
+          "advisoryId": "baseline:test-kitchen/kitchen-vagrant#523:2",
+          "kind": "test_count",
+          "note": "unanswered:no_comparable_record_field",
+          "clause": {
+            "start": 1115,
+            "end": 1169
+          }
+        }
+      ]
+    },
+    {
+      "pr": "awalsh128/cache-apt-pkgs-action#172",
+      "recordSha256": "31fb2e63798d95f800fbbdbda18b32a95f5d9480208ba2bc97c6bc5915614434",
+      "advisoryDigest": "fc268f1ca2c57341bfb162f47087b9fb92dbcdf629388ec84e9b8d43f3e917c5",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:awalsh128/cache-apt-pkgs-action#172:0",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 853,
+            "end": 919
+          }
+        },
+        {
+          "advisoryId": "baseline:awalsh128/cache-apt-pkgs-action#172:1",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 1542,
+            "end": 1600
+          }
+        },
+        {
+          "advisoryId": "baseline:awalsh128/cache-apt-pkgs-action#172:2",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 1632,
+            "end": 1719
+          }
+        },
+        {
+          "advisoryId": "baseline:awalsh128/cache-apt-pkgs-action#172:3",
+          "kind": "tests_passed",
+          "note": "unanswered:no_comparable_record_field",
+          "clause": {
+            "start": 1867,
+            "end": 1895
+          }
+        },
+        {
+          "advisoryId": "baseline:awalsh128/cache-apt-pkgs-action#172:4",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 2560,
+            "end": 2570
+          }
+        }
+      ]
+    },
+    {
+      "pr": "gofiber/fiber#4370",
+      "recordSha256": "4b038d23a3d4294bc82cb50482e63af7ad1442c4c0856de8cad6017156bda701",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "ModernRelay/omnigraph#86",
+      "recordSha256": "ca1eba02c78d473c88fa26b53a9599ebcd0575191e09b0e75955206256d0d514",
+      "advisoryDigest": "3f084649e7920e5d6f76eed56b2c6ff885e7e60c741f2e3611f3c20c57c91059",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:ModernRelay/omnigraph#86:0",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 3112,
+            "end": 3266
+          }
+        }
+      ]
+    },
+    {
+      "pr": "microsoft/onnxscript#2390",
+      "recordSha256": "eaa0dd02b8aeeadfc263815265346a65b9657d35346ca8385ec068db4713dc0a",
+      "advisoryDigest": "ee2f43d508e4af0a41de362eff68a5c8c41a1611b65230228eebf50fdf3cb8a5",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:microsoft/onnxscript#2390:0",
+          "kind": "file_changed",
+          "note": "agrees",
+          "clause": {
+            "start": 152,
+            "end": 242
+          }
+        },
+        {
+          "advisoryId": "baseline:microsoft/onnxscript#2390:1",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 1852,
+            "end": 1864
+          }
+        }
+      ]
+    },
+    {
+      "pr": "Azure/azure-sdk-for-js#38770",
+      "recordSha256": "f93ad54a5f77450fe4841f13eb5719ad901c05449c13135ff7aa69525c643b6e",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "Azure/azure-sdk-for-java#47395",
+      "recordSha256": "feff54aed2b61e48a9af337b70e156538a3db10e34b301e61879514ace858c80",
+      "advisoryDigest": "844fc6b8199aaecbe518403b416b0adbf2157e17c43116e94cd24579be245b5b",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:Azure/azure-sdk-for-java#47395:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 15,
+            "end": 27
+          }
+        }
+      ]
+    },
+    {
+      "pr": "Moustachauve/cookie-editor#292",
+      "recordSha256": "cb2756a8a2a0d8af4730418ef6803f37a6268a9d0e44b7e07fdaeaeeb13cacc1",
+      "advisoryDigest": "350cb835b6eefe890c4fe23386a8fd0e04b995c2a1e17f6f4d434c46816f239c",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:Moustachauve/cookie-editor#292:0",
+          "kind": "file_changed",
+          "note": "agrees",
+          "clause": {
+            "start": 158,
+            "end": 273
+          }
+        },
+        {
+          "advisoryId": "baseline:Moustachauve/cookie-editor#292:1",
+          "kind": "file_changed",
+          "note": "agrees",
+          "clause": {
+            "start": 276,
+            "end": 388
+          }
+        },
+        {
+          "advisoryId": "baseline:Moustachauve/cookie-editor#292:2",
+          "kind": "file_changed",
+          "note": "agrees",
+          "clause": {
+            "start": 391,
+            "end": 496
+          }
+        },
+        {
+          "advisoryId": "baseline:Moustachauve/cookie-editor#292:3",
+          "kind": "file_changed",
+          "note": "agrees",
+          "clause": {
+            "start": 499,
+            "end": 617
+          }
+        },
+        {
+          "advisoryId": "baseline:Moustachauve/cookie-editor#292:4",
+          "kind": "file_changed",
+          "note": "agrees",
+          "clause": {
+            "start": 499,
+            "end": 617
+          }
+        },
+        {
+          "advisoryId": "baseline:Moustachauve/cookie-editor#292:5",
+          "kind": "file_changed",
+          "note": "agrees",
+          "clause": {
+            "start": 620,
+            "end": 737
+          }
+        },
+        {
+          "advisoryId": "baseline:Moustachauve/cookie-editor#292:6",
+          "kind": "file_changed",
+          "note": "agrees",
+          "clause": {
+            "start": 620,
+            "end": 737
+          }
+        },
+        {
+          "advisoryId": "baseline:Moustachauve/cookie-editor#292:7",
+          "kind": "file_changed",
+          "note": "agrees",
+          "clause": {
+            "start": 740,
+            "end": 846
+          }
+        },
+        {
+          "advisoryId": "baseline:Moustachauve/cookie-editor#292:8",
+          "kind": "file_changed",
+          "note": "agrees",
+          "clause": {
+            "start": 740,
+            "end": 846
+          }
+        },
+        {
+          "advisoryId": "baseline:Moustachauve/cookie-editor#292:9",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 849,
+            "end": 915
+          }
+        }
+      ]
+    },
+    {
+      "pr": "Azure/azure-container-networking#4494",
+      "recordSha256": "9995d076828d7ad4f8d33c4170c4ef1c2b30dc7888022002a79e271f39445bb5",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "KoalaBear84/OpenDirectoryDownloader#161",
+      "recordSha256": "4546f9355efac13c1128669cc9b5729cf010a5a38f9fdbc873a57c1efe80c27b",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "adoptium/temurin-build#4517",
+      "recordSha256": "4981ba4124e7006603dc46c974fa253d633d9fa0454a778dda9d61488bef1b21",
+      "advisoryDigest": "8bc94a62c0f547179494f5f88c3a280e8a5da55f5079701d13e7bbe7505ef76f",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:adoptium/temurin-build#4517:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 0,
+            "end": 66
+          }
+        }
+      ]
+    },
+    {
+      "pr": "springfall2008/batpred#3937",
+      "recordSha256": "4ac2c5f59266c2c2c53cf104f559ced33188a3f41bf186d2bcf6838f9879ea54",
+      "advisoryDigest": "f3f748371821d550f89edfbdf49ea8efc706f71d199b6fd62420df5fe34221ed",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:springfall2008/batpred#3937:0",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 2009,
+            "end": 2094
+          }
+        }
+      ]
+    },
+    {
+      "pr": "speakeasy-api/gram#4088",
+      "recordSha256": "9ce843d43b04a666a3df61702205dbdb0b2aefba86b80e1101f61b396ea34d71",
+      "advisoryDigest": "2c66247202130a495c9dbc2b9e71cfae939f8468adbd424d905bb178b700093b",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:speakeasy-api/gram#4088:0",
+          "kind": "file_changed",
+          "note": "agrees",
+          "clause": {
+            "start": 2238,
+            "end": 2385
+          }
+        }
+      ]
+    },
+    {
+      "pr": "github/codeql#21324",
+      "recordSha256": "fc9b5b45384f48d3762a443249a8fa695fa98855ea6a1b96d227a3ea0f1a135f",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "shader-slang/slang#9085",
+      "recordSha256": "0c7b5dfda692ef143e2b2df3bc10bc3b7cb7fef7425910f18a22b432ad0ceea7",
+      "advisoryDigest": "260f9170fecd6c859aeb3ce553e9c20da46322f598f9d62afdbf2eb91c1ba142",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:shader-slang/slang#9085:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 765,
+            "end": 777
+          }
+        },
+        {
+          "advisoryId": "baseline:shader-slang/slang#9085:1",
+          "kind": "tests_passed",
+          "note": "unanswered:no_comparable_record_field",
+          "clause": {
+            "start": 11948,
+            "end": 11987
+          }
+        }
+      ]
+    },
+    {
+      "pr": "majorsilence/Reporting#254",
+      "recordSha256": "ae388389f84905add16f6faef6275c6c02188cb7dc052e4456cc8cad495247da",
+      "advisoryDigest": "f47446aa9df5e3a3b6e49bbe47ee41d6b281387b3b3107f895e807dfcff1bcb2",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:majorsilence/Reporting#254:0",
+          "kind": "reference_closes",
+          "note": "differs:not_closing",
+          "clause": {
+            "start": 2464,
+            "end": 2501
+          }
+        }
+      ]
+    },
+    {
+      "pr": "NuGet/Home#14985",
+      "recordSha256": "ce08bc30c39aa33d9a77deff1eb8ec52c677daabae3f7be73097d6101cdaa283",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "MirrorNetworking/Mirror#4119",
+      "recordSha256": "5fce1b63c23e39ec4b523d9ad1cb438ee13ae1310a5d49cab9fcf4b3a771bb73",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "egraphs-good/egglog#876",
+      "recordSha256": "b31f2e5efb7bb6865280e433c4be695b9d89b3eab0f0f1e4258724b89d2f7f4a",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "TEdit/Terraria-Map-Editor#2272",
+      "recordSha256": "06a706f8c1650619b3a1a43d169f82ed50ffe1767f503d74ececa11acd2e4401",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "kubeshop/testkube#7771",
+      "recordSha256": "e628da334315e5d18630c19cf89fdd27eebdfb2502ab4b15feac8003a3cffbca",
+      "advisoryDigest": "6b57ec9ceea190964fc6a069cdb174abde5ef7e804a94c5b1c1bd37408ab365f",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:kubeshop/testkube#7771:0",
+          "kind": "file_changed",
+          "note": "differs:declared_not_changed",
+          "clause": {
+            "start": 5566,
+            "end": 5782
+          }
+        }
+      ]
+    },
+    {
+      "pr": "ps2homebrew/wLaunchELF#135",
+      "recordSha256": "51631f47bde3a1503c904dba1c575d2d6b5e9cad1c1e013051fbb9487d4c5b5a",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "hove-io/navitia#4550",
+      "recordSha256": "6376e90511d16615b76cf67506da21a012b60ed6b25e8a6ffd14a196c72008f3",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "microsoft/pylance-release#7836",
+      "recordSha256": "7fc332e4c2148b4c4e4796929a2ac39eb1f4348adbdd13c06af0b90daa41dd74",
+      "advisoryDigest": "c86819007e67959d510e1e340c59125882f828db001a8142d98a5b7dde868026",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:microsoft/pylance-release#7836:0",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 162,
+            "end": 204
+          }
+        },
+        {
+          "advisoryId": "baseline:microsoft/pylance-release#7836:1",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 559,
+            "end": 577
+          }
+        }
+      ]
+    },
+    {
+      "pr": "wp-cli/wp-cli#6208",
+      "recordSha256": "ea8f6363df8a8b070ccd463906b7f5135b8a9986f52aa0e87ab4d04f00c0c571",
+      "advisoryDigest": "4a7dc7ae9cd661ca2b043d03e3aa407e8f9c61f83dbee47907e093302b5692aa",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:wp-cli/wp-cli#6208:0",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 199,
+            "end": 367
+          }
+        }
+      ]
+    },
+    {
+      "pr": "dotnet/dotnet-docker#7209",
+      "recordSha256": "46a1c44fccfa8410f3a91f1f3e854b649a38973a96ca3b9a96e193d3b398053e",
+      "advisoryDigest": "cfa998ad0f861f14ba478130e4c09cfaa22dfcb66e8c0c23b14f99260c77094d",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:dotnet/dotnet-docker#7209:0",
+          "kind": "reference_closes",
+          "note": "differs:not_closing",
+          "clause": {
+            "start": 0,
+            "end": 20
+          }
+        }
+      ]
+    },
+    {
+      "pr": "test-kitchen/kitchen-docker#436",
+      "recordSha256": "a863b90665964d6a3a27fc09cead4754b4f75ae1abdf6dc19a3a568d252f1b4b",
+      "advisoryDigest": "39484b3e35ed6be95b299db07abf82b5f05e0675a4bddfb6ead82f8fd112239b",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:test-kitchen/kitchen-docker#436:0",
+          "kind": "tests_passed",
+          "note": "unanswered:no_comparable_record_field",
+          "clause": {
+            "start": 1231,
+            "end": 1269
+          }
+        },
+        {
+          "advisoryId": "baseline:test-kitchen/kitchen-docker#436:1",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 1936,
+            "end": 1973
+          }
+        }
+      ]
+    },
+    {
+      "pr": "microsoft/ebpf-for-windows#4506",
+      "recordSha256": "c8188053056cc5104851abc33cf834a74e8a64eb0103738dfd741f3f26a1b4d8",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "havit/Havit.Blazor#1416",
+      "recordSha256": "e882ca07cc67ff7cd66717cf0e7a6cd04ce0893cdc3d2985e9ce7c406916dd60",
+      "advisoryDigest": "9330041e6d6c73fec1faf19372e3c698811cc839ed6b49280f5a002adfffbcf0",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:havit/Havit.Blazor#1416:0",
+          "kind": "file_changed",
+          "note": "differs:declared_not_changed",
+          "clause": {
+            "start": 225,
+            "end": 304
+          }
+        },
+        {
+          "advisoryId": "baseline:havit/Havit.Blazor#1416:1",
+          "kind": "file_changed",
+          "note": "differs:declared_not_changed",
+          "clause": {
+            "start": 225,
+            "end": 304
+          }
+        },
+        {
+          "advisoryId": "baseline:havit/Havit.Blazor#1416:2",
+          "kind": "file_changed",
+          "note": "differs:declared_not_changed",
+          "clause": {
+            "start": 309,
+            "end": 430
+          }
+        },
+        {
+          "advisoryId": "baseline:havit/Havit.Blazor#1416:3",
+          "kind": "file_changed",
+          "note": "differs:declared_not_changed",
+          "clause": {
+            "start": 309,
+            "end": 430
+          }
+        },
+        {
+          "advisoryId": "baseline:havit/Havit.Blazor#1416:4",
+          "kind": "file_changed",
+          "note": "differs:declared_not_changed",
+          "clause": {
+            "start": 309,
+            "end": 430
+          }
+        },
+        {
+          "advisoryId": "baseline:havit/Havit.Blazor#1416:5",
+          "kind": "file_changed",
+          "note": "unanswered:ambiguous_path",
+          "clause": {
+            "start": 830,
+            "end": 883
+          }
+        },
+        {
+          "advisoryId": "baseline:havit/Havit.Blazor#1416:6",
+          "kind": "tests_passed",
+          "note": "unanswered:no_comparable_record_field",
+          "clause": {
+            "start": 3286,
+            "end": 3367
+          }
+        }
+      ]
+    },
+    {
+      "pr": "microsoft/AL-Go#2306",
+      "recordSha256": "30f5a386e22672d1244eb73ed263b80a7b7463062cfe26ea84edbc0ec5a123f4",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "google-labs-code/stitch-sdk#358",
+      "recordSha256": "cb59fe980e574e338c11e3d6ddc4259cd2b46ea231f717db5f7289b79e9935d6",
+      "advisoryDigest": "02c4fd15c73f321a1ff096b4ed497759c6850374f3be304141b606eae87703ff",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:google-labs-code/stitch-sdk#358:0",
+          "kind": "file_changed",
+          "note": "agrees",
+          "clause": {
+            "start": 1516,
+            "end": 1607
+          }
+        }
+      ]
+    },
+    {
+      "pr": "Significant-Gravitas/AutoGPT#11219",
+      "recordSha256": "e76f05a5d3dcdec33b01bc24f68104c0346ed7712d47dab0c06be689b9d18e6e",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "damus-io/damus#3725",
+      "recordSha256": "8438827c29909fcec797bcf580bde697b6a1776eeae375cbde5d7d9f08db0fd9",
+      "advisoryDigest": "2ecb0b01bb74c2baca4545acdeec48775305d4c0b96a28a73c8e8fe21b404474",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:damus-io/damus#3725:0",
+          "kind": "file_changed",
+          "note": "differs:declared_not_changed",
+          "clause": {
+            "start": 2536,
+            "end": 2689
+          }
+        },
+        {
+          "advisoryId": "baseline:damus-io/damus#3725:1",
+          "kind": "file_changed",
+          "note": "agrees",
+          "clause": {
+            "start": 5620,
+            "end": 5752
+          }
+        }
+      ]
+    },
+    {
+      "pr": "planetscale/cli#1294",
+      "recordSha256": "3db5b4c0c0c33feef54365188e69f4f2b8a3ddb1ee0085dbcb6d9ab63641d731",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "fabiocaccamo/django-extra-settings#221",
+      "recordSha256": "f047ce43b2548361cf9b5e39ed739f10cf2581a75071c9bcedc0d53603336f33",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "Kunena/Kunena-Forum#10153",
+      "recordSha256": "c82ab86a12fb9aaf2be579a5619bcc072f7ad227d74d8315263c70b0f56aaef8",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "dotnet/roslyn#84466",
+      "recordSha256": "065df693a3a6a8ad60c823caef02c6eab0e014117c59e1f2869c13925946518f",
+      "advisoryDigest": "aaf67b77563efd70ea5fdfbdb42ab2f1d0d1ded3a1bd85df6e2c7e2a0cc52a92",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:dotnet/roslyn#84466:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 2115,
+            "end": 2166
+          }
+        }
+      ]
+    },
+    {
+      "pr": "AndyTheFactory/newspaper4k#716",
+      "recordSha256": "ac08941dd25e917bcaf6e2dff62cbc7d7cdba0bc1490d7de94ef28ead9e9b851",
+      "advisoryDigest": "c6bef81a004e70cd46c45d6aa8880379bee205767d0eb01009a83de06793d7e7",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:AndyTheFactory/newspaper4k#716:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 4818,
+            "end": 4854
+          }
+        }
+      ]
+    },
+    {
+      "pr": "microsoft/rushstack#5510",
+      "recordSha256": "3be3439de39da494689cea5aa3ad775dd05ce1eaec1d45b905f7d6dfdd5799a2",
+      "advisoryDigest": "bcc27bee256938d80fbf00a18e97381f02109c6ffef19256033aa63b0246b1c3",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:microsoft/rushstack#5510:0",
+          "kind": "tests_passed",
+          "note": "unanswered:no_comparable_record_field",
+          "clause": {
+            "start": 1873,
+            "end": 1900
+          }
+        },
+        {
+          "advisoryId": "baseline:microsoft/rushstack#5510:1",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 5599,
+            "end": 5629
+          }
+        }
+      ]
+    },
+    {
+      "pr": "CoreWCF/CoreWCF#1743",
+      "recordSha256": "bbb583cc0c3e339f112c1e8f36947c0311bf8264b0118685efd230cb709f9e2c",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "vortex-data/vortex#8756",
+      "recordSha256": "754b95e53fff1fbcea7d4d52ad2c55249a035eaab65cc9ae5706ae7b4801f09d",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "stefankoegl/kdtree#55",
+      "recordSha256": "28cf54e3e16271492d51a3f9f373ceac3948cf8244329942086b10e680d424bb",
+      "advisoryDigest": "cea764514a47696ac93272910249b61c9b4583c93a222adc3bc754bb07b13a42",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:stefankoegl/kdtree#55:0",
+          "kind": "tests_passed",
+          "note": "unanswered:no_comparable_record_field",
+          "clause": {
+            "start": 1139,
+            "end": 1206
+          }
+        },
+        {
+          "advisoryId": "baseline:stefankoegl/kdtree#55:1",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 1244,
+            "end": 1254
+          }
+        }
+      ]
+    },
+    {
+      "pr": "coreshop/CoreShop#2963",
+      "recordSha256": "a34c32dbf175c6de3e378720ad89c80d735a29bd52f85f3d5dcb1f295049dc65",
+      "advisoryDigest": "4413affbb290636fff14af22fc32c2ddca3fa3a70511b1c9fee0025758662898",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:coreshop/CoreShop#2963:0",
+          "kind": "reference_closes",
+          "note": "differs:not_closing",
+          "clause": {
+            "start": 196,
+            "end": 224
+          }
+        }
+      ]
+    },
+    {
+      "pr": "apolloconfig/agollo#359",
+      "recordSha256": "64a53d7f7b70a4c6f1ac50528221be60d566a6f9f39e22c51cd1daa57e0577b8",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "electron/packager#1934",
+      "recordSha256": "aea200a066b6170d10efe74a1e977e9c796280b2adc923f16ab75e7629bd6a37",
+      "advisoryDigest": "ae78cf583a8d687279a7454eab5e199d04d595b1769336ec1866d9beb73e7896",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:electron/packager#1934:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 2642,
+            "end": 2653
+          }
+        }
+      ]
+    },
+    {
+      "pr": "microsoft/mfcmapi#990",
+      "recordSha256": "2241e2d31f5d6c074af4f77abb6fb8c25b012382b6b8bedd8ece8c63b8a9e332",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "microsoft/Agents-for-python#402",
+      "recordSha256": "deaaea170c3963e5478f8bc63975d0337fde2fa2565c71b7cfe0960631b2b0c5",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "vividus-framework/vividus#6652",
+      "recordSha256": "b1623decff7c132a3b256d62213d13613049887631f9ab6dcc8ac808d3bb0884",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "hoc081098/FlowExt#369",
+      "recordSha256": "a079076facff2a6b29fb0df7562094d7b7affd1516252dacfb2b388c357a5b3c",
+      "advisoryDigest": "d367cf84343242fc09003c1be5463520ce0f0a1e629a8bbe3fc9610c51d763af",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:hoc081098/FlowExt#369:0",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 1222,
+            "end": 1296
+          }
+        },
+        {
+          "advisoryId": "baseline:hoc081098/FlowExt#369:1",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 1340,
+            "end": 1386
+          }
+        },
+        {
+          "advisoryId": "baseline:hoc081098/FlowExt#369:2",
+          "kind": "file_changed",
+          "note": "agrees",
+          "clause": {
+            "start": 1412,
+            "end": 1537
+          }
+        },
+        {
+          "advisoryId": "baseline:hoc081098/FlowExt#369:3",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 2869,
+            "end": 2906
+          }
+        }
+      ]
+    },
+    {
+      "pr": "katspaugh/wavesurfer.js#4335",
+      "recordSha256": "f6e4eda2326818335c3017236fe9b64cbb0990b49b6ba9d3f62281fc4f93895a",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "novotnyllc/dotnet-artisan#19",
+      "recordSha256": "923ab13260d1a343c5ff7101e5f6b0e3da16e45e65eb52e47d0baac23cc4cae8",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "primer/react#8064",
+      "recordSha256": "91c060280f39b1f9a407337b27383958a50d5f159387c799d1de94a8cf669be7",
+      "advisoryDigest": "e8df33a9084aeb78d25fa30da85d03fb8dd7ee73a25a8ef7b6e78dd33a352616",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:primer/react#8064:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 1091,
+            "end": 1141
+          }
+        },
+        {
+          "advisoryId": "baseline:primer/react#8064:1",
+          "kind": "tests_passed",
+          "note": "unanswered:no_comparable_record_field",
+          "clause": {
+            "start": 1640,
+            "end": 1675
+          }
+        }
+      ]
+    },
+    {
+      "pr": "vitest-dev/vitest#10308",
+      "recordSha256": "c14cb98e66e460942c054b66d9cca68c9cbddaec8c8d71ad243bad4cafde9c39",
+      "advisoryDigest": "0081f1b0694ef8fdb20a839d2a6863d69a1e233e91ad40a06375f262b394eb94",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:vitest-dev/vitest#10308:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 2,
+            "end": 58
+          }
+        },
+        {
+          "advisoryId": "baseline:vitest-dev/vitest#10308:1",
+          "kind": "file_changed",
+          "note": "agrees",
+          "clause": {
+            "start": 301,
+            "end": 438
+          }
+        }
+      ]
+    },
+    {
+      "pr": "adamgell/cmtraceopen#220",
+      "recordSha256": "095c93369726691708d478d26068fdea3e194b179ba883736b9b02a435b090b0",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "AzureAD/microsoft-authentication-library-for-dotnet#6003",
+      "recordSha256": "572c926193d5ab7b507d463a86ea8069dc4ee99bcfe49694822d858c5bd65df1",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "doorkeeper-gem/doorkeeper#1801",
+      "recordSha256": "71c446b79e39913f80b46a4ee7e4fef50392ace47d03a9c0733b2a663a1b588d",
+      "advisoryDigest": "e3cac6e9f011fb0b0886284fa61c1ad7c0d628947ce9cf6aa8bfb6a9015c8f9d",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:doorkeeper-gem/doorkeeper#1801:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 3459,
+            "end": 3495
+          }
+        }
+      ]
+    },
+    {
+      "pr": "dotnet/maui#33365",
+      "recordSha256": "cf119367d7e16674eba00f9050c1eeedecab9fff89d705f0ce844b4e25c489b7",
+      "advisoryDigest": "d903faa4eda6115fdbc827b71ba728876343823ae1509680cb2d45750db968db",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:dotnet/maui#33365:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 2254,
+            "end": 2266
+          }
+        }
+      ]
+    },
+    {
+      "pr": "ail-project/ail-framework#319",
+      "recordSha256": "542fa1c5b4be8b41cb8bdeac5cb73d78210d3a8aacd4fa0875da064c1f62e7ef",
+      "advisoryDigest": "869b771d2c82a0428ea59f12da8e116b390ce1a407cc505044ead07d525c37cf",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:ail-project/ail-framework#319:0",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 1938,
+            "end": 1981
+          }
+        }
+      ]
+    },
+    {
+      "pr": "microsoft/typespec#10964",
+      "recordSha256": "e989567949959d14ff1118b488dd58b49c2215332a512e1bbfa418e93ba4cef3",
+      "advisoryDigest": "96a04d2a51a54557872f846bd6ddfb05a6b016184947c274ecdbb8f5ebc0735d",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:microsoft/typespec#10964:0",
+          "kind": "file_changed",
+          "note": "unanswered:ambiguous_path",
+          "clause": {
+            "start": 1508,
+            "end": 1664
+          }
+        }
+      ]
+    },
+    {
+      "pr": "JetBrains/ideavim#1895",
+      "recordSha256": "fbb4a69ad8cea9ea4ac0dad7756225b1f1351d030474cb31c3fd725eba0c3e86",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "bghira/SimpleTuner#2731",
+      "recordSha256": "3201fa5ef12475ecd9f0bcf0fb11fe9319f7ff8553400aaff9910e64f874f089",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "coder/coder#27147",
+      "recordSha256": "f3f4bfc863cf40b1e566345774e582bcc792861580d50650f36cd0e384b1396e",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "UPC/ravada#2350",
+      "recordSha256": "3ac645c6a36c79d8ae10e4412ecd946882d5082ed31829e6a6ca5ca4654b252d",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "browserless/browserless#5499",
+      "recordSha256": "7f64fafa0944d38bd2d6873a4b7a40563f7b26f6d58a76f5f2967e1f5d8f5daa",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "dotnet/aspnetcore#63813",
+      "recordSha256": "8b972c29b0308e45474af1576d91f5454fe6728bbec8489db359320a3816aec7",
+      "advisoryDigest": "2925c98705153d509b40f2a61f5e0ac479f487e00da8d1a61c3c8518983ed31b",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:dotnet/aspnetcore#63813:0",
+          "kind": "file_changed",
+          "note": "differs:declared_not_changed",
+          "clause": {
+            "start": 1741,
+            "end": 1784
+          }
+        },
+        {
+          "advisoryId": "baseline:dotnet/aspnetcore#63813:1",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 4995,
+            "end": 5034
+          }
+        }
+      ]
+    },
+    {
+      "pr": "dotnet/docs-desktop#2157",
+      "recordSha256": "5c18ff598e08d0e9d32cdbcc65e6cf77805a2024647a3c146a774fa5ba70860d",
+      "advisoryDigest": "e6f04ad3320f8111cdbc893abb05ac04ef4c5fdc0e2f360258555b5b3f1131f6",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:dotnet/docs-desktop#2157:0",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 916,
+            "end": 1055
+          }
+        },
+        {
+          "advisoryId": "baseline:dotnet/docs-desktop#2157:1",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 7248,
+            "end": 7278
+          }
+        }
+      ]
+    },
+    {
+      "pr": "halide/Halide#9160",
+      "recordSha256": "eca1898faddf122b45fc2f9b384544e17b834bc3cd11af560bc04a7521f8f220",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "dotnet/sdk#54622",
+      "recordSha256": "3e72ad450257b9d58da94a5e4d2ef0490e8a9d8d2c95e24c97f0487e67f6d317",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "Azure/azure-functions-durable-extension#3302",
+      "recordSha256": "8f246b3255ae226799b4e71505659dfb79b59eaf2b776d3d0c652db6f8ce62b9",
+      "advisoryDigest": "cc3872fe0eab549749e5208445c51a367f5df4f1de4dddc35a7403015d51ec7f",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:Azure/azure-functions-durable-extension#3302:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 1270,
+            "end": 1280
+          }
+        }
+      ]
+    },
+    {
+      "pr": "taskforcesh/bullmq#4276",
+      "recordSha256": "4eec66ef2fe7eacef47638ba37979c408e6ab16bb3b2163b3830def08a4728ff",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "inference-gateway/inference-gateway#349",
+      "recordSha256": "34828e74246df6cabec933bb3c413bf4ece4565d61c59db7dbf4801847c53d27",
+      "advisoryDigest": "3678ee3ca322d8de7134b05d1787a0608d4f18a76433db4a5c2cb4e39c853e59",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:inference-gateway/inference-gateway#349:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 1635,
+            "end": 1646
+          }
+        }
+      ]
+    },
+    {
+      "pr": "modelcontextprotocol/modelcontextprotocol#3065",
+      "recordSha256": "52e21bd35993552dbafe4d5404f1265d7f59842e7e138d0fae8c2921ed539597",
+      "advisoryDigest": "ea8a6fe218c44b2b4d3a57e9a84bb574f6763bf21490b1d2bb7fe7c720092d15",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:modelcontextprotocol/modelcontextprotocol#3065:0",
+          "kind": "reference_closes",
+          "note": "differs:not_closing",
+          "clause": {
+            "start": 1333,
+            "end": 1345
+          }
+        }
+      ]
+    },
+    {
+      "pr": "BindsNET/bindsnet#715",
+      "recordSha256": "6ad4c85d1f1f5b786c69ac8567bbfddb6da3acf370f8fd5d0c068b62b09a8076",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "NeuroTechX/moabb#1123",
+      "recordSha256": "f8a46ac3d5046aa3c0f07fd62c2b2f28ad4d78caf9329fe22b2568f2e93a88e7",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "ngrok/ngrok-operator#818",
+      "recordSha256": "62c1be84960f75251ca4c8a8997c1ef88714418139401eeb72c4c5de6f4713ff",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "caxy/php-htmldiff#140",
+      "recordSha256": "9272dee196b2a7fe6f6134295c9a2e69dbe9efb736a036054f7b6b7b3d66def6",
+      "advisoryDigest": "854acd4490b1021ca5cfea319a6a586c74fb00344c36ee9d3fee6c3a3d9406ba",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:caxy/php-htmldiff#140:0",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 481,
+            "end": 537
+          }
+        },
+        {
+          "advisoryId": "baseline:caxy/php-htmldiff#140:1",
+          "kind": "file_changed",
+          "note": "differs:declared_not_changed",
+          "clause": {
+            "start": 652,
+            "end": 699
+          }
+        },
+        {
+          "advisoryId": "baseline:caxy/php-htmldiff#140:2",
+          "kind": "file_changed",
+          "note": "differs:declared_not_changed",
+          "clause": {
+            "start": 652,
+            "end": 699
+          }
+        },
+        {
+          "advisoryId": "baseline:caxy/php-htmldiff#140:3",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 5650,
+            "end": 5677
+          }
+        }
+      ]
+    },
+    {
+      "pr": "flux-rs/flux#1665",
+      "recordSha256": "87acc86c6199bc2bf11f1a5960648151686fe1bc27f9716c12f97653398bf9af",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "AzureAD/microsoft-authentication-library-for-js#8683",
+      "recordSha256": "636df1e9f4101a20bdf533ea20f90472a90cefa860dff6dd957a5806d8580f5d",
+      "advisoryDigest": "9f2b7fbe5b819941b8e2ff999effe85bc17ff8204c66050dc7e56ca753992a29",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:AzureAD/microsoft-authentication-library-for-js#8683:0",
+          "kind": "tests_passed",
+          "note": "unanswered:no_comparable_record_field",
+          "clause": {
+            "start": 2774,
+            "end": 2946
+          }
+        }
+      ]
+    },
+    {
+      "pr": "rokucommunity/brighterscript#1539",
+      "recordSha256": "2900f5fa899657b37a961a607245bf973e002929a3df3e6b8e3d459adcf34739",
+      "advisoryDigest": "215de154004b661a4a17e6487c88db3fc6c38fca12eec41619692b86832dc4fd",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:rokucommunity/brighterscript#1539:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 164,
+            "end": 176
+          }
+        }
+      ]
+    },
+    {
+      "pr": "jellydn/hurl.nvim#253",
+      "recordSha256": "a9d3de7b011b6025aec41c0fd59182691443e614cf964314616c6ba9f442fd8b",
+      "advisoryDigest": "80dee26a28f5f62642152626ee076e2130f422bd46625a42b00a2221b040b113",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:jellydn/hurl.nvim#253:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 1433,
+            "end": 1444
+          }
+        }
+      ]
+    },
+    {
+      "pr": "microsoft/vs-mef#594",
+      "recordSha256": "810bbb64c33377c0259493375452040a7907e8980467d149a0562aaa21907f38",
+      "advisoryDigest": "08228e7379a6f8c373dc9175503d372b2315349efc03c456056cf304ef1302d1",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:microsoft/vs-mef#594:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 445,
+            "end": 456
+          }
+        }
+      ]
+    },
+    {
+      "pr": "tramhao/termusic#741",
+      "recordSha256": "ba968e4a04f0ce734e37491a49baf72cf492276e22842713f2278a0a7f00bfff",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "PhantomBot/PhantomBot#3733",
+      "recordSha256": "fb7eb05aa00d670deac271d5cffe5d7d948760311a824cbcdd6dc925262f124e",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "firecrawl/firecrawl#3747",
+      "recordSha256": "e2aa00e199722cbe89178dd162e99b8c868fcb8cfe6a121db390e0790bb28f68",
+      "advisoryDigest": "f830416a19f4909de74dbcca612f21dc8c81e2d559923d1fa64af59b7bd4eb4f",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:firecrawl/firecrawl#3747:0",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 1231,
+            "end": 1254
+          }
+        }
+      ]
+    },
+    {
+      "pr": "1600822305/AetherLink#73",
+      "recordSha256": "ef0726fa24bdf8bec015b85fb9ea9ccfeee2cffd773704e84b8e030c34bfa987",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "E3SM-Project/E3SM#8390",
+      "recordSha256": "f98b5b3d73d21d7ef3994e36c4ed7e37a0991c3db1fabf6d4a791fb3d85d8792",
+      "advisoryDigest": "0d3baa093090137eec11ccf631352390aafac58ae4c52f4067d5cdc4bce7275c",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:E3SM-Project/E3SM#8390:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 197,
+            "end": 208
+          }
+        }
+      ]
+    },
+    {
+      "pr": "Shopify/ruby-lsp#4051",
+      "recordSha256": "aa38899bb0addd18dac84e5591f8faffd5ee21000b15ed2a728f3792eafd1f8c",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "cognizant-ai-lab/neuro-san-studio#1243",
+      "recordSha256": "bfca738086991c8fceeea231d8675a311f489aab4aa95f2388c729d1785111c0",
+      "advisoryDigest": "f1b1f69825fe4c4e9a3a6dcb0d6e0e462b8fafef2519dabbbdbcbde055553079",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:cognizant-ai-lab/neuro-san-studio#1243:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 1103,
+            "end": 1114
+          }
+        }
+      ]
+    },
+    {
+      "pr": "dotnet/android-libraries#1490",
+      "recordSha256": "c79d28d5405814cf420c98ec5e2eb6c7696392bffba68c81aa69057a9bd136ec",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "aio-libs/aiobotocore#1606",
+      "recordSha256": "4ea7a8af9ed8d6d99f3415b5455e1d947ec969dd3b5fbafb7a0ec5cd1abd79c2",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "Azure/azure-dev#8887",
+      "recordSha256": "a2686ac219406199c1072e2b979398409e2313fc9a40e5ce81b0e475b32b0342",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "microsoft/semantic-link-labs#1276",
+      "recordSha256": "105deed1cb2cb3a9ab5cfb07bf2a59b0e10ccef734b7549a4c4f8f471c50081e",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "twentyhq/twenty#21295",
+      "recordSha256": "b1e6f137695f8cf5364a89de6294a77b53f17ef03f1f6430692f5325e3723329",
+      "advisoryDigest": "0eebefcb89abb33a04c5d4f491af2aa97c4951719b1f0ddfe80abe792c007f4c",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:twentyhq/twenty#21295:0",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 654,
+            "end": 760
+          }
+        },
+        {
+          "advisoryId": "baseline:twentyhq/twenty#21295:1",
+          "kind": "file_changed",
+          "note": "agrees_by_name",
+          "clause": {
+            "start": 763,
+            "end": 885
+          }
+        },
+        {
+          "advisoryId": "baseline:twentyhq/twenty#21295:2",
+          "kind": "file_changed",
+          "note": "differs:declared_not_changed",
+          "clause": {
+            "start": 763,
+            "end": 885
+          }
+        }
+      ]
+    },
+    {
+      "pr": "slidevjs/slidev#2346",
+      "recordSha256": "cc082a6a3ec5348e1d396dcf1d13a56ccb8c6378dfecfaa19b328f9139f2587d",
+      "advisoryDigest": "b59e25430cb441930f21b0ff2c573c51784eb4fec75bac779e4a7678c42b748b",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:slidevjs/slidev#2346:0",
+          "kind": "file_changed",
+          "note": "agrees",
+          "clause": {
+            "start": 197,
+            "end": 308
+          }
+        },
+        {
+          "advisoryId": "baseline:slidevjs/slidev#2346:1",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 2895,
+            "end": 2921
+          }
+        }
+      ]
+    },
+    {
+      "pr": "mkb79/audible-cli#255",
+      "recordSha256": "6bf8d278ce7881b385fe4f7135cdfebc4229e0c6434681e59fee13b8a6c5eb78",
+      "advisoryDigest": "740829fdc35a233e0688896c10f48ad2018708c68580386f4f56b03f1308c436",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:mkb79/audible-cli#255:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 3264,
+            "end": 3291
+          }
+        }
+      ]
+    },
+    {
+      "pr": "Azure/data-api-builder#3688",
+      "recordSha256": "50cecd7fc1e7e6c3c32d33338298102fab2e86d8f3c579c34fa57db00aaee2ac",
+      "advisoryDigest": "f31acb82fb375c09426b2cb2da34a7416eb770a74205aab950aaef399daeb261",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:Azure/data-api-builder#3688:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 28,
+            "end": 40
+          }
+        }
+      ]
+    },
+    {
+      "pr": "rolldown/rolldown#9505",
+      "recordSha256": "c2f8b72f3cc4950bd26b557c58f545e7c2d01bf86112c7f0dc1f342f137df0c1",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    },
+    {
+      "pr": "PrefectHQ/prefect#22144",
+      "recordSha256": "3c2727e926b4d434667e9da941bc1e60caad2dac742d08a66d9a7539929bd7e9",
+      "advisoryDigest": "260a7f2937f584398dbab22224b48bad65fc20dc29b52cbe92ef7cb029abd789",
+      "reportIsSelectedBody": true,
+      "advisories": [
+        {
+          "advisoryId": "baseline:PrefectHQ/prefect#22144:0",
+          "kind": "reference_closes",
+          "note": "agrees",
+          "clause": {
+            "start": 0,
+            "end": 13
+          }
+        }
+      ]
+    },
+    {
+      "pr": "Azure/azure-sdk-for-net#59365",
+      "recordSha256": "c065f5727149411df9673f0a53c0085abdd215062e13c1d3017265b34f395923",
+      "advisoryDigest": "22c7b8a60b6225b0859a67334d26dc26b46ce571aa50bb911e45c8869ce4396e",
+      "reportIsSelectedBody": true,
+      "advisories": []
+    }
+  ],
+  "errors": []
+}
