@@ -1,0 +1,919 @@
+{
+  "run": "candidate",
+  "instrument": {
+    "name": "candidate",
+    "checkerVersion": "0.1.5",
+    "bundleSha256": "978a6f63d5932e2d52c89b73ca9ead3f29628cd847efd50fb4b7eb05daeab8c5",
+    "extractorVersion": "0.1.3",
+    "extractorDigest": "2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37",
+    "comparison": "0.3.0",
+    "sourceCommit": "e559598ec3c5b1a05e96270e0ba723d5cef6b1a3"
+  },
+  "command": "node <dunstan> check --repo <owner/repo> --pr <n> --report-pr-body --advisory --out <record>",
+  "order": "each pull request in selection order, baseline then candidate",
+  "node": "v22.15.0",
+  "startedAt": "2026-10-07T17:11:05.150Z",
+  "finishedAt": "2026-10-07T17:15:18.554Z",
+  "records": [
+    {
+      "pr": "ydb-platform/ydb#39295",
+      "file": "ydb-platform-ydb-39295.json",
+      "sha256": "ae905a39c6a641acddd97ee817b342de034ff4e326cadbcaf3745d5fa3cfa83e",
+      "exit": 2
+    },
+    {
+      "pr": "experientiallabs/experiential#469",
+      "file": "experientiallabs-experiential-469.json",
+      "sha256": "af6e3b1c8d1395f83c9ad7ee85a77fa2e036e1919ab3e5c4786872a9784c6247",
+      "exit": 2
+    },
+    {
+      "pr": "electron/windows-installer#614",
+      "file": "electron-windows-installer-614.json",
+      "sha256": "56ad2eec10eb4f897abf8e9375f01232bf238a6087aa5060d463b92a0787695c",
+      "exit": 2
+    },
+    {
+      "pr": "sonic-net/sonic-mgmt#24640",
+      "file": "sonic-net-sonic-mgmt-24640.json",
+      "sha256": "f5bf186640f7c073eb531c68adde54decd62fc5773c179223acc509c45732261",
+      "exit": 2
+    },
+    {
+      "pr": "thesysdev/openui#991",
+      "file": "thesysdev-openui-991.json",
+      "sha256": "f6571de5a726f3b455f62cdd7217d094195e7146af7f146f6b82a53fd414e07f",
+      "exit": 2
+    },
+    {
+      "pr": "triggerdotdev/trigger.dev#4626",
+      "file": "triggerdotdev-trigger.dev-4626.json",
+      "sha256": "1341ca18b696892c4465bbc46bf09bbbc9ad03eafecca78c41c091131f2147de",
+      "exit": 2
+    },
+    {
+      "pr": "lucide-icons/lucide#4378",
+      "file": "lucide-icons-lucide-4378.json",
+      "sha256": "2a1ec5e2c212a3f3367cdcf728874d437fd2efa192555ebf28a5443a0b69561c",
+      "exit": 2
+    },
+    {
+      "pr": "e2b-dev/ai-analyst#35",
+      "file": "e2b-dev-ai-analyst-35.json",
+      "sha256": "03acef4f908fba42820bd2f51b1c1d9fa16667579d24e5b1b2149d6a67bb20fe",
+      "exit": 2
+    },
+    {
+      "pr": "xwiki/xwiki-platform#6182",
+      "file": "xwiki-xwiki-platform-6182.json",
+      "sha256": "b1684fa8e5c125c9d862cd4730fdd870db60e26ab2987a6d93983b40565817a6",
+      "exit": 2
+    },
+    {
+      "pr": "salarcode/SmartProxy#544",
+      "file": "salarcode-SmartProxy-544.json",
+      "sha256": "eb252c60e5ef4a28cf7f46851806c0d7ff5a36c55dc461b99030b6408fb01b4c",
+      "exit": 2
+    },
+    {
+      "pr": "e2b-dev/fragments#241",
+      "file": "e2b-dev-fragments-241.json",
+      "sha256": "ab4a8b8a6d682a1bca090292fc1df420ff0c2841aeeb8a8efb39d97f87f0bf44",
+      "exit": 2
+    },
+    {
+      "pr": "electron/build-tools#891",
+      "file": "electron-build-tools-891.json",
+      "sha256": "e743b54557124aa6a0478a1327c26167b251a6249f8f06026f4756eb16201a82",
+      "exit": 2
+    },
+    {
+      "pr": "tui-cs/Terminal.Gui#5395",
+      "file": "tui-cs-Terminal.Gui-5395.json",
+      "sha256": "5f84a8d50ffc787dced414f9cfd7eb05c4a29ff062e7d679ca3d543a789e3910",
+      "exit": 2
+    },
+    {
+      "pr": "e2b-dev/desktop#251",
+      "file": "e2b-dev-desktop-251.json",
+      "sha256": "966d98f96878b68d02014209899767c374b2dde3e7d0ce6e6a428123dc6220cd",
+      "exit": 2
+    },
+    {
+      "pr": "invertase/docs.page#531",
+      "file": "invertase-docs.page-531.json",
+      "sha256": "0bb6c76052f55f8054ca92c7e7b215c93bd954af4cd8cc238b6fc436b1188cf6",
+      "exit": 2
+    },
+    {
+      "pr": "BililiveRecorder/BililiveRecorder#787",
+      "file": "BililiveRecorder-BililiveRecorder-787.json",
+      "sha256": "466c12917a5301657195875bd052ad7b052189e5baed0139b75575d8973162b4",
+      "exit": 2
+    },
+    {
+      "pr": "ecnerwala/cp-book#86",
+      "file": "ecnerwala-cp-book-86.json",
+      "sha256": "8f184d2cc6878ea628ec516253bf9e652a0852bb3c3c172cff625529e73b859b",
+      "exit": 2
+    },
+    {
+      "pr": "pimlicolabs/permissionless.js#529",
+      "file": "pimlicolabs-permissionless.js-529.json",
+      "sha256": "7295ae21bc8a77e2f854c055daba66762e001ebc4446ccb458423229c77a1679",
+      "exit": 2
+    },
+    {
+      "pr": "citusdata/citus#8604",
+      "file": "citusdata-citus-8604.json",
+      "sha256": "f8fae1392b0001da5530509f25888df371d4e1570fb5b8764be8d29bc09c059f",
+      "exit": 2
+    },
+    {
+      "pr": "ai-shifu/ai-shifu#2348",
+      "file": "ai-shifu-ai-shifu-2348.json",
+      "sha256": "fb587e32d8c71dbe1cadb8729759c7389f3fc1bb8ec91f26d9b19c5fc2976ac7",
+      "exit": 2
+    },
+    {
+      "pr": "code-dot-org/code-dot-org#74686",
+      "file": "code-dot-org-code-dot-org-74686.json",
+      "sha256": "5d44923ebc0fd452ddb0385984076beae104f178ea7f305d0b12fcce16fb15e9",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/automatic-graph-layout#396",
+      "file": "microsoft-automatic-graph-layout-396.json",
+      "sha256": "2ac12dbc637ce5fd43ed744020668800614fcf7f9db1fffe9d8038b800d67e4d",
+      "exit": 2
+    },
+    {
+      "pr": "sanity-io/sanity#14134",
+      "file": "sanity-io-sanity-14134.json",
+      "sha256": "00b2fb453621d9074988673e078176387315b9913c2ef0c85ad44578b66ca4a0",
+      "exit": 2
+    },
+    {
+      "pr": "pypsa-meets-earth/pypsa-earth#1877",
+      "file": "pypsa-meets-earth-pypsa-earth-1877.json",
+      "sha256": "573356dd4d08a145d5407cd03e5386726ae198f79219aafff42b3b1c785df2a7",
+      "exit": 2
+    },
+    {
+      "pr": "pimlicolabs/alto#752",
+      "file": "pimlicolabs-alto-752.json",
+      "sha256": "7c2e9661af625883aad72c29241c9e9c5e4fbe9149e93d2b77911ca4d3d3b89e",
+      "exit": 2
+    },
+    {
+      "pr": "prody/ProDy#2221",
+      "file": "prody-ProDy-2221.json",
+      "sha256": "f724b6753b01027f149112971b433fbb4e59e8cf3d6900c901200d1b34f04985",
+      "exit": 2
+    },
+    {
+      "pr": "zenbu-labs/zenbu.js#21",
+      "file": "zenbu-labs-zenbu.js-21.json",
+      "sha256": "f1f23960277114e5ba088418ac65d1827a9a9ed2e8cf0cf80c530a80e3ec2195",
+      "exit": 2
+    },
+    {
+      "pr": "basementstudio/website-2k25#407",
+      "file": "basementstudio-website-2k25-407.json",
+      "sha256": "7922e68ed8dc7c74a33e908c3b28ea03f4d00ce257bc4ae591006d8358a065b2",
+      "exit": 2
+    },
+    {
+      "pr": "figranium/figranium#310",
+      "file": "figranium-figranium-310.json",
+      "sha256": "a2d8d2adfad582971222bfe70b5da80469e32686dd3ed0456d1b92af3201ca2e",
+      "exit": 2
+    },
+    {
+      "pr": "kokkos/mdspan#451",
+      "file": "kokkos-mdspan-451.json",
+      "sha256": "6b0fa8b7b219267bdfe3afdf7e05c9932b747f5e87f620260bffb0db59385262",
+      "exit": 2
+    },
+    {
+      "pr": "Y-ASLant/ElegantClipboard#112",
+      "file": "Y-ASLant-ElegantClipboard-112.json",
+      "sha256": "92733b3d357d9e672bc6b0565259896579be83b10b0f413928998adb5c6ffb8c",
+      "exit": 2
+    },
+    {
+      "pr": "cfengine/core#6189",
+      "file": "cfengine-core-6189.json",
+      "sha256": "e249b27848fe8b251c27dbb76a543442c0e98bbc40eb744492d7a776b2a89c53",
+      "exit": 2
+    },
+    {
+      "pr": "vercel/ai#12834",
+      "file": "vercel-ai-12834.json",
+      "sha256": "0e9ac3ce754acc52fce8f1e8336bcb70c6e5ec3cb9f0aae1e510874bdc053c03",
+      "exit": 2
+    },
+    {
+      "pr": "s2-streamstore/s2#574",
+      "file": "s2-streamstore-s2-574.json",
+      "sha256": "f16c41a27626a010518d9c975ed55af2c318a36758cd18d611e1aa867d51a79e",
+      "exit": 2
+    },
+    {
+      "pr": "stacklok/toolhive#5646",
+      "file": "stacklok-toolhive-5646.json",
+      "sha256": "e0fb9ea3a2ef3b0c112116ed2e7a803c09dd3e82a5a9f6aeb7046c337c846719",
+      "exit": 2
+    },
+    {
+      "pr": "yihui/litedown#123",
+      "file": "yihui-litedown-123.json",
+      "sha256": "416149a161578d7703b763646d14581669a6ec9089c64e5aacf21350f680e225",
+      "exit": 2
+    },
+    {
+      "pr": "workos/workos-node#1638",
+      "file": "workos-workos-node-1638.json",
+      "sha256": "abbdf5dbde6e9355f91421fc914175b3fdb39dc6df36b312f4ee27855e63c5a1",
+      "exit": 2
+    },
+    {
+      "pr": "buildkite/cli#890",
+      "file": "buildkite-cli-890.json",
+      "sha256": "a846e3e24ce91df055501bba9c77f52c9c6d5a1549d9539f4c5f1b894b64e428",
+      "exit": 2
+    },
+    {
+      "pr": "IgniteUI/igniteui-angular#17068",
+      "file": "IgniteUI-igniteui-angular-17068.json",
+      "sha256": "5afe895de3419ee721cb163b591c9191ed4f23bc1478fb506564ba6c98131225",
+      "exit": 2
+    },
+    {
+      "pr": "benchflow-ai/awesome-evals#11",
+      "file": "benchflow-ai-awesome-evals-11.json",
+      "sha256": "51be2d80215e3f8f44ddc6834bdb13a9b82b4f823f1cded9a9c1385dc613eae6",
+      "exit": 2
+    },
+    {
+      "pr": "fwupd/fwupd#10067",
+      "file": "fwupd-fwupd-10067.json",
+      "sha256": "02abe5d70e0873b41de9ca1c263aba9d7cb992ec8623c9b4bd402b90228095bb",
+      "exit": 2
+    },
+    {
+      "pr": "depot/cli#522",
+      "file": "depot-cli-522.json",
+      "sha256": "8df95cae35309bd98a8ae402e869a077f955004555781f7054fc659b537cc60b",
+      "exit": 2
+    },
+    {
+      "pr": "NeurodataWithoutBorders/pynwb#2176",
+      "file": "NeurodataWithoutBorders-pynwb-2176.json",
+      "sha256": "0a6a9d527f5f9226006501a53d20d3db1534db31941d2c2eba15e358253f8294",
+      "exit": 2
+    },
+    {
+      "pr": "electron/update-electron-app#234",
+      "file": "electron-update-electron-app-234.json",
+      "sha256": "b0f71c54d3fa1e291560616afe5e42096dddfbe7231a51523599bff38515eaa9",
+      "exit": 2
+    },
+    {
+      "pr": "dotnet/extensions#7433",
+      "file": "dotnet-extensions-7433.json",
+      "sha256": "10cda71512772fb96c0e3233ef746fa80242e9d4efaecc210e298ac6ec43ce6a",
+      "exit": 2
+    },
+    {
+      "pr": "electron/rebuild#1284",
+      "file": "electron-rebuild-1284.json",
+      "sha256": "b412095fcd08bee74988923e3795aba8a1d388d7e88b11bc72aa5f27fdcce75b",
+      "exit": 2
+    },
+    {
+      "pr": "PyThaiNLP/pythainlp#1372",
+      "file": "PyThaiNLP-pythainlp-1372.json",
+      "sha256": "870c5926d9cbe7e416b14b0b7ed07b083077f601eec136bca02bb5f028b19eca",
+      "exit": 2
+    },
+    {
+      "pr": "electron/asar#450",
+      "file": "electron-asar-450.json",
+      "sha256": "92faac96b6f91e38ce00d99ef261bbbf2a47a502c08b53285596d139209b9abd",
+      "exit": 2
+    },
+    {
+      "pr": "rohit-gohri/redocusaurus#438",
+      "file": "rohit-gohri-redocusaurus-438.json",
+      "sha256": "05c433767693cda609601d9fe827cdb156d2c9c4d7778b37e37352d2a899bee9",
+      "exit": 2
+    },
+    {
+      "pr": "electron/osx-sign#429",
+      "file": "electron-osx-sign-429.json",
+      "sha256": "1051609c14fea990bada01ddeb38e2424048207ffd765175c26cb6ce18c09422",
+      "exit": 2
+    },
+    {
+      "pr": "satorijs/satori#392",
+      "file": "satorijs-satori-392.json",
+      "sha256": "dc7ec591f57804dcf10e7a18294208fcd2a2e692c60f9429462474568dd303d2",
+      "exit": 2
+    },
+    {
+      "pr": "electron/forge#4295",
+      "file": "electron-forge-4295.json",
+      "sha256": "bdad3a48d1280bcbff7321e8715290dc8fa9eec3983bdbc40dc872839b374692",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/pxt#11273",
+      "file": "microsoft-pxt-11273.json",
+      "sha256": "7b7d3d9de56bd8b0ba39e20804731828c48a0d05a8fa7fec0f2af0e73c1312f3",
+      "exit": 2
+    },
+    {
+      "pr": "plotly/dash-ag-grid#455",
+      "file": "plotly-dash-ag-grid-455.json",
+      "sha256": "c9cefb7352598c5d762cb97352b79ed7b8941215f36107f35f5b20a9650c88d9",
+      "exit": 2
+    },
+    {
+      "pr": "Azure/bicep#19508",
+      "file": "Azure-bicep-19508.json",
+      "sha256": "557928507917bb76d2fd6eb9c3ecbcec9c3f47f117b17ab8df28a7b3c0e9d84e",
+      "exit": 2
+    },
+    {
+      "pr": "MudBlazor/MudBlazor#13126",
+      "file": "MudBlazor-MudBlazor-13126.json",
+      "sha256": "b003abb1afcff7b72f07da43da499398b59332df29785d76cdc223b4118c9dd7",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/PowerToys#47370",
+      "file": "microsoft-PowerToys-47370.json",
+      "sha256": "637b8ace72c8989353ca4821c2a4bb7291c8c87cf91adcf5366b6f39e5fc1e30",
+      "exit": 2
+    },
+    {
+      "pr": "voku/portable-ascii#138",
+      "file": "voku-portable-ascii-138.json",
+      "sha256": "6ea5d0f06da5ab8e1c368d029cc3b3819b2c03ffdb725497b5dee37f94fbe356",
+      "exit": 2
+    },
+    {
+      "pr": "kubernetes-client/java#4759",
+      "file": "kubernetes-client-java-4759.json",
+      "sha256": "33da10778fa108d1114bfbac6075be4bc9b5015cf721674484472b709bd52d0f",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/vscode-generator-code#579",
+      "file": "microsoft-vscode-generator-code-579.json",
+      "sha256": "62a788ad7327031426a829aad0b42bffe7a6f58960f3b3650a6704634f4044c6",
+      "exit": 2
+    },
+    {
+      "pr": "meshtastic/firmware#10505",
+      "file": "meshtastic-firmware-10505.json",
+      "sha256": "43867c588ab3359b9ec779d56fe6f7a14f4a8274568690b1d1fb2e864ca38e3b",
+      "exit": 2
+    },
+    {
+      "pr": "lc-soft/LCUI#324",
+      "file": "lc-soft-LCUI-324.json",
+      "sha256": "a88f5a30e8349ab2cb47c5e47b1e14e4f89e0c12f73d9ef3e34484ef220e3769",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/pg_durable#183",
+      "file": "microsoft-pg_durable-183.json",
+      "sha256": "b7aa57b8cee710429937c483e4640b1babcf8a6b11695c167d3121c2ed7b5247",
+      "exit": 2
+    },
+    {
+      "pr": "rjsf-team/react-jsonschema-form#5091",
+      "file": "rjsf-team-react-jsonschema-form-5091.json",
+      "sha256": "6c72506e019cc3b31c9c73556f61d5fc6d13ae068c4e2d2591c965764cbba097",
+      "exit": 2
+    },
+    {
+      "pr": "Azure/azure-sdk-for-go#26906",
+      "file": "Azure-azure-sdk-for-go-26906.json",
+      "sha256": "8823fc1e8f1472307eeb11b3077f6ee57f9066a0580d552c1ca1f81de1ea0bb3",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/fabric-cicd#1017",
+      "file": "microsoft-fabric-cicd-1017.json",
+      "sha256": "defaf661b771fa9b255b7ba568c31229dff5589deb902edd79e6759265a40e39",
+      "exit": 2
+    },
+    {
+      "pr": "Voxelum/x-minecraft-launcher#1477",
+      "file": "Voxelum-x-minecraft-launcher-1477.json",
+      "sha256": "8b64c225b2472287b16862191195a8e200ca1b2fa174e596e0df9125cf0b3374",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/regorus#744",
+      "file": "microsoft-regorus-744.json",
+      "sha256": "63b5b2386a0b64fb3edb2614f7b6c8e79b7c39b1beb3d7482cc5a58a29f61bbf",
+      "exit": 2
+    },
+    {
+      "pr": "projectcalico/calico#12948",
+      "file": "projectcalico-calico-12948.json",
+      "sha256": "f4d8b4d3dd299bbe92f89c5a3f905dd070a66170f8e70660bf9924d4ee4ea510",
+      "exit": 2
+    },
+    {
+      "pr": "Azure/azure-functions-core-tools#5375",
+      "file": "Azure-azure-functions-core-tools-5375.json",
+      "sha256": "16237a8cfb95610561061c6c9249c7f260734d12768659cd0c656865c6338a97",
+      "exit": 2
+    },
+    {
+      "pr": "Azure/kubelogin#767",
+      "file": "Azure-kubelogin-767.json",
+      "sha256": "eff448ca793f0bf06baec371e195d2ac6989a7eddc00cab97856eae07ecc51c2",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/vs-streamjsonrpc#1462",
+      "file": "microsoft-vs-streamjsonrpc-1462.json",
+      "sha256": "72d164f2e88f282071c7092105bdd6c11404295d61cf4a4a3d8d17ae6b4a4f78",
+      "exit": 2
+    },
+    {
+      "pr": "dotnet/EntityFramework.Docs#5385",
+      "file": "dotnet-EntityFramework.Docs-5385.json",
+      "sha256": "0494ddae8c6b55731169bdb171b4ba880c3e6c9606b92bc6f7d0a7f2a0bae02e",
+      "exit": 2
+    },
+    {
+      "pr": "inspektor-gadget/inspektor-gadget#5571",
+      "file": "inspektor-gadget-inspektor-gadget-5571.json",
+      "sha256": "b839e5c7057b057411619be11052375a2a624b400c37325ece79954e1418dc36",
+      "exit": 2
+    },
+    {
+      "pr": "dotnet/crank#888",
+      "file": "dotnet-crank-888.json",
+      "sha256": "98a6667fc13118f470fef2ac7272842382d34a9b29bb978679fae428a7b487c5",
+      "exit": 2
+    },
+    {
+      "pr": "Azure/AppConfiguration#1154",
+      "file": "Azure-AppConfiguration-1154.json",
+      "sha256": "0341d6de435cf3f75ed68b721d04bc23a6d262b893e858c77bf7210d5527f04e",
+      "exit": 2
+    },
+    {
+      "pr": "Azure/azure-functions-host#11837",
+      "file": "Azure-azure-functions-host-11837.json",
+      "sha256": "a0932799a7c16ed22e78c0412bf24c2ad8e2b2f775d3512b39c282e3e251a0d4",
+      "exit": 2
+    },
+    {
+      "pr": "JeffreySu/WeiXinMPSDK#3306",
+      "file": "JeffreySu-WeiXinMPSDK-3306.json",
+      "sha256": "151d97c638320ccd95201b31279cafdaf6039a72613033d9cf50e2bb6d96e24a",
+      "exit": 2
+    },
+    {
+      "pr": "replicate/cog#3063",
+      "file": "replicate-cog-3063.json",
+      "sha256": "62f07bef30362930e44235ac051aea33d228b0a399b39cd406d9e3b3b5db4178",
+      "exit": 2
+    },
+    {
+      "pr": "fosrl/pangolin#3295",
+      "file": "fosrl-pangolin-3295.json",
+      "sha256": "35fdcb847f2432d030e76c9fdcfbddfa1557af835fd73d05e5d850cae6295aab",
+      "exit": 2
+    },
+    {
+      "pr": "ClickHouse/clickhouse-js#845",
+      "file": "ClickHouse-clickhouse-js-845.json",
+      "sha256": "917a5092158feb0c4ab1511959249284e965cedaac804b46c72788025cc54680",
+      "exit": 2
+    },
+    {
+      "pr": "CarlosNZ/json-edit-react#373",
+      "file": "CarlosNZ-json-edit-react-373.json",
+      "sha256": "668b35f2a79925e88d8de03ac9b3814ff1e4ad044ea6bda4c1590a53a7f9a43f",
+      "exit": 2
+    },
+    {
+      "pr": "coderzc/open-xiaoai-bridge#20",
+      "file": "coderzc-open-xiaoai-bridge-20.json",
+      "sha256": "0bacaa969af52080bb0cf39b23d9787f88670b73863f4c9a5d9f85fd7477acd1",
+      "exit": 2
+    },
+    {
+      "pr": "dbeaver/dbeaver#41333",
+      "file": "dbeaver-dbeaver-41333.json",
+      "sha256": "886e9680059b032574b9cee492aa2679fc16ec3a7638e7d9fdeec85d7aa23754",
+      "exit": 2
+    },
+    {
+      "pr": "NBISweden/MrBayes#315",
+      "file": "NBISweden-MrBayes-315.json",
+      "sha256": "2442db34f165bdd894bd6845d0cc2b54e7f725b62a113cb64acf3daf188f3cf6",
+      "exit": 2
+    },
+    {
+      "pr": "sebastienros/jint#2542",
+      "file": "sebastienros-jint-2542.json",
+      "sha256": "75df82d435424c2986985592c3f6d7a3ba50d72c2856384ecae3a2ef59faed9c",
+      "exit": 2
+    },
+    {
+      "pr": "tenstorrent/tt-metal#47460",
+      "file": "tenstorrent-tt-metal-47460.json",
+      "sha256": "53fe854e1ab5487187543a81b755c117432a6d49ced45e521b225190868370c7",
+      "exit": 2
+    },
+    {
+      "pr": "OPCFoundation/UA-.NETStandard#3895",
+      "file": "OPCFoundation-UA-.NETStandard-3895.json",
+      "sha256": "f6e2f966f663571a11efe5ea3946e6974c03c0ca3aa11902dd76234b4a78c083",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/apm#1842",
+      "file": "microsoft-apm-1842.json",
+      "sha256": "f1bb464fc2dcc9867bfc6c0731c3874207f1ee81fd39dcab30593cd10c1aae5f",
+      "exit": 2
+    },
+    {
+      "pr": "Kotlin/dokka#4542",
+      "file": "Kotlin-dokka-4542.json",
+      "sha256": "54225845b8d45641353f74159f6dd797c040eaec1f87fa556b458b114f30b260",
+      "exit": 2
+    },
+    {
+      "pr": "TypeStrong/ts-loader#1701",
+      "file": "TypeStrong-ts-loader-1701.json",
+      "sha256": "e2652b54063318a1a735b7edcb425dc42aadbd681a1b70d3aeca08e233a6672f",
+      "exit": 2
+    },
+    {
+      "pr": "Doezer/Questarr#687",
+      "file": "Doezer-Questarr-687.json",
+      "sha256": "06369533ffb963be3a5236a59fd439049bcb920c573b86b9f94e0cd8d6437c5d",
+      "exit": 2
+    },
+    {
+      "pr": "Azure/azure-sdk-for-python#47582",
+      "file": "Azure-azure-sdk-for-python-47582.json",
+      "sha256": "475d53fde7525a0548e05a9bd5b67d2ea530e16cd09b0e168a6e9ec77f27e7d9",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/vscode-docs#9967",
+      "file": "microsoft-vscode-docs-9967.json",
+      "sha256": "c41f70eff1629be0dc9e9d3789b99861b9d47813e10c5d9a9e8fc65b5f3aad21",
+      "exit": 2
+    },
+    {
+      "pr": "lamdu/lamdu#278",
+      "file": "lamdu-lamdu-278.json",
+      "sha256": "9d7933497cb92db9edb3006a6ca898bf9059081409bb6706cd8a6616eccc9b61",
+      "exit": 2
+    },
+    {
+      "pr": "ZaxbyHub/opencode-swarm#1460",
+      "file": "ZaxbyHub-opencode-swarm-1460.json",
+      "sha256": "1a210480669e66c3e30ffa17d1528277cad61552f42991757e56f6abdb7d4e73",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/testfx#9305",
+      "file": "microsoft-testfx-9305.json",
+      "sha256": "b2c22f447df88a30d07f421ae54019ea890522a00578e1399bba27d7e44dca6c",
+      "exit": 2
+    },
+    {
+      "pr": "shanselman/toasty#47",
+      "file": "shanselman-toasty-47.json",
+      "sha256": "e45ebae6783e72d361878cf9d7bd996b5c165eb05a2b18f1c039f1c1f5112101",
+      "exit": 2
+    },
+    {
+      "pr": "longhorn/longhorn-manager#4913",
+      "file": "longhorn-longhorn-manager-4913.json",
+      "sha256": "bd37f17a1e4bfa6caf0d6006ce8a74f3cdda435f59b1f7708706383cf299929f",
+      "exit": 2
+    },
+    {
+      "pr": "monperrus/crawler-user-agents#452",
+      "file": "monperrus-crawler-user-agents-452.json",
+      "sha256": "00f6139aedb9430b36e3bc3f4fc21f40e63e8d830d0926162d6497b21b3a6ea9",
+      "exit": 2
+    },
+    {
+      "pr": "runceel/ReactiveProperty#548",
+      "file": "runceel-ReactiveProperty-548.json",
+      "sha256": "20c3ad67d8678192da3aea069c75de6128b5c75c2ba56c96f779eaadf4699989",
+      "exit": 2
+    },
+    {
+      "pr": "rstudio/bookdown#1524",
+      "file": "rstudio-bookdown-1524.json",
+      "sha256": "737b7fae3108a73684d7fec5b1b287087050c94cba39cc8797c622b694ecda63",
+      "exit": 2
+    },
+    {
+      "pr": "johnsusek/praeco#818",
+      "file": "johnsusek-praeco-818.json",
+      "sha256": "cf6b10e96228dc061a43b26526da15d3cadd968df38ea4a3eac7eaa9c425c1dd",
+      "exit": 2
+    },
+    {
+      "pr": "rubyevents/rubyevents#1813",
+      "file": "rubyevents-rubyevents-1813.json",
+      "sha256": "d0ee30f02b37f15def14b2ae38f9d51116fc1f19d2805eeecd4d72331a4282e2",
+      "exit": 2
+    },
+    {
+      "pr": "OpenFlutter/fluwx#765",
+      "file": "OpenFlutter-fluwx-765.json",
+      "sha256": "226e33c07fa512d0a498b61f55555d294a79e3b1ec1736b47da78a4c9bd51a72",
+      "exit": 2
+    },
+    {
+      "pr": "ntop/n2n#1244",
+      "file": "ntop-n2n-1244.json",
+      "sha256": "5717c96e2df3cf5dd5f4774d483bdfb0e084ec132a772c698ecdffd99edd85da",
+      "exit": 2
+    },
+    {
+      "pr": "apify/crawlee#3771",
+      "file": "apify-crawlee-3771.json",
+      "sha256": "0a0832409a51d2ee028766ac5495e47ded34fc0954d833b99d997bee7ded388d",
+      "exit": 2
+    },
+    {
+      "pr": "RoboStack/robostack.github.io#138",
+      "file": "RoboStack-robostack.github.io-138.json",
+      "sha256": "60179447685121c41763ca53e18242b5ca092791184fad1e3c317fd3afce563f",
+      "exit": 2
+    },
+    {
+      "pr": "drewnoakes/metadata-extractor#734",
+      "file": "drewnoakes-metadata-extractor-734.json",
+      "sha256": "ae09dbfec1b6a57df4de9ab0d5a007aecac21db434c02e736624bdd25fc0c988",
+      "exit": 2
+    },
+    {
+      "pr": "MasterGroosha/aiogram-3-guide#106",
+      "file": "MasterGroosha-aiogram-3-guide-106.json",
+      "sha256": "5d90b749fe033356c89104e804ec7c69cb9af6d3986ad9cd9c9224375b0405e6",
+      "exit": 2
+    },
+    {
+      "pr": "am-will/gooey-pi#166",
+      "file": "am-will-gooey-pi-166.json",
+      "sha256": "1d52efe01f09751fb7bf6103b66d1a11f4a7fee9de17ef5d1d923e7fc56f8984",
+      "exit": 2
+    },
+    {
+      "pr": "kestra-io/kestra#18553",
+      "file": "kestra-io-kestra-18553.json",
+      "sha256": "f04e30e645ff02199fc28040f4710bdef094c7c910998635b302a6e50f8b0dc8",
+      "exit": 2
+    },
+    {
+      "pr": "wp-net/WordPressPCL#426",
+      "file": "wp-net-WordPressPCL-426.json",
+      "sha256": "3522bff02ab72028d70879031d8d89d752b24bc5d9fdf402f9fe0307b6967c50",
+      "exit": 2
+    },
+    {
+      "pr": "weave-os/router#1127",
+      "file": "weave-os-router-1127.json",
+      "sha256": "d55ed8c997561b78c974f170e160b82a5d1c8431eef594c7ba645245edcd553e",
+      "exit": 2
+    },
+    {
+      "pr": "fleetdm/fleet#52010",
+      "file": "fleetdm-fleet-52010.json",
+      "sha256": "36587b59de21b6b65cd7a4ff54fc33641c24c5a6965f1770cbffb43a0d7689cd",
+      "exit": 2
+    },
+    {
+      "pr": "markus-wa/demoinfocs-golang#654",
+      "file": "markus-wa-demoinfocs-golang-654.json",
+      "sha256": "4285742772aa9b46a7723b42d342b39c39255dae4868365245fe1600b1463e4d",
+      "exit": 2
+    },
+    {
+      "pr": "kentcdodds/kody#1853",
+      "file": "kentcdodds-kody-1853.json",
+      "sha256": "26852906b1b1f0383681dd751dd4cf6803d170e3623c12ba4781b26ca516251b",
+      "exit": 2
+    },
+    {
+      "pr": "redis/RedisInsight#6454",
+      "file": "redis-RedisInsight-6454.json",
+      "sha256": "17c08fb2d6b4e895008957457dfdced2497939152352fda1eb8770862baa760a",
+      "exit": 2
+    },
+    {
+      "pr": "wordpress-mobile/WordPress-iOS#25519",
+      "file": "wordpress-mobile-WordPress-iOS-25519.json",
+      "sha256": "6d60eb5866f2d760eb6c298a65d02a209de8b10f22efad95b35c06bc27e4b9e7",
+      "exit": 2
+    },
+    {
+      "pr": "e2b-dev/E2B#1790",
+      "file": "e2b-dev-E2B-1790.json",
+      "sha256": "701ac33783f3baa5fe21cb19439be3005519fa1edde8076d56cb870b2e881df3",
+      "exit": 2
+    },
+    {
+      "pr": "bcherny/json-schema-to-typescript#840",
+      "file": "bcherny-json-schema-to-typescript-840.json",
+      "sha256": "dec6a40b1fd5e1a146708efedbc9f0b22cc20463562c66c30b1bf8a2b2c248f3",
+      "exit": 2
+    },
+    {
+      "pr": "goblint/analyzer#2043",
+      "file": "goblint-analyzer-2043.json",
+      "sha256": "2e067a10c476a75cf1a3500fef619210c156a7e2d924c44071f8ad99e9ac9dcb",
+      "exit": 2
+    },
+    {
+      "pr": "bastani-inc/atomic#2781",
+      "file": "bastani-inc-atomic-2781.json",
+      "sha256": "a43ff301bba5cc11c4d4a61efba05e52d64a0752fd87f842a9e8f38076c3c256",
+      "exit": 2
+    },
+    {
+      "pr": "expo/expo#49518",
+      "file": "expo-expo-49518.json",
+      "sha256": "f254aaa40960efa0dc7d6aba85b49a0d37a0c2c172e38e140c8fbdb2b39eabc6",
+      "exit": 2
+    },
+    {
+      "pr": "9tigerio/db2rest#948",
+      "file": "9tigerio-db2rest-948.json",
+      "sha256": "42b35ca338f40b30b37240449c3f6b6844a0c62f16069be8b217c40702806639",
+      "exit": 2
+    },
+    {
+      "pr": "opencoredev/email-sdk#201",
+      "file": "opencoredev-email-sdk-201.json",
+      "sha256": "077cf88181b99185bfbde92935e404b6e2eccdc67a2eec6dad01d5251761704a",
+      "exit": 2
+    },
+    {
+      "pr": "alltheplaces/alltheplaces#18342",
+      "file": "alltheplaces-alltheplaces-18342.json",
+      "sha256": "13a985a006a491f027aa553262fd324695e9dafc182f9b31e2e2e72a82a0d0ec",
+      "exit": 2
+    },
+    {
+      "pr": "llnl/sundials#966",
+      "file": "llnl-sundials-966.json",
+      "sha256": "74e9c3bdfa69918f6092444fbb2b5333e4c461bb734150912d460f2062a3a605",
+      "exit": 2
+    },
+    {
+      "pr": "TracecatHQ/tracecat#3348",
+      "file": "TracecatHQ-tracecat-3348.json",
+      "sha256": "ef8c1d9fab243c4420d960ca901e315521e6162da4d07ee3a386e808d81ec8dd",
+      "exit": 2
+    },
+    {
+      "pr": "growilabs/growi#11837",
+      "file": "growilabs-growi-11837.json",
+      "sha256": "8faccb0a8daa7aac76f9110508c1e0a17abc80abe48ff3aff33c1b33add02c3e",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/mcp#3041",
+      "file": "microsoft-mcp-3041.json",
+      "sha256": "09b0d7f58ca1dc3465e69c548cba45f3f70dcb32cbb2701395458d5764f8fd95",
+      "exit": 2
+    },
+    {
+      "pr": "morpho-org/morpho-blue#793",
+      "file": "morpho-org-morpho-blue-793.json",
+      "sha256": "aa2c5f3363789f2277a31695173a6e7244896586fc5e0f5c026df9da62008850",
+      "exit": 2
+    },
+    {
+      "pr": "nickustinov/itsytv-macos#58",
+      "file": "nickustinov-itsytv-macos-58.json",
+      "sha256": "fe2f785ef7db523e32f372b09c8649a78ed119a44fb93c88e110890cd91294ef",
+      "exit": 2
+    },
+    {
+      "pr": "devtron-labs/devtron#7016",
+      "file": "devtron-labs-devtron-7016.json",
+      "sha256": "f9eb2fb3096dbf6f12ae7cca0fcca77bb28d9dc06f09307d087ea16bf319b002",
+      "exit": 2
+    },
+    {
+      "pr": "aspnet/Benchmarks#2188",
+      "file": "aspnet-Benchmarks-2188.json",
+      "sha256": "0697227d461925634e7711392cb5638d5864ad0aee7ef579d4a2ce2b79e9de62",
+      "exit": 2
+    },
+    {
+      "pr": "DangerousPrototypes/BusPirate5-firmware#304",
+      "file": "DangerousPrototypes-BusPirate5-firmware-304.json",
+      "sha256": "a783765747ef68d92f8c77a00348a9ee6c651fb6c48fc63d8b712136eb4fb367",
+      "exit": 2
+    },
+    {
+      "pr": "intel/auto-round#2111",
+      "file": "intel-auto-round-2111.json",
+      "sha256": "0604e784a771fcb4a398512999b2a31d2dd5ac5d0d9e088136e2639eab5b115b",
+      "exit": 2
+    },
+    {
+      "pr": "betaflight/betaflight#15567",
+      "file": "betaflight-betaflight-15567.json",
+      "sha256": "efa045d394d152dcfd848a94a0d687a2dd6c6f73096cec59bb46e8aab2b4a0cf",
+      "exit": 2
+    },
+    {
+      "pr": "Tencent/tdesign-vue-next#6918",
+      "file": "Tencent-tdesign-vue-next-6918.json",
+      "sha256": "624f05ecdfd04b935861a977315d5b2790895401c89c984b9f32f0af08c2f059",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/snmalloc#872",
+      "file": "microsoft-snmalloc-872.json",
+      "sha256": "4aef3eb9693b9ea39e3c551a7daad82ea2ac79707152827660605bf27883f0af",
+      "exit": 2
+    },
+    {
+      "pr": "PrismarineJS/minecraft-data#1253",
+      "file": "PrismarineJS-minecraft-data-1253.json",
+      "sha256": "b19ce463799bedbafb22e93d08bb2870e0a7f130b94c07c92f297b76f3f95e1b",
+      "exit": 2
+    },
+    {
+      "pr": "nmstate/kubernetes-nmstate#1573",
+      "file": "nmstate-kubernetes-nmstate-1573.json",
+      "sha256": "cf291bfc9298e09713253904abfb58acc66cbe0977bdffa54165b53b8ec29023",
+      "exit": 2
+    },
+    {
+      "pr": "polarsource/polar#13918",
+      "file": "polarsource-polar-13918.json",
+      "sha256": "3ac3e59261fdf4aa9bcf0b28f982b282ec3ff10887123958aacda03d05465f58",
+      "exit": 2
+    },
+    {
+      "pr": "github/platform-samples#818",
+      "file": "github-platform-samples-818.json",
+      "sha256": "28e33897b8a7160b4805177a3a1294295fe14169b2b00aa55066b1188eb220e9",
+      "exit": 2
+    },
+    {
+      "pr": "emqx/quic#444",
+      "file": "emqx-quic-444.json",
+      "sha256": "a899c8e45af97941c282eab9a577440887caa306501fbca9137ea786b809927b",
+      "exit": 2
+    },
+    {
+      "pr": "OWASP/CheatSheetSeries#2375",
+      "file": "OWASP-CheatSheetSeries-2375.json",
+      "sha256": "41ea95dbafd104767ab854657f560dcf9a85a8c62431bd2ac5b868cb9dea7494",
+      "exit": 2
+    },
+    {
+      "pr": "microsoft/TypeScript#64026",
+      "file": "microsoft-TypeScript-64026.json",
+      "sha256": "f6e143ddcd5a9b3cb4a12deab14b75aeec84b09de42ed1f3fc0b3b606a1d87c2",
+      "exit": 2
+    },
+    {
+      "pr": "AntennaPod/AntennaPod#8695",
+      "file": "AntennaPod-AntennaPod-8695.json",
+      "sha256": "236571f9ac1394e6ecda32921a7b48e52fa2fdc0e0bd810be322827c28af3d4a",
+      "exit": 2
+    },
+    {
+      "pr": "Azure/enterprise-azure-policy-as-code#1388",
+      "file": "Azure-enterprise-azure-policy-as-code-1388.json",
+      "sha256": "486b209ed83efe015a9fd5f263a1121f9d0ca0e03a0de7e2e491b001a8885cf9",
+      "exit": 2
+    },
+    {
+      "pr": "Azure/azure-service-operator#5652",
+      "file": "Azure-azure-service-operator-5652.json",
+      "sha256": "0e68432700c8095880aee2ade4d8f775c48f28559f6a377e335f2836d63eec09",
+      "exit": 2
+    }
+  ]
+}
