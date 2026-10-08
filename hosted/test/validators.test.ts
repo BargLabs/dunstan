@@ -49,6 +49,16 @@ beforeAll(async () => {
   standalone = module.PRECOMPILED as SchemaValidators;
 });
 
+// Generating the standalone code once created .build/ in the repository root, which
+// made src/mcp/server.test.ts's listing of that root fail by timing. The listing is taken when this
+// module loads, before beforeAll generates the code, so on a fresh checkout this fails if generating
+// it writes there again.
+const rootAtLoad = readdirSync(ROOT).sort();
+it('generating the standalone code leaves the repository root as it found it', async () => {
+  await standaloneValidatorCode();
+  expect(readdirSync(ROOT).sort()).toEqual(rootAtLoad);
+});
+
 describe('the standalone validators', () => {
   const blocks = [
     ...examples('spec/examples/blocks/valid'),

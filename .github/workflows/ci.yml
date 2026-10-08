@@ -53,6 +53,15 @@ jobs:
             git diff --stat -- action/dist >&2
             exit 1
           }
+      # THIRD_PARTY_NOTICES lists every package the distributed bundles carry, with its licence; the
+      # build rewrites it, so a dependency change that leaves it stale fails here.
+      - name: The committed THIRD_PARTY_NOTICES matches the build
+        run: |
+          test -z "$(git status --porcelain -- THIRD_PARTY_NOTICES)" || {
+            echo "THIRD_PARTY_NOTICES differs from the build: run pnpm build and commit it" >&2
+            git diff -- THIRD_PARTY_NOTICES >&2
+            exit 1
+          }
       - name: Write the determinism files
         env:
           DUNSTAN_DETERMINISM_OUT: determinism.jsonl
@@ -131,3 +140,58 @@ jobs:
           cat "$a/checker-digest.txt" "$b/checker-digest.txt"
           cmp "$a/checker-digest.txt" "$b/checker-digest.txt"
           echo "checker bundle digest: identical"
+
+  # The npm package, the Claude Code plugin and the MCP registry entry, as the release workflow will
+  # publish them. Nothing is published here.
+  distribution:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+      - name: Build the CLI bundle
+        run: pnpm run build
+      - name: npm pack --dry-run ships exactly the bundle and its notices
+        run: |
+          npm pack --dry-run --json > pack.json
+          node -e '
+            const [p] = require("./pack.json");
+            const files = p.files.map((f) => f.path).sort();
+            const want = ["LICENSE", "NOTICE", "README.md", "THIRD_PARTY_NOTICES", "dist/dunstan.mjs", "package.json", "spec/LICENSE"];
+            console.log(`${p.name}@${p.version}: ${files.join(", ")}`);
+            if (JSON.stringify(files) !== JSON.stringify(want)) {
+              console.error(`expected ${want.join(", ")}`);
+              process.exit(1);
+            }
+          '
+      - name: The packed tarball serves MCP from an empty directory, with no dependencies
+        run: |
+          npm pack --pack-destination "$RUNNER_TEMP" > /dev/null
+          empty=$(mktemp -d)
+          cd "$empty"
+          npm install --no-save --no-package-lock "$RUNNER_TEMP"/dunstan-*.tgz > /dev/null
+          test "$(ls node_modules)" = dunstan
+          printf '%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}' \
+            '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+            '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
+            | node_modules/.bin/dunstan mcp > out.jsonl
+          node -e '
+            const lines = require("fs").readFileSync("out.jsonl", "utf8").trim().split("\n").map(JSON.parse);
+            const tools = lines.find((m) => m.id === 2).result.tools.map((t) => t.name).sort();
+            console.log("tools:", tools.join(", "));
+            if (tools.join() !== "dunstan_check_handback,dunstan_suggest_declarations") process.exit(1);
+          '
+      - name: claude plugin validate --strict, the plugin and the marketplace
+        run: |
+          npx -y @anthropic-ai/claude-code@2.1.293 plugin validate --strict plugins/dunstan
+          npx -y @anthropic-ai/claude-code@2.1.293 plugin validate --strict .

@@ -1,0 +1,29 @@
+{
+  "name": "dunstan",
+  "displayName": "Dunstan",
+  "version": "0.1.6",
+  "description": "Checks a coding agent's declared handback (head commit, changed files, tests, references, checks) against the pull request's own GitHub record before it says done. Deterministic: no model decides the verdict.",
+  "author": {
+    "name": "Barg Labs",
+    "email": "team@barglabs.ai",
+    "url": "https://barglabs.ai"
+  },
+  "homepage": "https://barglabs.ai/dunstan",
+  "repository": "https://github.com/BargLabs/dunstan",
+  "license": "AGPL-3.0-only",
+  "keywords": ["pull-requests", "coding-agents", "verification", "github", "handback"],
+  "documentationUrl": "https://github.com/BargLabs/dunstan/blob/main/docs/mcp.md",
+  "supportUrl": "https://github.com/BargLabs/dunstan/issues",
+  "privacyPolicyUrl": "https://barglabs.ai/privacy",
+  "termsOfServiceUrl": "https://barglabs.ai/terms",
+  "userConfig": {
+    "github_token": {
+      "type": "string",
+      "title": "GitHub token (optional, fine-grained, read-only)",
+      "description": "A fine-grained personal access token with read-only permissions, limited to the repositories you check, with an expiry. Leave empty to read public repositories anonymously. Dunstan sends it only to GitHub's API.",
+      "sensitive": true,
+      "required": false,
+      "default": ""
+    }
+  }
+}

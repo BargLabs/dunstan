@@ -14,29 +14,72 @@ checker and when, nothing else. No model decides the verdict.
 
 ## Setting it up
 
-Build the bundle (`pnpm install && pnpm build`), then register it with the client. For Claude Code:
+The server runs from the `dunstan` npm package, pinned to an exact version. The package is one
+self-contained file with no dependencies, so nothing is built and nothing else is installed.
 
-```sh
-claude mcp add dunstan -e GITHUB_TOKEN="$(gh auth token)" -- node /path/to/dunstan/dist/dunstan.mjs mcp
+### In Claude Code, as a plugin
+
+```
+/plugin marketplace add BargLabs/dunstan
+/plugin install dunstan@barglabs
 ```
 
-For a client configured with JSON:
+The plugin starts the server with `npx -y dunstan@0.1.6 mcp` and adds the `dunstan-check` skill. When
+you enable it, Claude Code asks for an optional GitHub token (below). It stores the value in your
+system's secure credential store and passes it to the server as `GITHUB_TOKEN`. Leave it empty to read
+public repositories anonymously (a `closes` reference then needs the token; see below). The plugin
+never reads a token from your environment: it sets the server's `GITHUB_TOKEN` to the value you enter,
+or to nothing.
+
+### In another MCP client
+
+Run the same pinned package over stdio, and give it a token only through the client's own secret or
+environment setting:
 
 ```json
 {
   "mcpServers": {
     "dunstan": {
-      "command": "node",
-      "args": ["/path/to/dunstan/dist/dunstan.mjs", "mcp"],
-      "env": { "GITHUB_TOKEN": "<a token that can read the repository>" }
+      "command": "npx",
+      "args": ["-y", "dunstan@0.1.6", "mcp"],
+      "env": { "GITHUB_TOKEN": "<a fine-grained, read-only token>" }
     }
   }
 }
 ```
 
-A token with read access to the repository's contents, pull requests, checks, actions and
-deployments is enough. Without one the tool reads anonymously, which works only for public
-repositories and within GitHub's anonymous rate limit; the result says so in a `note:` line.
+Without `GITHUB_TOKEN` the server reads public repositories anonymously, within GitHub's anonymous
+rate limit, and the result says so in a `note:` line. One read always needs a token: GitHub's GraphQL
+API refuses anonymous calls, so without one a declared `closes` reference is `unverifiable`
+(`source_unreadable:closing_references`), never `fail`. Every other claim on a public repository is
+checked anonymously.
+
+### A read-only GitHub token
+
+Do not give the server a full-scope token, such as the one `gh auth token` prints. Create a
+fine-grained personal access token at https://github.com/settings/personal-access-tokens/new:
+
+1. **Expiration:** set one, for example 30 or 90 days.
+2. **Repository access:** "Only select repositories", and choose the repositories you check. Include
+   any other repository whose issues your blocks reference (`owner/repo#N`): a reference the token
+   cannot read is `unverifiable`.
+3. **Repository permissions**, every one **Read-only**:
+
+| Permission | What the checker reads with it |
+| --- | --- |
+| Metadata (always granted) | the repository: `GET /repos/{owner}/{repo}` |
+| Pull requests | the pull request and its changed files: `GET /pulls/{n}`, `GET /pulls/{n}/files`, and the closing references (GraphQL `closingIssuesReferences`) |
+| Contents | commits and ancestry: `GET /git/commits/{sha}`, `GET /compare/{base}...{head}` |
+| Issues | each issue the block references: `GET /issues/{n}` |
+| Actions | test counts from workflow runs: runs, jobs, and the named JUnit artifact |
+| Deployments | deployments and their statuses |
+
+Grant nothing else, and no write permission. Dunstan only reads.
+
+Check runs (`GET /commits/{sha}/check-runs`) have no fine-grained permission: GitHub's table of
+permissions for fine-grained tokens does not list that endpoint. On a public repository they are
+readable anyway. On a private repository, if GitHub refuses the read, a declared `checks` claim is
+`unverifiable` (`source_unreadable:check_runs`), never `fail`.
 
 ## Before you say done
 
@@ -134,5 +177,8 @@ Because it can write `outPath`, the check tool does not advertise `readOnlyHint`
 
 ## The registry entry
 
-`server.json` at the repository root is a draft entry for the MCP registry. It is not published, and
-the npm package it names is not published either. Publishing both is an operator decision.
+`server.json` at the repository root is the entry for the official MCP registry
+(`io.github.BargLabs/dunstan`). It names the npm package `dunstan`, and `mcpName` in `package.json` is
+how the registry verifies that the package is ours. `.github/workflows/release.yml` publishes the npm
+package and then this entry. The version in `package.json`, the plugin's `plugin.json` and `.mcp.json`,
+and `server.json` must agree; `src/__tests__/release-versions.test.ts` fails when they do not.

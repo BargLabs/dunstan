@@ -2,7 +2,6 @@
   "name": "dunstan",
   "version": "0.1.6",
   "mcpName": "io.github.BargLabs/dunstan",
-  "private": true,
   "description": "Holds a coding agent's completion report to the record: deterministic checks of a declared handback block against the repository's own metadata.",
   "license": "AGPL-3.0-only",
   "author": "Barg Labs",
@@ -10,14 +9,39 @@
     "type": "git",
     "url": "git+https://github.com/BargLabs/dunstan.git"
   },
+  "homepage": "https://barglabs.ai/dunstan",
+  "bugs": {
+    "url": "https://github.com/BargLabs/dunstan/issues",
+    "email": "team@barglabs.ai"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "coding-agents",
+    "pull-requests",
+    "github",
+    "verification",
+    "claude"
+  ],
   "type": "module",
   "packageManager": "pnpm@11.5.3",
   "engines": {
     "node": ">=22"
   },
   "bin": {
-    "dunstan": "dist/dunstan.mjs",
-    "dunstan-eval": "dist/dunstan-eval.mjs"
+    "dunstan": "dist/dunstan.mjs"
+  },
+  "files": [
+    "dist/dunstan.mjs",
+    "LICENSE",
+    "NOTICE",
+    "THIRD_PARTY_NOTICES",
+    "spec/LICENSE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "scripts": {
     "build": "node scripts/build.mjs",
@@ -29,19 +53,17 @@
     "test": "vitest run",
     "preflight": "bash scripts/preflight_fast.sh"
   },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.32.0",
-    "ajv": "^8.20.0",
-    "ajv-formats": "^3.0.1",
-    "zod": "^4.6.5"
-  },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
+    "@modelcontextprotocol/sdk": "^1.32.0",
     "@types/node": "^22.20.5",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "esbuild": "0.28.2",
     "miniflare": "4.20260730.0",
     "typescript": "^7.0.2",
     "vitest": "^5.0.3",
-    "wrangler": "4.147.0"
+    "wrangler": "4.147.0",
+    "zod": "^4.6.5"
   }
 }

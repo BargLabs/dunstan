@@ -15,6 +15,52 @@ The claim format, the block an agent declares and the record Dunstan writes, is 
 specification: [`spec/claim-format.md`](spec/claim-format.md), with JSON Schemas in `spec/schema/`
 and examples in `spec/examples/`.
 
+## Use with Claude
+
+Dunstan ships as a Claude Code plugin: two MCP tools and a skill that has Claude declare, check and
+report a pull request's handback before it says done ([`plugins/dunstan/`](plugins/dunstan/)).
+
+**Install.** In Claude Code:
+
+```
+/plugin marketplace add BargLabs/dunstan
+/plugin install dunstan@barglabs
+```
+
+The plugin runs the MCP server with `npx -y dunstan@0.1.6 mcp`, the `dunstan` npm package at that
+exact version: one self-contained file, no dependencies.
+
+**The token.** When you enable the plugin, Claude Code asks for an optional GitHub token and keeps it
+in your system's secure credential store. Use a fine-grained personal access token with read-only
+permissions, limited to the repositories you check, with an expiry; the permissions are in
+[`docs/mcp.md`](docs/mcp.md#a-read-only-github-token). Leave it empty to read public repositories
+anonymously. GitHub's GraphQL API refuses anonymous calls, so without a token a `closes` reference is
+`unverifiable`, never `fail`. The plugin never reads a token from your environment.
+
+**What it reads, and from where.** The server runs on your machine and calls GitHub's API directly
+from it: the pull request, its changed files, commits, check runs, workflow runs and test artifacts,
+deployments, and the issues the block references. Every request is a read. Nothing is written to
+GitHub or to the repository, and nothing is sent to Barg Labs.
+
+**Try it.** Three prompts on a public Barg Labs pull request:
+
+1. `Use Dunstan to check this handback for BargLabs/cejel#408: head commit
+   35d6201d00cf926f9af10df61bfec05b6624ee12, files changed
+   .github/workflows/verify-published-windows-binary.yml and
+   scripts/validate-distribution-metadata.mjs, merged at 2026-10-04T13:30:48Z.` Every claim holds,
+   so the verdict is `pass`.
+2. `Before I report BargLabs/cejel#408 as done, use Dunstan to list the claims in this report that my
+   handback block does not declare:` followed by the report and its `dunstan-handback` block. Dunstan
+   lists each prose claim the block leaves out, such as a test count or a `closes`, with the field
+   that would declare it. It is never a verdict.
+3. `Use Dunstan to check whether BargLabs/cejel#408 closes #407, with head commit
+   35d6201d00cf926f9af10df61bfec05b6624ee12 and the same two files.` Without a token the `closes`
+   row is `unverifiable` (`source_unreadable:closing_references`): the record could not settle it,
+   which is not the same as false. With a token it is `pass`.
+
+**Support.** [GitHub issues](https://github.com/BargLabs/dunstan/issues) or team@barglabs.ai.
+[Privacy](https://barglabs.ai/privacy) and [terms](https://barglabs.ai/terms).
+
 ## The checker
 
 ```sh

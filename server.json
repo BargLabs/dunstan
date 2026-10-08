@@ -2,11 +2,13 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.BargLabs/dunstan",
   "title": "Dunstan",
-  "description": "Checks a coding agent's handback block against the pull request's record. No model decides.",
+  "description": "Checks a coding agent's handback against the pull request's GitHub record. No model decides.",
   "version": "0.1.6",
+  "websiteUrl": "https://barglabs.ai/dunstan",
   "repository": {
     "url": "https://github.com/BargLabs/dunstan",
-    "source": "github"
+    "source": "github",
+    "id": "1406480222"
   },
   "packages": [
     {
@@ -25,7 +27,7 @@
       "environmentVariables": [
         {
           "name": "GITHUB_TOKEN",
-          "description": "A token that can read the repository's pull requests, checks, actions and deployments. Without it, reads are anonymous.",
+          "description": "Optional fine-grained, read-only GitHub token; without it, public repositories are read anonymously.",
           "isRequired": false,
           "isSecret": true
         }

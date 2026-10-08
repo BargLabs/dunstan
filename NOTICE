@@ -3,3 +3,5 @@ The checker, command-line tool, GitHub Action and MCP tool are licensed under th
 GNU Affero General Public License v3.0 only. See LICENSE for the full text.
 The claim format specification, JSON Schema and examples under spec/ are licensed
 under the Apache License, Version 2.0. See spec/LICENSE for the full text.
+The distributed bundles (dist/dunstan.mjs and action/dist/index.mjs) inline these JSON Schemas,
+and bundle third-party packages whose licences and notices are in THIRD_PARTY_NOTICES.

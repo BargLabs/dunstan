@@ -13,6 +13,7 @@
 
 import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { build, type Plugin } from 'esbuild';
@@ -60,8 +61,10 @@ function precompiledValidators(code: string): Plugin {
 }
 
 export async function standaloneValidatorCode(): Promise<string> {
-  mkdirSync(join(root, '.build'), { recursive: true });
-  const dir = mkdtempSync(join(root, '.build', 'standalone-'));
+  // Outside the repository: the generator is bundled whole (only node: built-ins stay external), so
+  // it runs from anywhere, and a directory created in the repository root while tests run beside
+  // src/mcp/server.test.ts, which compares two listings of that root, made that test fail by timing.
+  const dir = mkdtempSync(join(tmpdir(), 'dunstan-standalone-'));
   try {
     const out = join(dir, 'standalone.mjs');
     await build({

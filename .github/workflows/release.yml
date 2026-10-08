@@ -1,0 +1,97 @@
+name: Release
+
+# Publishes the npm package `dunstan` with provenance, then its entry in the official MCP registry
+# (io.github.BargLabs/dunstan). The Claude Code plugin needs no publish step: it is installed from
+# this repository's marketplace and runs the npm package at the version .mcp.json pins.
+#
+# Runs on a version tag, or by hand with the SHA-256 the release's dist/dunstan.mjs must have. Either
+# way it refuses unless the versions agree everywhere (src/__tests__/release-versions.test.ts), the
+# tag or input matches the build, and npm does not already hold the version.
+#
+# Secrets: NPM_TOKEN, an npm automation or granular access token that can publish `dunstan`. The MCP
+# registry needs no secret: `mcp-publisher login github-oidc` proves the io.github.BargLabs namespace
+# with this workflow's OIDC token.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      bundle_sha256:
+        description: SHA-256 that dist/dunstan.mjs must have (the release's published bundle)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    if: github.repository == 'BargLabs/dunstan'
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - run: pnpm install --frozen-lockfile
+      - name: Test (includes the version agreement across package.json, plugin.json, .mcp.json and server.json)
+        run: pnpm test
+      - name: Build the CLI bundle
+        run: pnpm run build
+
+      - name: The build is the release
+        env:
+          WANT_SHA256: ${{ inputs.bundle_sha256 }}
+        run: |
+          version=$(node -p 'require("./package.json").version')
+          digest=$(sha256sum dist/dunstan.mjs | cut -d' ' -f1)
+          echo "dunstan $version, dist/dunstan.mjs $digest"
+          test "$(node dist/dunstan.mjs --version)" = "$version"
+          test -z "$(git status --porcelain -- THIRD_PARTY_NOTICES action/dist)" || { echo "the build changed THIRD_PARTY_NOTICES or action/dist"; exit 1; }
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            test "$GITHUB_REF_NAME" = "v$version" || { echo "tag $GITHUB_REF_NAME is not v$version"; exit 1; }
+          else
+            test "$digest" = "$WANT_SHA256" || { echo "dist/dunstan.mjs is $digest, not $WANT_SHA256"; exit 1; }
+          fi
+          if npm view "dunstan@$version" version > /dev/null 2>&1; then
+            echo "dunstan@$version is already on npm"; exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Publish to npm with provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
+
+      - name: npm serves the published version
+        run: |
+          for i in 1 2 3 4 5 6; do
+            npm view "dunstan@$VERSION" version && exit 0
+            sleep 10
+          done
+          exit 1
+
+      - name: Install mcp-publisher v1.8.1 (checksum pinned)
+        run: |
+          curl -fsSL -o mcp-publisher.tar.gz \
+            https://github.com/modelcontextprotocol/registry/releases/download/v1.8.1/mcp-publisher_linux_amd64.tar.gz
+          echo "a06c9096dcb9727c13555b6be26c7effa707b01f06a4c561ba7a3635443cf2cc  mcp-publisher.tar.gz" | sha256sum -c -
+          tar xzf mcp-publisher.tar.gz mcp-publisher
+
+      - name: Publish the MCP registry entry
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish

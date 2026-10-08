@@ -217,6 +217,33 @@ describe('dunstan_check_handback', () => {
   });
 });
 
+// The titles and annotations an MCP client and the Claude directory read. Each tool's annotations are
+// compared whole, so a removed hint and a flipped one both fail here, on the tool that changed.
+// dunstan_check_handback keeps outPath: it writes a file only when outPath is given and never over an
+// existing one, so it is not read-only but not destructive either.
+describe('tool titles and annotations', () => {
+  it('declare each tool honestly', async () => {
+    const { client } = await connect();
+    const { tools } = await client.listTools();
+    const byName = Object.fromEntries(tools.map((t) => [t.name, t]));
+    expect(Object.keys(byName).sort()).toEqual([TOOL_NAME, SUGGEST_TOOL_NAME].sort());
+    expect(byName[TOOL_NAME]?.title).toBe('Check a handback against the record');
+    expect(byName[TOOL_NAME]?.annotations).toEqual({
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    });
+    expect(byName[SUGGEST_TOOL_NAME]?.title).toBe('Suggest declarations from the prose');
+    expect(byName[SUGGEST_TOOL_NAME]?.annotations).toEqual({
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    });
+  });
+});
+
 describe('dunstan_suggest_declarations', () => {
   const report = `Updated src/a.ts and docs/guide.md. All 42 tests pass.\n\n\`\`\`dunstan-handback\n{"dunstan":"0.1","headCommit":"${HEAD}","filesChanged":["src/a.ts"]}\n\`\`\`\n`;
 

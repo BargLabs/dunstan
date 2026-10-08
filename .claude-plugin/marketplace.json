@@ -1,0 +1,17 @@
+{
+  "name": "barglabs",
+  "description": "Plugins from Barg Labs.",
+  "owner": {
+    "name": "Barg Labs",
+    "email": "team@barglabs.ai",
+    "url": "https://barglabs.ai"
+  },
+  "plugins": [
+    {
+      "name": "dunstan",
+      "source": "./plugins/dunstan",
+      "description": "Checks a coding agent's declared handback against the pull request's own GitHub record before it says done.",
+      "category": "development"
+    }
+  ]
+}

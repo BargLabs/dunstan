@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "dunstan": {
+      "command": "npx",
+      "args": ["-y", "dunstan@0.1.6", "mcp"],
+      "env": {
+        "GITHUB_TOKEN": "${user_config.github_token}"
+      }
+    }
+  }
+}
