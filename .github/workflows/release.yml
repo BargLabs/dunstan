@@ -5,8 +5,9 @@ name: Release
 # this repository's marketplace and runs the npm package at the version .mcp.json pins.
 #
 # Runs on a version tag, or by hand with the SHA-256 the release's dist/dunstan.mjs must have. Either
-# way it refuses unless the versions agree everywhere (src/__tests__/release-versions.test.ts), the
-# tag or input matches the build, and npm does not already hold the version.
+# way it refuses unless the versions agree everywhere (src/__tests__/release-versions.test.ts) and
+# the tag or input matches the build. It can be re-run: a version npm already serves with this exact
+# tarball skips the npm publish, and an entry the registry already holds skips the registry publish.
 #
 # Secrets: NPM_TOKEN, an npm automation or granular access token that can publish `dunstan`. The MCP
 # registry needs no secret: `mcp-publisher login github-oidc` proves the io.github.BargLabs namespace
@@ -66,22 +67,37 @@ jobs:
           else
             test "$digest" = "$WANT_SHA256" || { echo "dist/dunstan.mjs is $digest, not $WANT_SHA256"; exit 1; }
           fi
-          if npm view "dunstan@$version" version > /dev/null 2>&1; then
-            echo "dunstan@$version is already on npm"; exit 1
+          # A version npm already serves is published again only by a re-run: it must be this exact
+          # package (the same tarball integrity, which npm pack reproduces), and then the npm step is
+          # skipped and the registry step still runs. A different package under that version refuses.
+          local_integrity=$(npm pack --dry-run --json | node -e 'console.log(JSON.parse(require("fs").readFileSync(0, "utf8"))[0].integrity)')
+          echo "npm pack integrity $local_integrity"
+          published=$(npm view "dunstan@$version" dist.integrity 2>/dev/null || true)
+          if [ -n "$published" ]; then
+            test "$published" = "$local_integrity" || { echo "npm serves a different dunstan@$version ($published)"; exit 1; }
+            echo "dunstan@$version is already on npm with this integrity: the npm publish is skipped"
+            echo "NPM_PUBLISHED=1" >> "$GITHUB_ENV"
           fi
           echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "INTEGRITY=$local_integrity" >> "$GITHUB_ENV"
 
       - name: Publish to npm with provenance
+        if: env.NPM_PUBLISHED != '1'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --provenance --access public
 
+      # npm processes a publish before serving it: dunstan@0.1.6, the first, took about 95 seconds,
+      # behind a 0.0.0-stage placeholder. Wait up to 15 minutes, and require the version npm serves to
+      # be this package.
       - name: npm serves the published version
         run: |
-          for i in 1 2 3 4 5 6; do
-            npm view "dunstan@$VERSION" version && exit 0
+          for i in $(seq 1 90); do
+            served=$(npm view "dunstan@$VERSION" dist.integrity 2>/dev/null || true)
+            if [ "$served" = "$INTEGRITY" ]; then echo "npm serves dunstan@$VERSION ($served)"; exit 0; fi
             sleep 10
           done
+          echo "npm does not serve dunstan@$VERSION with integrity $INTEGRITY after 15 minutes"
           exit 1
 
       - name: Install mcp-publisher v1.8.1 (checksum pinned)
@@ -93,5 +109,12 @@ jobs:
 
       - name: Publish the MCP registry entry
         run: |
+          name=$(node -p 'require("./server.json").name')
+          url="https://registry.modelcontextprotocol.io/v0/servers/$(node -p 'encodeURIComponent(require("./server.json").name)')/versions/$VERSION"
+          if [ "$(curl -s -o /dev/null -w '%{http_code}' "$url")" = 200 ]; then
+            echo "$name $VERSION is already in the MCP registry"
+            exit 0
+          fi
           ./mcp-publisher login github-oidc
           ./mcp-publisher publish
+          test "$(curl -s -o /dev/null -w '%{http_code}' "$url")" = 200 || { echo "the registry does not serve $name $VERSION"; exit 1; }

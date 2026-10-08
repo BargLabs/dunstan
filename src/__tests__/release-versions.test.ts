@@ -158,6 +158,31 @@ describe('the plugin', () => {
   });
 });
 
+// The first publish (dunstan@0.1.6) was served about 95 seconds after npm accepted it, past the
+// workflow's 60-second wait, so the registry step never ran and a re-run would have refused the
+// version npm now held. The release must wait long enough and be safe to re-run.
+describe('the release workflow', () => {
+  const release = readFileSync(join(ROOT, '.github/workflows/release.yml'), 'utf8');
+
+  it('waits up to 15 minutes for npm to serve this exact package', () => {
+    const loop =
+      /for i in \$\(seq 1 (\d+)\); do\n\s+served=\$\(npm view "dunstan@\$VERSION" dist\.integrity/.exec(
+        release,
+      );
+    expect(loop).not.toBeNull();
+    expect(Number(loop?.[1]) * 10).toBeGreaterThanOrEqual(900);
+    expect(release).toContain('if [ "$served" = "$INTEGRITY" ]');
+  });
+
+  it('skips a publish already done with the same tarball, and refuses a different one', () => {
+    expect(release).toMatch(
+      /- name: Publish to npm with provenance\n\s+if: env\.NPM_PUBLISHED != '1'/,
+    );
+    expect(release).toContain('test "$published" = "$local_integrity"');
+    expect(release).toMatch(/versions\/\$VERSION"\n[\s\S]*already in the MCP registry/);
+  });
+});
+
 // No example hands the server a credential the user's machine already holds: the checklist holds a
 // plugin that does, even in a README.
 describe('no example passes on an ambient credential', () => {
