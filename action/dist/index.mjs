@@ -8466,6 +8466,14 @@ function closedBy(reference, field, evidence, repository, at, observed) {
     "not_closing"
   );
 }
+function closesBlock(issue, headCommit) {
+  return {
+    dunstan: BLOCK_VERSION,
+    headCommit,
+    filesChanged: [],
+    references: [{ issue, relation: "closes" }]
+  };
+}
 function checkReferences(block, evidence, repository) {
   return (block.references ?? []).map((reference, i) => {
     const field = `/references/${i}`;
@@ -9684,7 +9692,7 @@ async function readEvidence(client, input2) {
 // src/record/checker.ts
 import { readFileSync } from "node:fs";
 var CHECKER_NAME = "dunstan";
-var CHECKER_VERSION = "0.1.7";
+var CHECKER_VERSION = "0.1.8";
 function checkerIdentity(artifact) {
   return {
     name: CHECKER_NAME,
@@ -10450,7 +10458,7 @@ function blockFor(kind, value, headSha) {
     case "file_changed":
       return typeof value === "string" ? { ...base, filesChanged: [value] } : void 0;
     case "reference_closes":
-      return typeof value === "string" ? { ...base, references: [{ issue: value, relation: "closes" }] } : void 0;
+      return typeof value === "string" ? closesBlock(value, headSha) : void 0;
     case "commit":
       return typeof value === "string" && value.length === 40 ? { ...base, references: [{ commit: value, relation: "cites" }] } : void 0;
     case "head_commit":
@@ -11615,7 +11623,7 @@ var FILL_TO_K = "to-k";
 var ARM_A_FILL = "A-fill";
 var BM25_FLOOR = 1;
 var SCORE_DECIMALS = 6;
-function round(score) {
+function roundScore(score) {
   const scale = 10 ** SCORE_DECIMALS;
   return Math.round(score * scale) / scale;
 }
@@ -11663,7 +11671,7 @@ function retrieve(claim, items, opts) {
       });
       return;
     }
-    const score = round(scores[order] ?? 0);
+    const score = roundScore(scores[order] ?? 0);
     if (!fill && score < BM25_FLOOR) return;
     ranked.push({
       order,
@@ -11686,6 +11694,7 @@ var READER_CLAIM_KINDS = /* @__PURE__ */ new Map([
   ["file_changed", "file"],
   ["commit_present", "commit"],
   ["reference_in_timeline", "timeline_event"],
+  ["reference_closes", "timeline_event"],
   ["check_succeeded", "check_run"],
   ["test_passed", "test"]
 ]);
@@ -11739,6 +11748,19 @@ function combinedCandidates(typed, floor) {
   const exact = typed.filter((c) => c.score === null);
   return exact.length > 0 ? exact : typed.filter((c) => c.score !== null && c.score >= floor);
 }
+function outcomeOf(type, entry) {
+  if (type === "test") return entry.outcome;
+  const run = entry;
+  if (run.status !== "completed") return "not_completed";
+  return run.conclusion === "success" ? "succeeded" : "failed";
+}
+function ambiguousCandidates(combined, outcome) {
+  const scores = combined.map((c) => c.score === null ? null : roundScore(c.score));
+  if (scores.length < 2 || scores.includes(null)) return false;
+  const top = Math.max(...scores);
+  const tied = combined.filter((_, i) => scores[i] === top);
+  return tied.length >= 2 && new Set(tied.map(outcome)).size > 1;
+}
 function checkReaderClaim(claim, evidence, repository) {
   const type = READER_CLAIM_KINDS.get(claim.kind);
   if (type === void 0) return unverifiable2("no_comparable_record_field");
@@ -11746,6 +11768,13 @@ function checkReaderClaim(claim, evidence, repository) {
   const wantsBoolean = type === "check_run" || type === "test";
   if (wantsBoolean ? typeof declared !== "boolean" : typeof declared !== "string") {
     return unverifiable2("no_comparable_record_field");
+  }
+  if (claim.kind === "reference_closes") {
+    if (!ISSUE_REF2.test(declared)) return unverifiable2("no_comparable_record_field");
+    const head = evidence.pullRequest.headSha;
+    const row = checkReferences(closesBlock(declared, head), evidence, repository)[0];
+    if (row === void 0) return unverifiable2("no_comparable_record_field");
+    return verdictOf(row.verdict, row.observed ?? null, row.reason);
   }
   const missing = sectionReason(type, evidence);
   if (missing !== void 0) return unverifiable2(missing);
@@ -11759,6 +11788,9 @@ function checkReaderClaim(claim, evidence, repository) {
   const truncated = type === "file" && evidence.files?.status === "ok" && !evidence.files.complete;
   if (relevant.length === 0) {
     return unverifiable2(truncated ? "file_list_truncated" : "no_matching_record_item");
+  }
+  if (wantsBoolean && ambiguousCandidates(relevant, (c) => outcomeOf(type, entries.get(c.id)))) {
+    return unverifiable2("ambiguous_candidates");
   }
   switch (type) {
     case "file": {
@@ -12570,7 +12602,7 @@ var FILES = { "handback-block-0.1.schema.json": `{
     },
     "readerReason": {
       "type": "string",
-      "pattern": "^(?:no_matching_record_item|declared_item_not_among_candidates|candidate_not_in_evidence|no_comparable_record_field|file_list_truncated|checks_incomplete|all_succeeded_mismatch|test_not_executed|test_outcome_mismatch|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request_files|check_runs|pull_request_commits|timeline|artifact))$"
+      "pattern": "^(?:no_matching_record_item|declared_item_not_among_candidates|candidate_not_in_evidence|ambiguous_candidates|no_comparable_record_field|file_list_truncated|checks_incomplete|all_succeeded_mismatch|test_not_executed|test_outcome_mismatch|not_closing|not_found|closing_link_unsettled|closing_base_not_default|closing_event_unsettled|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request_files|check_runs|pull_request_commits|closing_references|repository|issue|timeline|artifact))$"
     }
   }
 }
