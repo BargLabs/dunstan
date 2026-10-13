@@ -12,6 +12,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { compareAdvisory } from '../advisory/advise.js';
 import type { Evidence, Verdict } from '../check/types.js';
 import { loadCorpus } from '../eval/retrieval.js';
 import type { JsonValue } from '../spec/json.js';
@@ -21,7 +22,13 @@ import { BM25_FLOOR, retrieve } from './retrieve.js';
 import type { Candidate } from './types.js';
 
 const DIR = fileURLToPath(new URL('../../test/retrieval-challenge/', import.meta.url));
-const FAMILIES = ['checks', 'lexical', 'numbers', 'paths', 'shas', 'tests'];
+const FAMILIES = ['checks', 'closes', 'lexical', 'numbers', 'paths', 'shas', 'tests'];
+
+// The 0.1 sections a closes case's check reads (spec section 7.4), for that case alone: its pull
+// request's state over the family's, and its closing references, references and close events.
+type CaseEvidence = Partial<Pick<Evidence, 'closingReferences' | 'references' | 'closeEvents'>> & {
+  pullRequest?: Partial<Evidence['pullRequest']>;
+};
 
 interface ChallengeClaim {
   id: string;
@@ -30,6 +37,7 @@ interface ChallengeClaim {
   text: string;
   kind: string;
   declaredValue: JsonValue;
+  evidence?: CaseEvidence;
   // The ids the check should read first, in this order: the head of Arm A's list.
   expectCandidates: string[];
   // The ids the check must not read: no identifier match, and no score at or above the floor.
@@ -52,7 +60,11 @@ type Effect = 'verdict' | 'observed' | 'candidates';
 // Every case where today's behaviour differs from the case's expectation, keyed family/case. Each is
 // for a later change to fix, or to keep with a reason. Since 10X an identifier match closes the set
 // the check combines (docs/retrieval.md, "Exact identifiers close the set"), so a lexical candidate
-// read beside one is no longer a miss.
+// read beside one is no longer a miss. Since 10X2 a claim with no identifier match whose top
+// candidates tie and disagree on the outcome is unverifiable (docs/retrieval.md, "Ties that
+// disagree are ambiguous"), and the check reads none of its candidates. Since 10Z a
+// reference_closes claim is the 0.1 gate's 7.4 row (docs/retrieval.md, "Closing claims"); the closes
+// family has no miss.
 const KNOWN_MISSES = new Map<string, { effect: Effect; reason: string }>([
   // checks
   [
@@ -72,57 +84,11 @@ const KNOWN_MISSES = new Map<string, { effect: Effect; reason: string }>([
   ],
   // lexical
   [
-    'lexical/shard-later',
-    {
-      effect: 'verdict',
-      reason:
-        'No job is named whole, so nothing closes the set; one-character tokens are dropped, so shard 1 (failed) ties with shard 2 and is read.',
-    },
-  ],
-  [
-    'lexical/shard-later-said-to-fail',
-    {
-      effect: 'verdict',
-      reason:
-        'A false pass: the tied shard 1 (failed) is read, so "shard 2 fails" holds though shard 2 succeeded.',
-    },
-  ],
-  [
-    'lexical/shard-earlier',
-    {
-      effect: 'candidates',
-      reason: "The tied shard 2 is read too; shard 1's failure decides anyway.",
-    },
-  ],
-  [
-    'lexical/package-later',
-    {
-      effect: 'verdict',
-      reason:
-        'No job is named whole, so nothing closes the set; one-character tokens are dropped, so pkg-a (failed) ties with pkg-b and is read.',
-    },
-  ],
-  [
-    'lexical/byte-size-later',
-    {
-      effect: 'verdict',
-      reason:
-        'No test is named whole, so nothing closes the set; the 0 byte test (failed) ties with the 1 byte test and is read.',
-    },
-  ],
-  [
-    'lexical/byte-size-later-said-to-fail',
-    {
-      effect: 'verdict',
-      reason:
-        'A false pass: the tied 0 byte test (failed) is read, so "the 1 byte test fails" holds though it passed.',
-    },
-  ],
-  [
     'lexical/api-version-later',
     {
       effect: 'verdict',
-      reason: '"version 2" matches neither v1 nor v2, so they tie and api.v1 (failed) is read.',
+      reason:
+        '"version 2" matches neither v1 nor v2, so they tie; api.v1 failed and api.v2 passed, so the check finds the claim ambiguous and it is unverifiable, not pass.',
     },
   ],
   // paths
@@ -195,7 +161,8 @@ const families = loadCorpus(DIR) as unknown as Map<string, ChallengeFamily>;
 
 const READER = { name: 'challenge-set', version: '0.0.0' };
 
-function evidenceOf(snapshot: ItemSnapshot): Evidence {
+function evidenceOf(snapshot: ItemSnapshot, own: CaseEvidence = {}): Evidence {
+  const { pullRequest, ...sections } = own;
   return {
     pullRequest: {
       status: 'ok',
@@ -206,8 +173,10 @@ function evidenceOf(snapshot: ItemSnapshot): Evidence {
       headSha: '0'.repeat(40),
       mergeSha: null,
       changedFiles: snapshot.files?.status === 'ok' ? snapshot.files.entries.length : 0,
+      ...pullRequest,
     },
     ...snapshot,
+    ...sections,
     sources: [],
   };
 }
@@ -219,8 +188,9 @@ interface Run {
   // Arm A, unfilled: the identifier matches and the candidates at or above the floor.
   armA: Candidate[];
   // The candidates the check reads: Arm A's identifier matches if there are any, which close the
-  // set, and otherwise all of Arm A.
+  // set, and otherwise all of Arm A. A claim the check finds ambiguous reads none of them.
   combined: Candidate[];
+  evidence: Evidence;
   recorded: ReturnType<typeof readReaderClaim>;
 }
 
@@ -232,13 +202,15 @@ const runs: Run[] = [...families].flatMap(([name, family]) =>
       repository: family.repository,
       ...(type === undefined ? {} : { types: [type] }),
     });
+    const evidence = evidenceOf(family.evidence, claim.evidence);
     const recorded = readReaderClaim(
       { text: claim.text, kind: claim.kind, declaredValue: claim.declaredValue, reader: READER },
-      evidenceOf(family.evidence),
+      evidence,
       family.repository,
     );
-    const combined = combinedCandidates(armA, BM25_FLOOR);
-    return { key: `${name}/${claim.id}`, family, claim, armA, combined, recorded };
+    const combined =
+      recorded.reason === 'ambiguous_candidates' ? [] : combinedCandidates(armA, BM25_FLOOR);
+    return { key: `${name}/${claim.id}`, family, claim, armA, combined, evidence, recorded };
   }),
 );
 
@@ -298,7 +270,7 @@ function summary({ combined, recorded }: Run) {
 }
 
 describe('the retrieval challenge set', () => {
-  it('has six families of at least three cases, each naming items its record holds', () => {
+  it('has seven families of at least three cases, each naming items its record holds', () => {
     expect([...families.keys()]).toEqual(FAMILIES);
     for (const [name, family] of families) {
       expect(family.family).toBe(name);
@@ -335,6 +307,26 @@ describe('the retrieval challenge set', () => {
     expect(effects(found), JSON.stringify(Object.fromEntries(found), null, 2)).toEqual(
       effects(KNOWN_MISSES),
     );
+  });
+
+  // A reference_closes claim and a reference_closes advisory are both the 0.1 gate's 7.4 row for a
+  // block that declares the one closes, so on every closes case the two say the same.
+  it('decides each closes case as advisory comparison 0.4.0 notes it', () => {
+    const closes = runs.filter((r) => r.claim.kind === 'reference_closes');
+    expect(closes.length).toBeGreaterThan(0);
+    for (const { key, claim, evidence, family, recorded } of closes) {
+      const advisory = compareAdvisory(
+        { kind: 'reference_closes', value: claim.declaredValue as string },
+        evidence,
+        family.repository,
+        [],
+      );
+      const note =
+        recorded.verdict === 'pass'
+          ? 'agrees'
+          : `${recorded.verdict === 'fail' ? 'differs' : 'unanswered'}:${recorded.reason}`;
+      expect({ note, observed: recorded.observed }, key).toEqual(advisory);
+    }
   });
 
   it('gives each known miss a family it belongs to and a reason', () => {

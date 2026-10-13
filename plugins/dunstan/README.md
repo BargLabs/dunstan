@@ -19,12 +19,31 @@ This plugin adds two MCP tools and one skill:
 
 ## What it runs, reads and sends
 
-The plugin starts the MCP server with `npx -y dunstan@0.1.7 mcp`, which downloads the `dunstan`
+The plugin starts the MCP server with `npx -y dunstan@0.1.8 mcp`, which downloads the `dunstan`
 package at that exact version from the npm registry. The package is one self-contained file with no
 dependencies. The server runs on your machine and reads GitHub's API directly from it: the pull
 request, its files, commits, check runs, workflow runs and artifacts, deployments, and the issues the
 block references. Every request is a read. Nothing is written to GitHub or the repository, and nothing
 is sent to Barg Labs.
+
+## Changes in 0.1.8
+
+No 0.1 verdict changes: checked against the same handback and evidence, 0.1.7 and 0.1.8 give the
+same verdict and claims. The changes are in the DRAFT 0.2.0 reader claims, which the 0.1 gate does
+not read: tied candidates that disagree are `unverifiable` (`ambiguous_candidates`), and a
+`reference_closes` claim is decided by the same `closes` check as a declared `closes`. The
+`dunstan-check` skill now gives each `closes` reason and what to say about it.
+
+## Changes in 0.1.7
+
+A declared `closes` on a pull request that is no longer open now passes when the pull request, one
+of its commits or its merge commit closed the issue. This holds even when GitHub does not list the
+issue among the pull request's closing references. In 0.1.6 the same claim was a `fail`
+(`not_closing`). Two new `unverifiable` reasons cover what the record cannot settle:
+`closing_base_not_default`, the pull request merged into a branch that is not the default branch and
+the issue is still open, and `closing_event_unsettled`, the issue is closed but GitHub has not yet
+recorded what closed it. So a record made with 0.1.6 and one made with 0.1.7 can give different
+verdicts for the same handback.
 
 ## GitHub token
 

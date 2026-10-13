@@ -28,7 +28,7 @@ export const BM25_FLOOR = 1;
 // difference in the last bits of a logarithm on another runtime cannot reorder candidates.
 export const SCORE_DECIMALS = 6;
 
-function round(score: number): number {
+export function roundScore(score: number): number {
   const scale = 10 ** SCORE_DECIMALS;
   return Math.round(score * scale) / scale;
 }
@@ -93,7 +93,7 @@ export function retrieve(
       });
       return;
     }
-    const score = round(scores[order] ?? 0);
+    const score = roundScore(scores[order] ?? 0);
     // Filling ranks every item of an allowed type; the same order puts every item at or above the
     // floor before every item below it, so the first k are the unfilled list, then the fill.
     if (!fill && score < BM25_FLOOR) return;

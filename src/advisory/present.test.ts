@@ -126,13 +126,18 @@ const FIGURES_LINE =
 // `closing_base_not_default`, and the DRAFT schema's evidence the section and its advisory note the
 // reason, and, amended 2026-10-12, both schemas the reason `closing_event_unsettled` and the 0.1
 // record schema's check runs the optional `checkSuiteId` and `appSlug`, and, amended 2026-10-13,
-// `workflowPath`, `workflowRunId` and `runAttempt`. A change to any of them is a record change.
+// `workflowPath`, `workflowRunId` and `runAttempt`; and but for the reader claim reason
+// `ambiguous_candidates` the DRAFT schema gained when ties that disagree became ambiguous; and but
+// for the reader claim kind `reference_closes`, decided by the 7.4 closes row, for which the DRAFT
+// schema's reader claim reason gained that row's reasons (`not_closing`, `not_found`, the three
+// `closing_*` reasons and the sources `closing_references`, `repository` and `issue`). A change to
+// any of them is a record change.
 const SCHEMA_SHA256: Record<string, string> = {
   'handback-block-0.1.schema.json':
     '331d142be28bf7c9deac7f76cad83731bf00679b952418004270c70344db46a7',
   'record-0.1.schema.json': '34dfead1fb6243a3c0f55a3a8511a36bbf216182931a9ab82a4a285c92b8fa24',
   'record-0.2-draft.schema.json':
-    '71173f40a289f1b570e1f343a8b57f22162864cf5bb3be68a992132d091c1490',
+    '46a0875b4d8148d7a4109543a22e7dd8a510cf4667c547ff46bf9129b7965a1b',
 };
 
 const evidence: Evidence = {

@@ -104,6 +104,29 @@ under another classname would otherwise join the aggregate. It could then turn a
 the right item exactly from `pass` into `fail`. Retrieval itself is unchanged: it ranks and records
 the same candidates as before, and only what the check combines differs.
 
+### Ties that disagree are ambiguous
+
+A claim that names nothing exactly has no identifier match to close the set. If its best lexical
+candidates tie, the record cannot tell which of them the claim is about. For `check_succeeded` and
+`test_passed` (`ambiguousCandidates`, `reader-claims.ts`; DRAFT 0.2.0, D.6):
+
+1. **Ambiguous candidates are unverifiable.** If the claim has no identifier match of its item type,
+   and two or more of its candidates at or above the floor tie on the top score, and they disagree on
+   the outcome the kind reads, the claim is `unverifiable` with `ambiguous_candidates`. The check
+   neither combines nor reads them. The outcome is a run's succeeded, failed (completed with any
+   other conclusion, as section 7.5 reads it) or not completed, and a test case's passed, failed or
+   skipped.
+2. **Agreement means no ambiguity.** If the tied candidates agree on the outcome, the check combines
+   every candidate at or above the floor, as before.
+3. **Ties only.** Scores are compared exactly, after rounding to `SCORE_DECIMALS`, with no margin. A
+   candidate below the top score does not make the claim ambiguous, whatever its outcome.
+
+Without this rule a tied confusable decided the aggregate. "e2e shard 2 fails" held because `e2e
+(shard 1)`, which ties with `e2e (shard 2)` once the one-character token is dropped, failed: a false
+pass. "e2e shard 2 passes" failed for the same reason. A check that cannot tell the two runs apart
+says so. `file_changed`, `commit_present` and `reference_in_timeline` need the declared item among
+the candidates, so a tie cannot mislead them, and the rule does not apply to them.
+
 ### The floor, and why 1
 
 With k1 = 1.2 and b = 0.75, a query term that occurs once in an item of average length contributes
@@ -168,6 +191,25 @@ candidate below the floor; it verifies as before.
 
 Kinds and their checks are listed in the DRAFT section of the spec.
 
+### Closing claims
+
+"Closes #12" is a `reference_closes` claim. Its candidates are the timeline events that name #12,
+found as for `reference_in_timeline`: where the record mentions the issue. They are recorded, and
+no candidate decides the claim. The check builds the block a closes claim outside a block is
+checked as (`closesBlock` in `src/check/checks.ts`: one `closes` reference to the issue, nothing
+else) and takes its row from the gate's own `checkReferences`, as advisory comparison 0.4.0 does
+for a `reference_closes` advisory. So the verdict, reason and `observed` are section 7.4's: the
+closing references (and, for an issue they do not list, whether it exists: `not_found`), then a
+ClosedEvent whose closer is this pull request, its merge commit or one
+of its commits, then `closing_link_unsettled`, `closing_base_not_default`, an unread section,
+`closing_event_unsettled`, and otherwise `not_closing`. Evidence 7.4 needs and the record lacks
+gives the gate's unread reason, never `pass`. `#N` is the subject repository unless the claim says
+`owner/repo#N`.
+
+`reference_in_timeline` is unchanged. It means "mentioned" and passes on any timeline event naming
+the issue, a bare cross-reference included, so it never stands in for a closing claim. A
+cross-reference shows the pull request mentioned the issue, not that it closed it.
+
 ## Measuring: `dunstan-eval retrieval`
 
 ```sh
@@ -226,8 +268,15 @@ loader:
 - `shas`: a 7-hex prefix two commits share; a SHA in a timeline event's `ref` and not among the
   commits.
 - `numbers`: `#N` in the subject repository against `owner/repo#N`; `#120` against `#12`; an issue
-  named only by a `connected` event. A `closes` claim is not a reader claim: section 7.4 of the spec
-  settles it by who closed the target, so the set has no `closes` case.
+  named only by a `connected` event. These are `reference_in_timeline` claims: the record mentions
+  the issue. A claim that the pull request closes it is in `closes`.
+- `closes`: `reference_closes` claims, each with the evidence section 7.4 reads for that case alone
+  (the pull request's state, closing references, references and close events). The timeline
+  cross-references the issue, or names it by a `connected` event, or not at all, and the 7.4 row
+  decides: listed in the closing references, closed by this pull request, by its merge commit, or
+  in another repository by this pull request (`pass`); closed with no closer, open after a merge into
+  the default branch, or no such issue (`fail`); the pull request still open, merged into another
+  base, closed with no ClosedEvent yet, or close events not read (`unverifiable`).
 - `checks`: the right name on the wrong run (a re-run; one job name in two workflows); names that
   differ only in case; names below `MIN_NAME_LENGTH`; a matrix job.
 - `tests`: test names one token apart; one `name` under two `classname`s.
@@ -238,7 +287,8 @@ loader:
 A case gives the claim (`text`, `kind`, `declaredValue`), its `confusion` in one line,
 `expectCandidates` (the ids the check should read first, in that order), `forbidCandidates` (ids the
 check must not read: no identifier match and no score at or above the floor) and `expectCheck` (the
-verdict, and the reason and observed value where stated).
+verdict, and the reason and observed value where stated). The check reads no candidate of a claim it
+finds ambiguous, so such a case expects none first, and reads none it forbids.
 
 `src/retrieval/challenge.test.ts` runs Arm A and the check (`readReaderClaim`) on every case and
 snapshots the candidates and the check exactly. Every case where that differs from its expectation
@@ -250,12 +300,13 @@ Arm B is not run: Dunstan ships no embedding provider.
 | Family | Cases | Known misses | Of which a wrong verdict |
 | --- | --- | --- | --- |
 | `checks` | 9 | 2 | 1 |
-| `lexical` | 8 | 7 | 6 |
+| `closes` | 13 | 0 | 0 |
+| `lexical` | 8 | 1 | 1 |
 | `numbers` | 5 | 0 | 0 |
 | `paths` | 11 | 3 | 0 |
 | `shas` | 7 | 3 | 0 |
 | `tests` | 7 | 2 | 1 |
-| All | 47 | 17 | 8 |
+| All | 60 | 11 | 3 |
 
 When the set was first measured there were 35 known misses, 14 of them wrong verdicts. One of them
 was a `closes` claim that a cross-reference passed; that case has since been dropped, since its pass
@@ -285,6 +336,16 @@ Matching a job name whole (step 1 above) then fixed the matrix job: `test (ubunt
 names `test`. That left 17 misses, 8 of them wrong verdicts. Case and the short names inside longer
 ones were already fixed by exact identifiers.
 
+"Ties that disagree are ambiguous" then took the loosely named claims out of the aggregate. Six
+`lexical` cases now expect `unverifiable`, `ambiguous_candidates`, where they expected `pass` or
+`fail`: a change of expectation, not a fix to `pass` or `fail`. They are `shard-later`,
+`shard-later-said-to-fail`, `package-later`, `byte-size-later`, `byte-size-later-said-to-fail` and
+`shard-earlier`. `shard-earlier` passed before, because the run it names happened to be the one that
+failed; its tie disagrees all the same. The two false passes are gone, and the set has no case left
+that passes where it should not. `api-version-later` keeps its expectation of `pass`: "version 2"
+could name `api.v2`, but no token says so, and it is now `unverifiable` where it was a false `fail`.
+That left 11 misses, 3 of them wrong verdicts, none of them a `pass`.
+
 The latest run per name is not fixed. In `checks/same-name-two-workflows`, the record keeps one run
 of `test` where two workflows ran one each. A 0.1 check run carries `id`, `name`, `status` and
 `conclusion`, and no workflow, check suite or app. So that evidence is the same as a re-run of
@@ -295,6 +356,12 @@ suite or workflow.
 
 In the other kinds the declared item has to be among the candidates, so a confusable read beside it
 changes no verdict, though it can change the observed value.
+
+The `closes` family was added with the `reference_closes` kind ("Closing claims", above). Before
+it, each of its 13 cases was `unverifiable`, `no_comparable_record_field`, since no reader kind
+meant "closes"; after it, each gives its expected 7.4 row, and none is a known miss. Its candidates
+were the same before and after. The two other-repository cases in `numbers` left the known misses
+with "Exact identifiers close the set", and this change does not touch them.
 
 To add a case, add a claim to its family's file (or add a family file and its name to `FAMILIES`),
 run `pnpm exec vitest run src/retrieval/challenge.test.ts --update` to write its snapshot, and read

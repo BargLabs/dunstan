@@ -34,9 +34,9 @@
       "text": "e2e shard 2 passes.",
       "kind": "check_succeeded",
       "declaredValue": true,
-      "expectCandidates": ["502"],
+      "expectCandidates": [],
       "forbidCandidates": ["501"],
-      "expectCheck": { "verdict": "pass", "observed": true }
+      "expectCheck": { "verdict": "unverifiable", "reason": "ambiguous_candidates" }
     },
     {
       "id": "shard-later-named",
@@ -54,9 +54,9 @@
       "text": "e2e shard 1 fails.",
       "kind": "check_succeeded",
       "declaredValue": false,
-      "expectCandidates": ["501"],
+      "expectCandidates": [],
       "forbidCandidates": ["502"],
-      "expectCheck": { "verdict": "pass", "observed": false }
+      "expectCheck": { "verdict": "unverifiable", "reason": "ambiguous_candidates" }
     },
     {
       "id": "shard-later-said-to-fail",
@@ -64,9 +64,9 @@
       "text": "e2e shard 2 fails.",
       "kind": "check_succeeded",
       "declaredValue": false,
-      "expectCandidates": ["502"],
+      "expectCandidates": [],
       "forbidCandidates": ["501"],
-      "expectCheck": { "verdict": "fail", "reason": "all_succeeded_mismatch", "observed": true }
+      "expectCheck": { "verdict": "unverifiable", "reason": "ambiguous_candidates" }
     },
     {
       "id": "package-later",
@@ -74,9 +74,9 @@
       "text": "publish pkg-b succeeds.",
       "kind": "check_succeeded",
       "declaredValue": true,
-      "expectCandidates": ["512"],
+      "expectCandidates": [],
       "forbidCandidates": ["511"],
-      "expectCheck": { "verdict": "pass", "observed": true }
+      "expectCheck": { "verdict": "unverifiable", "reason": "ambiguous_candidates" }
     },
     {
       "id": "byte-size-later",
@@ -84,9 +84,9 @@
       "text": "The 1 byte upload test passes.",
       "kind": "test_passed",
       "declaredValue": true,
-      "expectCandidates": ["upload.accepts a 1 byte file"],
+      "expectCandidates": [],
       "forbidCandidates": ["upload.accepts a 0 byte file"],
-      "expectCheck": { "verdict": "pass", "observed": true }
+      "expectCheck": { "verdict": "unverifiable", "reason": "ambiguous_candidates" }
     },
     {
       "id": "byte-size-later-said-to-fail",
@@ -94,9 +94,9 @@
       "text": "The 1 byte upload test fails.",
       "kind": "test_passed",
       "declaredValue": false,
-      "expectCandidates": ["upload.accepts a 1 byte file"],
+      "expectCandidates": [],
       "forbidCandidates": ["upload.accepts a 0 byte file"],
-      "expectCheck": { "verdict": "fail", "reason": "test_outcome_mismatch", "observed": true }
+      "expectCheck": { "verdict": "unverifiable", "reason": "ambiguous_candidates" }
     },
     {
       "id": "api-version-later",

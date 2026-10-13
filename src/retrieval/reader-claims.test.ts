@@ -3,6 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { caseEvidence, REPO } from '../__tests__/retrieval-fixtures.js';
+import { checkReferences, closesBlock } from '../check/checks.js';
+import type { CloseEvent, Evidence } from '../check/types.js';
 import { main } from '../cli/main.js';
 import { buildRecord, type DunstanRecord, recordBlock, serializeRecord } from '../record/build.js';
 import { CHECKER_NAME, CHECKER_VERSION } from '../record/checker.js';
@@ -176,13 +178,157 @@ describe('reader claims', () => {
       verdict: 'pass',
     });
     // With no identifier match, every candidate at or above the floor is combined, as before.
-    expect(check([run('101', 4), run('103', 4)], true)).toEqual({
+    expect(check([run('101', 4), run('103', 3)], true)).toEqual({
       observed: false,
       verdict: 'fail',
       reason: 'all_succeeded_mismatch',
     });
     // Two identifier matches are both combined.
     expect(check([run('101', null), run('103', null)], true)).toMatchObject({ verdict: 'fail' });
+  });
+
+  describe('ties that disagree are ambiguous', () => {
+    const candidate = (type: 'check_run' | 'test') => (id: string, score: number | null) => ({
+      type,
+      id,
+      score,
+      matchedField: 'name',
+    });
+    const run = candidate('check_run');
+    const test = candidate('test');
+    const check = (
+      kind: string,
+      candidates: ReturnType<typeof run>[],
+      declaredValue: boolean,
+      evidence = storage,
+    ) =>
+      checkReaderClaim(
+        { kind, declaredValue, candidates, retrieval: { floor: BM25_FLOOR } },
+        evidence,
+        REPO,
+      );
+    const ambiguous = { observed: null, verdict: 'unverifiable', reason: 'ambiguous_candidates' };
+    const tests = storage.items?.tests;
+    const checkRuns = storage.checkRuns;
+    if (tests?.status !== 'ok' || checkRuns?.status !== 'ok') throw new Error('fixture');
+
+    it('reads neither of two tied runs that disagree, whatever the claim declares', () => {
+      // 101 (lint) succeeded and 103 (typecheck) failed. Combined, the failed run would decide both
+      // claims: "fails" would pass on a run the claim may not be about.
+      for (const declared of [true, false]) {
+        expect(check('check_succeeded', [run('101', 4), run('103', 4)], declared)).toEqual(
+          ambiguous,
+        );
+      }
+      // A third tied run that agrees with one of them does not settle it.
+      expect(check('check_succeeded', [run('101', 4), run('102', 4), run('103', 4)], true)).toEqual(
+        ambiguous,
+      );
+    });
+
+    it('reads neither of two tied test cases that disagree', () => {
+      const failed = 'storage.blobStore.uploads a blob';
+      const passed = 'storage.retry.gives up after five attempts';
+      for (const declared of [true, false]) {
+        expect(check('test_passed', [test(failed, 2), test(passed, 2)], declared)).toEqual(
+          ambiguous,
+        );
+      }
+    });
+
+    it('combines tied candidates that agree, as before', () => {
+      expect(check('check_succeeded', [run('101', 4), run('102', 4)], true)).toEqual({
+        observed: true,
+        verdict: 'pass',
+      });
+      const passed = [
+        'storage.retry.gives up after five attempts',
+        'storage.retry.waits longer after each failure',
+      ];
+      expect(
+        check(
+          'test_passed',
+          passed.map((id) => test(id, 2)),
+          false,
+        ),
+      ).toEqual({
+        observed: true,
+        verdict: 'fail',
+        reason: 'test_outcome_mismatch',
+      });
+    });
+
+    it('counts a run that did not complete, or a skipped test, as an outcome of its own', () => {
+      const pending = {
+        ...storage,
+        checkRuns: {
+          ...checkRuns,
+          runs: checkRuns.runs.map((r) =>
+            r.id === 102 ? { ...r, status: 'in_progress', conclusion: null } : r,
+          ),
+        },
+      };
+      // Succeeded beside not completed, and failed beside not completed.
+      expect(check('check_succeeded', [run('101', 4), run('102', 4)], true, pending)).toEqual(
+        ambiguous,
+      );
+      expect(check('check_succeeded', [run('103', 4), run('102', 4)], false, pending)).toEqual(
+        ambiguous,
+      );
+      const skipped = {
+        ...storage,
+        items: {
+          ...storage.items,
+          tests: {
+            ...tests,
+            entries: tests.entries.map((t) =>
+              t.name === 'waits longer after each failure'
+                ? { ...t, outcome: 'skipped' as const }
+                : t,
+            ),
+          },
+        },
+      } as typeof storage;
+      const ids = [
+        'storage.retry.gives up after five attempts',
+        'storage.retry.waits longer after each failure',
+      ];
+      expect(
+        check(
+          'test_passed',
+          ids.map((id) => test(id, 2)),
+          true,
+          skipped,
+        ),
+      ).toEqual(ambiguous);
+    });
+
+    it('compares rounded scores exactly: a near-tie is not a tie, and a tie below the top is not read as one', () => {
+      // Equal once rounded to SCORE_DECIMALS.
+      expect(check('check_succeeded', [run('101', 4.0000001), run('103', 4)], true)).toEqual(
+        ambiguous,
+      );
+      // No margin: one millionth apart, both are combined and the failed run decides.
+      const combined = { observed: false, verdict: 'fail', reason: 'all_succeeded_mismatch' };
+      expect(check('check_succeeded', [run('101', 4), run('103', 3.999999)], true)).toEqual(
+        combined,
+      );
+      // Only the top score counts: 101 and 103 tie below 102.
+      expect(check('check_succeeded', [run('102', 5), run('101', 4), run('103', 4)], true)).toEqual(
+        combined,
+      );
+    });
+
+    it('leaves identifier matches and filled candidates as they were', () => {
+      // Two identifier matches that disagree are combined: the claim names both.
+      expect(check('check_succeeded', [run('101', null), run('103', null)], true)).toMatchObject({
+        verdict: 'fail',
+      });
+      // Tied below the floor, nothing is combined.
+      expect(check('check_succeeded', [run('101', 0.5), run('103', 0.5)], true)).toMatchObject({
+        reason: 'no_matching_record_item',
+      });
+    });
   });
 
   it('refuses a recorded candidate the evidence does not hold', () => {
@@ -196,6 +342,92 @@ describe('reader claims', () => {
       verdict: 'unverifiable',
       reason: 'candidate_not_in_evidence',
     });
+  });
+});
+
+// storage-retry's timeline cross-references #41. Merged into the default branch, the closing
+// references do not list #41, and #41 was closed by the event given.
+const merged = (events: CloseEvent[]): Evidence => ({
+  ...storage,
+  pullRequest: {
+    ...storage.pullRequest,
+    state: 'closed',
+    merged: true,
+    mergedAt: '2026-10-01T12:00:00Z',
+    mergeSha: 'feedface00000000000000000000000000000001',
+  },
+  closingReferences: { status: 'ok', issues: [] },
+  references: [{ kind: 'issue', ref: `${REPO}#41`, status: 'ok', exists: true }],
+  closeEvents: {
+    pullRequest: { status: 'ok', baseRef: 'main', defaultBranch: 'main', commits: [] },
+    targets: [{ ref: `${REPO}#41`, status: 'ok', type: 'issue', state: 'closed', events }],
+  },
+});
+const byOther = merged([{ at: '2026-10-02T09:00:00Z', closer: null }]);
+const byThis = merged([
+  { at: '2026-10-01T12:00:05Z', closer: { kind: 'pull_request', ref: `${REPO}#7` } },
+]);
+const fixes = claim('Fixes #41', 'reference_closes', '#41');
+
+describe('reference_closes: the 7.4 closes check decides it, never a candidate', () => {
+  const notClosing = { verdict: 'fail', reason: 'not_closing' };
+
+  it('fails a closing claim the timeline only mentions, where reference_in_timeline passes', () => {
+    const c = read(fixes, byOther);
+    expect(c.candidates[0]).toMatchObject({ type: 'timeline_event', id: 'evt-1', score: null });
+    expect(c).toMatchObject(notClosing);
+    expect(read(claim('Fixes #41', 'reference_in_timeline', '#41'), byOther)).toMatchObject({
+      verdict: 'pass',
+    });
+    expect(read(fixes, byThis)).toMatchObject({
+      verdict: 'pass',
+      observed: { closing: [], closedBy: { closer: { kind: 'pull_request', ref: `${REPO}#7` } } },
+    });
+  });
+
+  it("gives the gate's own row for a block that declares the closes", () => {
+    for (const evidence of [byOther, byThis, storage]) {
+      const row = checkReferences(
+        closesBlock('#41', evidence.pullRequest.headSha),
+        evidence,
+        REPO,
+      )[0];
+      const c = read(fixes, evidence);
+      expect(c.verdict).toBe(row?.verdict);
+      expect(c.reason).toBe(row?.reason);
+      expect(c.observed).toEqual(row?.observed ?? null);
+    }
+    // storage read no closing references: unverifiable with the gate's reason, never pass.
+    expect(read(fixes)).toMatchObject({
+      verdict: 'unverifiable',
+      reason: 'evidence_field_unpopulated:closingReferences',
+    });
+  });
+
+  it('reads no candidate: none, a forged one or an unread timeline changes nothing', () => {
+    const recorded = read(fixes, byOther);
+    const forged = [
+      { type: 'timeline_event' as const, id: 'evt-9', score: null, matchedField: 'ref' },
+    ];
+    for (const candidates of [[], forged]) {
+      expect(checkReaderClaim({ ...recorded, candidates }, byOther, REPO)).toMatchObject(
+        notClosing,
+      );
+      expect(checkReaderClaim({ ...recorded, candidates }, byThis, REPO)).toMatchObject({
+        verdict: 'pass',
+      });
+    }
+    const { items: _, ...noTimeline } = byOther;
+    expect(checkReaderClaim(recorded, noTimeline, REPO)).toMatchObject(notClosing);
+  });
+
+  it('is unverifiable with no_comparable_record_field for a value that is not an issue reference', () => {
+    for (const declaredValue of ['41', 'example-org/example-repo', '#0', true]) {
+      expect(read(claim('Fixes it', 'reference_closes', declaredValue), byThis)).toMatchObject({
+        verdict: 'unverifiable',
+        reason: 'no_comparable_record_field',
+      });
+    }
   });
 });
 
@@ -294,7 +526,15 @@ describe('candidates filled to k', () => {
         verdict: 'unverifiable',
         reason: 'no_matching_record_item',
       });
-      const asEvidence = { ...recorded, retrieval: { floor: 0 } };
+      // The fills all score 0 and disagree, so read as they are they tie and are ambiguous. With
+      // the first lifted out of the tie, they would decide the claim.
+      const [first, ...rest] = recorded.candidates;
+      if (first === undefined) throw new Error('fixture');
+      const asEvidence = {
+        ...recorded,
+        candidates: [{ ...first, score: 0.5 }, ...rest],
+        retrieval: { floor: 0 },
+      };
       expect(checkReaderClaim(asEvidence, storage, REPO).verdict).not.toBe('unverifiable');
     });
   }
@@ -313,13 +553,13 @@ describe('a record with reader claims (DRAFT 0.2.0)', () => {
   const report = Buffer.from(
     'The agent says it renamed the blob module and that typecheck passes.\n',
   );
-  const build = (readerClaims?: ReaderClaimInput[]): DunstanRecord =>
+  const build = (readerClaims?: ReaderClaimInput[], evidence = storage): DunstanRecord =>
     buildRecord({
       checker: { name: CHECKER_NAME, version: CHECKER_VERSION, digest: { sha256: '0'.repeat(64) } },
       report: { sha256: '1'.repeat(64), source: { kind: 'stdin', locator: '-' } },
       block: recordBlock(extractHandbackBlock(report.toString('utf8'))),
       repository: REPO,
-      evidence: storage,
+      evidence,
       rerun: { offline: 'dunstan verify r.json', online: 'dunstan rerun r.json' },
       ...(readerClaims === undefined ? {} : { readerClaims }),
     });
@@ -433,6 +673,47 @@ describe('a record with reader claims (DRAFT 0.2.0)', () => {
     last.retrieval = { arm: 'A-fill', floor: BM25_FLOOR } as unknown as typeof last.retrieval;
     const pointers = validateDraftRecord(record).map((e) => e.pointer);
     expect(pointers).toContain('/predicate/readerClaims/2/retrieval');
+  });
+
+  it('accepts ambiguous_candidates as an unverifiable reason, and refuses an unknown one', () => {
+    const record = JSON.parse(JSON.stringify(build(claims))) as DunstanRecord;
+    const last = record.predicate.readerClaims?.[2];
+    if (last === undefined) throw new Error('fixture');
+    last.reason = 'ambiguous_candidates';
+    expect(validateDraftRecord(record)).toEqual([]);
+    last.reason = 'ambiguous';
+    const pointers = validateDraftRecord(record).map((e) => e.pointer);
+    expect(pointers).toContain('/predicate/readerClaims/2/reason');
+  });
+
+  it('validates and verifies offline a closing claim, and accepts each reason the closes check gives', () => {
+    for (const evidence of [byOther, byThis, storage]) {
+      const record = JSON.parse(JSON.stringify(build([fixes], evidence))) as DunstanRecord;
+      expect(validateDraftRecord(record)).toEqual([]);
+      expect(verifyRecord(record).problems).toEqual([]);
+    }
+    const record = JSON.parse(JSON.stringify(build([fixes], byOther))) as DunstanRecord;
+    const closes = record.predicate.readerClaims?.[0];
+    if (closes === undefined) throw new Error('fixture');
+    expect(closes).toMatchObject({ verdict: 'fail', reason: 'not_closing' });
+    for (const reason of [
+      'not_found',
+      'closing_link_unsettled',
+      'closing_base_not_default',
+      'closing_event_unsettled',
+      'evidence_field_unpopulated:closeEvents',
+      'source_unreadable:closing_references',
+      'source_unreadable:repository',
+      'source_unreadable:issue',
+      'source_unreadable:pull_request_commits',
+    ]) {
+      closes.reason = reason;
+      expect(validateDraftRecord(record), reason).toEqual([]);
+    }
+    closes.reason = 'source_unreadable:deployments';
+    expect(validateDraftRecord(record).map((e) => e.pointer)).toContain(
+      '/predicate/readerClaims/0/reason',
+    );
   });
 
   it('refuses a probability outside [0, 1] and a pass that carries a reason', () => {

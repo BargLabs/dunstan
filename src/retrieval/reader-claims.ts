@@ -2,9 +2,16 @@
 // into claims; retrieval proposes the record items each is about; the check here decides, from the
 // recorded candidates and the evidence alone. Retrieval narrows where to look; it is never evidence.
 // The reader's probability is recorded as the reader's output and is read by nothing in this file.
-// A claim with no candidate at or above the floor is unverifiable, never pass.
+// A claim with no candidate at or above the floor is unverifiable, never pass. A closing claim is
+// the exception: the gate's own 7.4 row decides it, and its candidates decide nothing.
 
-import { countedCheckRuns, qualifyIssue, sameIssue } from '../check/checks.js';
+import {
+  checkReferences,
+  closesBlock,
+  countedCheckRuns,
+  qualifyIssue,
+  sameIssue,
+} from '../check/checks.js';
 import { absentSection } from '../check/rows.js';
 import type {
   CheckRun,
@@ -16,7 +23,7 @@ import type {
 } from '../check/types.js';
 import type { JsonValue } from '../spec/json.js';
 import { recordItems, testId } from './items.js';
-import { type ARM_A, ARM_A_FILL, BM25_FLOOR, FILL_TO_K, retrieve } from './retrieve.js';
+import { type ARM_A, ARM_A_FILL, BM25_FLOOR, FILL_TO_K, retrieve, roundScore } from './retrieve.js';
 import type { Candidate, ItemType, RetrieveOptions } from './types.js';
 
 // A reader claim's candidates are filled to this many when fewer reach the floor.
@@ -24,10 +31,14 @@ export const READER_CLAIM_K = 5;
 
 // Each kind a reader may type a claim as, and the one item type it is about. A claim of any other
 // kind is recorded, with its candidates, and is unverifiable with no_comparable_record_field.
+// reference_in_timeline means the record mentions the issue; a claim that the pull request closes it
+// is reference_closes. Its candidates are the timeline events that name the issue: where the record
+// mentions it, which is where a person would look, and never what decides it.
 export const READER_CLAIM_KINDS: ReadonlyMap<string, ItemType> = new Map<string, ItemType>([
   ['file_changed', 'file'],
   ['commit_present', 'commit'],
   ['reference_in_timeline', 'timeline_event'],
+  ['reference_closes', 'timeline_event'],
   ['check_succeeded', 'check_run'],
   ['test_passed', 'test'],
 ]);
@@ -129,6 +140,32 @@ export function combinedCandidates(typed: readonly Candidate[], floor: number): 
   return exact.length > 0 ? exact : typed.filter((c) => c.score !== null && c.score >= floor);
 }
 
+// The outcome a check_succeeded or test_passed claim reads from one item: a run succeeded, failed
+// (completed with any other conclusion, as section 7.5 reads it) or did not complete; a test case
+// passed, failed or was skipped.
+function outcomeOf(type: ItemType, entry: JsonValue | undefined): string {
+  if (type === 'test') return (entry as unknown as { outcome: string }).outcome;
+  const run = entry as unknown as CheckRun;
+  if (run.status !== 'completed') return 'not_completed';
+  return run.conclusion === 'success' ? 'succeeded' : 'failed';
+}
+
+// Whether the combined candidates are ambiguous: no identifier match among them, and two or more
+// tie on the top score (rounded to SCORE_DECIMALS, compared exactly, no margin) and disagree on the
+// outcome. Then the record cannot tell which of them the claim is about, and combining them would
+// let a confusable decide: a tied run that failed would make "shard 2 fails" hold though shard 2
+// succeeded. Tied candidates that agree on the outcome are not ambiguous.
+function ambiguousCandidates(
+  combined: readonly Candidate[],
+  outcome: (c: Candidate) => string,
+): boolean {
+  const scores = combined.map((c) => (c.score === null ? null : roundScore(c.score)));
+  if (scores.length < 2 || scores.includes(null)) return false;
+  const top = Math.max(...(scores as number[]));
+  const tied = combined.filter((_, i) => scores[i] === top);
+  return tied.length >= 2 && new Set(tied.map(outcome)).size > 1;
+}
+
 // The check for one reader claim: a pure function of the claim (its kind, declared value, recorded
 // candidates and recorded floor) and the evidence. It never runs retrieval, so offline verification
 // recomputes it from the record even where a fresh retrieval would rank differently.
@@ -147,6 +184,18 @@ export function checkReaderClaim(
     return unverifiable('no_comparable_record_field');
   }
 
+  if (claim.kind === 'reference_closes') {
+    // A block's `closes` takes an issue reference only; anything else is no field the gate reads.
+    if (!ISSUE_REF.test(declared as string)) return unverifiable('no_comparable_record_field');
+    // The 0.1 gate's row for a block that declares this one `closes` (section 7.4), as advisory
+    // comparison 0.4.0 reads it. No candidate is read: a cross-reference or a connected event shows
+    // the record mentions the issue, not that this pull request closed it.
+    const head = evidence.pullRequest.headSha;
+    const row = checkReferences(closesBlock(declared as string, head), evidence, repository)[0];
+    if (row === undefined) return unverifiable('no_comparable_record_field');
+    return verdictOf(row.verdict, (row.observed ?? null) as JsonValue, row.reason);
+  }
+
   const missing = sectionReason(type, evidence);
   if (missing !== undefined) return unverifiable(missing);
 
@@ -163,6 +212,11 @@ export function checkReaderClaim(
   if (relevant.length === 0) {
     // The floor is stated beside the candidates, in the claim's retrieval member.
     return unverifiable(truncated ? 'file_list_truncated' : 'no_matching_record_item');
+  }
+  // The kinds that aggregate over what they combine read neither of two tied candidates that
+  // disagree. The others need the declared item among the candidates, so a tie cannot mislead them.
+  if (wantsBoolean && ambiguousCandidates(relevant, (c) => outcomeOf(type, entries.get(c.id)))) {
+    return unverifiable('ambiguous_candidates');
   }
 
   switch (type) {

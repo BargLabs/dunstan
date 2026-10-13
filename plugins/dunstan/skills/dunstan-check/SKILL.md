@@ -17,7 +17,7 @@ the block must say what you actually did.
 1. **Push your last commit.** The check reads the pull request as GitHub has it.
 2. **Write the `dunstan-handback` block** in your report, inside a fenced block with the info string
    `dunstan-handback`, in the exact shape below. To fill `headCommit` and `filesChanged` from local
-   git, you can run `npx -y dunstan@0.1.7 template --base <base branch>`, which reads only the local
+   git, you can run `npx -y dunstan@0.1.8 template --base <base branch>`, which reads only the local
    repository.
 
 ## The block
@@ -78,8 +78,18 @@ The full specification: https://github.com/BargLabs/dunstan/blob/main/spec/claim
 - `fail`: the record contradicts at least one declared claim. Report those rows and their reasons, and
   do not say done.
 - `unverifiable`: the record could not settle at least one claim, for example because no test record
-  names a count or GitHub has not yet linked a closing issue. It does not mean the claim is false.
-  Report the rows and reasons as they are, and do not say done.
+  names a count. It does not mean the claim is false. Report the rows and reasons as they are, and
+  do not say done.
+- A `closes` row can be `unverifiable` for three reasons. Say which, and what it means:
+  - `closing_link_unsettled`: the pull request is still open, and GitHub does not yet link it to the
+    issue. Checking again after the merge can settle it.
+  - `closing_base_not_default`: the pull request merged into a branch that is not the repository's
+    default branch, and the issue is still open. GitHub acts on closing keywords only in pull
+    requests into the default branch. Waiting alone does not settle it. A later merge of that branch
+    into the default branch may still close the issue, by a closing keyword in a commit message.
+    Tell the user the issue is still open and why.
+  - `closing_event_unsettled`: the issue is closed, but GitHub has not yet recorded what closed it.
+    Checking again later can settle it.
 - The tool does not read the prose, so it returns no advisory notes. If you are shown a Dunstan record
   with advisory notes (from `dunstan check --advisory`), describe each `differs` note as "possible
   disagreement, unverified". An advisory note is never a verdict and never proof of a false claim.

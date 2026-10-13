@@ -8,7 +8,14 @@
 // section as `pathsAtHead`. An advisory has no verdict. It never enters the record's `verdict` or
 // `claims`, and it is never `fail`.
 
-import { checkCounts, checkHead, checkReferences, checkScope, checkTime } from '../check/checks.js';
+import {
+  checkCounts,
+  checkHead,
+  checkReferences,
+  checkScope,
+  checkTime,
+  closesBlock,
+} from '../check/checks.js';
 import { compareCodeUnits } from '../check/rows.js';
 import type { Block, Claim, Evidence, Reference } from '../check/types.js';
 import { BLOCK_VERSION } from '../spec/constants.js';
@@ -77,9 +84,7 @@ function blockFor(
     case 'file_changed':
       return typeof value === 'string' ? { ...base, filesChanged: [value] } : undefined;
     case 'reference_closes':
-      return typeof value === 'string'
-        ? { ...base, references: [{ issue: value, relation: 'closes' }] }
-        : undefined;
+      return typeof value === 'string' ? closesBlock(value, headSha) : undefined;
     case 'commit':
       // Only a full SHA can be read as a cited commit; a short one is answered only by the head.
       return typeof value === 'string' && value.length === 40

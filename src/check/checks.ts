@@ -1,6 +1,7 @@
 // The five checks of spec section 7, each a pure function of the block and the evidence. None reads
 // a clock, a file, the network or a random source.
 
+import { BLOCK_VERSION } from '../spec/constants.js';
 import {
   absentSection,
   compareCodeUnits,
@@ -204,6 +205,18 @@ function closedBy(
     { ...observed, state: settled.state, events: settled.events },
     'not_closing',
   );
+}
+
+// The block a `closes` claim made outside a block is checked as: one `closes` reference to `issue`
+// and nothing else, at `headCommit`. An advisory (DRAFT 0.2.0, D.11.4) and a reader claim (D.6) of
+// a closes are each decided by this block's checkReferences row, never by a rule of their own.
+export function closesBlock(issue: string, headCommit: string): Block {
+  return {
+    dunstan: BLOCK_VERSION,
+    headCommit,
+    filesChanged: [],
+    references: [{ issue, relation: 'closes' }],
+  };
 }
 
 export function checkReferences(block: Block, evidence: Evidence, repository: string): Claim[] {

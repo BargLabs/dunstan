@@ -1,0 +1,455 @@
+{
+  "repository": "example-org/example-repo",
+  "family": "closes",
+  "evidence": {
+    "items": {
+      "commits": { "status": "ok", "entries": [] },
+      "timeline": {
+        "status": "ok",
+        "entries": [
+          { "id": "evt-1", "event": "cross-referenced", "ref": "example-org/example-repo#12" },
+          { "id": "evt-2", "event": "connected", "ref": "example-org/example-repo#15" },
+          { "id": "evt-3", "event": "cross-referenced", "ref": "example-org/example-repo#120" },
+          { "id": "evt-4", "event": "cross-referenced", "ref": "other-org/tool#12" },
+          { "id": "evt-5", "event": "labeled", "detail": "bug" }
+        ]
+      },
+      "tests": { "status": "ok", "entries": [] }
+    }
+  },
+  "claims": [
+    {
+      "id": "listed-in-closing-references",
+      "confusion": "the closing references list #12: the 7.4 row passes on them, not on the cross-reference",
+      "text": "Closes #12.",
+      "kind": "reference_closes",
+      "declaredValue": "#12",
+      "evidence": {
+        "closingReferences": { "status": "ok", "issues": ["example-org/example-repo#12"] }
+      },
+      "expectCandidates": ["evt-1"],
+      "forbidCandidates": ["evt-3", "evt-4"],
+      "expectCheck": {
+        "verdict": "pass",
+        "observed": { "closing": ["example-org/example-repo#12"] }
+      }
+    },
+    {
+      "id": "closed-by-this-pull-request",
+      "confusion": "#12 is only cross-referenced; its ClosedEvent names this pull request as the closer",
+      "text": "Closes #12.",
+      "kind": "reference_closes",
+      "declaredValue": "#12",
+      "evidence": {
+        "pullRequest": {
+          "state": "closed",
+          "merged": true,
+          "mergedAt": "2026-10-01T12:00:00Z",
+          "mergeSha": "feedface00000000000000000000000000000001"
+        },
+        "closingReferences": { "status": "ok", "issues": [] },
+        "references": [
+          { "kind": "issue", "ref": "example-org/example-repo#12", "status": "ok", "exists": true }
+        ],
+        "closeEvents": {
+          "pullRequest": {
+            "status": "ok",
+            "baseRef": "main",
+            "defaultBranch": "main",
+            "commits": ["c0ffee0000000000000000000000000000000001"]
+          },
+          "targets": [
+            {
+              "ref": "example-org/example-repo#12",
+              "status": "ok",
+              "type": "issue",
+              "state": "closed",
+              "events": [
+                {
+                  "at": "2026-10-01T12:00:05Z",
+                  "closer": { "kind": "pull_request", "ref": "example-org/example-repo#7" }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "expectCandidates": ["evt-1"],
+      "forbidCandidates": ["evt-3", "evt-4"],
+      "expectCheck": { "verdict": "pass" }
+    },
+    {
+      "id": "closed-by-merge-commit",
+      "confusion": "#12 is only cross-referenced; its ClosedEvent names the merge commit as the closer",
+      "text": "Closes #12.",
+      "kind": "reference_closes",
+      "declaredValue": "#12",
+      "evidence": {
+        "pullRequest": {
+          "state": "closed",
+          "merged": true,
+          "mergedAt": "2026-10-01T12:00:00Z",
+          "mergeSha": "feedface00000000000000000000000000000001"
+        },
+        "closingReferences": { "status": "ok", "issues": [] },
+        "references": [
+          { "kind": "issue", "ref": "example-org/example-repo#12", "status": "ok", "exists": true }
+        ],
+        "closeEvents": {
+          "pullRequest": {
+            "status": "ok",
+            "baseRef": "main",
+            "defaultBranch": "main",
+            "commits": ["c0ffee0000000000000000000000000000000001"]
+          },
+          "targets": [
+            {
+              "ref": "example-org/example-repo#12",
+              "status": "ok",
+              "type": "issue",
+              "state": "closed",
+              "events": [
+                {
+                  "at": "2026-10-01T12:00:05Z",
+                  "closer": { "kind": "commit", "oid": "feedface00000000000000000000000000000001" }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "expectCandidates": ["evt-1"],
+      "forbidCandidates": ["evt-3", "evt-4"],
+      "expectCheck": { "verdict": "pass" }
+    },
+    {
+      "id": "cross-referenced-closed-by-actor",
+      "confusion": "the timeline cross-references #12, and someone closed it with no closer: a mention, not a close",
+      "text": "Closes #12.",
+      "kind": "reference_closes",
+      "declaredValue": "#12",
+      "evidence": {
+        "pullRequest": {
+          "state": "closed",
+          "merged": true,
+          "mergedAt": "2026-10-01T12:00:00Z",
+          "mergeSha": "feedface00000000000000000000000000000001"
+        },
+        "closingReferences": { "status": "ok", "issues": [] },
+        "references": [
+          { "kind": "issue", "ref": "example-org/example-repo#12", "status": "ok", "exists": true }
+        ],
+        "closeEvents": {
+          "pullRequest": {
+            "status": "ok",
+            "baseRef": "main",
+            "defaultBranch": "main",
+            "commits": ["c0ffee0000000000000000000000000000000001"]
+          },
+          "targets": [
+            {
+              "ref": "example-org/example-repo#12",
+              "status": "ok",
+              "type": "issue",
+              "state": "closed",
+              "events": [{ "at": "2026-10-02T09:00:00Z", "closer": null }]
+            }
+          ]
+        }
+      },
+      "expectCandidates": ["evt-1"],
+      "forbidCandidates": ["evt-3", "evt-4"],
+      "expectCheck": { "verdict": "fail", "reason": "not_closing" }
+    },
+    {
+      "id": "cross-referenced-pull-request-open",
+      "confusion": "the timeline cross-references #12 and the pull request is open: the closing link may not be computed yet",
+      "text": "Closes #12.",
+      "kind": "reference_closes",
+      "declaredValue": "#12",
+      "evidence": {
+        "closingReferences": { "status": "ok", "issues": [] },
+        "references": [
+          { "kind": "issue", "ref": "example-org/example-repo#12", "status": "ok", "exists": true }
+        ],
+        "closeEvents": {
+          "pullRequest": {
+            "status": "ok",
+            "baseRef": "main",
+            "defaultBranch": "main",
+            "commits": ["c0ffee0000000000000000000000000000000001"]
+          },
+          "targets": [
+            {
+              "ref": "example-org/example-repo#12",
+              "status": "ok",
+              "type": "issue",
+              "state": "open",
+              "events": []
+            }
+          ]
+        }
+      },
+      "expectCandidates": ["evt-1"],
+      "forbidCandidates": ["evt-3", "evt-4"],
+      "expectCheck": { "verdict": "unverifiable", "reason": "closing_link_unsettled" }
+    },
+    {
+      "id": "merged-into-non-default-base",
+      "confusion": "the timeline cross-references #12; the pull request merged into release, not main, and #12 is open",
+      "text": "Closes #12.",
+      "kind": "reference_closes",
+      "declaredValue": "#12",
+      "evidence": {
+        "pullRequest": {
+          "state": "closed",
+          "merged": true,
+          "mergedAt": "2026-10-01T12:00:00Z",
+          "mergeSha": "feedface00000000000000000000000000000001"
+        },
+        "closingReferences": { "status": "ok", "issues": [] },
+        "references": [
+          { "kind": "issue", "ref": "example-org/example-repo#12", "status": "ok", "exists": true }
+        ],
+        "closeEvents": {
+          "pullRequest": {
+            "status": "ok",
+            "baseRef": "release",
+            "defaultBranch": "main",
+            "commits": ["c0ffee0000000000000000000000000000000001"]
+          },
+          "targets": [
+            {
+              "ref": "example-org/example-repo#12",
+              "status": "ok",
+              "type": "issue",
+              "state": "open",
+              "events": []
+            }
+          ]
+        }
+      },
+      "expectCandidates": ["evt-1"],
+      "forbidCandidates": ["evt-3", "evt-4"],
+      "expectCheck": { "verdict": "unverifiable", "reason": "closing_base_not_default" }
+    },
+    {
+      "id": "closed-no-close-event-yet",
+      "confusion": "#12 is closed, and its complete read holds no ClosedEvent yet: the close may be this pull request's",
+      "text": "Closes #12.",
+      "kind": "reference_closes",
+      "declaredValue": "#12",
+      "evidence": {
+        "pullRequest": {
+          "state": "closed",
+          "merged": true,
+          "mergedAt": "2026-10-01T12:00:00Z",
+          "mergeSha": "feedface00000000000000000000000000000001"
+        },
+        "closingReferences": { "status": "ok", "issues": [] },
+        "references": [
+          { "kind": "issue", "ref": "example-org/example-repo#12", "status": "ok", "exists": true }
+        ],
+        "closeEvents": {
+          "pullRequest": {
+            "status": "ok",
+            "baseRef": "main",
+            "defaultBranch": "main",
+            "commits": ["c0ffee0000000000000000000000000000000001"]
+          },
+          "targets": [
+            {
+              "ref": "example-org/example-repo#12",
+              "status": "ok",
+              "type": "issue",
+              "state": "closed",
+              "events": []
+            }
+          ]
+        }
+      },
+      "expectCandidates": ["evt-1"],
+      "forbidCandidates": ["evt-3", "evt-4"],
+      "expectCheck": { "verdict": "unverifiable", "reason": "closing_event_unsettled" }
+    },
+    {
+      "id": "close-events-not-recorded",
+      "confusion": "the timeline cross-references #12; the record holds no close events, so who closed it is not known",
+      "text": "Closes #12.",
+      "kind": "reference_closes",
+      "declaredValue": "#12",
+      "evidence": {
+        "pullRequest": {
+          "state": "closed",
+          "merged": true,
+          "mergedAt": "2026-10-01T12:00:00Z",
+          "mergeSha": "feedface00000000000000000000000000000001"
+        },
+        "closingReferences": { "status": "ok", "issues": [] },
+        "references": [
+          { "kind": "issue", "ref": "example-org/example-repo#12", "status": "ok", "exists": true }
+        ]
+      },
+      "expectCandidates": ["evt-1"],
+      "forbidCandidates": ["evt-3", "evt-4"],
+      "expectCheck": {
+        "verdict": "unverifiable",
+        "reason": "evidence_field_unpopulated:closeEvents"
+      }
+    },
+    {
+      "id": "close-events-unreadable",
+      "confusion": "the timeline cross-references #12; the read of #12's close events failed",
+      "text": "Closes #12.",
+      "kind": "reference_closes",
+      "declaredValue": "#12",
+      "evidence": {
+        "pullRequest": {
+          "state": "closed",
+          "merged": true,
+          "mergedAt": "2026-10-01T12:00:00Z",
+          "mergeSha": "feedface00000000000000000000000000000001"
+        },
+        "closingReferences": { "status": "ok", "issues": [] },
+        "references": [
+          { "kind": "issue", "ref": "example-org/example-repo#12", "status": "ok", "exists": true }
+        ],
+        "closeEvents": {
+          "pullRequest": {
+            "status": "ok",
+            "baseRef": "main",
+            "defaultBranch": "main",
+            "commits": ["c0ffee0000000000000000000000000000000001"]
+          },
+          "targets": [
+            { "ref": "example-org/example-repo#12", "status": "unreadable", "source": "issue" }
+          ]
+        }
+      },
+      "expectCandidates": ["evt-1"],
+      "forbidCandidates": ["evt-3", "evt-4"],
+      "expectCheck": { "verdict": "unverifiable", "reason": "source_unreadable:issue" }
+    },
+    {
+      "id": "connected-not-closed",
+      "confusion": "#15 is named by a connected event; the pull request merged into main and #15 is still open",
+      "text": "Closes #15.",
+      "kind": "reference_closes",
+      "declaredValue": "#15",
+      "evidence": {
+        "pullRequest": {
+          "state": "closed",
+          "merged": true,
+          "mergedAt": "2026-10-01T12:00:00Z",
+          "mergeSha": "feedface00000000000000000000000000000001"
+        },
+        "closingReferences": { "status": "ok", "issues": [] },
+        "references": [
+          { "kind": "issue", "ref": "example-org/example-repo#15", "status": "ok", "exists": true }
+        ],
+        "closeEvents": {
+          "pullRequest": {
+            "status": "ok",
+            "baseRef": "main",
+            "defaultBranch": "main",
+            "commits": ["c0ffee0000000000000000000000000000000001"]
+          },
+          "targets": [
+            {
+              "ref": "example-org/example-repo#15",
+              "status": "ok",
+              "type": "issue",
+              "state": "open",
+              "events": []
+            }
+          ]
+        }
+      },
+      "expectCandidates": ["evt-2"],
+      "forbidCandidates": [],
+      "expectCheck": { "verdict": "fail", "reason": "not_closing" }
+    },
+    {
+      "id": "other-repo-closed-by-this-pull-request",
+      "confusion": "other-org/tool#12, closed by this pull request, against the subject repository's #12",
+      "text": "Closes other-org/tool#12.",
+      "kind": "reference_closes",
+      "declaredValue": "other-org/tool#12",
+      "evidence": {
+        "pullRequest": {
+          "state": "closed",
+          "merged": true,
+          "mergedAt": "2026-10-01T12:00:00Z",
+          "mergeSha": "feedface00000000000000000000000000000001"
+        },
+        "closingReferences": { "status": "ok", "issues": [] },
+        "references": [
+          { "kind": "issue", "ref": "other-org/tool#12", "status": "ok", "exists": true }
+        ],
+        "closeEvents": {
+          "pullRequest": {
+            "status": "ok",
+            "baseRef": "main",
+            "defaultBranch": "main",
+            "commits": ["c0ffee0000000000000000000000000000000001"]
+          },
+          "targets": [
+            {
+              "ref": "other-org/tool#12",
+              "status": "ok",
+              "type": "issue",
+              "state": "closed",
+              "events": [
+                {
+                  "at": "2026-10-01T12:00:05Z",
+                  "closer": { "kind": "pull_request", "ref": "example-org/example-repo#7" }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "expectCandidates": ["evt-4"],
+      "forbidCandidates": ["evt-1"],
+      "expectCheck": { "verdict": "pass" }
+    },
+    {
+      "id": "listed-with-no-timeline-event",
+      "confusion": "the closing references list #30 and no timeline event names it: retrieval finds nothing, the 7.4 row passes",
+      "text": "Closes #30.",
+      "kind": "reference_closes",
+      "declaredValue": "#30",
+      "evidence": {
+        "closingReferences": { "status": "ok", "issues": ["example-org/example-repo#30"] }
+      },
+      "expectCandidates": [],
+      "forbidCandidates": ["evt-1"],
+      "expectCheck": {
+        "verdict": "pass",
+        "observed": { "closing": ["example-org/example-repo#30"] }
+      }
+    },
+    {
+      "id": "no-such-issue",
+      "confusion": "#99 does not exist, and no timeline event names it",
+      "text": "Closes #99.",
+      "kind": "reference_closes",
+      "declaredValue": "#99",
+      "evidence": {
+        "pullRequest": {
+          "state": "closed",
+          "merged": true,
+          "mergedAt": "2026-10-01T12:00:00Z",
+          "mergeSha": "feedface00000000000000000000000000000001"
+        },
+        "closingReferences": { "status": "ok", "issues": [] },
+        "references": [
+          { "kind": "issue", "ref": "example-org/example-repo#99", "status": "ok", "exists": false }
+        ]
+      },
+      "expectCandidates": [],
+      "forbidCandidates": ["evt-1"],
+      "expectCheck": { "verdict": "fail", "reason": "not_found" }
+    }
+  ]
+}

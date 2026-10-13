@@ -135,87 +135,333 @@ exports[`the retrieval challenge set > checks/short-name-in-longer: Arm A and th
 }
 `;
 
+exports[`the retrieval challenge set > closes/close-events-not-recorded: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "evt-1 = ref",
+    "evt-4 0.850613",
+    "evt-2 0",
+    "evt-3 0",
+    "evt-5 0",
+  ],
+  "observed": null,
+  "reason": "evidence_field_unpopulated:closeEvents",
+  "verdict": "unverifiable",
+}
+`;
+
+exports[`the retrieval challenge set > closes/close-events-unreadable: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "evt-1 = ref",
+    "evt-4 0.850613",
+    "evt-2 0",
+    "evt-3 0",
+    "evt-5 0",
+  ],
+  "observed": null,
+  "reason": "source_unreadable:issue",
+  "verdict": "unverifiable",
+}
+`;
+
+exports[`the retrieval challenge set > closes/closed-by-merge-commit: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "evt-1 = ref",
+    "evt-4 0.850613",
+    "evt-2 0",
+    "evt-3 0",
+    "evt-5 0",
+  ],
+  "observed": {
+    "closedBy": {
+      "at": "2026-10-01T12:00:05Z",
+      "closer": {
+        "kind": "commit",
+        "oid": "feedface00000000000000000000000000000001",
+      },
+    },
+    "closing": [],
+  },
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > closes/closed-by-this-pull-request: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "evt-1 = ref",
+    "evt-4 0.850613",
+    "evt-2 0",
+    "evt-3 0",
+    "evt-5 0",
+  ],
+  "observed": {
+    "closedBy": {
+      "at": "2026-10-01T12:00:05Z",
+      "closer": {
+        "kind": "pull_request",
+        "ref": "example-org/example-repo#7",
+      },
+    },
+    "closing": [],
+  },
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > closes/closed-no-close-event-yet: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "evt-1 = ref",
+    "evt-4 0.850613",
+    "evt-2 0",
+    "evt-3 0",
+    "evt-5 0",
+  ],
+  "observed": null,
+  "reason": "closing_event_unsettled",
+  "verdict": "unverifiable",
+}
+`;
+
+exports[`the retrieval challenge set > closes/connected-not-closed: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "evt-2 = ref",
+    "evt-1 0",
+    "evt-3 0",
+    "evt-4 0",
+    "evt-5 0",
+  ],
+  "observed": {
+    "closing": [],
+    "events": [],
+    "state": "open",
+  },
+  "reason": "not_closing",
+  "verdict": "fail",
+}
+`;
+
+exports[`the retrieval challenge set > closes/cross-referenced-closed-by-actor: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "evt-1 = ref",
+    "evt-4 0.850613",
+    "evt-2 0",
+    "evt-3 0",
+    "evt-5 0",
+  ],
+  "observed": {
+    "closing": [],
+    "events": [
+      {
+        "at": "2026-10-02T09:00:00Z",
+        "closer": null,
+      },
+    ],
+    "state": "closed",
+  },
+  "reason": "not_closing",
+  "verdict": "fail",
+}
+`;
+
+exports[`the retrieval challenge set > closes/cross-referenced-pull-request-op…: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "evt-1 = ref",
+    "evt-4 0.850613",
+    "evt-2 0",
+    "evt-3 0",
+    "evt-5 0",
+  ],
+  "observed": null,
+  "reason": "closing_link_unsettled",
+  "verdict": "unverifiable",
+}
+`;
+
+exports[`the retrieval challenge set > closes/listed-in-closing-references: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "evt-1 = ref",
+    "evt-4 0.850613",
+    "evt-2 0",
+    "evt-3 0",
+    "evt-5 0",
+  ],
+  "observed": {
+    "closing": [
+      "example-org/example-repo#12",
+    ],
+  },
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > closes/listed-with-no-timeline-event: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "evt-1 0",
+    "evt-2 0",
+    "evt-3 0",
+    "evt-4 0",
+    "evt-5 0",
+  ],
+  "observed": {
+    "closing": [
+      "example-org/example-repo#30",
+    ],
+  },
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > closes/merged-into-non-default-base: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "evt-1 = ref",
+    "evt-4 0.850613",
+    "evt-2 0",
+    "evt-3 0",
+    "evt-5 0",
+  ],
+  "observed": null,
+  "reason": "closing_base_not_default",
+  "verdict": "unverifiable",
+}
+`;
+
+exports[`the retrieval challenge set > closes/no-such-issue: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "evt-1 0",
+    "evt-2 0",
+    "evt-3 0",
+    "evt-4 0",
+    "evt-5 0",
+  ],
+  "observed": {
+    "closing": [],
+    "exists": false,
+  },
+  "reason": "not_found",
+  "verdict": "fail",
+}
+`;
+
+exports[`the retrieval challenge set > closes/other-repo-closed-by-this-pull-r…: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "evt-4 = ref",
+    "evt-1 1.05523 (not combined)",
+    "evt-2 0.279514",
+    "evt-3 0.26099",
+    "evt-5 0",
+  ],
+  "observed": {
+    "closedBy": {
+      "at": "2026-10-01T12:00:05Z",
+      "closer": {
+        "kind": "pull_request",
+        "ref": "example-org/example-repo#7",
+      },
+    },
+    "closing": [],
+  },
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
 exports[`the retrieval challenge set > lexical/api-version-later: Arm A and the check, as they stand 1`] = `
 {
   "candidates": [
-    "api.v1.lists users 3.381665",
-    "api.v2.lists users 3.381665",
+    "api.v1.lists users 3.381665 (not combined)",
+    "api.v2.lists users 3.381665 (not combined)",
     "upload.accepts a 0 byte file 0",
     "upload.accepts a 1 byte file 0",
   ],
-  "observed": false,
-  "reason": "test_outcome_mismatch",
-  "verdict": "fail",
+  "observed": null,
+  "reason": "ambiguous_candidates",
+  "verdict": "unverifiable",
 }
 `;
 
 exports[`the retrieval challenge set > lexical/byte-size-later: Arm A and the check, as they stand 1`] = `
 {
   "candidates": [
-    "upload.accepts a 0 byte file 2.254444",
-    "upload.accepts a 1 byte file 2.254444",
+    "upload.accepts a 0 byte file 2.254444 (not combined)",
+    "upload.accepts a 1 byte file 2.254444 (not combined)",
     "api.v1.lists users 0",
     "api.v2.lists users 0",
   ],
-  "observed": false,
-  "reason": "test_outcome_mismatch",
-  "verdict": "fail",
+  "observed": null,
+  "reason": "ambiguous_candidates",
+  "verdict": "unverifiable",
 }
 `;
 
 exports[`the retrieval challenge set > lexical/byte-size-later-said-to-fail: Arm A and the check, as they stand 1`] = `
 {
   "candidates": [
-    "upload.accepts a 0 byte file 2.254444",
-    "upload.accepts a 1 byte file 2.254444",
+    "upload.accepts a 0 byte file 2.254444 (not combined)",
+    "upload.accepts a 1 byte file 2.254444 (not combined)",
     "api.v1.lists users 0",
     "api.v2.lists users 0",
   ],
-  "observed": false,
-  "reason": null,
-  "verdict": "pass",
+  "observed": null,
+  "reason": "ambiguous_candidates",
+  "verdict": "unverifiable",
 }
 `;
 
 exports[`the retrieval challenge set > lexical/package-later: Arm A and the check, as they stand 1`] = `
 {
   "candidates": [
-    "511 2.966373",
-    "512 2.966373",
+    "511 2.966373 (not combined)",
+    "512 2.966373 (not combined)",
     "501 0",
     "502 0",
   ],
-  "observed": false,
-  "reason": "all_succeeded_mismatch",
-  "verdict": "fail",
+  "observed": null,
+  "reason": "ambiguous_candidates",
+  "verdict": "unverifiable",
 }
 `;
 
 exports[`the retrieval challenge set > lexical/shard-earlier: Arm A and the check, as they stand 1`] = `
 {
   "candidates": [
-    "501 2.966373",
-    "502 2.966373",
+    "501 2.966373 (not combined)",
+    "502 2.966373 (not combined)",
     "511 0",
     "512 0",
   ],
-  "observed": false,
-  "reason": null,
-  "verdict": "pass",
+  "observed": null,
+  "reason": "ambiguous_candidates",
+  "verdict": "unverifiable",
 }
 `;
 
 exports[`the retrieval challenge set > lexical/shard-later: Arm A and the check, as they stand 1`] = `
 {
   "candidates": [
-    "501 2.966373",
-    "502 2.966373",
+    "501 2.966373 (not combined)",
+    "502 2.966373 (not combined)",
     "511 0",
     "512 0",
   ],
-  "observed": false,
-  "reason": "all_succeeded_mismatch",
-  "verdict": "fail",
+  "observed": null,
+  "reason": "ambiguous_candidates",
+  "verdict": "unverifiable",
 }
 `;
 
@@ -236,14 +482,14 @@ exports[`the retrieval challenge set > lexical/shard-later-named: Arm A and the 
 exports[`the retrieval challenge set > lexical/shard-later-said-to-fail: Arm A and the check, as they stand 1`] = `
 {
   "candidates": [
-    "501 2.966373",
-    "502 2.966373",
+    "501 2.966373 (not combined)",
+    "502 2.966373 (not combined)",
     "511 0",
     "512 0",
   ],
-  "observed": false,
-  "reason": null,
-  "verdict": "pass",
+  "observed": null,
+  "reason": "ambiguous_candidates",
+  "verdict": "unverifiable",
 }
 `;
 

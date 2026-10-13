@@ -1003,6 +1003,14 @@ A filled candidate (D.4) is never combined. In order:
 
 1. A kind not in the table below, or a `declaredValue` of the wrong type for its kind:
    `unverifiable`, `no_comparable_record_field`.
+   - **`reference_closes`** is then decided by the 0.1 gate's own check and by nothing else: a
+     `declaredValue` that is not `#N` or `owner/repo#N` is `unverifiable`,
+     `no_comparable_record_field`; otherwise the claim's `verdict`, `reason` and `observed` are
+     those of the section 7.4 row of a block that declares one `{"issue": declaredValue,
+     "relation": "closes"}` reference and nothing else, as D.11.4 compares a `reference_closes`
+     advisory. `#N` is in the subject repository. Steps 2 to 6 do not apply, and no candidate is
+     read: a candidate, a cross-reference or a `connected` event never makes the claim `pass`,
+     and evidence 7.4 needs that the record lacks gives the 7.4 row's reason, never `pass`.
 2. The evidence section for the kind's item type is unread: `unverifiable`, with
    `source_unreadable:<kind>` or `evidence_field_unpopulated:<field>` (section 6).
 3. A recorded candidate of that type that the evidence does not hold: `unverifiable`,
@@ -1010,18 +1018,38 @@ A filled candidate (D.4) is never combined. In order:
 4. **No candidate of that type at or above the floor: `unverifiable`, `no_matching_record_item`,
    with the floor stated in `retrieval.floor`. Never `pass`, whatever was filled.** For
    `file_changed` with an incomplete file list, the reason is `file_list_truncated`.
-5. The kind's own check:
+5. **Ties that disagree are ambiguous.** For `check_succeeded` and `test_passed`: if no combined
+   candidate is an identifier match, and two or more combined candidates tie on the top `score`
+   (compared exactly after rounding to 6 decimal places, with no margin), and they disagree on the
+   outcome the kind reads, the claim is `unverifiable`, `ambiguous_candidates`. The check neither
+   combines nor reads them. The outcome is a run's succeeded, failed (completed with any other
+   conclusion, as section 7.5 reads it) or not completed, and a test case's `passed`, `failed` or
+   `skipped`. Tied candidates that agree on the outcome are not ambiguous, and a candidate below the
+   top score never makes a claim ambiguous.
+6. The kind's own check:
 
 | `kind` | `declaredValue` | Item type | Passes when | Otherwise |
 | --- | --- | --- | --- | --- |
 | `file_changed` | a path | `file` | a candidate's `path` or `previousPath` equals it; `observed` is the path | `unverifiable`, `declared_item_not_among_candidates` (or `file_list_truncated`) |
 | `commit_present` | 7 to 40 hex digits | `commit` | a candidate's SHA starts with it; `observed` is the SHA | `unverifiable`, `declared_item_not_among_candidates` |
 | `reference_in_timeline` | `#N` or `owner/repo#N` | `timeline_event` | a candidate's `ref` is that issue; `observed` is `{event, ref}` | `unverifiable`, `declared_item_not_among_candidates` |
+| `reference_closes` | `#N` or `owner/repo#N` | `timeline_event` | the 7.4 `closes` row passes (step 1); `observed` is the row's | the 7.4 row's `fail` or `unverifiable` and its reason |
 | `check_succeeded` | boolean | `check_run` | it equals the section 7.5 `allSucceeded` rule over the combined runs | `fail`, `all_succeeded_mismatch`; `unverifiable`, `checks_incomplete` |
 | `test_passed` | boolean | `test` | it equals "no executed combined candidate failed" | `fail`, `test_outcome_mismatch`; `unverifiable`, `test_not_executed` if every combined candidate was skipped |
 
+`reference_in_timeline` means the record mentions the issue: it passes on any timeline event that
+names it, a bare cross-reference included. A claim that the pull request closes an issue ("Closes
+#12", "Fixes #12") is `reference_closes`, and `reference_in_timeline` MUST NOT stand in for it. A
+`reference_closes` claim's candidates are the timeline events retrieval finds for the issue (D.4):
+where the record mentions it, recorded, and never what decides it.
+
 New reason codes: `no_matching_record_item`, `declared_item_not_among_candidates`,
-`candidate_not_in_evidence`, `test_not_executed`, `test_outcome_mismatch`.
+`candidate_not_in_evidence`, `ambiguous_candidates`, `test_not_executed`, `test_outcome_mismatch`.
+A `reference_closes` claim gives the 7.4 reasons of section 16: `not_closing`, `not_found`,
+`closing_link_unsettled`, `closing_base_not_default`, `closing_event_unsettled`, and the unread
+reasons of its sections, `source_unreadable:closing_references`, `source_unreadable:repository`,
+`source_unreadable:issue`, `source_unreadable:pull_request_commits` and
+`evidence_field_unpopulated:<field>`.
 
 ### D.7 The verdict
 
@@ -1065,7 +1093,8 @@ record; and retrieval scores. It would still hold no file contents and no report
    are all check runs without retrieval, would match 0.1's `checks.allSucceeded`.
 6. **Identity kinds never fail.** A declared file, commit or reference that is not among the
    candidates is `unverifiable`, not `fail`. With a complete file list, `file_changed` could fail
-   with `declared_not_changed` as 0.1 does.
+   with `declared_not_changed` as 0.1 does. (`reference_closes` is not an identity kind: it fails
+   where the 7.4 row fails, D.6.)
 7. **The verdict.** Should reader claims enter `predicate.verdict` (D.7), under section 8's rule or
    another?
 8. **Versioning.** Section 13 treats each 0.x minor as a major. This draft adds only record
@@ -1348,6 +1377,25 @@ nothing is at that path at the head.
    unchanged.
 
 ### D.12 Changes to this draft
+
+- **2026-10-13.** A reader claim kind `reference_closes` (D.6), by the operator's ruling of
+  2026-10-13. A reader could type "Closes #12" only as `reference_in_timeline`, which passes on a
+  bare cross-reference: a mention, not a close. A `reference_closes` claim is decided by the 0.1
+  gate's section 7.4 `closes` row for a block that declares that one reference, as D.11.4 compares
+  a `reference_closes` advisory; its candidates are the timeline events that name the issue, and
+  none is read. `reference_in_timeline` is unchanged and MUST NOT stand in for a closing claim. The
+  DRAFT schema's reader claim reason accepts `not_closing`, `not_found`,
+  `closing_link_unsettled`, `closing_base_not_default`, `closing_event_unsettled` and the source
+  kinds `closing_references`, `repository` and `issue`. A draft record written before this change
+  that holds a `reference_closes` claim recorded it `unverifiable`, `no_comparable_record_field`,
+  and gives the 7.4 row when its check is recomputed (D.8). No 0.1 verdict changes, and the 0.1
+  schemas, the advisory comparison and its notes are unchanged.
+
+- **2026-10-13.** Ties that disagree are ambiguous (D.6 step 5), with the new reason
+  `ambiguous_candidates`. A `check_succeeded` or `test_passed` claim that names nothing exactly,
+  whose top candidates tie and disagree on the outcome, is `unverifiable` and no longer combines
+  them. A draft record written before this change that holds such a claim gives a different
+  `verdict` and `reason` when its check is recomputed (D.8); no 0.1 record is affected.
 
 - **2026-10-13.** Spec 0.1.4 as amended 2026-10-13 (section 17, "Checks per workflow path"). The
   `check_run` items are the runs section 7.5 now counts, the latest per workflow path and name
