@@ -21,9 +21,11 @@ For the one pull request named in a request, and nothing else, the App reads:
 | The pull request: state, merged, merge time, head and merge commit ids, changed-file count | `GET /repos/{o}/{r}/pulls/{n}` |
 | The changed-file paths and statuses | `GET /repos/{o}/{r}/pulls/{n}/files` |
 | The issues the pull request closes | GraphQL `closingIssuesReferences` (one fixed query) |
+| For a `closes` target that exists and is not among those: whether it is an issue or a pull request, its state, and the closer (a pull request or a commit id) and time of each of its ClosedEvents; and the pull request's base branch, the repository's default branch and the pull request's commit ids (spec 0.1.4) | GraphQL `issueOrPullRequest { timelineItems(itemTypes: [CLOSED_EVENT]) }` and `pullRequest { baseRefName commits }` (two fixed queries) |
 | Whether a cited issue exists, and whether its repository is readable; for an issue transferred to another repository, the identity GitHub answers with (spec 0.1.3) | `GET /repos/{o}/{r}/issues/{n}`, `GET /repos/{o}/{r}`; the issue read's redirect only to `GET /repositories/{id}/issues/{n}` or `GET /repos/{o}/{r}/issues/{n}` |
 | Whether a cited commit exists, and is reachable from the head | `GET /repos/{o}/{r}/git/commits/{sha}`, `GET /repos/{o}/{r}/compare/{a}...{b}` |
 | Check runs at the declared head | `GET /repos/{o}/{r}/commits/{sha}/check-runs` |
+| The workflow run of each check run's suite (spec 0.1.4, amended 2026-10-13): ids, paths, attempts | `GET /repos/{o}/{r}/actions/runs?head_sha={sha}` |
 | A named JUnit test-report artifact: element counts only | Actions workflow runs, jobs, artifacts, artifact download |
 | Deployments to the declared environment, and their statuses | `GET /repos/{o}/{r}/deployments`, `.../statuses` |
 | For an advisory only, whether a path a file claim names is a file, a directory or nothing at the head: the object's type, never its content (comparison 0.3.0; the endpoint asks for no advisories today) | GraphQL `object(expression: "<head>:<path>") { __typename }` (one fixed query) |
@@ -144,7 +146,7 @@ A stored record, within retention, for the installation the key belongs to:
 
 ### `GET /v0.1/health`
 
-`{"status": "ok", "checker": {"name", "version", "digest": {"sha256"}}, "spec": "0.1.3"}`. The digest
+`{"status": "ok", "checker": {"name", "version", "digest": {"sha256"}}, "spec": "0.1.4"}`. The digest
 is the SHA-256 of the Worker bundle that is running (`hosted/dist/checker.mjs`, built by
 `pnpm build:hosted`); it is the `checker.digest` every hosted record carries. The build is
 deterministic: check out the commit, run `pnpm install --frozen-lockfile && pnpm build:hosted`, and

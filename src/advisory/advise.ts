@@ -33,9 +33,10 @@ export interface Advisory {
 
 // The version of the comparison from a proposed claim to its note, separate from the extractor's:
 // 0.1.0 compared a file claim by exact path only; 0.2.0 also matches it by name; 0.3.0 also asks
-// whether a path not among the changed files exists at the head. A record names the comparison its
+// whether a path not among the changed files exists at the head; 0.4.0 compares a closes claim by
+// the spec 0.1.4 closes check, which reads who closed the target. A record names the comparison its
 // notes came from, as it names the grammar that proposed them.
-export const COMPARISON_VERSION = '0.3.0';
+export const COMPARISON_VERSION = '0.4.0';
 
 export interface ComparisonIdentity {
   version: string;

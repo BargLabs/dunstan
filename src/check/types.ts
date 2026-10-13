@@ -7,6 +7,7 @@ export type Verdict = 'pass' | 'fail' | 'unverifiable';
 export type SourceKind =
   | 'pull_request'
   | 'pull_request_files'
+  | 'pull_request_commits'
   | 'closing_references'
   | 'repository'
   | 'issue'
@@ -85,11 +86,56 @@ export type ReferenceEvidence =
   | { kind: 'commit'; ref: string; status: 'ok'; exists: boolean; reachableFromHead: boolean }
   | ({ kind: 'issue' | 'commit'; ref: string } & Unread);
 
+// Spec 0.1.4: who closed a `closes` target, as GitHub records it on a ClosedEvent: a pull request
+// (owner/repo#N), a commit, or anything else (a project). Null when the event records no closer.
+export type Closer =
+  | { kind: 'pull_request'; ref: string }
+  | { kind: 'commit'; oid: string }
+  | { kind: 'other' };
+
+export interface CloseEvent {
+  at: string;
+  closer: Closer | null;
+}
+
+// One `closes` target's close events, read under the identity it resolves to (`resolvedAs`, or
+// `ref` itself): what it is, its state, and every ClosedEvent in the order GitHub lists them.
+export type CloseTargetEvidence =
+  | {
+      ref: string;
+      status: 'ok';
+      type: 'issue' | 'pull_request';
+      state: 'open' | 'closed' | 'merged';
+      events: CloseEvent[];
+    }
+  | ({ ref: string } & Unread);
+
+// The pull request's side of a close: its base branch, its repository's default branch (null when
+// it has none) and every commit it holds. The merge commit is `pullRequest.mergeSha`.
+export type CloseBaseEvidence =
+  | { status: 'ok'; baseRef: string; defaultBranch: string | null; commits: string[] }
+  | Unread;
+
+export interface CloseEventsEvidence {
+  pullRequest: CloseBaseEvidence;
+  targets: CloseTargetEvidence[];
+}
+
+// `checkSuiteId` and `appSlug` (spec 0.1.4, amended 2026-10-12) are the run's check suite and the
+// app that created it, as the API names them; a record written before then has neither.
+// `workflowPath`, `workflowRunId` and `runAttempt` (amended 2026-10-13) are the workflow run whose
+// check suite it is, as the workflow runs at the head list it; a run of no workflow, or one in a
+// record written before then, has none of the three.
 export interface CheckRun {
   id: number;
   name: string;
   status: string;
   conclusion: string | null;
+  checkSuiteId?: number;
+  appSlug?: string;
+  workflowPath?: string;
+  workflowRunId?: number;
+  runAttempt?: number;
 }
 
 export type CheckRunsEvidence =
@@ -172,6 +218,7 @@ export interface Evidence {
   files?: FilesEvidence;
   closingReferences?: ClosingReferencesEvidence;
   references?: ReferenceEvidence[];
+  closeEvents?: CloseEventsEvidence;
   checkRuns?: CheckRunsEvidence;
   testRecords?: TestRecordEvidence[];
   deployments?: DeploymentsEvidence[];

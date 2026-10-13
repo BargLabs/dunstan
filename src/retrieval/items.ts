@@ -38,7 +38,9 @@ export function recordItems(evidence: ItemSnapshot): RecordItem[] {
     }
   }
   if (evidence.checkRuns?.status === 'ok') {
-    // The runs the 0.1 checks count: the latest per name, less any the checker excluded.
+    // The runs the 0.1 checks count: the latest per workflow path and name (a run of no workflow
+    // per check suite and name), less any the checker excluded. The workflow is not a field yet
+    // (D.10).
     for (const run of countedCheckRuns(evidence.checkRuns.runs, evidence.checkRuns.excludedIds)) {
       items.push({ type: 'check_run', id: String(run.id), fields: [['name', run.name]] });
     }

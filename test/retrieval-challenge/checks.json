@@ -1,0 +1,128 @@
+{
+  "repository": "example-org/example-repo",
+  "family": "checks",
+  "evidence": {
+    "checkRuns": {
+      "status": "ok",
+      "commit": "c0ffee0000000000000000000000000000000001",
+      "excludedIds": [],
+      "runs": [
+        { "id": 201, "name": "test", "status": "completed", "conclusion": "success" },
+        { "id": 205, "name": "test", "status": "completed", "conclusion": "failure" },
+        { "id": 210, "name": "build", "status": "completed", "conclusion": "success" },
+        { "id": 214, "name": "build", "status": "completed", "conclusion": "failure" },
+        { "id": 220, "name": "lint", "status": "completed", "conclusion": "success" },
+        { "id": 221, "name": "Lint", "status": "completed", "conclusion": "failure" },
+        { "id": 230, "name": "ci", "status": "completed", "conclusion": "failure" },
+        { "id": 231, "name": "e2e", "status": "completed", "conclusion": "success" },
+        { "id": 232, "name": "ci-docs", "status": "completed", "conclusion": "success" },
+        {
+          "id": 240,
+          "name": "test (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 241,
+          "name": "test (macos-latest)",
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        { "id": 250, "name": "package", "status": "completed", "conclusion": "success" },
+        { "id": 252, "name": "package", "status": "in_progress", "conclusion": null }
+      ]
+    }
+  },
+  "claims": [
+    {
+      "id": "rerun-latest-failed",
+      "confusion": "build ran twice; the first run succeeded and the re-run failed",
+      "text": "The build job passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "expectCandidates": ["214"],
+      "forbidCandidates": [],
+      "expectCheck": { "verdict": "fail", "reason": "all_succeeded_mismatch", "observed": false }
+    },
+    {
+      "id": "rerun-in-progress",
+      "confusion": "package succeeded once and its re-run is still in progress",
+      "text": "The package job passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "expectCandidates": ["252"],
+      "forbidCandidates": [],
+      "expectCheck": { "verdict": "unverifiable", "reason": "checks_incomplete" }
+    },
+    {
+      "id": "same-name-two-workflows",
+      "confusion": "a job named test in two workflows: Checks (run 201, success) and Nightly (run 205, failure); the record keeps only the later",
+      "text": "Checks / test passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "expectCandidates": [],
+      "forbidCandidates": ["205"],
+      "expectCheck": { "verdict": "unverifiable" }
+    },
+    {
+      "id": "case-lower",
+      "confusion": "lint against Lint, a different job",
+      "text": "The lint job passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "expectCandidates": ["220"],
+      "forbidCandidates": ["221"],
+      "expectCheck": { "verdict": "pass", "observed": true }
+    },
+    {
+      "id": "case-upper",
+      "confusion": "Lint against lint, a different job",
+      "text": "The Lint check passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "expectCandidates": ["221"],
+      "forbidCandidates": ["220"],
+      "expectCheck": { "verdict": "fail", "reason": "all_succeeded_mismatch", "observed": false }
+    },
+    {
+      "id": "short-name-in-longer",
+      "confusion": "ci-docs against ci, a name below MIN_NAME_LENGTH",
+      "text": "ci-docs passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "expectCandidates": ["232"],
+      "forbidCandidates": ["230"],
+      "expectCheck": { "verdict": "pass", "observed": true }
+    },
+    {
+      "id": "short-name",
+      "confusion": "ci, below MIN_NAME_LENGTH, against ci-docs",
+      "text": "The ci job passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "expectCandidates": ["230"],
+      "forbidCandidates": ["232"],
+      "expectCheck": { "verdict": "fail", "reason": "all_succeeded_mismatch", "observed": false }
+    },
+    {
+      "id": "short-name-alone",
+      "confusion": "e2e, below MIN_NAME_LENGTH, with no other job sharing a word",
+      "text": "e2e passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "expectCandidates": ["231"],
+      "forbidCandidates": [],
+      "expectCheck": { "verdict": "pass", "observed": true }
+    },
+    {
+      "id": "matrix-job",
+      "confusion": "test (ubuntu-latest) against test and test (macos-latest)",
+      "text": "test (ubuntu-latest) passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "expectCandidates": ["240"],
+      "forbidCandidates": ["205", "241"],
+      "expectCheck": { "verdict": "pass", "observed": true }
+    }
+  ]
+}

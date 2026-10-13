@@ -1,0 +1,140 @@
+{
+  "repository": "example-org/example-repo",
+  "family": "paths",
+  "evidence": {
+    "files": {
+      "status": "ok",
+      "complete": true,
+      "entries": [
+        { "path": "bin/release", "status": "modified" },
+        { "path": "bin/release-notes", "status": "added" },
+        { "path": "packages/a/index.ts", "status": "modified" },
+        { "path": "packages/c/index.ts", "status": "modified" },
+        { "path": "src/check/check.ts", "status": "modified" },
+        { "path": "src/check/checks.ts", "status": "modified" },
+        {
+          "path": "src/config/load.ts",
+          "status": "renamed",
+          "previousPath": "src/config/loader.ts"
+        },
+        { "path": "src/parse/tokens.ts", "status": "modified" },
+        { "path": "src/text/format.ts", "status": "renamed", "previousPath": "src/util/format.ts" },
+        { "path": "src/util/format.ts", "status": "added" },
+        { "path": "test/check/checks.test.ts", "status": "modified" },
+        { "path": "test/parse/grammar.test.ts", "status": "modified" }
+      ]
+    }
+  },
+  "claims": [
+    {
+      "id": "sibling-plural",
+      "confusion": "src/check/checks.ts against its sibling src/check/check.ts and its test",
+      "text": "Changed src/check/checks.ts.",
+      "kind": "file_changed",
+      "declaredValue": "src/check/checks.ts",
+      "expectCandidates": ["src/check/checks.ts"],
+      "forbidCandidates": ["src/check/check.ts", "test/check/checks.test.ts"],
+      "expectCheck": { "verdict": "pass", "observed": "src/check/checks.ts" }
+    },
+    {
+      "id": "sibling-singular",
+      "confusion": "src/check/check.ts against its sibling src/check/checks.ts",
+      "text": "Changed src/check/check.ts.",
+      "kind": "file_changed",
+      "declaredValue": "src/check/check.ts",
+      "expectCandidates": ["src/check/check.ts"],
+      "forbidCandidates": ["src/check/checks.ts", "test/check/checks.test.ts"],
+      "expectCheck": { "verdict": "pass", "observed": "src/check/check.ts" }
+    },
+    {
+      "id": "nested-test-file",
+      "confusion": "a test file against the source files it is named after",
+      "text": "Updated test/check/checks.test.ts.",
+      "kind": "file_changed",
+      "declaredValue": "test/check/checks.test.ts",
+      "expectCandidates": ["test/check/checks.test.ts"],
+      "forbidCandidates": ["src/check/check.ts", "src/check/checks.ts"],
+      "expectCheck": { "verdict": "pass", "observed": "test/check/checks.test.ts" }
+    },
+    {
+      "id": "sibling-not-changed",
+      "confusion": "a path in a changed directory that was not itself changed",
+      "text": "Changed src/check/rows.ts.",
+      "kind": "file_changed",
+      "declaredValue": "src/check/rows.ts",
+      "expectCandidates": [],
+      "forbidCandidates": ["src/check/check.ts", "src/check/checks.ts"],
+      "expectCheck": { "verdict": "unverifiable", "reason": "declared_item_not_among_candidates" }
+    },
+    {
+      "id": "monorepo-changed",
+      "confusion": "packages/c/index.ts against packages/a/index.ts",
+      "text": "Changed packages/c/index.ts.",
+      "kind": "file_changed",
+      "declaredValue": "packages/c/index.ts",
+      "expectCandidates": ["packages/c/index.ts"],
+      "forbidCandidates": ["packages/a/index.ts"],
+      "expectCheck": { "verdict": "pass", "observed": "packages/c/index.ts" }
+    },
+    {
+      "id": "monorepo-not-changed",
+      "confusion": "packages/b/index.ts, not changed, against packages/a and packages/c",
+      "text": "Changed packages/b/index.ts.",
+      "kind": "file_changed",
+      "declaredValue": "packages/b/index.ts",
+      "expectCandidates": [],
+      "forbidCandidates": ["packages/a/index.ts", "packages/c/index.ts"],
+      "expectCheck": { "verdict": "unverifiable", "reason": "declared_item_not_among_candidates" }
+    },
+    {
+      "id": "rename-old-path",
+      "confusion": "the claim names a renamed file by its old path",
+      "text": "Edited src/config/loader.ts.",
+      "kind": "file_changed",
+      "declaredValue": "src/config/loader.ts",
+      "expectCandidates": ["src/config/load.ts"],
+      "forbidCandidates": [],
+      "expectCheck": { "verdict": "pass", "observed": "src/config/load.ts" }
+    },
+    {
+      "id": "rename-old-path-reused",
+      "confusion": "a new file added at the path another file was renamed from",
+      "text": "Added src/util/format.ts.",
+      "kind": "file_changed",
+      "declaredValue": "src/util/format.ts",
+      "expectCandidates": ["src/util/format.ts"],
+      "forbidCandidates": [],
+      "expectCheck": { "verdict": "pass", "observed": "src/util/format.ts" }
+    },
+    {
+      "id": "prefix-longer",
+      "confusion": "bin/release-notes, of which bin/release is a prefix",
+      "text": "Added bin/release-notes.",
+      "kind": "file_changed",
+      "declaredValue": "bin/release-notes",
+      "expectCandidates": ["bin/release-notes"],
+      "forbidCandidates": ["bin/release"],
+      "expectCheck": { "verdict": "pass", "observed": "bin/release-notes" }
+    },
+    {
+      "id": "prefix-shorter",
+      "confusion": "bin/release, a prefix of bin/release-notes",
+      "text": "Changed bin/release.",
+      "kind": "file_changed",
+      "declaredValue": "bin/release",
+      "expectCandidates": ["bin/release"],
+      "forbidCandidates": ["bin/release-notes"],
+      "expectCheck": { "verdict": "pass", "observed": "bin/release" }
+    },
+    {
+      "id": "context-only",
+      "confusion": "an existing file mentioned only as context, typed as changed; only its test changed",
+      "text": "Updated src/parse/tokens.ts to follow the rules in src/parse/grammar.ts.",
+      "kind": "file_changed",
+      "declaredValue": "src/parse/grammar.ts",
+      "expectCandidates": [],
+      "forbidCandidates": ["test/parse/grammar.test.ts"],
+      "expectCheck": { "verdict": "unverifiable", "reason": "declared_item_not_among_candidates" }
+    }
+  ]
+}

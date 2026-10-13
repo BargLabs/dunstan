@@ -53,6 +53,7 @@
       "enum": [
         "pull_request",
         "pull_request_files",
+        "pull_request_commits",
         "closing_references",
         "repository",
         "issue",
@@ -304,7 +305,7 @@
     },
     "claimReason": {
       "type": "string",
-      "pattern": "^(?:head_mismatch|declared_not_changed|undeclared_file|file_list_truncated|not_closing|closing_link_unsettled|not_found|not_reachable|count_mismatch|all_succeeded_mismatch|checks_incomplete|no_check_runs|no_comparable_record_field|record_not_found|record_ambiguous|not_merged|premature|no_deployment|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request|pull_request_files|closing_references|repository|issue|commit|compare|check_runs|workflow_runs|artifact|deployments))$"
+      "pattern": "^(?:head_mismatch|declared_not_changed|undeclared_file|file_list_truncated|not_closing|closing_link_unsettled|closing_base_not_default|closing_event_unsettled|not_found|not_reachable|count_mismatch|all_succeeded_mismatch|checks_incomplete|no_check_runs|no_comparable_record_field|record_not_found|record_ambiguous|not_merged|premature|no_deployment|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request|pull_request_files|pull_request_commits|closing_references|repository|issue|commit|compare|check_runs|workflow_runs|artifact|deployments))$"
     },
     "unread": {
       "description": "A section the checker could not use: its source errored, or the source answered without the field.",
@@ -453,6 +454,102 @@
             ]
           }
         },
+        "closeEvents": {
+          "description": "Spec 0.1.4: who closed each closes target that exists and is not among the closing references, read under the identity it resolves to; and the pull request's base, its repository's default branch and its commit ids.",
+          "type": "object",
+          "required": ["pullRequest", "targets"],
+          "additionalProperties": false,
+          "properties": {
+            "pullRequest": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "required": ["status", "baseRef", "defaultBranch", "commits"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "status": { "const": "ok" },
+                    "baseRef": { "type": "string", "minLength": 1 },
+                    "defaultBranch": {
+                      "oneOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }]
+                    },
+                    "commits": {
+                      "type": "array",
+                      "uniqueItems": true,
+                      "items": { "$ref": "#/$defs/commitSha" }
+                    }
+                  }
+                },
+                { "$ref": "#/$defs/unreadOnly" }
+              ]
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "required": ["ref", "status", "type", "state", "events"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "ref": { "$ref": "#/$defs/issueRef" },
+                      "status": { "const": "ok" },
+                      "type": { "enum": ["issue", "pull_request"] },
+                      "state": { "enum": ["open", "closed", "merged"] },
+                      "events": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": ["at", "closer"],
+                          "additionalProperties": false,
+                          "properties": {
+                            "at": { "$ref": "#/$defs/timestamp" },
+                            "closer": {
+                              "oneOf": [
+                                { "type": "null" },
+                                {
+                                  "type": "object",
+                                  "required": ["kind", "ref"],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "kind": { "const": "pull_request" },
+                                    "ref": { "$ref": "#/$defs/issueRef" }
+                                  }
+                                },
+                                {
+                                  "type": "object",
+                                  "required": ["kind", "oid"],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "kind": { "const": "commit" },
+                                    "oid": { "$ref": "#/$defs/commitSha" }
+                                  }
+                                },
+                                {
+                                  "type": "object",
+                                  "required": ["kind"],
+                                  "additionalProperties": false,
+                                  "properties": { "kind": { "const": "other" } }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "if": { "properties": { "type": { "const": "issue" } } },
+                    "then": { "properties": { "state": { "enum": ["open", "closed"] } } }
+                  },
+                  {
+                    "type": "object",
+                    "required": ["ref"],
+                    "properties": { "ref": { "$ref": "#/$defs/issueRef" } },
+                    "allOf": [{ "$ref": "#/$defs/unread" }]
+                  }
+                ]
+              }
+            }
+          }
+        },
         "checkRuns": {
           "oneOf": [
             {
@@ -473,11 +570,41 @@
                     "type": "object",
                     "required": ["id", "name", "status", "conclusion"],
                     "additionalProperties": false,
+                    "dependentRequired": {
+                      "workflowPath": ["checkSuiteId", "workflowRunId", "runAttempt"],
+                      "workflowRunId": ["workflowPath"],
+                      "runAttempt": ["workflowPath"]
+                    },
                     "properties": {
                       "id": { "type": "integer", "minimum": 1 },
                       "name": { "type": "string" },
                       "status": { "type": "string", "minLength": 1 },
-                      "conclusion": { "type": ["string", "null"] }
+                      "conclusion": { "type": ["string", "null"] },
+                      "checkSuiteId": {
+                        "description": "The run's check suite (`check_suite.id`). A run without `workflowPath` is counted as the latest per check suite and name; a run without either is keyed by its name alone. Added in spec 0.1.4, amended 2026-10-12.",
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "appSlug": {
+                        "description": "The slug of the app that created the run (`app.slug`). Recorded, not read by any check. Added in spec 0.1.4, amended 2026-10-12.",
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "workflowPath": {
+                        "description": "The `path` of the workflow run whose `check_suite_id` is the run's check suite, less any `@<ref>`, from the workflow runs at the head. Runs that have it are counted as the latest per workflow path and name. Added in spec 0.1.4, amended 2026-10-13.",
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "workflowRunId": {
+                        "description": "The `id` of that workflow run. Added in spec 0.1.4, amended 2026-10-13.",
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "runAttempt": {
+                        "description": "That workflow run's `run_attempt` as the listing gives it, its latest attempt at the read. Added in spec 0.1.4, amended 2026-10-13.",
+                        "type": "integer",
+                        "minimum": 1
+                      }
                     }
                   }
                 }

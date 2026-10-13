@@ -39,7 +39,8 @@ export function advisoryLine(section: {
 // "mismatch".
 export const RECORD_SHOWS: Readonly<Record<string, string>> = {
   declared_not_changed: 'not among the changed files',
-  not_closing: 'not among the closing references',
+  // Spec 0.1.4: the closing references, and every ClosedEvent of the target, were read.
+  not_closing: 'not closed by this pull request or its commits',
   not_found: 'not found in the record',
   not_reachable: 'not reachable from the head',
   head_mismatch: 'the head is another commit',

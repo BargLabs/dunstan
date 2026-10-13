@@ -6,7 +6,15 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!spec/examples/blocks/invalid", "!action/dist"]
+    "includes": [
+      "**",
+      "!spec/examples/blocks/invalid",
+      "!action/dist",
+      "!experiments/closes-probe-2026-10/results.json",
+      "!experiments/closes-probe-2026-10/reread-2026-10-12.json",
+      "!experiments/checks-probe-2026-10/results.json",
+      "!experiments/open-source-advisory-2026-10-study2/erratum-1/closers.json"
+    ]
   },
   "formatter": {
     "enabled": true,

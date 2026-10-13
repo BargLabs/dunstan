@@ -6,6 +6,7 @@ agent-written pull requests without losing its genuine catches, and does it earn
 wording? The rule, the instruments, the measures, the bar, the labels and the expected values are
 fixed in [`preregistration.md`](preregistration.md), written before any search. Study 1, where the
 idea came from, is [`../open-source-advisory-2026-10/`](../open-source-advisory-2026-10/).
+Erratum 1, on what closes an issue, is in [`erratum-1/`](erratum-1/).
 
 ## Order of work
 

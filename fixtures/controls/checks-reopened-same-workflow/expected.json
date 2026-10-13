@@ -1,0 +1,59 @@
+{
+  "description": "Declares three checks, all succeeded. ci.yml ran when the pull request was opened (workflow run 7001, check suite 6001), where test failed before it wrote its report, and again when it was reopened (workflow run 7003, suite 6003), where every job succeeded; the later workflow run's jobs are the ones counted",
+  "blockStatus": "found",
+  "verdict": "pass",
+  "claims": [
+    {
+      "id": "head:/headCommit",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/0",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/1",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/2",
+      "verdict": "pass"
+    },
+    {
+      "id": "reference:/references/0",
+      "verdict": "pass"
+    },
+    {
+      "id": "reference:/references/1",
+      "verdict": "pass"
+    },
+    {
+      "id": "reference:/references/2",
+      "verdict": "pass"
+    },
+    {
+      "id": "count:/tests/0/count",
+      "verdict": "pass"
+    },
+    {
+      "id": "count:/tests/0/failures",
+      "verdict": "pass"
+    },
+    {
+      "id": "count:/checks/total",
+      "verdict": "pass"
+    },
+    {
+      "id": "count:/checks/allSucceeded",
+      "verdict": "pass"
+    },
+    {
+      "id": "time:/mergedAt",
+      "verdict": "pass"
+    },
+    {
+      "id": "time:/deployedAt",
+      "verdict": "pass"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "description": "Declares closes #35, which is not among the closing references, is closed, and whose ClosedEvent its timeline does not show yet",
+  "blockStatus": "found",
+  "verdict": "unverifiable",
+  "claims": [
+    {
+      "id": "head:/headCommit",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/0",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/1",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/2",
+      "verdict": "pass"
+    },
+    {
+      "id": "reference:/references/0",
+      "verdict": "unverifiable",
+      "reason": "closing_event_unsettled"
+    }
+  ]
+}

@@ -4,6 +4,26 @@
     "claims": "b9ddb9fe63bfb372b1495bac677fc4d3c347e597963b804250ead5e0221f7082",
     "evidence": "7874be56da279a561cc55b8fba76dc73ff097ffae1a70fb477dc3dc8dc64423c"
   },
+  "checks-push-and-pull-request": {
+    "block": "058898970d24c7731d3293421a54a85b5916442449e3f98aacde2229cb8a4d83",
+    "claims": "b9ddb9fe63bfb372b1495bac677fc4d3c347e597963b804250ead5e0221f7082",
+    "evidence": "5a262c773d65d548b5e3cd1c4082faf1d2f3e66aa07909f3a535aa4d2e517a26"
+  },
+  "checks-reopened-same-workflow": {
+    "block": "058898970d24c7731d3293421a54a85b5916442449e3f98aacde2229cb8a4d83",
+    "claims": "b9ddb9fe63bfb372b1495bac677fc4d3c347e597963b804250ead5e0221f7082",
+    "evidence": "9439695ce5b48453c50a6cf2bc166a67bb18880265f3b86f9a666bfc67ddadf9"
+  },
+  "closes-commit-closer": {
+    "block": "faf37ff1b41f67d3751962fe094a97f82bcf08e90eda38c0298ad462f7d18222",
+    "claims": "3e70e425128c106069645ff814f327f11a62ea09bb05eb0392587a7bfe9a8aca",
+    "evidence": "bc403b61d115dcb4200da844735fda9069daf8ea60f12ec49777bcc9f073b400"
+  },
+  "closes-pr-target-closed-by-this-pr": {
+    "block": "c9ec47fbf44482c9acd5fd0c7e2807c658a6b42c033fa802c0d4968867ba09ea",
+    "claims": "b690924f9dd46358ae047ca685e9da383822689da6d423d8071fd4d6ef845681",
+    "evidence": "be9e56dbf439251193830f80d3e7e5bc84cfec40f9e05ee81f9f03c2ad0d03dd"
+  },
   "closes-transferred": {
     "block": "058898970d24c7731d3293421a54a85b5916442449e3f98aacde2229cb8a4d83",
     "claims": "10327e29f1bac7ed5553407b3456f9c7ba2877ee3d8dfb924c6a6bfbdd9869d4",

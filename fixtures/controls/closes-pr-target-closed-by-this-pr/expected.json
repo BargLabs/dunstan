@@ -1,0 +1,27 @@
+{
+  "description": "Declares closes #31, a pull request this one supersedes; GitHub records this pull request as the closer of #31",
+  "blockStatus": "found",
+  "verdict": "pass",
+  "claims": [
+    {
+      "id": "head:/headCommit",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/0",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/1",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/2",
+      "verdict": "pass"
+    },
+    {
+      "id": "reference:/references/0",
+      "verdict": "pass"
+    }
+  ]
+}

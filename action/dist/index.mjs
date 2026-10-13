@@ -8028,7 +8028,7 @@ import { join } from "node:path";
 import { createHash } from "node:crypto";
 
 // src/spec/constants.ts
-var SPEC_VERSION = "0.1.3";
+var SPEC_VERSION = "0.1.4";
 var BLOCK_VERSION = "0.1";
 var SUPPORTED_BLOCK_VERSIONS = [BLOCK_VERSION];
 var BLOCK_INFO_STRING = "dunstan-handback";
@@ -8419,6 +8419,53 @@ function findReference(evidence, kind, ref) {
     (r) => r.kind === kind && (kind === "issue" ? sameIssue(r.ref, ref) : r.ref === ref)
   );
 }
+function closedBy(reference, field, evidence, repository, at, observed) {
+  const pr = evidence.pullRequest;
+  const section = evidence.closeEvents;
+  const target = section?.targets.find((t) => sameIssue(t.ref, at));
+  const side = section?.pullRequest;
+  let unread2;
+  if (section === void 0 || target === void 0) unread2 = absentSection("closeEvents");
+  else if (target.status !== "ok") unread2 = unreadReason(target);
+  const events = target?.status === "ok" ? target.events : [];
+  const sideUnread = () => side === void 0 ? absentSection("closeEvents") : unreadReason(side);
+  const self = `${repository}#${pr.number}`;
+  const byThis = events.find(
+    (e) => e.closer?.kind === "pull_request" && sameIssue(e.closer.ref, self)
+  );
+  if (byThis !== void 0) {
+    return pass("reference", field, reference, { ...observed, closedBy: byThis });
+  }
+  for (const e of events) {
+    if (e.closer?.kind !== "commit") continue;
+    const oid = e.closer.oid;
+    if (oid === pr.mergeSha || side?.status === "ok" && side.commits.includes(oid)) {
+      return pass("reference", field, reference, { ...observed, closedBy: e });
+    }
+    if (side?.status !== "ok") unread2 ??= sideUnread();
+  }
+  if (pr.state === "open" && !pr.merged) {
+    return unverifiable("reference", field, reference, "closing_link_unsettled");
+  }
+  if (pr.merged && target?.status === "ok" && target.state === "open") {
+    if (side?.status !== "ok") unread2 ??= sideUnread();
+    else if (side.baseRef !== side.defaultBranch) {
+      return unverifiable("reference", field, reference, "closing_base_not_default");
+    }
+  }
+  if (unread2 !== void 0) return unverifiable("reference", field, reference, unread2);
+  const settled = target;
+  if (settled.state === "closed" && settled.events.length === 0) {
+    return unverifiable("reference", field, reference, "closing_event_unsettled");
+  }
+  return fail(
+    "reference",
+    field,
+    reference,
+    { ...observed, state: settled.state, events: settled.events },
+    "not_closing"
+  );
+}
 function checkReferences(block, evidence, repository) {
   return (block.references ?? []).map((reference, i) => {
     const field = `/references/${i}`;
@@ -8446,15 +8493,11 @@ function checkReferences(block, evidence, repository) {
         return fail("reference", field, reference, { ...observed2, exists: false }, "not_found");
       }
       const resolved = entry2.kind === "issue" ? entry2.resolvedAs : void 0;
+      const named = resolved === void 0 ? observed2 : { ...observed2, ref: target, resolvedAs: resolved };
       if (resolved !== void 0 && closing.issues.some((issue) => sameIssue(issue, resolved))) {
-        return pass("reference", field, reference, {
-          ...observed2,
-          ref: target,
-          resolvedAs: resolved
-        });
+        return pass("reference", field, reference, named);
       }
-      const pr = evidence.pullRequest;
-      return pr.state === "open" && !pr.merged ? unverifiable("reference", field, reference, "closing_link_unsettled") : fail("reference", field, reference, observed2, "not_closing");
+      return closedBy(reference, field, evidence, repository, resolved ?? target, named);
     }
     if ("issue" in reference) {
       const entry2 = findReference(evidence, "issue", qualifyIssue(reference.issue, repository));
@@ -8523,14 +8566,30 @@ function checkTests(block, evidence) {
   });
   return rows;
 }
+function checkKey(run) {
+  if (run.workflowPath !== void 0)
+    return JSON.stringify(["workflow", run.workflowPath, run.name]);
+  if (run.checkSuiteId !== void 0) return JSON.stringify(["suite", run.checkSuiteId, run.name]);
+  return JSON.stringify(["name", run.name]);
+}
+function later(a, b) {
+  if ((a.workflowRunId ?? 0) !== (b.workflowRunId ?? 0)) {
+    return (a.workflowRunId ?? 0) > (b.workflowRunId ?? 0);
+  }
+  if ((a.runAttempt ?? 0) !== (b.runAttempt ?? 0)) return (a.runAttempt ?? 0) > (b.runAttempt ?? 0);
+  return a.id > b.id;
+}
 function countedCheckRuns(runs, excludedIds) {
+  const excluded = new Set(excludedIds);
+  const checker = /* @__PURE__ */ new Map();
   const latest = /* @__PURE__ */ new Map();
   for (const run of runs) {
-    const seen = latest.get(run.name);
-    if (seen === void 0 || run.id > seen.id) latest.set(run.name, run);
+    if (excluded.has(run.id)) checker.set(run.name, Math.max(checker.get(run.name) ?? 0, run.id));
+    const key = checkKey(run);
+    const seen = latest.get(key);
+    if (seen === void 0 || later(run, seen)) latest.set(key, run);
   }
-  const excluded = new Set(excludedIds);
-  return [...latest.values()].filter((run) => !excluded.has(run.id)).sort((a, b) => a.id - b.id);
+  return [...latest.values()].filter((run) => !excluded.has(run.id) && run.id > (checker.get(run.name) ?? 0)).sort((a, b) => a.id - b.id);
 }
 function checkChecks(block, evidence) {
   const checks = block.checks;
@@ -9021,6 +9080,204 @@ async function readClosingReferences(client, repository, number) {
   }
   return unreadable("closing_references");
 }
+var CLOSE_BASE_QUERY = `query($owner: String!, $name: String!, $number: Int!, $after: String) {
+  repository(owner: $owner, name: $name) {
+    defaultBranchRef { name }
+    pullRequest(number: $number) {
+      baseRefName
+      commits(first: 100, after: $after) {
+        totalCount
+        nodes { commit { oid } }
+        pageInfo { hasNextPage endCursor }
+      }
+    }
+  }
+}`;
+var CLOSE_EVENTS_QUERY = `query($owner: String!, $name: String!, $number: Int!, $after: String) {
+  repository(owner: $owner, name: $name) {
+    issueOrPullRequest(number: $number) {
+      __typename
+      ... on Issue {
+        state
+        timelineItems(itemTypes: [CLOSED_EVENT], first: 100, after: $after) {
+          nodes {
+            ... on ClosedEvent {
+              createdAt
+              closer {
+                __typename
+                ... on PullRequest { number repository { nameWithOwner } }
+                ... on Commit { oid }
+              }
+            }
+          }
+          pageInfo { hasNextPage endCursor }
+        }
+      }
+      ... on PullRequest {
+        state
+        timelineItems(itemTypes: [CLOSED_EVENT], first: 100, after: $after) {
+          nodes {
+            ... on ClosedEvent {
+              createdAt
+              closer {
+                __typename
+                ... on PullRequest { number repository { nameWithOwner } }
+                ... on Commit { oid }
+              }
+            }
+          }
+          pageInfo { hasNextPage endCursor }
+        }
+      }
+    }
+  }
+}`;
+var CLOSE_EVENT_PAGES = 10;
+var COMMIT_OID = /^[0-9a-f]{40}$/;
+function commitOid(value) {
+  const oid = str(value);
+  if (!COMMIT_OID.test(oid)) throw new ShapeError();
+  return oid;
+}
+async function readGraphqlPages(client, kind, locator, query, variables, budget, page) {
+  const items = [];
+  let head;
+  let after = null;
+  for (let n = 1; n <= budget; n++) {
+    const at = `${locator}${after === null ? "" : `(after:${after})`}`;
+    const read = await client.read(kind, "/graphql", {
+      method: "POST",
+      locator: at,
+      requestBody: JSON.stringify({ query, variables: { ...variables, after } })
+    });
+    if (!read.ok) return unreadable(kind);
+    try {
+      const body = obj(read.json);
+      if (body.errors !== void 0 && body.errors !== null) throw new ShapeError();
+      const answer = page(obj(body.data));
+      if ("unpopulated" in answer) return { status: "unpopulated", field: answer.unpopulated };
+      head ??= { value: answer.head };
+      items.push(...answer.items);
+      const info = obj(answer.pageInfo);
+      if (info.hasNextPage !== true) return { status: "ok", head: head.value, items };
+      after = str(info.endCursor);
+    } catch (e) {
+      if (!(e instanceof ShapeError)) throw e;
+      client.markParseError(at);
+      return unreadable(kind);
+    }
+  }
+  return unreadable(kind);
+}
+async function readCloseBase(client, repository, number) {
+  const { owner, name } = splitRepo(repository);
+  const read = await readGraphqlPages(
+    client,
+    "pull_request_commits",
+    `POST /graphql repository(${repository}).pullRequest(${number}).commits`,
+    CLOSE_BASE_QUERY,
+    { owner, name, number },
+    MAX_PAGES,
+    (data) => {
+      const repo = obj(data.repository);
+      const pr = obj(repo.pullRequest);
+      const commits2 = obj(pr.commits);
+      const branch = repo.defaultBranchRef;
+      return {
+        head: {
+          baseRef: str(pr.baseRefName),
+          defaultBranch: branch === null ? null : str(obj(branch).name),
+          total: int(commits2.totalCount)
+        },
+        items: arr(commits2.nodes).map((node) => commitOid(obj(obj(node).commit).oid)),
+        pageInfo: commits2.pageInfo
+      };
+    }
+  );
+  if (read.status !== "ok") return read;
+  const commits = [...new Set(read.items)].sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
+  if (commits.length < read.head.total) return unreadable("pull_request_commits");
+  return {
+    status: "ok",
+    baseRef: read.head.baseRef,
+    defaultBranch: read.head.defaultBranch,
+    commits
+  };
+}
+var TARGET_TYPES = {
+  Issue: "issue",
+  PullRequest: "pull_request"
+};
+var TARGET_STATES = {
+  OPEN: "open",
+  CLOSED: "closed",
+  MERGED: "merged"
+};
+function closeEvent(node) {
+  const n = obj(node);
+  const at = timestamp(n.createdAt);
+  if (n.closer === null) return { at, closer: null };
+  const closer = obj(n.closer);
+  const type = str(closer.__typename);
+  if (type === "PullRequest") {
+    const ref = `${str(obj(closer.repository).nameWithOwner)}#${int(closer.number)}`;
+    if (!ISSUE_REF.test(ref)) throw new ShapeError();
+    return { at, closer: { kind: "pull_request", ref } };
+  }
+  if (type === "Commit") return { at, closer: { kind: "commit", oid: commitOid(closer.oid) } };
+  return { at, closer: { kind: "other" } };
+}
+async function readCloseTarget(client, ref) {
+  const [repo, num] = ref.split("#");
+  const { owner, name } = splitRepo(repo);
+  const read = await readGraphqlPages(
+    client,
+    "issue",
+    `POST /graphql repository(${repo}).issueOrPullRequest(${num}).timelineItems(CLOSED_EVENT)`,
+    CLOSE_EVENTS_QUERY,
+    { owner, name, number: Number(num) },
+    CLOSE_EVENT_PAGES,
+    (data) => {
+      const item = obj(data.repository).issueOrPullRequest;
+      if (item === null || item === void 0) return { unpopulated: "issueOrPullRequest" };
+      const target = obj(item);
+      const type = TARGET_TYPES[str(target.__typename)];
+      const state = TARGET_STATES[str(target.state)];
+      if (type === void 0 || state === void 0) throw new ShapeError();
+      if (type === "issue" && state === "merged") throw new ShapeError();
+      const timeline = obj(target.timelineItems);
+      return {
+        head: { type, state },
+        items: arr(timeline.nodes).map(closeEvent),
+        pageInfo: timeline.pageInfo
+      };
+    }
+  );
+  if (read.status !== "ok") return { ref, ...read };
+  return { ref, status: "ok", ...read.head, events: read.items };
+}
+function closeTargets(block, repository, closing, references) {
+  if (closing?.status !== "ok") return [];
+  const listed2 = (ref) => closing.issues.some((issue) => sameIssue(issue, ref));
+  const out = [];
+  for (const reference of block.references ?? []) {
+    if (reference.relation !== "closes" || !("issue" in reference)) continue;
+    const target = qualifyIssue(reference.issue, repository);
+    if (listed2(target)) continue;
+    const entry = references?.find((r) => r.kind === "issue" && sameIssue(r.ref, target));
+    if (entry?.kind !== "issue" || entry.status !== "ok" || !entry.exists) continue;
+    const at = entry.resolvedAs ?? target;
+    if (listed2(at) || out.some((o) => sameIssue(o, at))) continue;
+    out.push(at);
+  }
+  return out;
+}
+async function readCloseEvents(client, repository, number, targets) {
+  const pullRequest = await readCloseBase(client, repository, number);
+  const read = [];
+  for (const target of targets) read.push(await readCloseTarget(client, target));
+  return { pullRequest, targets: read };
+}
 var PATH_QUERY = `query($owner: String!, $name: String!, $expression: String!) {
   repository(owner: $owner, name: $name) {
     object(expression: $expression) { __typename }
@@ -9177,21 +9434,69 @@ async function readCheckRuns(client, repository, commit, excludedIds) {
     (json) => arr(obj(json).check_runs),
     (item) => {
       const r = obj(item);
-      return {
+      const run = {
         id: int(r.id),
         name: str(r.name),
         status: str(r.status),
         conclusion: strOrNull(r.conclusion)
       };
+      if (r.check_suite !== null && r.check_suite !== void 0) {
+        const suite = int(obj(r.check_suite).id);
+        if (suite < 1) throw new ShapeError();
+        run.checkSuiteId = suite;
+      }
+      const slug = r.app?.slug;
+      if (typeof slug === "string" && slug !== "") run.appSlug = slug;
+      return run;
     }
   );
   if (runs === null) return unreadable("check_runs");
+  if (runs.some((r) => r.checkSuiteId !== void 0)) {
+    const workflowRuns = await readWorkflowRunsAt(client, repository, commit);
+    if (workflowRuns === null) return unreadable("workflow_runs");
+    for (const run of runs) {
+      const workflow = run.checkSuiteId === void 0 ? void 0 : workflowRuns.get(run.checkSuiteId);
+      if (workflow === void 0) continue;
+      run.workflowPath = workflow.path;
+      run.workflowRunId = workflow.id;
+      run.runAttempt = workflow.attempt;
+    }
+  }
   return {
     status: "ok",
     commit,
     excludedIds: [...new Set(excludedIds)].sort((a, b) => a - b),
     runs: [...new Map(runs.map((r) => [r.id, r])).values()].sort((a, b) => a.id - b.id)
   };
+}
+async function readWorkflowRunsAt(client, repository, commit) {
+  const listed2 = await readAllPages(
+    client,
+    "workflow_runs",
+    (page) => `/repos/${repository}/actions/runs?head_sha=${commit}&per_page=${PER_PAGE}&page=${page}`,
+    (json) => arr(obj(json).workflow_runs),
+    (item) => {
+      const r = obj(item);
+      let suite = null;
+      if (r.check_suite_id !== null && r.check_suite_id !== void 0) {
+        suite = int(r.check_suite_id);
+        if (suite < 1) throw new ShapeError();
+      }
+      const run = { id: int(r.id), attempt: int(r.run_attempt), path: str(r.path) };
+      run.path = run.path.replace(/@.*$/, "");
+      if (run.id < 1 || run.attempt < 1 || run.path === "") throw new ShapeError();
+      return { suite, run };
+    }
+  );
+  if (listed2 === null) return null;
+  const bySuite = /* @__PURE__ */ new Map();
+  for (const { suite, run } of listed2) {
+    if (suite === null) continue;
+    const seen = bySuite.get(suite);
+    if (seen !== void 0 && seen.id !== run.id) return null;
+    bySuite.set(suite, run);
+  }
+  return bySuite;
 }
 async function readTestRecord(client, repository, record, headCommit) {
   const workflowFile = record.workflow.split("/").at(-1);
@@ -9342,6 +9647,10 @@ async function readEvidence(client, input2) {
       evidence.closingReferences
     );
     if (references !== void 0) evidence.references = references;
+    const closeTargetRefs = closeTargets(block, repository, evidence.closingReferences, references);
+    if (closeTargetRefs.length > 0) {
+      evidence.closeEvents = await readCloseEvents(client, repository, pr.number, closeTargetRefs);
+    }
     if (block.checks !== void 0) {
       evidence.checkRuns = await readCheckRuns(
         client,
@@ -9375,7 +9684,7 @@ async function readEvidence(client, input2) {
 // src/record/checker.ts
 import { readFileSync } from "node:fs";
 var CHECKER_NAME = "dunstan";
-var CHECKER_VERSION = "0.1.6";
+var CHECKER_VERSION = "0.1.7";
 function checkerIdentity(artifact) {
   return {
     name: CHECKER_NAME,
@@ -10132,7 +10441,7 @@ function precisionText(precision) {
 }
 
 // src/advisory/advise.ts
-var COMPARISON_VERSION = "0.3.0";
+var COMPARISON_VERSION = "0.4.0";
 var COMPARISON = { version: COMPARISON_VERSION };
 var HEX = /^[0-9a-f]{7,40}$/;
 function blockFor(kind, value, headSha) {
@@ -11203,6 +11512,7 @@ var SHA = /(?<![0-9A-Za-z])[0-9a-fA-F]{7,40}(?![0-9A-Za-z])/g;
 var ISSUE2 = /(?<![\w/.-])((?:[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9._-]{1,100})?#[1-9][0-9]{0,9})(?![0-9])/g;
 var WORD = /[A-Za-z0-9_]/;
 var PATH_CHAR = /[A-Za-z0-9._/-]/;
+var JOB_NAME_CHAR = /[A-Za-z0-9_-]/;
 function stringLeaves(value, out) {
   if (typeof value === "string") out.push(value);
   else if (Array.isArray(value)) for (const v of value) stringLeaves(v, out);
@@ -11213,17 +11523,31 @@ function stringLeaves(value, out) {
 function claimTexts(claim) {
   return [claim.text, ...stringLeaves(claim.declaredValue, [])];
 }
-function occursBounded(haystack, needle, inside) {
-  if (needle.length === 0) return false;
+function boundedAt(haystack, needle, inside) {
+  const out = [];
+  if (needle.length === 0) return out;
   for (let at = haystack.indexOf(needle); at !== -1; at = haystack.indexOf(needle, at + 1)) {
     const before = haystack[at - 1];
     const after = haystack[at + needle.length];
     const next = haystack[at + needle.length + 1];
     const openBefore = before === void 0 || !inside.test(before);
     const openAfter = after === void 0 || !inside.test(after) || after === "." && (next === void 0 || !/[A-Za-z0-9]/.test(next));
-    if (openBefore && openAfter) return true;
+    if (openBefore && openAfter) out.push(at);
   }
-  return false;
+  return out;
+}
+function occursBounded(haystack, needle, inside) {
+  return boundedAt(haystack, needle, inside).length > 0;
+}
+function jobNamed(text, name, longer) {
+  if (text === name) return true;
+  return boundedAt(text, name, JOB_NAME_CHAR).some(
+    (at) => !text.startsWith(" (", at + name.length) && !longer.some(
+      (l) => boundedAt(text, l, JOB_NAME_CHAR).some(
+        (from) => from <= at && at + name.length <= from + l.length
+      )
+    )
+  );
 }
 function shaTokens(texts) {
   const out = [];
@@ -11247,6 +11571,11 @@ function identifierMatches(claim, items, repository) {
   const shas = shaTokens(texts);
   const issues = issueRefs(texts, repository);
   const named = (value, inside) => texts.some((t) => t === value || occursBounded(t, value, inside));
+  const qualified = (item) => item.type === "test" && item.id !== item.fields[0]?.[1] && named(item.id, WORD);
+  const qualifiedNames = new Set(
+    items.filter(qualified).map((item) => item.fields[0]?.[1])
+  );
+  const jobNames = items.filter((item) => item.type === "check_run").map((item) => item.fields[0]?.[1]);
   const matches = /* @__PURE__ */ new Map();
   items.forEach((item, i) => {
     for (const [field, value] of item.fields) {
@@ -11262,9 +11591,13 @@ function identifierMatches(claim, items, repository) {
         case "file.previousPath":
           hit = named(value, PATH_CHAR);
           break;
-        case "check_run.name":
+        case "check_run.name": {
+          const longer = jobNames.filter((n) => n.length > value.length && n.includes(value));
+          hit = value.length >= MIN_NAME_LENGTH && texts.some((t) => jobNamed(t, value, longer));
+          break;
+        }
         case "test.name":
-          hit = value.length >= MIN_NAME_LENGTH && named(value, WORD);
+          hit = value.length >= MIN_NAME_LENGTH && named(value, WORD) && (!qualifiedNames.has(value) || qualified(item));
           break;
       }
       if (hit) {
@@ -11272,9 +11605,7 @@ function identifierMatches(claim, items, repository) {
         return;
       }
     }
-    if (item.type === "test" && item.id !== item.fields[0]?.[1] && named(item.id, WORD)) {
-      matches.set(i, "id");
-    }
+    if (qualified(item)) matches.set(i, "id");
   });
   return matches;
 }
@@ -11404,6 +11735,10 @@ function lookup(type, evidence) {
   return entries;
 }
 var ISSUE_REF2 = /^(?:[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9._-]{1,100})?#[1-9][0-9]{0,9}$/;
+function combinedCandidates(typed, floor) {
+  const exact = typed.filter((c) => c.score === null);
+  return exact.length > 0 ? exact : typed.filter((c) => c.score !== null && c.score >= floor);
+}
 function checkReaderClaim(claim, evidence, repository) {
   const type = READER_CLAIM_KINDS.get(claim.kind);
   if (type === void 0) return unverifiable2("no_comparable_record_field");
@@ -11419,8 +11754,7 @@ function checkReaderClaim(claim, evidence, repository) {
   if (typed.some((c) => entries.get(c.id) === void 0)) {
     return unverifiable2("candidate_not_in_evidence");
   }
-  const floor = claim.retrieval.floor;
-  const relevant = typed.filter((c) => c.score === null || c.score >= floor);
+  const relevant = combinedCandidates(typed, claim.retrieval.floor);
   const observed = relevant.map((c) => entries.get(c.id));
   const truncated = type === "file" && evidence.files?.status === "ok" && !evidence.files.complete;
   if (relevant.length === 0) {
@@ -11750,601 +12084,7 @@ var FILES = { "handback-block-0.1.schema.json": `{
     }
   }
 }
-`, "record-0.1.schema.json": `{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://barglabs.ai/dunstan/spec/schema/record-0.1.schema.json",
-  "title": "Dunstan record, v0.1",
-  "description": "An in-toto Statement v1 whose predicate records one check of a handback block against the record. See spec/claim-format.md.",
-  "type": "object",
-  "required": ["_type", "subject", "predicateType", "predicate"],
-  "additionalProperties": false,
-  "properties": {
-    "_type": { "const": "https://in-toto.io/Statement/v1" },
-    "subject": {
-      "type": "array",
-      "minItems": 1,
-      "maxItems": 2,
-      "prefixItems": [{ "$ref": "#/$defs/commitSubject" }, { "$ref": "#/$defs/blockSubject" }],
-      "items": false
-    },
-    "predicateType": { "const": "https://barglabs.ai/dunstan/record/v0.1" },
-    "predicate": { "$ref": "#/$defs/predicate" }
-  },
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "predicate": {
-            "properties": { "block": { "properties": { "status": { "const": "found" } } } }
-          }
-        }
-      },
-      "then": { "properties": { "subject": { "minItems": 2 } } },
-      "else": { "properties": { "subject": { "maxItems": 1 } } }
-    }
-  ],
-  "$defs": {
-    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
-    "commitSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
-    "repository": {
-      "description": "owner/repo",
-      "type": "string",
-      "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})/[A-Za-z0-9._-]{1,100}$"
-    },
-    "issueRef": {
-      "description": "owner/repo#N, always fully qualified in evidence.",
-      "type": "string",
-      "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})/[A-Za-z0-9._-]{1,100}#[1-9][0-9]{0,9}$"
-    },
-    "timestamp": {
-      "type": "string",
-      "format": "date-time",
-      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\\\.[0-9]+)?Z$"
-    },
-    "sourceKind": {
-      "enum": [
-        "pull_request",
-        "pull_request_files",
-        "closing_references",
-        "repository",
-        "issue",
-        "commit",
-        "compare",
-        "check_runs",
-        "workflow_runs",
-        "artifact",
-        "deployments"
-      ]
-    },
-    "commitSubject": {
-      "type": "object",
-      "required": ["name", "digest"],
-      "additionalProperties": false,
-      "properties": {
-        "name": {
-          "type": "string",
-          "pattern": "^git\\\\+https://github\\\\.com/[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})/[A-Za-z0-9._-]{1,100}@[0-9a-f]{40}$"
-        },
-        "digest": {
-          "type": "object",
-          "required": ["gitCommit"],
-          "additionalProperties": false,
-          "properties": { "gitCommit": { "$ref": "#/$defs/commitSha" } }
-        }
-      }
-    },
-    "blockSubject": {
-      "type": "object",
-      "required": ["name", "digest"],
-      "additionalProperties": false,
-      "properties": {
-        "name": { "const": "handback-block" },
-        "digest": {
-          "type": "object",
-          "required": ["sha256"],
-          "additionalProperties": false,
-          "properties": { "sha256": { "$ref": "#/$defs/sha256" } }
-        }
-      }
-    },
-    "predicate": {
-      "type": "object",
-      "required": [
-        "spec",
-        "checker",
-        "report",
-        "block",
-        "subject",
-        "evidence",
-        "claims",
-        "verdict",
-        "digests",
-        "rerun",
-        "assurance"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "spec": {
-          "description": "The spec version the checker implements, semver.",
-          "type": "string",
-          "pattern": "^0\\\\.1\\\\.(?:0|[1-9][0-9]*)$"
-        },
-        "checker": {
-          "type": "object",
-          "required": ["name", "version", "digest"],
-          "additionalProperties": false,
-          "properties": {
-            "name": { "type": "string", "minLength": 1, "maxLength": 214 },
-            "version": { "type": "string", "minLength": 1, "maxLength": 100 },
-            "digest": {
-              "type": "object",
-              "required": ["sha256"],
-              "additionalProperties": false,
-              "properties": { "sha256": { "$ref": "#/$defs/sha256" } }
-            }
-          }
-        },
-        "report": {
-          "description": "The report's digest and where it was read. Never its text.",
-          "type": "object",
-          "required": ["sha256", "source"],
-          "additionalProperties": false,
-          "properties": {
-            "sha256": { "$ref": "#/$defs/sha256" },
-            "source": {
-              "type": "object",
-              "required": ["kind", "locator"],
-              "additionalProperties": false,
-              "properties": {
-                "kind": { "enum": ["pr-body", "pr-comment", "file", "stdin", "api"] },
-                "locator": { "type": "string", "minLength": 1, "maxLength": 2000 }
-              }
-            }
-          }
-        },
-        "block": { "$ref": "#/$defs/block" },
-        "subject": {
-          "type": "object",
-          "required": ["repository", "pullRequest", "headSha", "mergeSha"],
-          "additionalProperties": false,
-          "properties": {
-            "repository": { "$ref": "#/$defs/repository" },
-            "pullRequest": { "type": "integer", "minimum": 1 },
-            "headSha": { "$ref": "#/$defs/commitSha" },
-            "mergeSha": {
-              "oneOf": [{ "$ref": "#/$defs/commitSha" }, { "type": "null" }]
-            }
-          }
-        },
-        "evidence": { "$ref": "#/$defs/evidence" },
-        "claims": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/claim" }
-        },
-        "verdict": { "$ref": "#/$defs/verdict" },
-        "digests": {
-          "type": "object",
-          "required": ["claims", "evidence"],
-          "additionalProperties": false,
-          "properties": {
-            "claims": { "$ref": "#/$defs/sha256" },
-            "evidence": { "$ref": "#/$defs/sha256" }
-          }
-        },
-        "rerun": {
-          "type": "object",
-          "required": ["offline", "online"],
-          "additionalProperties": false,
-          "properties": {
-            "offline": { "type": "string", "minLength": 1, "maxLength": 2000 },
-            "online": { "type": "string", "minLength": 1, "maxLength": 2000 }
-          }
-        },
-        "assurance": {
-          "oneOf": [
-            {
-              "type": "object",
-              "required": ["status", "issuer"],
-              "additionalProperties": false,
-              "properties": {
-                "status": { "const": "unsigned" },
-                "issuer": { "const": "self-generated" }
-              }
-            },
-            {
-              "type": "object",
-              "required": ["status", "issuer", "keyFingerprint"],
-              "additionalProperties": false,
-              "properties": {
-                "status": { "const": "signed" },
-                "issuer": { "type": "string", "minLength": 1, "maxLength": 320 },
-                "keyFingerprint": { "type": "string", "pattern": "^SHA256:[A-Za-z0-9+/]{43}$" }
-              }
-            }
-          ]
-        }
-      }
-    },
-    "verdict": { "enum": ["pass", "fail", "unverifiable"] },
-    "blockError": {
-      "type": "object",
-      "required": ["code"],
-      "additionalProperties": false,
-      "properties": {
-        "code": {
-          "enum": [
-            "unterminated_fence",
-            "invalid_json",
-            "duplicate_member",
-            "unsupported_version",
-            "schema_violation"
-          ]
-        },
-        "pointer": { "type": "string", "pattern": "^(?:/.*)?$" },
-        "keyword": { "type": "string", "minLength": 1 }
-      }
-    },
-    "block": {
-      "oneOf": [
-        {
-          "type": "object",
-          "required": ["status", "sha256", "value"],
-          "additionalProperties": false,
-          "properties": {
-            "status": { "const": "found" },
-            "sha256": { "$ref": "#/$defs/sha256" },
-            "value": { "$ref": "handback-block-0.1.schema.json" }
-          }
-        },
-        {
-          "type": "object",
-          "required": ["status", "reason", "sha256", "value"],
-          "additionalProperties": false,
-          "properties": {
-            "status": { "const": "missing" },
-            "reason": { "const": "block_missing" },
-            "sha256": { "type": "null" },
-            "value": { "type": "null" }
-          }
-        },
-        {
-          "type": "object",
-          "required": ["status", "reason", "count", "sha256", "value"],
-          "additionalProperties": false,
-          "properties": {
-            "status": { "const": "ambiguous" },
-            "reason": { "const": "block_ambiguous" },
-            "count": { "type": "integer", "minimum": 2 },
-            "sha256": { "type": "null" },
-            "value": { "type": "null" }
-          }
-        },
-        {
-          "type": "object",
-          "required": ["status", "reason", "errors", "sha256", "value"],
-          "additionalProperties": false,
-          "properties": {
-            "status": { "const": "invalid" },
-            "reason": { "const": "block_invalid" },
-            "errors": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/blockError" } },
-            "sha256": { "type": "null" },
-            "value": { "type": "null" }
-          }
-        }
-      ]
-    },
-    "claim": {
-      "type": "object",
-      "required": ["id", "check", "field", "declared", "observed", "verdict"],
-      "additionalProperties": false,
-      "properties": {
-        "id": { "type": "string", "minLength": 1 },
-        "check": { "enum": ["head", "scope", "reference", "count", "time"] },
-        "field": {
-          "description": "A JSON Pointer (RFC 6901) into the block.",
-          "type": "string",
-          "pattern": "^/.+$"
-        },
-        "declared": true,
-        "observed": true,
-        "verdict": { "$ref": "#/$defs/verdict" },
-        "reason": { "$ref": "#/$defs/claimReason" }
-      },
-      "if": { "properties": { "verdict": { "const": "pass" } } },
-      "then": { "not": { "required": ["reason"] } },
-      "else": { "required": ["reason"] }
-    },
-    "claimReason": {
-      "type": "string",
-      "pattern": "^(?:head_mismatch|declared_not_changed|undeclared_file|file_list_truncated|not_closing|closing_link_unsettled|not_found|not_reachable|count_mismatch|all_succeeded_mismatch|checks_incomplete|no_check_runs|no_comparable_record_field|record_not_found|record_ambiguous|not_merged|premature|no_deployment|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request|pull_request_files|closing_references|repository|issue|commit|compare|check_runs|workflow_runs|artifact|deployments))$"
-    },
-    "unread": {
-      "description": "A section the checker could not use: its source errored, or the source answered without the field.",
-      "oneOf": [
-        {
-          "type": "object",
-          "required": ["status", "source"],
-          "properties": {
-            "status": { "const": "unreadable" },
-            "source": { "$ref": "#/$defs/sourceKind" }
-          }
-        },
-        {
-          "type": "object",
-          "required": ["status", "field"],
-          "properties": {
-            "status": { "const": "unpopulated" },
-            "field": { "type": "string", "pattern": "^[A-Za-z0-9_.]+$" }
-          }
-        }
-      ]
-    },
-    "evidence": {
-      "type": "object",
-      "required": ["pullRequest", "sources"],
-      "additionalProperties": false,
-      "properties": {
-        "pullRequest": {
-          "description": "Always read: a checker that cannot read the pull request writes no record.",
-          "type": "object",
-          "required": [
-            "status",
-            "number",
-            "state",
-            "merged",
-            "mergedAt",
-            "headSha",
-            "mergeSha",
-            "changedFiles"
-          ],
-          "additionalProperties": false,
-          "properties": {
-            "status": { "const": "ok" },
-            "number": { "type": "integer", "minimum": 1 },
-            "state": { "enum": ["open", "closed"] },
-            "merged": { "type": "boolean" },
-            "mergedAt": { "oneOf": [{ "$ref": "#/$defs/timestamp" }, { "type": "null" }] },
-            "headSha": { "$ref": "#/$defs/commitSha" },
-            "mergeSha": { "oneOf": [{ "$ref": "#/$defs/commitSha" }, { "type": "null" }] },
-            "changedFiles": { "type": "integer", "minimum": 0 }
-          }
-        },
-        "files": {
-          "oneOf": [
-            {
-              "type": "object",
-              "required": ["status", "complete", "entries"],
-              "additionalProperties": false,
-              "properties": {
-                "status": { "const": "ok" },
-                "complete": { "type": "boolean" },
-                "entries": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "required": ["path", "status"],
-                    "additionalProperties": false,
-                    "properties": {
-                      "path": { "type": "string", "minLength": 1 },
-                      "status": {
-                        "enum": [
-                          "added",
-                          "removed",
-                          "modified",
-                          "renamed",
-                          "copied",
-                          "changed",
-                          "unchanged"
-                        ]
-                      },
-                      "previousPath": { "type": "string", "minLength": 1 }
-                    }
-                  }
-                }
-              }
-            },
-            { "$ref": "#/$defs/unreadOnly" }
-          ]
-        },
-        "closingReferences": {
-          "oneOf": [
-            {
-              "type": "object",
-              "required": ["status", "issues"],
-              "additionalProperties": false,
-              "properties": {
-                "status": { "const": "ok" },
-                "issues": { "type": "array", "items": { "$ref": "#/$defs/issueRef" } }
-              }
-            },
-            { "$ref": "#/$defs/unreadOnly" }
-          ]
-        },
-        "references": {
-          "type": "array",
-          "items": {
-            "oneOf": [
-              {
-                "type": "object",
-                "required": ["kind", "ref", "status", "exists"],
-                "additionalProperties": false,
-                "properties": {
-                  "kind": { "const": "issue" },
-                  "ref": { "$ref": "#/$defs/issueRef" },
-                  "status": { "const": "ok" },
-                  "exists": { "type": "boolean" },
-                  "resolvedAs": {
-                    "description": "Spec 0.1.3: the owner/repo#N GitHub answered the read of ref with, when it is another issue (an issue transferred to another repository).",
-                    "$ref": "#/$defs/issueRef"
-                  }
-                },
-                "if": { "required": ["resolvedAs"] },
-                "then": { "properties": { "exists": { "const": true } } }
-              },
-              {
-                "type": "object",
-                "required": ["kind", "ref", "status", "exists", "reachableFromHead"],
-                "additionalProperties": false,
-                "properties": {
-                  "kind": { "const": "commit" },
-                  "ref": { "$ref": "#/$defs/commitSha" },
-                  "status": { "const": "ok" },
-                  "exists": { "type": "boolean" },
-                  "reachableFromHead": { "type": "boolean" }
-                }
-              },
-              {
-                "type": "object",
-                "required": ["kind", "ref"],
-                "properties": {
-                  "kind": { "enum": ["issue", "commit"] },
-                  "ref": { "type": "string", "minLength": 1 }
-                },
-                "allOf": [{ "$ref": "#/$defs/unread" }]
-              }
-            ]
-          }
-        },
-        "checkRuns": {
-          "oneOf": [
-            {
-              "type": "object",
-              "required": ["status", "commit", "excludedIds", "runs"],
-              "additionalProperties": false,
-              "properties": {
-                "status": { "const": "ok" },
-                "commit": { "$ref": "#/$defs/commitSha" },
-                "excludedIds": {
-                  "description": "Check runs left out of the count: the run the checker itself executes in.",
-                  "type": "array",
-                  "items": { "type": "integer", "minimum": 1 }
-                },
-                "runs": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "required": ["id", "name", "status", "conclusion"],
-                    "additionalProperties": false,
-                    "properties": {
-                      "id": { "type": "integer", "minimum": 1 },
-                      "name": { "type": "string" },
-                      "status": { "type": "string", "minLength": 1 },
-                      "conclusion": { "type": ["string", "null"] }
-                    }
-                  }
-                }
-              }
-            },
-            { "$ref": "#/$defs/unreadOnly" }
-          ]
-        },
-        "testRecords": {
-          "type": "array",
-          "items": {
-            "oneOf": [
-              {
-                "type": "object",
-                "required": ["record", "status", "runs"],
-                "additionalProperties": false,
-                "properties": {
-                  "record": { "$ref": "handback-block-0.1.schema.json#/$defs/junitRecord" },
-                  "status": { "const": "ok" },
-                  "runs": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "required": ["runId", "runAttempt", "executed", "failed"],
-                      "additionalProperties": false,
-                      "properties": {
-                        "runId": { "type": "integer", "minimum": 1 },
-                        "runAttempt": { "type": "integer", "minimum": 1 },
-                        "executed": { "type": "integer", "minimum": 0 },
-                        "failed": { "type": "integer", "minimum": 0 }
-                      }
-                    }
-                  }
-                }
-              },
-              {
-                "type": "object",
-                "required": ["record"],
-                "properties": {
-                  "record": { "$ref": "handback-block-0.1.schema.json#/$defs/junitRecord" }
-                },
-                "allOf": [{ "$ref": "#/$defs/unread" }]
-              }
-            ]
-          }
-        },
-        "deployments": {
-          "type": "array",
-          "items": {
-            "oneOf": [
-              {
-                "type": "object",
-                "required": ["environment", "status", "deployments"],
-                "additionalProperties": false,
-                "properties": {
-                  "environment": { "type": "string", "minLength": 1 },
-                  "status": { "const": "ok" },
-                  "deployments": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "required": ["id", "sha", "relation", "successAt"],
-                      "additionalProperties": false,
-                      "properties": {
-                        "id": { "type": "integer", "minimum": 1 },
-                        "sha": { "$ref": "#/$defs/commitSha" },
-                        "relation": {
-                          "enum": ["head", "merge", "descendant", "unrelated", "unknown"]
-                        },
-                        "successAt": {
-                          "oneOf": [{ "$ref": "#/$defs/timestamp" }, { "type": "null" }]
-                        }
-                      }
-                    }
-                  }
-                }
-              },
-              {
-                "type": "object",
-                "required": ["environment"],
-                "properties": { "environment": { "type": "string", "minLength": 1 } },
-                "allOf": [{ "$ref": "#/$defs/unread" }]
-              }
-            ]
-          }
-        },
-        "sources": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": ["kind", "locator", "sha256", "readAt"],
-            "additionalProperties": false,
-            "properties": {
-              "kind": { "$ref": "#/$defs/sourceKind" },
-              "locator": { "type": "string", "minLength": 1, "maxLength": 2000 },
-              "sha256": { "$ref": "#/$defs/sha256" },
-              "etag": { "type": "string", "minLength": 1 },
-              "readAt": { "$ref": "#/$defs/timestamp" },
-              "error": {
-                "description": "Present when the read failed: http_<status>, network, or parse.",
-                "type": "string",
-                "pattern": "^(?:http_[1-5][0-9]{2}|network|parse)$"
-              }
-            }
-          }
-        }
-      }
-    },
-    "unreadOnly": {
-      "allOf": [{ "$ref": "#/$defs/unread" }],
-      "unevaluatedProperties": false
-    }
-  }
-}
-`, "record-0.2-draft.schema.json": `{
+`, "record-0.1.schema.json": '{\n  "$schema": "https://json-schema.org/draft/2020-12/schema",\n  "$id": "https://barglabs.ai/dunstan/spec/schema/record-0.1.schema.json",\n  "title": "Dunstan record, v0.1",\n  "description": "An in-toto Statement v1 whose predicate records one check of a handback block against the record. See spec/claim-format.md.",\n  "type": "object",\n  "required": ["_type", "subject", "predicateType", "predicate"],\n  "additionalProperties": false,\n  "properties": {\n    "_type": { "const": "https://in-toto.io/Statement/v1" },\n    "subject": {\n      "type": "array",\n      "minItems": 1,\n      "maxItems": 2,\n      "prefixItems": [{ "$ref": "#/$defs/commitSubject" }, { "$ref": "#/$defs/blockSubject" }],\n      "items": false\n    },\n    "predicateType": { "const": "https://barglabs.ai/dunstan/record/v0.1" },\n    "predicate": { "$ref": "#/$defs/predicate" }\n  },\n  "allOf": [\n    {\n      "if": {\n        "properties": {\n          "predicate": {\n            "properties": { "block": { "properties": { "status": { "const": "found" } } } }\n          }\n        }\n      },\n      "then": { "properties": { "subject": { "minItems": 2 } } },\n      "else": { "properties": { "subject": { "maxItems": 1 } } }\n    }\n  ],\n  "$defs": {\n    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },\n    "commitSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },\n    "repository": {\n      "description": "owner/repo",\n      "type": "string",\n      "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})/[A-Za-z0-9._-]{1,100}$"\n    },\n    "issueRef": {\n      "description": "owner/repo#N, always fully qualified in evidence.",\n      "type": "string",\n      "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})/[A-Za-z0-9._-]{1,100}#[1-9][0-9]{0,9}$"\n    },\n    "timestamp": {\n      "type": "string",\n      "format": "date-time",\n      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\\\.[0-9]+)?Z$"\n    },\n    "sourceKind": {\n      "enum": [\n        "pull_request",\n        "pull_request_files",\n        "pull_request_commits",\n        "closing_references",\n        "repository",\n        "issue",\n        "commit",\n        "compare",\n        "check_runs",\n        "workflow_runs",\n        "artifact",\n        "deployments"\n      ]\n    },\n    "commitSubject": {\n      "type": "object",\n      "required": ["name", "digest"],\n      "additionalProperties": false,\n      "properties": {\n        "name": {\n          "type": "string",\n          "pattern": "^git\\\\+https://github\\\\.com/[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})/[A-Za-z0-9._-]{1,100}@[0-9a-f]{40}$"\n        },\n        "digest": {\n          "type": "object",\n          "required": ["gitCommit"],\n          "additionalProperties": false,\n          "properties": { "gitCommit": { "$ref": "#/$defs/commitSha" } }\n        }\n      }\n    },\n    "blockSubject": {\n      "type": "object",\n      "required": ["name", "digest"],\n      "additionalProperties": false,\n      "properties": {\n        "name": { "const": "handback-block" },\n        "digest": {\n          "type": "object",\n          "required": ["sha256"],\n          "additionalProperties": false,\n          "properties": { "sha256": { "$ref": "#/$defs/sha256" } }\n        }\n      }\n    },\n    "predicate": {\n      "type": "object",\n      "required": [\n        "spec",\n        "checker",\n        "report",\n        "block",\n        "subject",\n        "evidence",\n        "claims",\n        "verdict",\n        "digests",\n        "rerun",\n        "assurance"\n      ],\n      "additionalProperties": false,\n      "properties": {\n        "spec": {\n          "description": "The spec version the checker implements, semver.",\n          "type": "string",\n          "pattern": "^0\\\\.1\\\\.(?:0|[1-9][0-9]*)$"\n        },\n        "checker": {\n          "type": "object",\n          "required": ["name", "version", "digest"],\n          "additionalProperties": false,\n          "properties": {\n            "name": { "type": "string", "minLength": 1, "maxLength": 214 },\n            "version": { "type": "string", "minLength": 1, "maxLength": 100 },\n            "digest": {\n              "type": "object",\n              "required": ["sha256"],\n              "additionalProperties": false,\n              "properties": { "sha256": { "$ref": "#/$defs/sha256" } }\n            }\n          }\n        },\n        "report": {\n          "description": "The report\'s digest and where it was read. Never its text.",\n          "type": "object",\n          "required": ["sha256", "source"],\n          "additionalProperties": false,\n          "properties": {\n            "sha256": { "$ref": "#/$defs/sha256" },\n            "source": {\n              "type": "object",\n              "required": ["kind", "locator"],\n              "additionalProperties": false,\n              "properties": {\n                "kind": { "enum": ["pr-body", "pr-comment", "file", "stdin", "api"] },\n                "locator": { "type": "string", "minLength": 1, "maxLength": 2000 }\n              }\n            }\n          }\n        },\n        "block": { "$ref": "#/$defs/block" },\n        "subject": {\n          "type": "object",\n          "required": ["repository", "pullRequest", "headSha", "mergeSha"],\n          "additionalProperties": false,\n          "properties": {\n            "repository": { "$ref": "#/$defs/repository" },\n            "pullRequest": { "type": "integer", "minimum": 1 },\n            "headSha": { "$ref": "#/$defs/commitSha" },\n            "mergeSha": {\n              "oneOf": [{ "$ref": "#/$defs/commitSha" }, { "type": "null" }]\n            }\n          }\n        },\n        "evidence": { "$ref": "#/$defs/evidence" },\n        "claims": {\n          "type": "array",\n          "items": { "$ref": "#/$defs/claim" }\n        },\n        "verdict": { "$ref": "#/$defs/verdict" },\n        "digests": {\n          "type": "object",\n          "required": ["claims", "evidence"],\n          "additionalProperties": false,\n          "properties": {\n            "claims": { "$ref": "#/$defs/sha256" },\n            "evidence": { "$ref": "#/$defs/sha256" }\n          }\n        },\n        "rerun": {\n          "type": "object",\n          "required": ["offline", "online"],\n          "additionalProperties": false,\n          "properties": {\n            "offline": { "type": "string", "minLength": 1, "maxLength": 2000 },\n            "online": { "type": "string", "minLength": 1, "maxLength": 2000 }\n          }\n        },\n        "assurance": {\n          "oneOf": [\n            {\n              "type": "object",\n              "required": ["status", "issuer"],\n              "additionalProperties": false,\n              "properties": {\n                "status": { "const": "unsigned" },\n                "issuer": { "const": "self-generated" }\n              }\n            },\n            {\n              "type": "object",\n              "required": ["status", "issuer", "keyFingerprint"],\n              "additionalProperties": false,\n              "properties": {\n                "status": { "const": "signed" },\n                "issuer": { "type": "string", "minLength": 1, "maxLength": 320 },\n                "keyFingerprint": { "type": "string", "pattern": "^SHA256:[A-Za-z0-9+/]{43}$" }\n              }\n            }\n          ]\n        }\n      }\n    },\n    "verdict": { "enum": ["pass", "fail", "unverifiable"] },\n    "blockError": {\n      "type": "object",\n      "required": ["code"],\n      "additionalProperties": false,\n      "properties": {\n        "code": {\n          "enum": [\n            "unterminated_fence",\n            "invalid_json",\n            "duplicate_member",\n            "unsupported_version",\n            "schema_violation"\n          ]\n        },\n        "pointer": { "type": "string", "pattern": "^(?:/.*)?$" },\n        "keyword": { "type": "string", "minLength": 1 }\n      }\n    },\n    "block": {\n      "oneOf": [\n        {\n          "type": "object",\n          "required": ["status", "sha256", "value"],\n          "additionalProperties": false,\n          "properties": {\n            "status": { "const": "found" },\n            "sha256": { "$ref": "#/$defs/sha256" },\n            "value": { "$ref": "handback-block-0.1.schema.json" }\n          }\n        },\n        {\n          "type": "object",\n          "required": ["status", "reason", "sha256", "value"],\n          "additionalProperties": false,\n          "properties": {\n            "status": { "const": "missing" },\n            "reason": { "const": "block_missing" },\n            "sha256": { "type": "null" },\n            "value": { "type": "null" }\n          }\n        },\n        {\n          "type": "object",\n          "required": ["status", "reason", "count", "sha256", "value"],\n          "additionalProperties": false,\n          "properties": {\n            "status": { "const": "ambiguous" },\n            "reason": { "const": "block_ambiguous" },\n            "count": { "type": "integer", "minimum": 2 },\n            "sha256": { "type": "null" },\n            "value": { "type": "null" }\n          }\n        },\n        {\n          "type": "object",\n          "required": ["status", "reason", "errors", "sha256", "value"],\n          "additionalProperties": false,\n          "properties": {\n            "status": { "const": "invalid" },\n            "reason": { "const": "block_invalid" },\n            "errors": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/blockError" } },\n            "sha256": { "type": "null" },\n            "value": { "type": "null" }\n          }\n        }\n      ]\n    },\n    "claim": {\n      "type": "object",\n      "required": ["id", "check", "field", "declared", "observed", "verdict"],\n      "additionalProperties": false,\n      "properties": {\n        "id": { "type": "string", "minLength": 1 },\n        "check": { "enum": ["head", "scope", "reference", "count", "time"] },\n        "field": {\n          "description": "A JSON Pointer (RFC 6901) into the block.",\n          "type": "string",\n          "pattern": "^/.+$"\n        },\n        "declared": true,\n        "observed": true,\n        "verdict": { "$ref": "#/$defs/verdict" },\n        "reason": { "$ref": "#/$defs/claimReason" }\n      },\n      "if": { "properties": { "verdict": { "const": "pass" } } },\n      "then": { "not": { "required": ["reason"] } },\n      "else": { "required": ["reason"] }\n    },\n    "claimReason": {\n      "type": "string",\n      "pattern": "^(?:head_mismatch|declared_not_changed|undeclared_file|file_list_truncated|not_closing|closing_link_unsettled|closing_base_not_default|closing_event_unsettled|not_found|not_reachable|count_mismatch|all_succeeded_mismatch|checks_incomplete|no_check_runs|no_comparable_record_field|record_not_found|record_ambiguous|not_merged|premature|no_deployment|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request|pull_request_files|pull_request_commits|closing_references|repository|issue|commit|compare|check_runs|workflow_runs|artifact|deployments))$"\n    },\n    "unread": {\n      "description": "A section the checker could not use: its source errored, or the source answered without the field.",\n      "oneOf": [\n        {\n          "type": "object",\n          "required": ["status", "source"],\n          "properties": {\n            "status": { "const": "unreadable" },\n            "source": { "$ref": "#/$defs/sourceKind" }\n          }\n        },\n        {\n          "type": "object",\n          "required": ["status", "field"],\n          "properties": {\n            "status": { "const": "unpopulated" },\n            "field": { "type": "string", "pattern": "^[A-Za-z0-9_.]+$" }\n          }\n        }\n      ]\n    },\n    "evidence": {\n      "type": "object",\n      "required": ["pullRequest", "sources"],\n      "additionalProperties": false,\n      "properties": {\n        "pullRequest": {\n          "description": "Always read: a checker that cannot read the pull request writes no record.",\n          "type": "object",\n          "required": [\n            "status",\n            "number",\n            "state",\n            "merged",\n            "mergedAt",\n            "headSha",\n            "mergeSha",\n            "changedFiles"\n          ],\n          "additionalProperties": false,\n          "properties": {\n            "status": { "const": "ok" },\n            "number": { "type": "integer", "minimum": 1 },\n            "state": { "enum": ["open", "closed"] },\n            "merged": { "type": "boolean" },\n            "mergedAt": { "oneOf": [{ "$ref": "#/$defs/timestamp" }, { "type": "null" }] },\n            "headSha": { "$ref": "#/$defs/commitSha" },\n            "mergeSha": { "oneOf": [{ "$ref": "#/$defs/commitSha" }, { "type": "null" }] },\n            "changedFiles": { "type": "integer", "minimum": 0 }\n          }\n        },\n        "files": {\n          "oneOf": [\n            {\n              "type": "object",\n              "required": ["status", "complete", "entries"],\n              "additionalProperties": false,\n              "properties": {\n                "status": { "const": "ok" },\n                "complete": { "type": "boolean" },\n                "entries": {\n                  "type": "array",\n                  "items": {\n                    "type": "object",\n                    "required": ["path", "status"],\n                    "additionalProperties": false,\n                    "properties": {\n                      "path": { "type": "string", "minLength": 1 },\n                      "status": {\n                        "enum": [\n                          "added",\n                          "removed",\n                          "modified",\n                          "renamed",\n                          "copied",\n                          "changed",\n                          "unchanged"\n                        ]\n                      },\n                      "previousPath": { "type": "string", "minLength": 1 }\n                    }\n                  }\n                }\n              }\n            },\n            { "$ref": "#/$defs/unreadOnly" }\n          ]\n        },\n        "closingReferences": {\n          "oneOf": [\n            {\n              "type": "object",\n              "required": ["status", "issues"],\n              "additionalProperties": false,\n              "properties": {\n                "status": { "const": "ok" },\n                "issues": { "type": "array", "items": { "$ref": "#/$defs/issueRef" } }\n              }\n            },\n            { "$ref": "#/$defs/unreadOnly" }\n          ]\n        },\n        "references": {\n          "type": "array",\n          "items": {\n            "oneOf": [\n              {\n                "type": "object",\n                "required": ["kind", "ref", "status", "exists"],\n                "additionalProperties": false,\n                "properties": {\n                  "kind": { "const": "issue" },\n                  "ref": { "$ref": "#/$defs/issueRef" },\n                  "status": { "const": "ok" },\n                  "exists": { "type": "boolean" },\n                  "resolvedAs": {\n                    "description": "Spec 0.1.3: the owner/repo#N GitHub answered the read of ref with, when it is another issue (an issue transferred to another repository).",\n                    "$ref": "#/$defs/issueRef"\n                  }\n                },\n                "if": { "required": ["resolvedAs"] },\n                "then": { "properties": { "exists": { "const": true } } }\n              },\n              {\n                "type": "object",\n                "required": ["kind", "ref", "status", "exists", "reachableFromHead"],\n                "additionalProperties": false,\n                "properties": {\n                  "kind": { "const": "commit" },\n                  "ref": { "$ref": "#/$defs/commitSha" },\n                  "status": { "const": "ok" },\n                  "exists": { "type": "boolean" },\n                  "reachableFromHead": { "type": "boolean" }\n                }\n              },\n              {\n                "type": "object",\n                "required": ["kind", "ref"],\n                "properties": {\n                  "kind": { "enum": ["issue", "commit"] },\n                  "ref": { "type": "string", "minLength": 1 }\n                },\n                "allOf": [{ "$ref": "#/$defs/unread" }]\n              }\n            ]\n          }\n        },\n        "closeEvents": {\n          "description": "Spec 0.1.4: who closed each closes target that exists and is not among the closing references, read under the identity it resolves to; and the pull request\'s base, its repository\'s default branch and its commit ids.",\n          "type": "object",\n          "required": ["pullRequest", "targets"],\n          "additionalProperties": false,\n          "properties": {\n            "pullRequest": {\n              "oneOf": [\n                {\n                  "type": "object",\n                  "required": ["status", "baseRef", "defaultBranch", "commits"],\n                  "additionalProperties": false,\n                  "properties": {\n                    "status": { "const": "ok" },\n                    "baseRef": { "type": "string", "minLength": 1 },\n                    "defaultBranch": {\n                      "oneOf": [{ "type": "string", "minLength": 1 }, { "type": "null" }]\n                    },\n                    "commits": {\n                      "type": "array",\n                      "uniqueItems": true,\n                      "items": { "$ref": "#/$defs/commitSha" }\n                    }\n                  }\n                },\n                { "$ref": "#/$defs/unreadOnly" }\n              ]\n            },\n            "targets": {\n              "type": "array",\n              "items": {\n                "oneOf": [\n                  {\n                    "type": "object",\n                    "required": ["ref", "status", "type", "state", "events"],\n                    "additionalProperties": false,\n                    "properties": {\n                      "ref": { "$ref": "#/$defs/issueRef" },\n                      "status": { "const": "ok" },\n                      "type": { "enum": ["issue", "pull_request"] },\n                      "state": { "enum": ["open", "closed", "merged"] },\n                      "events": {\n                        "type": "array",\n                        "items": {\n                          "type": "object",\n                          "required": ["at", "closer"],\n                          "additionalProperties": false,\n                          "properties": {\n                            "at": { "$ref": "#/$defs/timestamp" },\n                            "closer": {\n                              "oneOf": [\n                                { "type": "null" },\n                                {\n                                  "type": "object",\n                                  "required": ["kind", "ref"],\n                                  "additionalProperties": false,\n                                  "properties": {\n                                    "kind": { "const": "pull_request" },\n                                    "ref": { "$ref": "#/$defs/issueRef" }\n                                  }\n                                },\n                                {\n                                  "type": "object",\n                                  "required": ["kind", "oid"],\n                                  "additionalProperties": false,\n                                  "properties": {\n                                    "kind": { "const": "commit" },\n                                    "oid": { "$ref": "#/$defs/commitSha" }\n                                  }\n                                },\n                                {\n                                  "type": "object",\n                                  "required": ["kind"],\n                                  "additionalProperties": false,\n                                  "properties": { "kind": { "const": "other" } }\n                                }\n                              ]\n                            }\n                          }\n                        }\n                      }\n                    },\n                    "if": { "properties": { "type": { "const": "issue" } } },\n                    "then": { "properties": { "state": { "enum": ["open", "closed"] } } }\n                  },\n                  {\n                    "type": "object",\n                    "required": ["ref"],\n                    "properties": { "ref": { "$ref": "#/$defs/issueRef" } },\n                    "allOf": [{ "$ref": "#/$defs/unread" }]\n                  }\n                ]\n              }\n            }\n          }\n        },\n        "checkRuns": {\n          "oneOf": [\n            {\n              "type": "object",\n              "required": ["status", "commit", "excludedIds", "runs"],\n              "additionalProperties": false,\n              "properties": {\n                "status": { "const": "ok" },\n                "commit": { "$ref": "#/$defs/commitSha" },\n                "excludedIds": {\n                  "description": "Check runs left out of the count: the run the checker itself executes in.",\n                  "type": "array",\n                  "items": { "type": "integer", "minimum": 1 }\n                },\n                "runs": {\n                  "type": "array",\n                  "items": {\n                    "type": "object",\n                    "required": ["id", "name", "status", "conclusion"],\n                    "additionalProperties": false,\n                    "dependentRequired": {\n                      "workflowPath": ["checkSuiteId", "workflowRunId", "runAttempt"],\n                      "workflowRunId": ["workflowPath"],\n                      "runAttempt": ["workflowPath"]\n                    },\n                    "properties": {\n                      "id": { "type": "integer", "minimum": 1 },\n                      "name": { "type": "string" },\n                      "status": { "type": "string", "minLength": 1 },\n                      "conclusion": { "type": ["string", "null"] },\n                      "checkSuiteId": {\n                        "description": "The run\'s check suite (`check_suite.id`). A run without `workflowPath` is counted as the latest per check suite and name; a run without either is keyed by its name alone. Added in spec 0.1.4, amended 2026-10-12.",\n                        "type": "integer",\n                        "minimum": 1\n                      },\n                      "appSlug": {\n                        "description": "The slug of the app that created the run (`app.slug`). Recorded, not read by any check. Added in spec 0.1.4, amended 2026-10-12.",\n                        "type": "string",\n                        "minLength": 1\n                      },\n                      "workflowPath": {\n                        "description": "The `path` of the workflow run whose `check_suite_id` is the run\'s check suite, less any `@<ref>`, from the workflow runs at the head. Runs that have it are counted as the latest per workflow path and name. Added in spec 0.1.4, amended 2026-10-13.",\n                        "type": "string",\n                        "minLength": 1\n                      },\n                      "workflowRunId": {\n                        "description": "The `id` of that workflow run. Added in spec 0.1.4, amended 2026-10-13.",\n                        "type": "integer",\n                        "minimum": 1\n                      },\n                      "runAttempt": {\n                        "description": "That workflow run\'s `run_attempt` as the listing gives it, its latest attempt at the read. Added in spec 0.1.4, amended 2026-10-13.",\n                        "type": "integer",\n                        "minimum": 1\n                      }\n                    }\n                  }\n                }\n              }\n            },\n            { "$ref": "#/$defs/unreadOnly" }\n          ]\n        },\n        "testRecords": {\n          "type": "array",\n          "items": {\n            "oneOf": [\n              {\n                "type": "object",\n                "required": ["record", "status", "runs"],\n                "additionalProperties": false,\n                "properties": {\n                  "record": { "$ref": "handback-block-0.1.schema.json#/$defs/junitRecord" },\n                  "status": { "const": "ok" },\n                  "runs": {\n                    "type": "array",\n                    "items": {\n                      "type": "object",\n                      "required": ["runId", "runAttempt", "executed", "failed"],\n                      "additionalProperties": false,\n                      "properties": {\n                        "runId": { "type": "integer", "minimum": 1 },\n                        "runAttempt": { "type": "integer", "minimum": 1 },\n                        "executed": { "type": "integer", "minimum": 0 },\n                        "failed": { "type": "integer", "minimum": 0 }\n                      }\n                    }\n                  }\n                }\n              },\n              {\n                "type": "object",\n                "required": ["record"],\n                "properties": {\n                  "record": { "$ref": "handback-block-0.1.schema.json#/$defs/junitRecord" }\n                },\n                "allOf": [{ "$ref": "#/$defs/unread" }]\n              }\n            ]\n          }\n        },\n        "deployments": {\n          "type": "array",\n          "items": {\n            "oneOf": [\n              {\n                "type": "object",\n                "required": ["environment", "status", "deployments"],\n                "additionalProperties": false,\n                "properties": {\n                  "environment": { "type": "string", "minLength": 1 },\n                  "status": { "const": "ok" },\n                  "deployments": {\n                    "type": "array",\n                    "items": {\n                      "type": "object",\n                      "required": ["id", "sha", "relation", "successAt"],\n                      "additionalProperties": false,\n                      "properties": {\n                        "id": { "type": "integer", "minimum": 1 },\n                        "sha": { "$ref": "#/$defs/commitSha" },\n                        "relation": {\n                          "enum": ["head", "merge", "descendant", "unrelated", "unknown"]\n                        },\n                        "successAt": {\n                          "oneOf": [{ "$ref": "#/$defs/timestamp" }, { "type": "null" }]\n                        }\n                      }\n                    }\n                  }\n                }\n              },\n              {\n                "type": "object",\n                "required": ["environment"],\n                "properties": { "environment": { "type": "string", "minLength": 1 } },\n                "allOf": [{ "$ref": "#/$defs/unread" }]\n              }\n            ]\n          }\n        },\n        "sources": {\n          "type": "array",\n          "items": {\n            "type": "object",\n            "required": ["kind", "locator", "sha256", "readAt"],\n            "additionalProperties": false,\n            "properties": {\n              "kind": { "$ref": "#/$defs/sourceKind" },\n              "locator": { "type": "string", "minLength": 1, "maxLength": 2000 },\n              "sha256": { "$ref": "#/$defs/sha256" },\n              "etag": { "type": "string", "minLength": 1 },\n              "readAt": { "$ref": "#/$defs/timestamp" },\n              "error": {\n                "description": "Present when the read failed: http_<status>, network, or parse.",\n                "type": "string",\n                "pattern": "^(?:http_[1-5][0-9]{2}|network|parse)$"\n              }\n            }\n          }\n        }\n      }\n    },\n    "unreadOnly": {\n      "allOf": [{ "$ref": "#/$defs/unread" }],\n      "unevaluatedProperties": false\n    }\n  }\n}\n', "record-0.2-draft.schema.json": `{
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://barglabs.ai/dunstan/spec/schema/record-0.2-draft.schema.json",
   "title": "Dunstan record, DRAFT 0.2.0",
@@ -12427,6 +12167,9 @@ var FILES = { "handback-block-0.1.schema.json": `{
           "$ref": "record-0.1.schema.json#/$defs/evidence/properties/closingReferences"
         },
         "references": { "$ref": "record-0.1.schema.json#/$defs/evidence/properties/references" },
+        "closeEvents": {
+          "$ref": "record-0.1.schema.json#/$defs/evidence/properties/closeEvents"
+        },
         "checkRuns": { "$ref": "record-0.1.schema.json#/$defs/evidence/properties/checkRuns" },
         "testRecords": {
           "$ref": "record-0.1.schema.json#/$defs/evidence/properties/testRecords"
@@ -12672,7 +12415,7 @@ var FILES = { "handback-block-0.1.schema.json": `{
       "additionalProperties": false,
       "properties": {
         "comparison": {
-          "description": "The version of the rules that turn a proposed claim and the evidence into its note, separate from the extractor's. 0.1.0 compared a file claim by exact path only; 0.2.0 also matches it by name; 0.3.0 also asks whether a path not among the changed files exists at the head (D.11.4).",
+          "description": "The version of the rules that turn a proposed claim and the evidence into its note, separate from the extractor's. 0.1.0 compared a file claim by exact path only; 0.2.0 also matches it by name; 0.3.0 also asks whether a path not among the changed files exists at the head (D.11.4); 0.4.0 compares a closes claim by who closed the target (spec 0.1.4).",
           "type": "object",
           "required": ["version"],
           "additionalProperties": false,
@@ -12823,7 +12566,7 @@ var FILES = { "handback-block-0.1.schema.json": `{
     "advisoryNote": {
       "description": "agrees when the gate check would pass; differs:<reason> when it would fail; unanswered:<reason> when it would be unverifiable. The reasons are the 0.1 claim reasons. A file claim matched by name only is agrees_by_name, or unanswered:ambiguous_path when more than one changed path has that name. A file claim not among the changed files is unanswered:no_such_path when nothing is at its path at the head, unanswered:directory when a directory is, and unanswered:source_unreadable:path when the answer was not read (D.11.4). Never a verdict.",
       "type": "string",
-      "pattern": "^(?:agrees|agrees_by_name|unanswered:(?:ambiguous_path|no_such_path|directory|source_unreadable:path)|(?:differs|unanswered):(?:head_mismatch|declared_not_changed|file_list_truncated|not_closing|closing_link_unsettled|not_found|not_reachable|count_mismatch|all_succeeded_mismatch|checks_incomplete|no_check_runs|no_comparable_record_field|not_merged|premature|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request|pull_request_files|closing_references|repository|issue|commit|compare|check_runs)))$"
+      "pattern": "^(?:agrees|agrees_by_name|unanswered:(?:ambiguous_path|no_such_path|directory|source_unreadable:path)|(?:differs|unanswered):(?:head_mismatch|declared_not_changed|file_list_truncated|not_closing|closing_link_unsettled|closing_base_not_default|closing_event_unsettled|not_found|not_reachable|count_mismatch|all_succeeded_mismatch|checks_incomplete|no_check_runs|no_comparable_record_field|not_merged|premature|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request|pull_request_files|pull_request_commits|closing_references|repository|issue|commit|compare|check_runs)))$"
     },
     "readerReason": {
       "type": "string",
@@ -13372,7 +13115,8 @@ function advisoryLine(section) {
 }
 var RECORD_SHOWS = {
   declared_not_changed: "not among the changed files",
-  not_closing: "not among the closing references",
+  // Spec 0.1.4: the closing references, and every ClosedEvent of the target, were read.
+  not_closing: "not closed by this pull request or its commits",
   not_found: "not found in the record",
   not_reachable: "not reachable from the head",
   head_mismatch: "the head is another commit",

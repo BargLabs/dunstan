@@ -11,7 +11,7 @@ import {
   type Scenario,
 } from '../__tests__/fake-github.js';
 import { checkScope } from '../check/checks.js';
-import type { Block, Evidence } from '../check/types.js';
+import type { Block, CloseEvent, Evidence } from '../check/types.js';
 import { main } from '../cli/main.js';
 import { PATH_QUERY } from '../evidence/github.js';
 import { buildRecord, type DunstanRecord, recordBlock, serializeRecord } from '../record/build.js';
@@ -74,6 +74,11 @@ const evidence: Evidence = {
   },
   closingReferences: { status: 'ok', issues: [`${REPO}#12`] },
   references: [{ kind: 'issue', ref: `${REPO}#13`, status: 'ok', exists: true }],
+  // Spec 0.1.4: #13 is open, and the pull request merged into the default branch.
+  closeEvents: {
+    pullRequest: { status: 'ok', baseRef: 'main', defaultBranch: 'main', commits: [HEAD] },
+    targets: [{ ref: `${REPO}#13`, status: 'ok', type: 'issue', state: 'open', events: [] }],
+  },
   checkRuns: {
     status: 'ok',
     commit: HEAD,
@@ -137,12 +142,67 @@ describe('compareAdvisory: the gate check for each kind', () => {
       references: [
         { kind: 'issue', ref: `${REPO}#13`, status: 'ok', exists: true, resolvedAs: moved },
       ],
+      closeEvents: {
+        pullRequest: { status: 'ok', baseRef: 'main', defaultBranch: 'main', commits: [HEAD] },
+        targets: [{ ref: moved, status: 'ok', type: 'issue', state: 'open', events: [] }],
+      },
     });
     expect(note('reference_closes', '#13', transferred([moved]))).toEqual({
       observed: { closing: [moved], ref: `${REPO}#13`, resolvedAs: moved },
       note: 'agrees',
     });
     expect(note('reference_closes', '#13', transferred([])).note).toBe('differs:not_closing');
+  });
+
+  // Spec 0.1.4, comparison 0.4.0: the closes check reads who closed the target, so an advisory
+  // naming a target this pull request or one of its commits closed agrees, and one the record cannot
+  // settle is unanswered, never differs.
+  it('reference_closes is settled by who closed the target (spec 0.1.4, comparison 0.4.0)', () => {
+    const closed = (events: CloseEvent[], baseRef = 'main'): Evidence => ({
+      ...evidence,
+      closeEvents: {
+        pullRequest: { status: 'ok', baseRef, defaultBranch: 'main', commits: [HEAD] },
+        targets: [{ ref: `${REPO}#13`, status: 'ok', type: 'issue', state: 'closed', events }],
+      },
+    });
+    const byThis: CloseEvent = {
+      at: '2026-10-01T12:00:02Z',
+      closer: { kind: 'pull_request', ref: `${REPO}#7` },
+    };
+    const byHead: CloseEvent = {
+      at: '2026-10-01T12:00:02Z',
+      closer: { kind: 'commit', oid: HEAD },
+    };
+    expect(note('reference_closes', '#13', closed([byThis]))).toEqual({
+      observed: { closing: [`${REPO}#12`], closedBy: byThis },
+      note: 'agrees',
+    });
+    expect(note('reference_closes', '#13', closed([byHead])).note).toBe('agrees');
+    const other: CloseEvent = {
+      at: '2026-10-01T12:00:02Z',
+      closer: { kind: 'pull_request', ref: `${REPO}#8` },
+    };
+    expect(note('reference_closes', '#13', closed([other])).note).toBe('differs:not_closing');
+    // Closed, with no ClosedEvent visible yet: unanswered, never differs (amended 2026-10-12).
+    expect(note('reference_closes', '#13', closed([]))).toEqual({
+      observed: null,
+      note: 'unanswered:closing_event_unsettled',
+    });
+    const elsewhere: Evidence = {
+      ...evidence,
+      closeEvents: {
+        pullRequest: { status: 'ok', baseRef: 'next', defaultBranch: 'main', commits: [HEAD] },
+        targets: [{ ref: `${REPO}#13`, status: 'ok', type: 'issue', state: 'open', events: [] }],
+      },
+    };
+    expect(note('reference_closes', '#13', elsewhere)).toEqual({
+      observed: null,
+      note: 'unanswered:closing_base_not_default',
+    });
+    const { closeEvents: _, ...unread } = evidence;
+    expect(note('reference_closes', '#13', unread).note).toBe(
+      'unanswered:evidence_field_unpopulated:closeEvents',
+    );
   });
 
   it('commit and head_commit read the head, or a cited commit', () => {
@@ -397,12 +457,13 @@ describe('a file named by a bare name or a partial path (comparison 0.2.0)', () 
     expect(EXTRACTOR.digest.sha256).not.toBe(EXTRACTOR_0_1_4);
   });
 
-  it('is comparison 0.3.0; the accuracy of differs notes stays bound to 0.2.0, where it was measured', () => {
-    expect(COMPARISON_VERSION).toBe('0.3.0');
-    expect(COMPARISON).toEqual({ version: '0.3.0' });
+  it('is comparison 0.4.0; the accuracy of differs notes stays bound to 0.2.0, where it was measured', () => {
+    expect(COMPARISON_VERSION).toBe('0.4.0');
+    expect(COMPARISON).toEqual({ version: '0.4.0' });
     expect(differsAccuracyFor(EXTRACTOR_0_1_1, COMPARISON_0_2_0)).not.toBeNull();
     expect(differsAccuracyFor(EXTRACTOR_0_1_1, '0.1.0')).toBeNull();
-    // 0.3.0 is unmeasured, even with the extractor the figure was measured on.
+    // 0.3.0 and 0.4.0 are unmeasured, even with the extractor the figure was measured on.
+    expect(differsAccuracyFor(EXTRACTOR_0_1_1, '0.3.0')).toBeNull();
     expect(differsAccuracyFor(EXTRACTOR_0_1_1, COMPARISON_VERSION)).toBeNull();
     // Measured with extractor 0.1.1 only: 0.1.2, 0.1.3 and 0.1.4 are unmeasured.
     expect(differsAccuracyFor(EXTRACTOR.digest.sha256, COMPARISON_0_2_0)).toBeNull();
@@ -904,7 +965,7 @@ describe('a record with an advisory section (DRAFT 0.2.0)', () => {
     ) as DunstanRecord;
     const a = record.predicate.advisory;
     if (a === undefined) throw new Error('fixture');
-    expect(a.comparison).toEqual({ version: '0.3.0' });
+    expect(a.comparison).toEqual({ version: '0.4.0' });
     expect(a.pathsAtHead).toEqual(ANSWERS);
     expect(a.advisories.map((x) => [x.value, x.note])).toEqual([
       ['src/a.ts', 'agrees'],

@@ -68,6 +68,45 @@ describe('record items', () => {
     expect(items.map((i) => i.id)).toEqual(['2']);
   });
 
+  it('counts the latest check run per suite and name', () => {
+    const items = recordItems({
+      checkRuns: {
+        status: 'ok',
+        commit: 'a'.repeat(40),
+        excludedIds: [],
+        runs: [
+          { id: 1, name: 'test', status: 'completed', conclusion: 'failure', checkSuiteId: 70 },
+          { id: 2, name: 'test', status: 'completed', conclusion: 'success', checkSuiteId: 80 },
+        ],
+      },
+    });
+    expect(items).toEqual([
+      { type: 'check_run', id: '1', fields: [['name', 'test']] },
+      { type: 'check_run', id: '2', fields: [['name', 'test']] },
+    ]);
+  });
+
+  it('counts the latest check run per workflow path and name', () => {
+    const at = (checkSuiteId: number, workflowRunId: number) => ({
+      checkSuiteId,
+      workflowPath: '.github/workflows/ci.yml',
+      workflowRunId,
+      runAttempt: 1,
+    });
+    const items = recordItems({
+      checkRuns: {
+        status: 'ok',
+        commit: 'a'.repeat(40),
+        excludedIds: [],
+        runs: [
+          { id: 1, name: 'test', status: 'completed', conclusion: 'failure', ...at(70, 100) },
+          { id: 2, name: 'test', status: 'completed', conclusion: 'success', ...at(80, 101) },
+        ],
+      },
+    });
+    expect(items).toEqual([{ type: 'check_run', id: '2', fields: [['name', 'test']] }]);
+  });
+
   it('skips a section that was not read', () => {
     const items = recordItems(corpusCase('ci-matrix').evidence);
     expect(items.some((i) => i.type === 'test')).toBe(false);
@@ -123,6 +162,53 @@ describe('identifier matching', () => {
 
   it('reads identifiers in the declared value as well as in the text', () => {
     expect(named('a file changed', 'src/a.ts')).toEqual(['src/a.ts:path']);
+  });
+
+  it('restricts a test name to the classname a qualified name gives', () => {
+    const tests = [
+      item('test', 'http.gives up', ['name', 'gives up'], ['classname', 'http']),
+      item('test', 'queue.gives up', ['name', 'gives up'], ['classname', 'queue']),
+      item('test', 'gives up', ['name', 'gives up']),
+    ];
+    const of = (text: string, declaredValue?: string) =>
+      [
+        ...identifierMatches(
+          declaredValue === undefined ? { text } : { text, declaredValue },
+          tests,
+          REPO,
+        ).keys(),
+      ].map((i) => tests[i]?.id);
+    // The bare name names every case that has it; classname.name names that case only.
+    expect(of('the test "gives up" passes')).toEqual([
+      'http.gives up',
+      'queue.gives up',
+      'gives up',
+    ]);
+    expect(of('queue.gives up passes')).toEqual(['queue.gives up']);
+    expect(of('it passes', 'queue.gives up')).toEqual(['queue.gives up']);
+    expect(of('http.gives up and queue.gives up pass')).toEqual([
+      'http.gives up',
+      'queue.gives up',
+    ]);
+  });
+
+  it('matches a job name whole: not inside a longer job name, and not as a matrix leg', () => {
+    const jobs = [
+      item('check_run', '1', ['name', 'test']),
+      item('check_run', '2', ['name', 'test (ubuntu-latest)']),
+      item('check_run', '3', ['name', 'build']),
+      item('check_run', '4', ['name', 'build docs']),
+    ];
+    const of = (text: string) =>
+      [...identifierMatches({ text }, jobs, REPO).keys()].map((i) => jobs[i]?.id);
+    expect(of('test passes')).toEqual(['1']);
+    expect(of('test (ubuntu-latest) passes')).toEqual(['2']);
+    // A leg the record does not hold names no job, and not the bare one.
+    expect(of('test (macos-latest) passes')).toEqual([]);
+    expect(of('build docs passes')).toEqual(['4']);
+    expect(of('build passes, and so does build docs')).toEqual(['3', '4']);
+    expect(of('build-docs passes')).toEqual([]);
+    expect(of('Test passes')).toEqual([]);
   });
 });
 

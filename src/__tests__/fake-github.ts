@@ -19,6 +19,21 @@ export interface Scenario {
   transferred?: Record<string, string>;
   // `owner/repo#N` -> the body the issue read answers with, in place of the one GitHub would send.
   issueBodies?: Record<string, unknown>;
+  // Spec 0.1.4, the close-event query: `owner/repo#N` -> the issue or pull request GitHub answers,
+  // with its `__typename` (`Issue` unless given), its state and its ClosedEvents as GitHub sends
+  // them (`{createdAt, closer}`), null for no such item, or an HTTP status. One not listed answers an
+  // open issue with none.
+  closeEvents?: Record<
+    string,
+    { type?: string; state?: string; events?: unknown[] } | null | number
+  >;
+  // The pull request's side of the close query: its base, the default branch (null for none), its
+  // commit oids and the count GitHub gives for them, or an HTTP status for the whole query.
+  baseRef?: string;
+  defaultBranch?: string | null;
+  prCommits?: string[];
+  prCommitsTotal?: number;
+  prCommitsStatus?: number;
   repositories?: Record<string, number>;
   commits?: Record<string, number>;
   // `${base}...${head}` -> behind_by, or an HTTP status when it is >= 400.
@@ -26,6 +41,8 @@ export interface Scenario {
   checkRuns?: Record<string, unknown>[];
   checkRunsStatus?: number;
   workflowRuns?: Record<string, unknown>[];
+  // An HTTP status for the listing of every workflow run at a head (spec 0.1.4, amended 2026-10-13).
+  workflowRunsStatus?: number;
   jobs?: Record<number, string[]>;
   artifacts?: Record<number, Record<string, unknown>[]>;
   zips?: Record<number, Uint8Array>;
@@ -102,12 +119,65 @@ export function fakeGitHub(scenario: Scenario): FakeGitHub {
       graphql.push(text);
       const body = JSON.parse(text === '' ? '{}' : text) as {
         query?: string;
-        variables?: { expression?: string };
+        variables?: {
+          expression?: string;
+          owner?: string;
+          name?: string;
+          number?: number;
+          after?: string | null;
+        };
+      };
+      const v = body.variables ?? {};
+      // A page of 100 from the cursor `c<offset>`, as GitHub's connections page.
+      const pageOf = <T>(items: T[]) => {
+        const from = v.after === null || v.after === undefined ? 0 : Number(v.after.slice(1));
+        const nodes = items.slice(from, from + 100);
+        const more = from + 100 < items.length;
+        return {
+          nodes,
+          pageInfo: { hasNextPage: more, endCursor: more ? `c${from + 100}` : null },
+        };
       };
       if (body.query?.includes('object(expression') === true) {
-        const answer = scenario.objects?.[body.variables?.expression ?? ''] ?? null;
+        const answer = scenario.objects?.[v.expression ?? ''] ?? null;
         if (typeof answer === 'number') return json(answer, { message: 'error' });
         return json(200, { data: { repository: { object: answer } } });
+      }
+      if (body.query?.includes('issueOrPullRequest') === true) {
+        const listed = scenario.closeEvents?.[`${v.owner}/${v.name}#${v.number}`];
+        const answer = listed === undefined ? {} : listed;
+        if (typeof answer === 'number') return json(answer, { message: 'error' });
+        const item =
+          answer === null
+            ? null
+            : {
+                __typename: answer.type ?? 'Issue',
+                state: answer.state ?? 'OPEN',
+                timelineItems: pageOf(answer.events ?? []),
+              };
+        return json(200, { data: { repository: { issueOrPullRequest: item } } });
+      }
+      if (body.query?.includes('baseRefName') === true) {
+        if (scenario.prCommitsStatus !== undefined) {
+          return json(scenario.prCommitsStatus, { message: 'error' });
+        }
+        const oids = scenario.prCommits ?? [HEAD];
+        const defaultBranch =
+          scenario.defaultBranch === undefined ? 'main' : scenario.defaultBranch;
+        return json(200, {
+          data: {
+            repository: {
+              defaultBranchRef: defaultBranch === null ? null : { name: defaultBranch },
+              pullRequest: {
+                baseRefName: scenario.baseRef ?? 'main',
+                commits: {
+                  totalCount: scenario.prCommitsTotal ?? oids.length,
+                  ...pageOf(oids.map((oid) => ({ commit: { oid } }))),
+                },
+              },
+            },
+          },
+        });
       }
       if (scenario.closing === undefined) {
         return json(200, { data: { repository: { pullRequest: {} } } });
@@ -194,6 +264,18 @@ export function fakeGitHub(scenario: Scenario): FakeGitHub {
             (r) =>
               String(r.path).endsWith(`/${m[1]}`) &&
               r.head_sha === url.searchParams.get('head_sha'),
+          );
+          return json(200, { total_count: runs.length, workflow_runs: page(runs, url) });
+        },
+      ],
+      [
+        /^\/repos\/[^/]+\/[^/]+\/actions\/runs$/,
+        () => {
+          if (scenario.workflowRunsStatus !== undefined) {
+            return json(scenario.workflowRunsStatus, { message: 'x' });
+          }
+          const runs = (scenario.workflowRuns ?? []).filter(
+            (r) => r.head_sha === url.searchParams.get('head_sha'),
           );
           return json(200, { total_count: runs.length, workflow_runs: page(runs, url) });
         },

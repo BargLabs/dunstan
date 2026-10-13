@@ -6,7 +6,12 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildSync } from 'esbuild';
 import { describe, expect, it } from 'vitest';
-import { CLOSING_QUERY, PATH_QUERY } from '../../src/evidence/github.js';
+import {
+  CLOSE_BASE_QUERY,
+  CLOSE_EVENTS_QUERY,
+  CLOSING_QUERY,
+  PATH_QUERY,
+} from '../../src/evidence/github.js';
 import {
   checkRoute,
   GuardedTransport,
@@ -189,11 +194,51 @@ describe('the route allowlist', () => {
         RouteRefused,
       );
     }
-    // The route list names exactly two fixed GraphQL queries.
+    // The route list names exactly four fixed GraphQL queries.
     expect(ROUTES.filter((r) => r.path.test('/graphql')).map((r) => r.name)).toEqual([
       'closing references (GraphQL)',
+      'close base and commits (GraphQL)',
+      'close events (GraphQL)',
       'object type at a path (GraphQL)',
     ]);
+  });
+
+  // Spec 0.1.4: the two fixed queries that read who closed a closes target, and the pull request's
+  // base, default branch and commit ids. Each is admitted only as written, with its four variables.
+  it('admits the close queries only as written, with their four variables', async () => {
+    const variables = { owner: 'example-org', name: 'example-repo', number: 7, after: null };
+    for (const query of [CLOSE_BASE_QUERY, CLOSE_EVENTS_QUERY]) {
+      const { calls, network } = spyNetwork();
+      const transport = new GuardedTransport(network);
+      for (const after of [null, 'Y3Vyc29y']) {
+        await transport.fetch(`${API}/graphql`, {
+          method: 'POST',
+          headers: { accept: MEDIA_TYPE },
+          body: JSON.stringify({ query, variables: { ...variables, after } }),
+        });
+      }
+      expect(calls).toEqual([`${API}/graphql`, `${API}/graphql`]);
+      expect(transport.refused).toEqual([]);
+      for (const body of [
+        JSON.stringify({ query: query.replace('oid', 'oid message'), variables }),
+        JSON.stringify({ query: `${query} `, variables }),
+        JSON.stringify({ query, variables: { ...variables, extra: 1 } }),
+        JSON.stringify({ query, variables: { ...variables, number: '7' } }),
+        JSON.stringify({ query, variables: { ...variables, after: 1 } }),
+        JSON.stringify({ query, variables: { owner: 'example-org', name: 'example-repo' } }),
+        JSON.stringify({ query, variables, operationName: 'x' }),
+        JSON.stringify({ query, variables }, null, 1),
+        `{"query":${JSON.stringify(query)},"query":"query { viewer { login } }","variables":${JSON.stringify(variables)}}`,
+      ]) {
+        expect(() => checkRoute('POST', `${API}/graphql`, body, MEDIA_TYPE), body).toThrow(
+          RouteRefused,
+        );
+      }
+    }
+    // Neither query reads a file's contents or a commit's message: only ids, names, states and times.
+    for (const query of [CLOSE_BASE_QUERY, CLOSE_EVENTS_QUERY]) {
+      expect(query).not.toMatch(/\b(?:text|message|body|title|content|entries|blob|tree)\b/i);
+    }
   });
 
   it('admits each evidence read the reader makes', () => {
@@ -205,6 +250,7 @@ describe('the route allowlist', () => {
       `/repos/${REPO}/git/commits/${CITED}`,
       `/repos/${REPO}/compare/${CITED}...${HEAD}?per_page=1`,
       `/repos/${REPO}/commits/${HEAD}/check-runs?filter=latest&per_page=100&page=1`,
+      `/repos/${REPO}/actions/runs?head_sha=${HEAD}&per_page=100&page=2`,
       `/repos/${REPO}/actions/workflows/ci.yml/runs?head_sha=${HEAD}&per_page=100&page=1`,
       `/repos/${REPO}/actions/runs/42/jobs?filter=latest&per_page=100&page=1`,
       `/repos/${REPO}/actions/runs/42/artifacts?name=junit-report&per_page=100&page=1`,

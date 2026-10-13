@@ -3,10 +3,45 @@
 
 import { describe, expect, it } from 'vitest';
 import { countedCheckRuns, overallVerdict, runChecks } from './index.js';
-import type { Block, Evidence } from './types.js';
+import type {
+  Block,
+  CheckRun,
+  CloseBaseEvidence,
+  CloseEvent,
+  CloseEventsEvidence,
+  CloseTargetEvidence,
+  Evidence,
+} from './types.js';
 
 const REPO = 'example-org/example-repo';
 const HEAD = 'a11ce5e0c0ffee00d00dfeed0000111122223333';
+const MERGE_SHA = 'feedface00000000000000000000000000000001';
+
+// Spec 0.1.4: the close events of `closes` targets missing from the closing references. By default
+// each target is an open issue with no ClosedEvent, and the pull request's base is the default
+// branch.
+const ON_DEFAULT: CloseBaseEvidence = {
+  status: 'ok',
+  baseRef: 'main',
+  defaultBranch: 'main',
+  commits: [HEAD],
+};
+const openIssue = (ref: string): CloseTargetEvidence => ({
+  ref,
+  status: 'ok',
+  type: 'issue',
+  state: 'open',
+  events: [],
+});
+function closeEvents(
+  targets: (string | CloseTargetEvidence)[],
+  pullRequest: CloseBaseEvidence = ON_DEFAULT,
+): CloseEventsEvidence {
+  return {
+    pullRequest,
+    targets: targets.map((t) => (typeof t === 'string' ? openIssue(t) : t)),
+  };
+}
 
 function evidence(extra: Partial<Evidence> = {}): Evidence {
   return {
@@ -17,7 +52,7 @@ function evidence(extra: Partial<Evidence> = {}): Evidence {
       merged: true,
       mergedAt: '2026-10-01T14:05:09Z',
       headSha: HEAD,
-      mergeSha: 'feedface00000000000000000000000000000001',
+      mergeSha: MERGE_SHA,
       changedFiles: 1,
     },
     files: { status: 'ok', complete: true, entries: [{ path: 'a.ts', status: 'modified' }] },
@@ -84,6 +119,7 @@ describe('runChecks', () => {
     const e = evidence({
       closingReferences: { status: 'ok', issues: ['Example-Org/Example-Repo#1'] },
       references: [{ kind: 'issue', ref: `${REPO}#10`, status: 'ok', exists: true }],
+      closeEvents: closeEvents([`${REPO}#10`]),
     });
     const claims = runChecks(
       block({
@@ -105,19 +141,24 @@ describe('runChecks', () => {
   it('never fails a closes missing from the closing references on the list alone', () => {
     // GitHub leaves out of the list any issue its reader cannot see (spec section 7.4).
     const closes = block({ references: [{ issue: 'other-org/oncall#5', relation: 'closes' }] });
-    const verdictOf = (references?: Evidence['references']) =>
+    const ref = 'other-org/oncall#5';
+    const verdictOf = (
+      references?: Evidence['references'],
+      // null: the evidence carries no closeEvents section.
+      events: CloseEventsEvidence | null = closeEvents([ref]),
+    ) =>
       row(
         runChecks(
           closes,
           evidence({
             closingReferences: { status: 'ok', issues: [] },
             ...(references === undefined ? {} : { references }),
+            ...(events === null ? {} : { closeEvents: events }),
           }),
           REPO,
         ),
         'reference:/references/0',
       );
-    const ref = 'other-org/oncall#5';
     expect(verdictOf()).toMatchObject({
       verdict: 'unverifiable',
       reason: 'evidence_field_unpopulated:references',
@@ -136,7 +177,14 @@ describe('runChecks', () => {
     expect(verdictOf([{ kind: 'issue', ref, status: 'ok', exists: true }])).toMatchObject({
       verdict: 'fail',
       reason: 'not_closing',
-      observed: { closing: [] },
+      observed: { closing: [], state: 'open', events: [] },
+    });
+    // Spec 0.1.4: nor on the list and the issue's existence alone. Without its close events, the
+    // record cannot say the pull request did not close it.
+    expect(verdictOf([{ kind: 'issue', ref, status: 'ok', exists: true }], null)).toMatchObject({
+      verdict: 'unverifiable',
+      reason: 'evidence_field_unpopulated:closeEvents',
+      observed: null,
     });
   });
 
@@ -148,6 +196,7 @@ describe('runChecks', () => {
       const e = evidence({
         closingReferences: { status: 'ok', issues },
         references: [{ kind: 'issue', ref: `${REPO}#15`, status: 'ok', exists: true }],
+        closeEvents: closeEvents([`${REPO}#15`]),
       });
       e.pullRequest = { ...e.pullRequest, state, merged };
       return row(runChecks(closes, e, REPO), 'reference:/references/0');
@@ -160,7 +209,7 @@ describe('runChecks', () => {
     expect(verdictOf('closed', true, [])).toMatchObject({
       verdict: 'fail',
       reason: 'not_closing',
-      observed: { closing: [] },
+      observed: { closing: [], state: 'open', events: [] },
     });
     expect(verdictOf('closed', false, [])).toMatchObject({
       verdict: 'fail',
@@ -184,7 +233,13 @@ describe('runChecks', () => {
       state: 'open' | 'closed' = 'closed',
       merged = state === 'closed',
     ) => {
-      const e = evidence({ closingReferences: { status: 'ok', issues }, references: [entry] });
+      // Spec 0.1.4: the close events are read under the identity GitHub resolves the issue to.
+      const read = entry.status === 'ok' && entry.kind === 'issue' ? entry.resolvedAs : undefined;
+      const e = evidence({
+        closingReferences: { status: 'ok', issues },
+        references: [entry],
+        closeEvents: closeEvents([read ?? entry.ref]),
+      });
       e.pullRequest = { ...e.pullRequest, state, merged };
       return row(runChecks(closes, e, REPO), 'reference:/references/0');
     };
@@ -263,6 +318,320 @@ describe('runChecks', () => {
     });
   });
 
+  // Spec 0.1.4: a closes is settled by who closed the target, not only by the closing references.
+  // GitHub records each close as a ClosedEvent whose closer is the pull request or the commit that
+  // closed it. The closing references list issues only, leave out a close by a commit message, and
+  // are not populated for a pull request into a branch other than the default.
+  describe('a closes missing from the closing references is settled by who closed the target', () => {
+    const SELF = `${REPO}#1`;
+    const OTHER_PR = `${REPO}#2`;
+    const COMMIT = 'c0de000000000000000000000000000000000001';
+    const STRANGER = '5a1e000000000000000000000000000000000001';
+    const AT = '2026-10-01T14:05:11Z';
+    const byPullRequest = (ref: string, at = AT): CloseEvent => ({
+      at,
+      closer: { kind: 'pull_request', ref },
+    });
+    const byCommit = (oid: string, at = AT): CloseEvent => ({
+      at,
+      closer: { kind: 'commit', oid },
+    });
+    const byNoOne: CloseEvent = { at: AT, closer: null };
+    const target = (
+      events: CloseEvent[],
+      state: 'open' | 'closed' | 'merged' = events.length > 0 ? 'closed' : 'open',
+      type: 'issue' | 'pull_request' = 'issue',
+      ref = `${REPO}#15`,
+    ): CloseTargetEvidence => ({ ref, status: 'ok', type, state, events });
+
+    interface Case {
+      targets?: CloseTargetEvidence[];
+      side?: CloseBaseEvidence;
+      pr?: Partial<Evidence['pullRequest']>;
+      section?: 'absent';
+    }
+    const verdictOf = ({ targets = [target([])], side = ON_DEFAULT, pr = {}, section }: Case) => {
+      const closes = block({ references: [{ issue: '#15', relation: 'closes' }] });
+      const e = evidence({
+        closingReferences: { status: 'ok', issues: [] },
+        references: [{ kind: 'issue', ref: `${REPO}#15`, status: 'ok', exists: true }],
+        ...(section === 'absent' ? {} : { closeEvents: { pullRequest: side, targets } }),
+      });
+      e.pullRequest = { ...e.pullRequest, ...pr };
+      return row(runChecks(closes, e, REPO), 'reference:/references/0');
+    };
+    const OPEN = { state: 'open', merged: false, mergedAt: null, mergeSha: null } as const;
+    const CLOSED_UNMERGED = {
+      state: 'closed',
+      merged: false,
+      mergedAt: null,
+      mergeSha: null,
+    } as const;
+
+    it('row 2: passes when a ClosedEvent of the target names this pull request as its closer', () => {
+      const event = byPullRequest(SELF);
+      expect(verdictOf({ targets: [target([event])] })).toEqual({
+        id: 'reference:/references/0',
+        check: 'reference',
+        field: '/references/0',
+        declared: { issue: '#15', relation: 'closes' },
+        observed: { closing: [], closedBy: event },
+        verdict: 'pass',
+      });
+      // Owner and repository compare case-insensitively, the number exactly.
+      expect(
+        verdictOf({ targets: [target([byPullRequest('Example-Org/Example-Repo#1')])] })?.verdict,
+      ).toBe('pass');
+      expect(verdictOf({ targets: [target([byPullRequest(`${REPO}#11`)])] })?.verdict).toBe('fail');
+    });
+
+    it('row 2: passes for a pull request target this pull request closed, e.g. one it supersedes', () => {
+      for (const state of ['closed', 'merged'] as const) {
+        const t = target([byPullRequest(SELF)], state, 'pull_request');
+        expect(verdictOf({ targets: [t] })).toMatchObject({
+          verdict: 'pass',
+          observed: { closing: [], closedBy: byPullRequest(SELF) },
+        });
+      }
+    });
+
+    it('rows 2 and 3: read every ClosedEvent, not only the latest (closed by this pull request, then reopened)', () => {
+      const reopened = target([byPullRequest(SELF), byNoOne], 'open');
+      expect(verdictOf({ targets: [reopened] })).toMatchObject({
+        verdict: 'pass',
+        observed: { closedBy: byPullRequest(SELF) },
+      });
+      const reclosed = target([byPullRequest(OTHER_PR), byCommit(COMMIT, '2026-10-02T09:00:00Z')]);
+      expect(
+        verdictOf({ targets: [reclosed], side: { ...ON_DEFAULT, commits: [COMMIT, HEAD] } }),
+      ).toMatchObject({ verdict: 'pass', observed: { closedBy: { closer: { oid: COMMIT } } } });
+    });
+
+    it('row 2 before row 3, and before rows 4 to 8: an open pull request it closed passes', () => {
+      const both = target([byCommit(MERGE_SHA), byPullRequest(SELF, '2026-10-02T00:00:00Z')]);
+      expect(verdictOf({ targets: [both] })).toMatchObject({
+        verdict: 'pass',
+        observed: { closedBy: byPullRequest(SELF, '2026-10-02T00:00:00Z') },
+      });
+      expect(verdictOf({ targets: [target([byPullRequest(SELF)])], pr: OPEN })?.verdict).toBe(
+        'pass',
+      );
+    });
+
+    it('row 3: passes when a commit of this pull request closed the target, and carries its oid', () => {
+      const event = byCommit(COMMIT);
+      expect(
+        verdictOf({ targets: [target([event])], side: { ...ON_DEFAULT, commits: [COMMIT, HEAD] } }),
+      ).toEqual({
+        id: 'reference:/references/0',
+        check: 'reference',
+        field: '/references/0',
+        declared: { issue: '#15', relation: 'closes' },
+        observed: { closing: [], closedBy: event },
+        verdict: 'pass',
+      });
+    });
+
+    it("row 3: passes when this pull request's merge commit closed the target (a squash merge)", () => {
+      const event = byCommit(MERGE_SHA);
+      expect(verdictOf({ targets: [target([event])] })).toMatchObject({
+        verdict: 'pass',
+        observed: { closedBy: event },
+      });
+      // The merge commit is the pull request's own record, so its commits are not needed for it.
+      expect(
+        verdictOf({
+          targets: [target([event])],
+          side: { status: 'unreadable', source: 'pull_request_commits' },
+        })?.verdict,
+      ).toBe('pass');
+    });
+
+    it('row 4: an open, unmerged pull request it did not close is closing_link_unsettled', () => {
+      for (const targets of [
+        [target([])],
+        [target([byPullRequest(OTHER_PR)])],
+        [target([byCommit(STRANGER)])],
+        [{ ref: `${REPO}#15`, status: 'unreadable', source: 'issue' } as const],
+      ]) {
+        expect(verdictOf({ targets, pr: OPEN })).toMatchObject({
+          verdict: 'unverifiable',
+          reason: 'closing_link_unsettled',
+          observed: null,
+        });
+      }
+      expect(verdictOf({ section: 'absent', pr: OPEN })).toMatchObject({
+        verdict: 'unverifiable',
+        reason: 'closing_link_unsettled',
+      });
+    });
+
+    it('row 5: merged into a branch other than the default, with the target open, is closing_base_not_default', () => {
+      for (const defaultBranch of ['main', null]) {
+        expect(
+          verdictOf({ side: { ...ON_DEFAULT, baseRef: 'release-2.0', defaultBranch } }),
+        ).toMatchObject({
+          verdict: 'unverifiable',
+          reason: 'closing_base_not_default',
+          observed: null,
+        });
+      }
+      // A target closed by someone else is not open: row 5 does not apply, and it fails (row 8).
+      expect(
+        verdictOf({
+          targets: [target([byPullRequest(OTHER_PR)])],
+          side: { ...ON_DEFAULT, baseRef: 'release-2.0' },
+        }),
+      ).toMatchObject({ verdict: 'fail', reason: 'not_closing' });
+      // A pull request closed without merging merged into nothing.
+      expect(
+        verdictOf({ side: { ...ON_DEFAULT, baseRef: 'release-2.0' }, pr: CLOSED_UNMERGED }),
+      ).toMatchObject({ verdict: 'fail', reason: 'not_closing' });
+    });
+
+    it('row 6: a close-event read that is incomplete or unread is unverifiable, never fail', () => {
+      expect(
+        verdictOf({ targets: [{ ref: `${REPO}#15`, status: 'unreadable', source: 'issue' }] }),
+      ).toMatchObject({ verdict: 'unverifiable', reason: 'source_unreadable:issue' });
+      expect(
+        verdictOf({
+          targets: [{ ref: `${REPO}#15`, status: 'unpopulated', field: 'issueOrPullRequest' }],
+        }),
+      ).toMatchObject({
+        verdict: 'unverifiable',
+        reason: 'evidence_field_unpopulated:issueOrPullRequest',
+      });
+      expect(verdictOf({ section: 'absent' })).toMatchObject({
+        verdict: 'unverifiable',
+        reason: 'evidence_field_unpopulated:closeEvents',
+      });
+      // A section that holds no entry for the target is no evidence about it.
+      expect(verdictOf({ targets: [target([], 'open', 'issue', `${REPO}#16`)] })).toMatchObject({
+        verdict: 'unverifiable',
+        reason: 'evidence_field_unpopulated:closeEvents',
+      });
+      // A commit closer the unread commits might hold, or an open target on a base the unread side
+      // would name: undecided.
+      const unread: CloseBaseEvidence = { status: 'unreadable', source: 'pull_request_commits' };
+      expect(verdictOf({ targets: [target([byCommit(STRANGER)])], side: unread })).toMatchObject({
+        verdict: 'unverifiable',
+        reason: 'source_unreadable:pull_request_commits',
+      });
+      expect(verdictOf({ side: unread })).toMatchObject({
+        verdict: 'unverifiable',
+        reason: 'source_unreadable:pull_request_commits',
+      });
+      // With nothing the unread side could change, the fail stands (row 8).
+      expect(
+        verdictOf({ targets: [target([byPullRequest(OTHER_PR)])], side: unread }),
+      ).toMatchObject({ verdict: 'fail', reason: 'not_closing' });
+    });
+
+    it('row 7: a closed target whose read holds no ClosedEvent yet is closing_event_unsettled, never fail', () => {
+      // GitHub sets the state before the timeline shows the event (probe cases i and ii).
+      for (const pr of [{}, CLOSED_UNMERGED]) {
+        expect(verdictOf({ targets: [target([], 'closed')], pr })).toEqual({
+          id: 'reference:/references/0',
+          check: 'reference',
+          field: '/references/0',
+          declared: { issue: '#15', relation: 'closes' },
+          observed: null,
+          verdict: 'unverifiable',
+          reason: 'closing_event_unsettled',
+        });
+      }
+      expect(verdictOf({ targets: [target([], 'closed', 'pull_request')] })).toMatchObject({
+        verdict: 'unverifiable',
+        reason: 'closing_event_unsettled',
+      });
+      // The commits are not needed: no event names any commit.
+      expect(
+        verdictOf({
+          targets: [target([], 'closed')],
+          side: { status: 'unreadable', source: 'pull_request_commits' },
+        }),
+      ).toMatchObject({ verdict: 'unverifiable', reason: 'closing_event_unsettled' });
+      // Rows 4 and 6 come first.
+      expect(verdictOf({ targets: [target([], 'closed')], pr: OPEN })).toMatchObject({
+        reason: 'closing_link_unsettled',
+      });
+      // A ClosedEvent with no recorded closer is visible: it is not this pull request's close (row 8).
+      expect(verdictOf({ targets: [target([byNoOne], 'closed')] })).toMatchObject({
+        verdict: 'fail',
+        reason: 'not_closing',
+      });
+    });
+
+    it('row 8: closed by another pull request, another commit or no recorded closer is not_closing', () => {
+      for (const events of [[byPullRequest(OTHER_PR)], [byCommit(STRANGER)], [byNoOne]]) {
+        expect(verdictOf({ targets: [target(events)] })).toEqual({
+          id: 'reference:/references/0',
+          check: 'reference',
+          field: '/references/0',
+          declared: { issue: '#15', relation: 'closes' },
+          observed: { closing: [], state: 'closed', events },
+          verdict: 'fail',
+          reason: 'not_closing',
+        });
+      }
+      expect(
+        verdictOf({ targets: [target([{ at: AT, closer: { kind: 'other' } }])] }),
+      ).toMatchObject({ verdict: 'fail', reason: 'not_closing' });
+    });
+
+    it('row 8: open after a merge into the default branch, or a pull request closed unmerged, is not_closing', () => {
+      expect(verdictOf({})).toMatchObject({
+        verdict: 'fail',
+        reason: 'not_closing',
+        observed: { closing: [], state: 'open', events: [] },
+      });
+      expect(verdictOf({ pr: CLOSED_UNMERGED })).toMatchObject({
+        verdict: 'fail',
+        reason: 'not_closing',
+      });
+      expect(
+        verdictOf({ targets: [target([byPullRequest(OTHER_PR)], 'merged', 'pull_request')] }),
+      ).toMatchObject({ verdict: 'fail', reason: 'not_closing' });
+    });
+
+    it('reads a transferred issue under its resolved identity, and shows both', () => {
+      const MOVED = 'example-org/example-tracker#4';
+      const closes = block({ references: [{ issue: '#15', relation: 'closes' }] });
+      const event = byPullRequest(SELF);
+      const e = evidence({
+        closingReferences: { status: 'ok', issues: [] },
+        references: [
+          { kind: 'issue', ref: `${REPO}#15`, status: 'ok', exists: true, resolvedAs: MOVED },
+        ],
+        closeEvents: closeEvents([target([event], 'closed', 'issue', MOVED)]),
+      });
+      expect(row(runChecks(closes, e, REPO), 'reference:/references/0')).toMatchObject({
+        verdict: 'pass',
+        observed: { closing: [], ref: `${REPO}#15`, resolvedAs: MOVED, closedBy: event },
+      });
+    });
+
+    it('never reads close events for a closes the closing references list, or for a cites', () => {
+      const e = evidence({
+        closingReferences: { status: 'ok', issues: [`${REPO}#15`] },
+        references: [{ kind: 'issue', ref: `${REPO}#15`, status: 'ok', exists: true }],
+        closeEvents: closeEvents([target([byPullRequest(OTHER_PR)])]),
+      });
+      expect(
+        row(
+          runChecks(block({ references: [{ issue: '#15', relation: 'closes' }] }), e, REPO),
+          'reference:/references/0',
+        ),
+      ).toMatchObject({ verdict: 'pass', observed: { closing: [`${REPO}#15`] } });
+      expect(
+        row(
+          runChecks(block({ references: [{ issue: '#15', relation: 'cites' }] }), e, REPO),
+          'reference:/references/0',
+        ),
+      ).toMatchObject({ verdict: 'pass', observed: { exists: true } });
+    });
+  });
+
   it('compares times to the second', () => {
     const e = evidence();
     e.pullRequest.mergedAt = '2026-10-01T14:05:09.900Z';
@@ -335,6 +704,263 @@ describe('countedCheckRuns', () => {
       { id: 9, name: 'dunstan', status: 'in_progress', conclusion: null },
     ];
     expect(countedCheckRuns(runs, [9]).map((r) => r.id)).toEqual([2, 5]);
+  });
+
+  it('keeps the latest run per check suite and name: a re-run supersedes its own suite only', () => {
+    const runs = [
+      { id: 1, name: 'test', status: 'completed', conclusion: 'failure', checkSuiteId: 70 },
+      { id: 4, name: 'test', status: 'completed', conclusion: 'success', checkSuiteId: 70 },
+      { id: 5, name: 'test', status: 'completed', conclusion: 'success', checkSuiteId: 80 },
+      { id: 6, name: 'lint', status: 'completed', conclusion: 'success', checkSuiteId: 80 },
+    ];
+    expect(countedCheckRuns(runs, []).map((r) => r.id)).toEqual([4, 5, 6]);
+  });
+
+  it("an excluded run supersedes its name's earlier runs in every suite, and no later run", () => {
+    const runs = [
+      { id: 1, name: 'handback', status: 'completed', conclusion: 'failure', checkSuiteId: 70 },
+      { id: 2, name: 'dunstan', status: 'completed', conclusion: 'failure', checkSuiteId: 71 },
+      { id: 3, name: 'test', status: 'completed', conclusion: 'success', checkSuiteId: 72 },
+      { id: 7, name: 'handback', status: 'in_progress', conclusion: null, checkSuiteId: 80 },
+      { id: 8, name: 'dunstan', status: 'in_progress', conclusion: null, checkSuiteId: 71 },
+      { id: 9, name: 'handback', status: 'completed', conclusion: 'success', checkSuiteId: 90 },
+    ];
+    expect(countedCheckRuns(runs, [7, 8]).map((r) => r.id)).toEqual([3, 9]);
+  });
+});
+
+// Spec 0.1.4, amended 2026-10-12 (10T3): GitHub names an Actions check run after its job, so two
+// workflows that each have a job `test` give two runs named `test`, one per check suite.
+describe('checks over check suites', () => {
+  const run = (id: number, conclusion: string, checkSuiteId?: number) => ({
+    id,
+    name: 'test',
+    status: 'completed',
+    conclusion,
+    ...(checkSuiteId === undefined ? {} : { checkSuiteId, appSlug: 'github-actions' }),
+  });
+  const checksOf = (runs: ReturnType<typeof run>[]) =>
+    runChecks(
+      block({ checks: { total: 1, allSucceeded: true } }),
+      evidence({ checkRuns: { status: 'ok', commit: HEAD, excludedIds: [], runs } }),
+      REPO,
+    );
+
+  it('a failed run in one workflow is not hidden by a later run of the same name in another', () => {
+    const claims = checksOf([run(1, 'failure', 70), run(2, 'success', 80)]);
+    expect(row(claims, 'count:/checks/allSucceeded')).toMatchObject({
+      verdict: 'fail',
+      observed: false,
+      reason: 'all_succeeded_mismatch',
+    });
+    expect(row(claims, 'count:/checks/total')).toMatchObject({
+      verdict: 'fail',
+      observed: 2,
+      reason: 'count_mismatch',
+    });
+  });
+
+  it('a re-run in the same check suite supersedes its earlier attempt, as before', () => {
+    const claims = checksOf([run(1, 'failure', 70), run(2, 'success', 70)]);
+    expect(row(claims, 'count:/checks/allSucceeded')).toMatchObject({
+      verdict: 'pass',
+      observed: true,
+    });
+    expect(row(claims, 'count:/checks/total')).toMatchObject({ verdict: 'pass', observed: 1 });
+  });
+
+  it("the checker's own earlier runs, each in its workflow run's suite, are not counted", () => {
+    // Run 1 of the checker's workflow (suite 70) failed on a bad block; the body was edited and run 2
+    // (suite 80) is the checker now, which excludes its job's run and its `dunstan` run.
+    const runs = [
+      { ...run(1, 'success', 60), name: 'lint' },
+      { ...run(2, 'failure', 70), name: 'handback' },
+      { ...run(3, 'failure', 71), name: 'dunstan' },
+      { ...run(4, 'success', 80), name: 'handback', status: 'in_progress', conclusion: null },
+      { ...run(5, 'success', 71), name: 'dunstan', status: 'in_progress', conclusion: null },
+    ];
+    const claims = runChecks(
+      block({ checks: { total: 1, allSucceeded: true } }),
+      evidence({ checkRuns: { status: 'ok', commit: HEAD, excludedIds: [4, 5], runs } }),
+      REPO,
+    );
+    expect(row(claims, 'count:/checks/allSucceeded')).toMatchObject({
+      verdict: 'pass',
+      observed: true,
+    });
+    expect(row(claims, 'count:/checks/total')).toMatchObject({ verdict: 'pass', observed: 1 });
+  });
+
+  it('a record with check suites and no workflow paths is counted per suite and name', () => {
+    // Written by the 2026-10-12 amendment's reader, which recorded no workflow: no path is invented.
+    const claims = checksOf([run(1, 'success', 70), run(2, 'success', 80)]);
+    expect(row(claims, 'count:/checks/total')).toMatchObject({
+      verdict: 'fail',
+      observed: 2,
+      reason: 'count_mismatch',
+    });
+  });
+
+  it('a record without check suites is counted by name alone, as before', () => {
+    const claims = checksOf([run(1, 'failure'), run(2, 'success')]);
+    expect(claims.filter((c) => c.check === 'count')).toEqual([
+      {
+        id: 'count:/checks/total',
+        check: 'count',
+        field: '/checks/total',
+        declared: 1,
+        observed: 1,
+        verdict: 'pass',
+      },
+      {
+        id: 'count:/checks/allSucceeded',
+        check: 'count',
+        field: '/checks/allSucceeded',
+        declared: true,
+        observed: true,
+        verdict: 'pass',
+      },
+    ]);
+  });
+});
+
+// Spec 0.1.4, amended 2026-10-13 (10T4): each run of a workflow is a check suite of its own, so a
+// workflow run more than once on one head (on push and pull_request, or again after a reopen) is
+// one workflow, counted once per job: the latest workflow run wins.
+describe('checks per workflow path', () => {
+  const CI = '.github/workflows/ci.yml';
+  const run = (
+    id: number,
+    name: string,
+    conclusion: string,
+    at: { suite: number; path: string; runId: number; attempt?: number },
+  ): CheckRun => ({
+    id,
+    name,
+    status: 'completed',
+    conclusion,
+    checkSuiteId: at.suite,
+    appSlug: 'github-actions',
+    workflowPath: at.path,
+    workflowRunId: at.runId,
+    runAttempt: at.attempt ?? 1,
+  });
+  const checksOf = (
+    checks: { total?: number; allSucceeded?: boolean },
+    runs: CheckRun[],
+    excludedIds: number[] = [],
+  ) =>
+    runChecks(
+      block({ checks }),
+      evidence({ checkRuns: { status: 'ok', commit: HEAD, excludedIds, runs } }),
+      REPO,
+    );
+
+  it('a workflow on push and pull_request counts each job once', () => {
+    const push = { suite: 70, path: CI, runId: 100 };
+    const pr = { suite: 80, path: CI, runId: 101 };
+    const claims = checksOf({ total: 2, allSucceeded: true }, [
+      run(1, 'test', 'success', push),
+      run(2, 'lint', 'success', push),
+      run(3, 'test', 'success', pr),
+      run(4, 'lint', 'success', pr),
+    ]);
+    expect(row(claims, 'count:/checks/total')).toMatchObject({ verdict: 'pass', observed: 2 });
+    expect(row(claims, 'count:/checks/allSucceeded')).toMatchObject({
+      verdict: 'pass',
+      observed: true,
+    });
+  });
+
+  it("a reopened pull request's later run of the workflow supersedes its earlier failed run", () => {
+    const claims = checksOf({ total: 1, allSucceeded: true }, [
+      run(1, 'test', 'failure', { suite: 70, path: CI, runId: 100 }),
+      run(2, 'test', 'success', { suite: 80, path: CI, runId: 200 }),
+    ]);
+    expect(row(claims, 'count:/checks/total')).toMatchObject({ verdict: 'pass', observed: 1 });
+    expect(row(claims, 'count:/checks/allSucceeded')).toMatchObject({
+      verdict: 'pass',
+      observed: true,
+    });
+  });
+
+  it("two workflows' `test` jobs stay apart, and the failed one is read", () => {
+    const claims = checksOf({ total: 1, allSucceeded: true }, [
+      run(1, 'test', 'failure', { suite: 70, path: CI, runId: 100 }),
+      run(2, 'test', 'success', { suite: 80, path: '.github/workflows/e2e.yml', runId: 101 }),
+    ]);
+    expect(row(claims, 'count:/checks/total')).toMatchObject({
+      verdict: 'fail',
+      observed: 2,
+      reason: 'count_mismatch',
+    });
+    expect(row(claims, 'count:/checks/allSucceeded')).toMatchObject({
+      verdict: 'fail',
+      observed: false,
+      reason: 'all_succeeded_mismatch',
+    });
+  });
+
+  it('the latest is the highest workflow run id, then run attempt, then check run id', () => {
+    // A later workflow run's check run can have the lower id: the two runs were queued together.
+    const byRun = countedCheckRuns(
+      [
+        run(5, 'test', 'failure', { suite: 70, path: CI, runId: 100 }),
+        run(4, 'test', 'success', { suite: 80, path: CI, runId: 101 }),
+      ],
+      [],
+    );
+    expect(byRun.map((r) => r.id)).toEqual([4]);
+    const byAttempt = countedCheckRuns(
+      [
+        run(5, 'test', 'failure', { suite: 70, path: CI, runId: 100, attempt: 1 }),
+        run(4, 'test', 'success', { suite: 71, path: CI, runId: 100, attempt: 2 }),
+      ],
+      [],
+    );
+    expect(byAttempt.map((r) => r.id)).toEqual([4]);
+    const byId = countedCheckRuns(
+      [
+        run(4, 'test', 'failure', { suite: 70, path: CI, runId: 100, attempt: 2 }),
+        run(5, 'test', 'success', { suite: 70, path: CI, runId: 100, attempt: 2 }),
+      ],
+      [],
+    );
+    expect(byId.map((r) => r.id)).toEqual([5]);
+  });
+
+  it('a run of no workflow keeps its suite, beside a run of the same name that has one', () => {
+    const claims = checksOf({ total: 2, allSucceeded: false }, [
+      run(1, 'test', 'success', { suite: 70, path: CI, runId: 100 }),
+      { id: 2, name: 'test', status: 'completed', conclusion: 'failure', checkSuiteId: 90 },
+    ]);
+    expect(row(claims, 'count:/checks/total')).toMatchObject({ verdict: 'pass', observed: 2 });
+    expect(row(claims, 'count:/checks/allSucceeded')).toMatchObject({
+      verdict: 'pass',
+      observed: false,
+    });
+  });
+
+  it("an excluded run still supersedes its name's earlier runs, whatever their workflow run", () => {
+    const DUNSTAN = '.github/workflows/dunstan.yml';
+    const claims = checksOf(
+      { total: 1, allSucceeded: true },
+      [
+        run(1, 'handback', 'failure', { suite: 70, path: DUNSTAN, runId: 100 }),
+        run(2, 'test', 'success', { suite: 71, path: CI, runId: 101 }),
+        {
+          ...run(3, 'handback', 'success', { suite: 80, path: DUNSTAN, runId: 200 }),
+          status: 'in_progress',
+          conclusion: null,
+        },
+      ],
+      [3],
+    );
+    expect(row(claims, 'count:/checks/total')).toMatchObject({ verdict: 'pass', observed: 1 });
+    expect(row(claims, 'count:/checks/allSucceeded')).toMatchObject({
+      verdict: 'pass',
+      observed: true,
+    });
   });
 });
 

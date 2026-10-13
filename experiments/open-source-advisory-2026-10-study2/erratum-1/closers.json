@@ -1,0 +1,2550 @@
+{
+  "tool": "experiments/open-source-advisory-2026-10-study2/erratum-1/tools/closers.mjs",
+  "node": "v22.15.0",
+  "readStartedAt": "2026-10-13T05:40:02.050Z",
+  "readFinishedAt": "2026-10-13T05:40:42.497Z",
+  "token": {
+    "scopes": null,
+    "check": "no X-OAuth-Scopes header: a fine-grained or app token, whose permissions the API does not list"
+  },
+  "inputs": {
+    "index": {
+      "path": "runs/index.json",
+      "sha256": "3a0f1b0768a37a9446203a03698c068170333faeea15654ae0deb2634748c3b4"
+    },
+    "seal": {
+      "path": "runs/baseline.seal.json",
+      "sha256": "718da56e38de76824db6c1c7cc174651cffc5f753728ed7a097d964f43c13493"
+    }
+  },
+  "pageSize": 100,
+  "pageBudget": {
+    "commits": 3,
+    "closedEvents": 10
+  },
+  "rows": [
+    {
+      "pr": "electron/windows-installer#614",
+      "advisoryId": "electron/windows-installer#614:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#612",
+      "target": "electron/windows-installer#612",
+      "pullRequestRead": "electron/windows-installer#614",
+      "targetRead": "electron/windows-installer#612",
+      "incomplete": null
+    },
+    {
+      "pr": "electron/windows-installer#614",
+      "advisoryId": "electron/windows-installer#614:1",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#386",
+      "target": "electron/windows-installer#386",
+      "pullRequestRead": "electron/windows-installer#614",
+      "targetRead": "electron/windows-installer#386",
+      "incomplete": null
+    },
+    {
+      "pr": "electron/windows-installer#614",
+      "advisoryId": "electron/windows-installer#614:2",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#474",
+      "target": "electron/windows-installer#474",
+      "pullRequestRead": "electron/windows-installer#614",
+      "targetRead": "electron/windows-installer#474",
+      "incomplete": null
+    },
+    {
+      "pr": "electron/windows-installer#614",
+      "advisoryId": "electron/windows-installer#614:3",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#558",
+      "target": "electron/windows-installer#558",
+      "pullRequestRead": "electron/windows-installer#614",
+      "targetRead": "electron/windows-installer#558",
+      "incomplete": null
+    },
+    {
+      "pr": "stacklok/toolhive#5646",
+      "advisoryId": "stacklok/toolhive#5646:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#5567",
+      "target": "stacklok/toolhive#5567",
+      "pullRequestRead": "stacklok/toolhive#5646",
+      "targetRead": "stacklok/toolhive#5567",
+      "incomplete": null
+    },
+    {
+      "pr": "IgniteUI/igniteui-angular#17068",
+      "advisoryId": "IgniteUI/igniteui-angular#17068:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "IgniteUI/igniteui-angular#17067",
+      "target": "IgniteUI/igniteui-angular#17067",
+      "pullRequestRead": "IgniteUI/igniteui-angular#17068",
+      "targetRead": "IgniteUI/igniteui-angular#17067",
+      "incomplete": null
+    },
+    {
+      "pr": "fwupd/fwupd#10067",
+      "advisoryId": "fwupd/fwupd#10067:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "fwupd/fwupd#10066",
+      "target": "fwupd/fwupd#10066",
+      "pullRequestRead": "fwupd/fwupd#10067",
+      "targetRead": "fwupd/fwupd#10066",
+      "incomplete": null
+    },
+    {
+      "pr": "NeurodataWithoutBorders/pynwb#2176",
+      "advisoryId": "NeurodataWithoutBorders/pynwb#2176:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "NeurodataWithoutBorders/pynwb#2093",
+      "target": "NeurodataWithoutBorders/pynwb#2093",
+      "pullRequestRead": "NeurodataWithoutBorders/pynwb#2176",
+      "targetRead": "NeurodataWithoutBorders/pynwb#2093",
+      "incomplete": null
+    },
+    {
+      "pr": "electron/update-electron-app#234",
+      "advisoryId": "electron/update-electron-app#234:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#136",
+      "target": "electron/update-electron-app#136",
+      "pullRequestRead": "electron/update-electron-app#234",
+      "targetRead": "electron/update-electron-app#136",
+      "incomplete": null
+    },
+    {
+      "pr": "electron/rebuild#1284",
+      "advisoryId": "electron/rebuild#1284:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#654",
+      "target": "electron/rebuild#654",
+      "pullRequestRead": "electron/rebuild#1284",
+      "targetRead": "electron/rebuild#654",
+      "incomplete": null
+    },
+    {
+      "pr": "electron/asar#450",
+      "advisoryId": "electron/asar#450:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#277",
+      "target": "electron/asar#277",
+      "pullRequestRead": "electron/asar#450",
+      "targetRead": "electron/asar#277",
+      "incomplete": null
+    },
+    {
+      "pr": "electron/osx-sign#429",
+      "advisoryId": "electron/osx-sign#429:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#368",
+      "target": "electron/osx-sign#368",
+      "pullRequestRead": "electron/osx-sign#429",
+      "targetRead": "electron/osx-sign#368",
+      "incomplete": null
+    },
+    {
+      "pr": "electron/forge#4295",
+      "advisoryId": "electron/forge#4295:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "differs:not_closing",
+        "candidate": "differs:not_closing"
+      },
+      "claimed": "#4104",
+      "target": "electron/forge#4104",
+      "pullRequestRead": "electron/forge#4295",
+      "targetRead": "electron/forge#4104",
+      "incomplete": null
+    },
+    {
+      "pr": "microsoft/pg_durable#183",
+      "advisoryId": "microsoft/pg_durable#183:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#130",
+      "target": "microsoft/pg_durable#130",
+      "pullRequestRead": "microsoft/pg_durable#183",
+      "targetRead": "microsoft/pg_durable#130",
+      "incomplete": null
+    },
+    {
+      "pr": "Azure/azure-functions-host#11837",
+      "advisoryId": "Azure/azure-functions-host#11837:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#11726",
+      "target": "Azure/azure-functions-host#11726",
+      "pullRequestRead": "Azure/azure-functions-host#11837",
+      "targetRead": "Azure/azure-functions-host#11726",
+      "incomplete": null
+    },
+    {
+      "pr": "replicate/cog#3063",
+      "advisoryId": "replicate/cog#3063:1",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "differs:not_closing",
+        "candidate": "differs:not_closing"
+      },
+      "claimed": "#3061",
+      "target": "replicate/cog#3061",
+      "pullRequestRead": "replicate/cog#3063",
+      "targetRead": "replicate/cog#3061",
+      "incomplete": null
+    },
+    {
+      "pr": "replicate/cog#3063",
+      "advisoryId": "replicate/cog#3063:2",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "differs:not_closing",
+        "candidate": "differs:not_closing"
+      },
+      "claimed": "#3060",
+      "target": "replicate/cog#3060",
+      "pullRequestRead": "replicate/cog#3063",
+      "targetRead": "replicate/cog#3060",
+      "incomplete": null
+    },
+    {
+      "pr": "replicate/cog#3063",
+      "advisoryId": "replicate/cog#3063:3",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "differs:not_closing",
+        "candidate": "differs:not_closing"
+      },
+      "claimed": "#3059",
+      "target": "replicate/cog#3059",
+      "pullRequestRead": "replicate/cog#3063",
+      "targetRead": "replicate/cog#3059",
+      "incomplete": null
+    },
+    {
+      "pr": "replicate/cog#3063",
+      "advisoryId": "replicate/cog#3063:4",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "differs:not_closing",
+        "candidate": "differs:not_closing"
+      },
+      "claimed": "#3058",
+      "target": "replicate/cog#3058",
+      "pullRequestRead": "replicate/cog#3063",
+      "targetRead": "replicate/cog#3058",
+      "incomplete": null
+    },
+    {
+      "pr": "replicate/cog#3063",
+      "advisoryId": "replicate/cog#3063:5",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "differs:not_closing",
+        "candidate": "differs:not_closing"
+      },
+      "claimed": "#3054",
+      "target": "replicate/cog#3054",
+      "pullRequestRead": "replicate/cog#3063",
+      "targetRead": "replicate/cog#3054",
+      "incomplete": null
+    },
+    {
+      "pr": "replicate/cog#3063",
+      "advisoryId": "replicate/cog#3063:6",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "differs:not_closing",
+        "candidate": "differs:not_closing"
+      },
+      "claimed": "#3053",
+      "target": "replicate/cog#3053",
+      "pullRequestRead": "replicate/cog#3063",
+      "targetRead": "replicate/cog#3053",
+      "incomplete": null
+    },
+    {
+      "pr": "replicate/cog#3063",
+      "advisoryId": "replicate/cog#3063:7",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "differs:not_closing",
+        "candidate": "differs:not_closing"
+      },
+      "claimed": "#3043",
+      "target": "replicate/cog#3043",
+      "pullRequestRead": "replicate/cog#3063",
+      "targetRead": "replicate/cog#3043",
+      "incomplete": null
+    },
+    {
+      "pr": "replicate/cog#3063",
+      "advisoryId": "replicate/cog#3063:8",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "differs:not_closing",
+        "candidate": "differs:not_closing"
+      },
+      "claimed": "#3040",
+      "target": "replicate/cog#3040",
+      "pullRequestRead": "replicate/cog#3063",
+      "targetRead": "replicate/cog#3040",
+      "incomplete": null
+    },
+    {
+      "pr": "replicate/cog#3063",
+      "advisoryId": "replicate/cog#3063:9",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "differs:not_closing",
+        "candidate": "differs:not_closing"
+      },
+      "claimed": "#3039",
+      "target": "replicate/cog#3039",
+      "pullRequestRead": "replicate/cog#3063",
+      "targetRead": "replicate/cog#3039",
+      "incomplete": null
+    },
+    {
+      "pr": "replicate/cog#3063",
+      "advisoryId": "replicate/cog#3063:10",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "differs:not_closing",
+        "candidate": "differs:not_closing"
+      },
+      "claimed": "#3038",
+      "target": "replicate/cog#3038",
+      "pullRequestRead": "replicate/cog#3063",
+      "targetRead": "replicate/cog#3038",
+      "incomplete": null
+    },
+    {
+      "pr": "replicate/cog#3063",
+      "advisoryId": "replicate/cog#3063:11",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "differs:not_closing",
+        "candidate": "differs:not_closing"
+      },
+      "claimed": "#3037",
+      "target": "replicate/cog#3037",
+      "pullRequestRead": "replicate/cog#3063",
+      "targetRead": "replicate/cog#3037",
+      "incomplete": null
+    },
+    {
+      "pr": "replicate/cog#3063",
+      "advisoryId": "replicate/cog#3063:12",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "differs:not_closing",
+        "candidate": "differs:not_closing"
+      },
+      "claimed": "#3030",
+      "target": "replicate/cog#3030",
+      "pullRequestRead": "replicate/cog#3063",
+      "targetRead": "replicate/cog#3030",
+      "incomplete": null
+    },
+    {
+      "pr": "replicate/cog#3063",
+      "advisoryId": "replicate/cog#3063:13",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "differs:not_closing",
+        "candidate": "differs:not_closing"
+      },
+      "claimed": "#2986",
+      "target": "replicate/cog#2986",
+      "pullRequestRead": "replicate/cog#3063",
+      "targetRead": "replicate/cog#2986",
+      "incomplete": null
+    },
+    {
+      "pr": "replicate/cog#3063",
+      "advisoryId": "replicate/cog#3063:14",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "differs:not_closing",
+        "candidate": "differs:not_closing"
+      },
+      "claimed": "#2985",
+      "target": "replicate/cog#2985",
+      "pullRequestRead": "replicate/cog#3063",
+      "targetRead": "replicate/cog#2985",
+      "incomplete": null
+    },
+    {
+      "pr": "replicate/cog#3063",
+      "advisoryId": "replicate/cog#3063:15",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "differs:not_closing",
+        "candidate": "differs:not_closing"
+      },
+      "claimed": "#2941",
+      "target": "replicate/cog#2941",
+      "pullRequestRead": "replicate/cog#3063",
+      "targetRead": "replicate/cog#2941",
+      "incomplete": null
+    },
+    {
+      "pr": "replicate/cog#3063",
+      "advisoryId": "replicate/cog#3063:16",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "differs:not_closing",
+        "candidate": "differs:not_closing"
+      },
+      "claimed": "#2940",
+      "target": "replicate/cog#2940",
+      "pullRequestRead": "replicate/cog#3063",
+      "targetRead": "replicate/cog#2940",
+      "incomplete": null
+    },
+    {
+      "pr": "replicate/cog#3063",
+      "advisoryId": "replicate/cog#3063:17",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "differs:not_closing",
+        "candidate": "differs:not_closing"
+      },
+      "claimed": "#2900",
+      "target": "replicate/cog#2900",
+      "pullRequestRead": "replicate/cog#3063",
+      "targetRead": "replicate/cog#2900",
+      "incomplete": null
+    },
+    {
+      "pr": "replicate/cog#3063",
+      "advisoryId": "replicate/cog#3063:18",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "differs:not_closing",
+        "candidate": "differs:not_closing"
+      },
+      "claimed": "#2890",
+      "target": "replicate/cog#2890",
+      "pullRequestRead": "replicate/cog#3063",
+      "targetRead": "replicate/cog#2890",
+      "incomplete": null
+    },
+    {
+      "pr": "replicate/cog#3063",
+      "advisoryId": "replicate/cog#3063:19",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "differs:not_closing",
+        "candidate": "differs:not_closing"
+      },
+      "claimed": "#2867",
+      "target": "replicate/cog#2867",
+      "pullRequestRead": "replicate/cog#3063",
+      "targetRead": "replicate/cog#2867",
+      "incomplete": null
+    },
+    {
+      "pr": "CarlosNZ/json-edit-react#373",
+      "advisoryId": "CarlosNZ/json-edit-react#373:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "differs:not_closing",
+        "candidate": "differs:not_closing"
+      },
+      "claimed": "#122",
+      "target": "CarlosNZ/json-edit-react#122",
+      "pullRequestRead": "CarlosNZ/json-edit-react#373",
+      "targetRead": "CarlosNZ/json-edit-react#122",
+      "incomplete": null
+    },
+    {
+      "pr": "dbeaver/dbeaver#41333",
+      "advisoryId": "dbeaver/dbeaver#41333:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "unanswered:source_unreadable:repository",
+        "candidate": "unanswered:source_unreadable:repository"
+      },
+      "claimed": "dbeaver/pro#8871",
+      "target": "dbeaver/pro#8871",
+      "pullRequestRead": "dbeaver/dbeaver#41333",
+      "targetRead": "dbeaver/pro#8871",
+      "incomplete": "the target was not found"
+    },
+    {
+      "pr": "sebastienros/jint#2542",
+      "advisoryId": "sebastienros/jint#2542:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#2541",
+      "target": "sebastienros/jint#2541",
+      "pullRequestRead": "sebastienros/jint#2542",
+      "targetRead": "sebastienros/jint#2541",
+      "incomplete": null
+    },
+    {
+      "pr": "rubyevents/rubyevents#1813",
+      "advisoryId": "rubyevents/rubyevents#1813:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#1810",
+      "target": "rubyevents/rubyevents#1810",
+      "pullRequestRead": "rubyevents/rubyevents#1813",
+      "targetRead": "rubyevents/rubyevents#1810",
+      "incomplete": null
+    },
+    {
+      "pr": "apify/crawlee#3771",
+      "advisoryId": "apify/crawlee#3771:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#3769",
+      "target": "apify/crawlee#3769",
+      "pullRequestRead": "apify/crawlee#3771",
+      "targetRead": "apify/crawlee#3769",
+      "incomplete": null
+    },
+    {
+      "pr": "MasterGroosha/aiogram-3-guide#106",
+      "advisoryId": "MasterGroosha/aiogram-3-guide#106:4",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "MasterGroosha/aiogram-3-guide#105",
+      "target": "MasterGroosha/aiogram-3-guide#105",
+      "pullRequestRead": "MasterGroosha/aiogram-3-guide#106",
+      "targetRead": "MasterGroosha/aiogram-3-guide#105",
+      "incomplete": null
+    },
+    {
+      "pr": "kestra-io/kestra#18553",
+      "advisoryId": "kestra-io/kestra#18553:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "kestra-io/kestra#18471",
+      "target": "kestra-io/kestra#18471",
+      "pullRequestRead": "kestra-io/kestra#18553",
+      "targetRead": "kestra-io/kestra#18471",
+      "incomplete": null
+    },
+    {
+      "pr": "bcherny/json-schema-to-typescript#840",
+      "advisoryId": "bcherny/json-schema-to-typescript#840:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#613",
+      "target": "bcherny/json-schema-to-typescript#613",
+      "pullRequestRead": "bcherny/json-schema-to-typescript#840",
+      "targetRead": "bcherny/json-schema-to-typescript#613",
+      "incomplete": null
+    },
+    {
+      "pr": "alltheplaces/alltheplaces#18342",
+      "advisoryId": "alltheplaces/alltheplaces#18342:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#11273",
+      "target": "alltheplaces/alltheplaces#11273",
+      "pullRequestRead": "alltheplaces/alltheplaces#18342",
+      "targetRead": "alltheplaces/alltheplaces#11273",
+      "incomplete": null
+    },
+    {
+      "pr": "growilabs/growi#11837",
+      "advisoryId": "growilabs/growi#11837:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#11835",
+      "target": "growilabs/growi#11835",
+      "pullRequestRead": "growilabs/growi#11837",
+      "targetRead": "growilabs/growi#11835",
+      "incomplete": null
+    },
+    {
+      "pr": "nickustinov/itsytv-macos#58",
+      "advisoryId": "nickustinov/itsytv-macos#58:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#57",
+      "target": "nickustinov/itsytv-macos#57",
+      "pullRequestRead": "nickustinov/itsytv-macos#58",
+      "targetRead": "nickustinov/itsytv-macos#57",
+      "incomplete": null
+    },
+    {
+      "pr": "devtron-labs/devtron#7016",
+      "advisoryId": "devtron-labs/devtron#7016:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#7013",
+      "target": "devtron-labs/devtron#7013",
+      "pullRequestRead": "devtron-labs/devtron#7016",
+      "targetRead": "devtron-labs/devtron#7013",
+      "incomplete": null
+    },
+    {
+      "pr": "aspnet/Benchmarks#2188",
+      "advisoryId": "aspnet/Benchmarks#2188:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#2178",
+      "target": "aspnet/Benchmarks#2178",
+      "pullRequestRead": "aspnet/Benchmarks#2188",
+      "targetRead": "aspnet/Benchmarks#2178",
+      "incomplete": null
+    },
+    {
+      "pr": "betaflight/betaflight#15567",
+      "advisoryId": "betaflight/betaflight#15567:2",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#15566",
+      "target": "betaflight/betaflight#15566",
+      "pullRequestRead": "betaflight/betaflight#15567",
+      "targetRead": "betaflight/betaflight#15566",
+      "incomplete": null
+    },
+    {
+      "pr": "Tencent/tdesign-vue-next#6918",
+      "advisoryId": "Tencent/tdesign-vue-next#6918:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#6917",
+      "target": "Tencent/tdesign-vue-next#6917",
+      "pullRequestRead": "Tencent/tdesign-vue-next#6918",
+      "targetRead": "Tencent/tdesign-vue-next#6917",
+      "incomplete": null
+    },
+    {
+      "pr": "PrismarineJS/minecraft-data#1253",
+      "advisoryId": "PrismarineJS/minecraft-data#1253:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#1252",
+      "target": "PrismarineJS/minecraft-data#1252",
+      "pullRequestRead": "PrismarineJS/minecraft-data#1253",
+      "targetRead": "PrismarineJS/minecraft-data#1252",
+      "incomplete": null
+    },
+    {
+      "pr": "nmstate/kubernetes-nmstate#1573",
+      "advisoryId": "nmstate/kubernetes-nmstate#1573:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#1572",
+      "target": "nmstate/kubernetes-nmstate#1572",
+      "pullRequestRead": "nmstate/kubernetes-nmstate#1573",
+      "targetRead": "nmstate/kubernetes-nmstate#1572",
+      "incomplete": null
+    },
+    {
+      "pr": "polarsource/polar#13918",
+      "advisoryId": "polarsource/polar#13918:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "differs:not_closing",
+        "candidate": "differs:not_closing"
+      },
+      "claimed": "#405",
+      "target": "polarsource/polar#405",
+      "pullRequestRead": "polarsource/polar#13918",
+      "targetRead": "polarsource/polar#405",
+      "incomplete": null
+    },
+    {
+      "pr": "microsoft/TypeScript#64026",
+      "advisoryId": "microsoft/TypeScript#64026:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#64025",
+      "target": "microsoft/TypeScript#64025",
+      "pullRequestRead": "microsoft/TypeScript#64026",
+      "targetRead": "microsoft/TypeScript#64025",
+      "incomplete": null
+    },
+    {
+      "pr": "Azure/enterprise-azure-policy-as-code#1388",
+      "advisoryId": "Azure/enterprise-azure-policy-as-code#1388:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#1385",
+      "target": "Azure/enterprise-azure-policy-as-code#1385",
+      "pullRequestRead": "Azure/enterprise-azure-policy-as-code#1388",
+      "targetRead": "Azure/enterprise-azure-policy-as-code#1385",
+      "incomplete": null
+    },
+    {
+      "pr": "Azure/azure-service-operator#5652",
+      "advisoryId": "Azure/azure-service-operator#5652:0",
+      "kind": "reference_closes",
+      "notes": {
+        "baseline": "agrees",
+        "candidate": "agrees"
+      },
+      "claimed": "#5650",
+      "target": "Azure/azure-service-operator#5650",
+      "pullRequestRead": "Azure/azure-service-operator#5652",
+      "targetRead": "Azure/azure-service-operator#5650",
+      "incomplete": null
+    }
+  ],
+  "pullRequests": {
+    "electron/windows-installer#614": {
+      "readAt": "2026-10-13T05:40:02.385Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "main",
+      "defaultBranch": "main",
+      "merged": true,
+      "mergedAt": "2026-08-17T23:06:11Z",
+      "mergeCommit": "eb6157ba9d507ba54977505b0f0ce7060d75620d",
+      "commits": {
+        "totalCount": 2,
+        "oids": [
+          "3d422a5e6e1c8b0c4c061f66c4ad21550de2888d",
+          "b6d4879b53e8ab931976185cd6f11ad3f52499cb"
+        ]
+      },
+      "incomplete": null
+    },
+    "stacklok/toolhive#5646": {
+      "readAt": "2026-10-13T05:40:04.500Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "main",
+      "defaultBranch": "main",
+      "merged": true,
+      "mergedAt": "2026-06-25T21:45:04Z",
+      "mergeCommit": "17d3432f4a0800cf4950b74a35a7ce990fcafbda",
+      "commits": {
+        "totalCount": 2,
+        "oids": [
+          "5f469cdfa8ac47b428068eacc44c6d3fd53ea87e",
+          "1c236a28e6797e748a19116dcbeb80a150586777"
+        ]
+      },
+      "incomplete": null
+    },
+    "IgniteUI/igniteui-angular#17068": {
+      "readAt": "2026-10-13T05:40:05.374Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "master",
+      "defaultBranch": "master",
+      "merged": true,
+      "mergedAt": "2026-06-23T06:57:05Z",
+      "mergeCommit": "01244911c84002233c4f0cc618344f62bdc66985",
+      "commits": {
+        "totalCount": 19,
+        "oids": [
+          "d6f61c786587a4921e2503368daa702b33f1acd8",
+          "35bf50ee7c31b6dcfb73779a607d30588d10bf78",
+          "2e828395ab059ca32af8bdf8acdd124d87b416ad",
+          "2cba50f2d0683b72e03e487fc68b019f3324ee8f",
+          "281056e65c99c4a2b94a80392d31787112a0f687",
+          "e01a0bb5a87b73dba5775f63b70af5486d957cd9",
+          "8be350596ac8dba29afe81a33b99be4bf7c3cc15",
+          "c2ca353f8eb4454a41a6d80dc518e5adeab94afd",
+          "c655702ee6f1b4de99922bd76415c8c102816af2",
+          "82020f9d70e4f9bba7d218accf5fb904525df3d7",
+          "7cad39026862cb19d52e328f3e453ace8c828f2a",
+          "b725cd1a97b925dd15b58106e984f2ff2f930b49",
+          "ad815a31ad54fff3caa256ac91fc726e0028dade",
+          "a45c262b19497b6f48daf0f1201b30b8887b7dc5",
+          "caf93ada5ce47fd172d29221d37f1a5cf30901ee",
+          "1ca74676303623acbe30ebf4dc8f87dbb9201732",
+          "0a79fdc963b46af1689d7e827a967151d5da6b4f",
+          "7e1713b3018b3334cc5c2d6a8959a0e3e3a7aa01",
+          "d140042be5722bdd42a46f78c3cf51a9ab668eea"
+        ]
+      },
+      "incomplete": null
+    },
+    "fwupd/fwupd#10067": {
+      "readAt": "2026-10-13T05:40:06.324Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "main",
+      "defaultBranch": "main",
+      "merged": true,
+      "mergedAt": "2026-06-22T15:43:38Z",
+      "mergeCommit": "a98029d296a5b87d421a86837abbf98cfe6c0089",
+      "commits": {
+        "totalCount": 2,
+        "oids": [
+          "f990cfb45983bcb315fd23eec4257c1306c0ba16",
+          "b20e4cde77a34dd3a78aa139b6bbd9a950aee8f9"
+        ]
+      },
+      "incomplete": null
+    },
+    "NeurodataWithoutBorders/pynwb#2176": {
+      "readAt": "2026-10-13T05:40:07.059Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "dev",
+      "defaultBranch": "dev",
+      "merged": true,
+      "mergedAt": "2026-06-26T18:54:02Z",
+      "mergeCommit": "36cc7c3dd9d27480c031da5ce5f93d2bacf99a6d",
+      "commits": {
+        "totalCount": 7,
+        "oids": [
+          "7007344a0c823e1af9a3362e5afb6ecc70c37b28",
+          "cec3e7f3789807db81ad84538b74dbf45b13eff7",
+          "0cd4a5b20db4d7e11b8a587f4204363432cc9be1",
+          "e1435e6e3eb6a0dac151596c1b9a31f98d0793aa",
+          "f207cbcd455cda9420e33318b985eb015a7c42d8",
+          "c615026811c21f163315e306ef06c2de9cef4579",
+          "0f0af679ddf983becbce4986306927bc422ea300"
+        ]
+      },
+      "incomplete": null
+    },
+    "electron/update-electron-app#234": {
+      "readAt": "2026-10-13T05:40:07.798Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "main",
+      "defaultBranch": "main",
+      "merged": true,
+      "mergedAt": "2026-06-28T02:32:11Z",
+      "mergeCommit": "9f96b2a04e86ba905bb9b26345d35af5e7c843f0",
+      "commits": {
+        "totalCount": 1,
+        "oids": [
+          "c7768e657830430e559266c6304b8ca4b1dc8a82"
+        ]
+      },
+      "incomplete": null
+    },
+    "electron/rebuild#1284": {
+      "readAt": "2026-10-13T05:40:08.584Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "main",
+      "defaultBranch": "main",
+      "merged": true,
+      "mergedAt": "2026-06-28T04:02:25Z",
+      "mergeCommit": "8bc2a49d260eb8325f8f39f8d70c4b3651db501c",
+      "commits": {
+        "totalCount": 1,
+        "oids": [
+          "7e8248f843cb2208b246fbd07b9c6fdc204b7f6f"
+        ]
+      },
+      "incomplete": null
+    },
+    "electron/asar#450": {
+      "readAt": "2026-10-13T05:40:09.584Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "main",
+      "defaultBranch": "main",
+      "merged": true,
+      "mergedAt": "2026-06-28T03:42:26Z",
+      "mergeCommit": "8c9be0106bfe8af92fc1238f2c3e0c2d5a81354f",
+      "commits": {
+        "totalCount": 1,
+        "oids": [
+          "586d8b5b14da0f0df760a215ab9acb7b1ed71cb9"
+        ]
+      },
+      "incomplete": null
+    },
+    "electron/osx-sign#429": {
+      "readAt": "2026-10-13T05:40:10.366Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "main",
+      "defaultBranch": "main",
+      "merged": true,
+      "mergedAt": "2026-06-27T22:22:06Z",
+      "mergeCommit": "9bad2d2e70a80033256ce5e9693d0af1e55a8ff6",
+      "commits": {
+        "totalCount": 1,
+        "oids": [
+          "e0e2c4347a49cc775365bf2cc00bd70e646b4d50"
+        ]
+      },
+      "incomplete": null
+    },
+    "electron/forge#4295": {
+      "readAt": "2026-10-13T05:40:11.148Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "next",
+      "defaultBranch": "main",
+      "merged": true,
+      "mergedAt": "2026-06-28T03:12:42Z",
+      "mergeCommit": "4b10a906e1468cf1317266cfbf56fcaa90b0e180",
+      "commits": {
+        "totalCount": 5,
+        "oids": [
+          "d78ce0d351b62551d359c4bf5da45010782a74ad",
+          "2c5f034fb531dc844b38e44a7eb869f0d93e3e19",
+          "a5b505ea1ea393c69b063f359d6f2c0316dc1517",
+          "eafc360cdebd7c0c8deba1f88b20f53b0a6167a4",
+          "bae89645cc5f2c27bc55e3833984cff7573ed0c4"
+        ]
+      },
+      "incomplete": null
+    },
+    "microsoft/pg_durable#183": {
+      "readAt": "2026-10-13T05:40:12.124Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "main",
+      "defaultBranch": "main",
+      "merged": true,
+      "mergedAt": "2026-06-23T11:40:35Z",
+      "mergeCommit": "72719a6941072d10da1cf67c4c1a2b595d853b32",
+      "commits": {
+        "totalCount": 1,
+        "oids": [
+          "68e42839e60707ca24cb5e0a575a204b0108076f"
+        ]
+      },
+      "incomplete": null
+    },
+    "Azure/azure-functions-host#11837": {
+      "readAt": "2026-10-13T05:40:13.030Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "dev",
+      "defaultBranch": "dev",
+      "merged": true,
+      "mergedAt": "2026-06-22T18:44:48Z",
+      "mergeCommit": "5a4877246d004cf63f7a0a2aa777bcbd9686a62a",
+      "commits": {
+        "totalCount": 5,
+        "oids": [
+          "4ed03012195d1c54c40848fb475afb4d4de840c8",
+          "351a23a530dcb7b7a293adc7e84b430fc1a683bf",
+          "de3853591c98feb1fafcf829cce835281c11ff0f",
+          "577466df73f6cc879c4b1500a070c5befe9189fc",
+          "e23c8bdab2c2090ffb50b7649fc07de25db39b98"
+        ]
+      },
+      "incomplete": null
+    },
+    "replicate/cog#3063": {
+      "readAt": "2026-10-13T05:40:13.981Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "main",
+      "defaultBranch": "main",
+      "merged": true,
+      "mergedAt": "2026-06-25T17:53:28Z",
+      "mergeCommit": "e6dcdfcce0577450b51293eeefff96f0242a77e2",
+      "commits": {
+        "totalCount": 35,
+        "oids": [
+          "06018b6bf16063d7513f17712e63f194325ac46a",
+          "1a9a09f2c2312be12edfe90ffa0afad3aacbc0d0",
+          "0a850f4242ed19bb8c45219bd3be21dc5d9e62d3",
+          "d52cc9356f781130076a62993b209864510aac1f",
+          "562f0e0f0d271b4654e0af795fb97f9f4b5e68a6",
+          "8f2e9630c01fdba1b62c9ce13659e3fe61744436",
+          "2c303ec904e08f4c45cf80f4d65ff8ed491d40cb",
+          "f8c0f6dc910d7bfa86a26ae888a570b45d05990c",
+          "143ba7dd8eae3b95fad8a989469783c9d142eb36",
+          "cb5ec0a11fe3a4c3a5269dde99c7a6d3329a503a",
+          "c2916e69ed83fd14a7d28ed522dd983e30f31d1d",
+          "4d39d8a34d5d1cafdb3d29f759704209592f084b",
+          "858479719744a457c946b66f14f2c84f86b90bed",
+          "76c94fffeca0637989e35e37ab6a9ab61e62980a",
+          "3f231c367ab116f0327ad310d7fd244f320560f7",
+          "220e64d7241b6cfd33e7cdfadcc16593c4c3380f",
+          "56af1dc3d1bb99209d95a0999809ae8086e8ac8c",
+          "a8d112cf8c613121ee292c25a760d1cd8ecf6571",
+          "01258d0e515c78369d89345b6e9003e10e74fef9",
+          "ce7b388ed170d44c0e0c08d6e9a77258fa03b7a7",
+          "03c8d26f77a7dfd864681795df88733df86296e0",
+          "954f8b0827ed7fc723246264f41cdebb9fb542d6",
+          "9f028da3ffac42ea109954e836f70e5742c02356",
+          "34dfa82ced6ea9253ac8259638e3381a445defd0",
+          "eec2259027b243f1ad6a37a46e6309d73317e4db",
+          "e491d9389e37fdbd8f2edd86d924af4b12654369",
+          "d9af91620a915e7d327bd3c2e14128f64bab4f87",
+          "e3bb208aaaf3efdb88b68e20e606f567b60d258d",
+          "f52b993a63ae40ab6d36b6ab5ac9983c6edd0fdb",
+          "4a1f3e2edfda9992a10cebda4746e169cf24ea2b",
+          "9298ea31cac4f217c40aebbc4c24ceaf49e31440",
+          "f99b060000c3f74ae60b57203bc4bc0c6dd996a2",
+          "f0b646642a0d01a969867fde16f73062fdf3d62e",
+          "d21e54c298fd3933a5fdf579ac23b5db27f8f08e",
+          "918a5089954230d29715c729e0c770e9cd803db5"
+        ]
+      },
+      "incomplete": null
+    },
+    "CarlosNZ/json-edit-react#373": {
+      "readAt": "2026-10-13T05:40:24.024Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "v2.0-dev",
+      "defaultBranch": "main",
+      "merged": true,
+      "mergedAt": "2026-06-23T00:26:26Z",
+      "mergeCommit": "0c2019a94e5ef58732e7f66ef7328438575d556b",
+      "commits": {
+        "totalCount": 8,
+        "oids": [
+          "1eb467f75b0b4812d4674419d608c3c0a63459a0",
+          "ca6e05a1ebcf6a31b9356e143fa716b605ce2c27",
+          "5bbd38d5b21126d7fc115d98cb00180b7c0f6d9e",
+          "bc15e142bc9cfdcdbeee498fd8e778a8e51acd48",
+          "2bc926bb59d524b054636ed75cc5f30a910721b8",
+          "6710e3fbf30324fdf1f48faeddd20b2dcf1b995c",
+          "af9e79d4345795e8eb961b4ca1350644913792cc",
+          "2da0054ccb412dcbb34f02c5153a322e9b0970b0"
+        ]
+      },
+      "incomplete": null
+    },
+    "dbeaver/dbeaver#41333": {
+      "readAt": "2026-10-13T05:40:24.759Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "devel",
+      "defaultBranch": "devel",
+      "merged": true,
+      "mergedAt": "2026-06-22T14:11:04Z",
+      "mergeCommit": "354f222c4b5d36c5a9a99cc7a4ac54b70256b024",
+      "commits": {
+        "totalCount": 14,
+        "oids": [
+          "823517c8614c58520694ab08da174e4d5e9b73ba",
+          "43b7f08879bd560cfbb167761bd72682f9b436d4",
+          "c96104ecb8b78237fcd52a43187e51db4eace050",
+          "3ff26dba41d1f6a348bee04b25f94b3c2da9c7bb",
+          "552c7538f050380a88266207fa0f1b23eb90825a",
+          "e849e98089f416a25d6ddf8c4a44126e1d73e51a",
+          "f88540e77e22b1599bc5149cf61345a317d2c164",
+          "aba33be14b7fb0a5d0b2e350ed8f4b3b89bf4ced",
+          "1b7304689579f0805e2e81efaf482eb71f3db1b8",
+          "39a1e4d84667f29d316120c660886ce4bdaa5dc1",
+          "c2745806d6ce4d5c6498183102b174c644531cc6",
+          "f7e3e5899d46857bc33f612b89cdd8711a8963ac",
+          "6015b498b334ec8cb931ece5dd436d97dc642da5",
+          "59ba1b83913dba1eef6e820270f6089650f5b2af"
+        ]
+      },
+      "incomplete": null
+    },
+    "sebastienros/jint#2542": {
+      "readAt": "2026-10-13T05:40:25.471Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "main",
+      "defaultBranch": "main",
+      "merged": true,
+      "mergedAt": "2026-06-23T13:17:14Z",
+      "mergeCommit": "a207e924068fcd9cc067708061b8df98ce3e4054",
+      "commits": {
+        "totalCount": 1,
+        "oids": [
+          "21fafaf87ab1b80cb6176e5039e6a8e8899a928f"
+        ]
+      },
+      "incomplete": null
+    },
+    "rubyevents/rubyevents#1813": {
+      "readAt": "2026-10-13T05:40:26.495Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "main",
+      "defaultBranch": "main",
+      "merged": true,
+      "mergedAt": "2026-06-25T01:19:37Z",
+      "mergeCommit": "731ceb2b6455caba94e7c600584cb0b1e851ced7",
+      "commits": {
+        "totalCount": 5,
+        "oids": [
+          "9a2f141078b70b87e0fb9848975141ec772205c5",
+          "97eeba49fd85b1756a67c1903360a587ec25bc4b",
+          "06cd22fc6479f60d4bdb772aa916b6e3bd786f1a",
+          "029cb9f1458bab8a4ad7cb3af31fb6cac118fb01",
+          "4b84ba864aa1982c57dd6adf01c64cee4f116bff"
+        ]
+      },
+      "incomplete": null
+    },
+    "apify/crawlee#3771": {
+      "readAt": "2026-10-13T05:40:27.364Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "master",
+      "defaultBranch": "master",
+      "merged": true,
+      "mergedAt": "2026-06-22T11:12:50Z",
+      "mergeCommit": "af9cb8c68c8299e39fd2c40c3ff411e35d8a03f3",
+      "commits": {
+        "totalCount": 4,
+        "oids": [
+          "387346a4c4a3b89c595f40355f9d372a73e99870",
+          "7cd4ed5af0d3e5cd0641d151ea229dfa0b4b53de",
+          "d218032e93cb1f1e5120d2a6cbac8abdc587114e",
+          "2cd6233d6ca737dddc0638e287c26ad38fc10c7f"
+        ]
+      },
+      "incomplete": null
+    },
+    "MasterGroosha/aiogram-3-guide#106": {
+      "readAt": "2026-10-13T05:40:28.262Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "master",
+      "defaultBranch": "master",
+      "merged": true,
+      "mergedAt": "2026-09-05T19:33:05Z",
+      "mergeCommit": "03a79c6c1f5adf2c2d22f13be9c79ba1897dd639",
+      "commits": {
+        "totalCount": 7,
+        "oids": [
+          "465449427e87e1737d718d687f8f7c7515627620",
+          "bab6876495a86efa9d446868fbffc3f25eac268b",
+          "f2d8245173f71da40a95689ca6e5be93a008ed07",
+          "0dc449524fc1603d62bba49c05650b34f217bbbd",
+          "3beb9c79b650035a05ab3fb58f63a14c13530b25",
+          "82e129ae82d518cfda6dbfbc20b832ff344ea7e7",
+          "f9b03a327c985cf519ad17f85b7745781f3ecf06"
+        ]
+      },
+      "incomplete": null
+    },
+    "kestra-io/kestra#18553": {
+      "readAt": "2026-10-13T05:40:29.037Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "develop",
+      "defaultBranch": "develop",
+      "merged": true,
+      "mergedAt": "2026-08-31T09:38:07Z",
+      "mergeCommit": "a80ef69dda87b39c24025676a4dfe7815a90fbd0",
+      "commits": {
+        "totalCount": 2,
+        "oids": [
+          "7aad23d5026de661afba83a1341ab5911baa3929",
+          "6ceb730af98c6759134064597680a4f23fbd8c99"
+        ]
+      },
+      "incomplete": null
+    },
+    "bcherny/json-schema-to-typescript#840": {
+      "readAt": "2026-10-13T05:40:29.710Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "master",
+      "defaultBranch": "master",
+      "merged": true,
+      "mergedAt": "2026-09-06T19:00:17Z",
+      "mergeCommit": "3133f80951b3453840550347a68a13a0b5cde2c7",
+      "commits": {
+        "totalCount": 9,
+        "oids": [
+          "5513cf3ab0d2cccef0cf0aec2d84fc4239145353",
+          "a732994bcb86222c03769b8d0f2af1bafdce1a65",
+          "0f144688fa3e811dbad19889e08f636b8c36bb8a",
+          "3359b9d9acb05001a56900e5f99755d21373ce9d",
+          "0ad41712775ff961992811ede7efdd82fdcbe825",
+          "9852cb745354f31a12409da976b5805d7f000b10",
+          "bf7611afbd078450a5abb3576756c497262bf778",
+          "e77a9e6b0e0fb8430e3c36508932d275aedb6b02",
+          "304298742f96384e87c92c511747da01b620a1ef"
+        ]
+      },
+      "incomplete": null
+    },
+    "alltheplaces/alltheplaces#18342": {
+      "readAt": "2026-10-13T05:40:30.440Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "master",
+      "defaultBranch": "master",
+      "merged": true,
+      "mergedAt": "2026-08-31T15:36:47Z",
+      "mergeCommit": "5c416da742e457c12694c367ef8ab583aeb4e3ab",
+      "commits": {
+        "totalCount": 1,
+        "oids": [
+          "19bdee12bd75f51194691c3c2a98e9658493906f"
+        ]
+      },
+      "incomplete": null
+    },
+    "growilabs/growi#11837": {
+      "readAt": "2026-10-13T05:40:32.562Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "master",
+      "defaultBranch": "master",
+      "merged": true,
+      "mergedAt": "2026-09-02T14:10:31Z",
+      "mergeCommit": "950bfe99128e129a78dc394c7f79784c1ddb015e",
+      "commits": {
+        "totalCount": 1,
+        "oids": [
+          "b9adf40f55914ad140092ec25bfb21acc99cbdc3"
+        ]
+      },
+      "incomplete": null
+    },
+    "nickustinov/itsytv-macos#58": {
+      "readAt": "2026-10-13T05:40:33.415Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "main",
+      "defaultBranch": "main",
+      "merged": true,
+      "mergedAt": "2026-09-01T08:39:28Z",
+      "mergeCommit": "206564916d24dedc1e18f8ca0c431f8734a2c4a1",
+      "commits": {
+        "totalCount": 2,
+        "oids": [
+          "7e5c755095e8034e3bb1dcef4c020643c3d532ae",
+          "1353fc8a0accf99097cf713e5417e05a55d6c0a8"
+        ]
+      },
+      "incomplete": null
+    },
+    "devtron-labs/devtron#7016": {
+      "readAt": "2026-10-13T05:40:34.637Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "main",
+      "defaultBranch": "main",
+      "merged": true,
+      "mergedAt": "2026-09-01T12:53:55Z",
+      "mergeCommit": "e02f2be641390bbf1ef2e3a916942f73d2b06c8b",
+      "commits": {
+        "totalCount": 6,
+        "oids": [
+          "33f57640b9c47cfcc7d3d71e03d808d13939edcc",
+          "4657d97bf557f132e4debef228d02125b6e7b26f",
+          "5566030a7b236262a26b6c01b2949b0673445578",
+          "73b7d2ae0cdef8a456b5c78a98c27a760e88cfe0",
+          "ba2f3b9f18eae1f15fe35c7df4d4209997d4d536",
+          "5d2c90578c645861aae796fc44f47bea505f987d"
+        ]
+      },
+      "incomplete": null
+    },
+    "aspnet/Benchmarks#2188": {
+      "readAt": "2026-10-13T05:40:35.450Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "main",
+      "defaultBranch": "main",
+      "merged": true,
+      "mergedAt": "2026-09-02T19:42:41Z",
+      "mergeCommit": "be2a3fcb97487ecbaca53aa8bdc88abba6d7df62",
+      "commits": {
+        "totalCount": 3,
+        "oids": [
+          "e8f98b1fc0c0c484400df206bab0cf1a7c865329",
+          "02b8f9aa5e1525db9aefbc86abc7876d95477b4c",
+          "8f33b53bc3f17ffbd0cd20278f7ffeb57eb06f87"
+        ]
+      },
+      "incomplete": null
+    },
+    "betaflight/betaflight#15567": {
+      "readAt": "2026-10-13T05:40:36.206Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "master",
+      "defaultBranch": "master",
+      "merged": true,
+      "mergedAt": "2026-09-05T20:29:07Z",
+      "mergeCommit": "069ad73b9604f1919b69fb802135d8da42c2764d",
+      "commits": {
+        "totalCount": 4,
+        "oids": [
+          "d7dbad1b340145ece54f49f615141bb26da5373b",
+          "e2a582cdc41ec8270c9b50a24581f74cfb2ea8e8",
+          "00b177a982c4a8e373c9863602ddea2a3c9b7ccd",
+          "3a4fc1ff6a53b6874c99c8d5ad835212a1c52015"
+        ]
+      },
+      "incomplete": null
+    },
+    "Tencent/tdesign-vue-next#6918": {
+      "readAt": "2026-10-13T05:40:37.031Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "develop",
+      "defaultBranch": "develop",
+      "merged": true,
+      "mergedAt": "2026-09-01T07:21:19Z",
+      "mergeCommit": "328ad765de42c936a5630d9e9eb15f17b20f5e51",
+      "commits": {
+        "totalCount": 7,
+        "oids": [
+          "1215a37c68f9da73c738e5a0fa6521c664521a72",
+          "f8383bdf50ff5f0db2a757fcd894091d64f24682",
+          "c5c65a14c8b23a0aea625c21ee3c7bf174ea7ad6",
+          "0bc1f75b079eb988422f6b36b67073915f16ccda",
+          "ada27b7a73abb7d8c510660af85c9ec1c8999c5d",
+          "5c3fdee8e04836f3cc5526b02de52bc69b33b65e",
+          "e5679b8b6299b8651ff427860227a3707f8af4de"
+        ]
+      },
+      "incomplete": null
+    },
+    "PrismarineJS/minecraft-data#1253": {
+      "readAt": "2026-10-13T05:40:37.792Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "master",
+      "defaultBranch": "master",
+      "merged": true,
+      "mergedAt": "2026-09-06T20:45:02Z",
+      "mergeCommit": "f5f3aaf7fbc60279b28ab3f3e35fcfb3096d6f36",
+      "commits": {
+        "totalCount": 3,
+        "oids": [
+          "e6fa7971747722e8bc5ed4831324fea74298c5d9",
+          "c97e37af9918434ff3819bd3a592e0a69054a811",
+          "af06f3e125c6bce2f90794cc44a9cdb0efb40983"
+        ]
+      },
+      "incomplete": null
+    },
+    "nmstate/kubernetes-nmstate#1573": {
+      "readAt": "2026-10-13T05:40:38.540Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "main",
+      "defaultBranch": "main",
+      "merged": true,
+      "mergedAt": "2026-09-01T13:32:13Z",
+      "mergeCommit": "13429c8150d2b12c46c494eaa73a1a3fcd7ead26",
+      "commits": {
+        "totalCount": 1,
+        "oids": [
+          "434c0dea35f6a8332c1f5248266c689ea32bfda8"
+        ]
+      },
+      "incomplete": null
+    },
+    "polarsource/polar#13918": {
+      "readAt": "2026-10-13T05:40:39.361Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "main",
+      "defaultBranch": "main",
+      "merged": true,
+      "mergedAt": "2026-08-31T09:32:19Z",
+      "mergeCommit": "3724b5450e0f0fcdcbd29b434e2beaa5b6e93c37",
+      "commits": {
+        "totalCount": 3,
+        "oids": [
+          "ed2b2cb5d61989b264541ad411a2083823369fbe",
+          "d8f704771c951491ecb778349ca1892fb4bcc059",
+          "3957c142bc6ddb50f79787f812f864d92cacb435"
+        ]
+      },
+      "incomplete": null
+    },
+    "microsoft/TypeScript#64026": {
+      "readAt": "2026-10-13T05:40:40.102Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "main",
+      "defaultBranch": "main",
+      "merged": true,
+      "mergedAt": "2026-09-01T19:20:39Z",
+      "mergeCommit": "13e158b131a6ec523fc6ee76376c8ff1a55451ab",
+      "commits": {
+        "totalCount": 3,
+        "oids": [
+          "9f93fc281c000197888b138a7ef79ed14a9bfd8d",
+          "ca333825ab1a6d45c60cb8a61edcc11fea6caf19",
+          "6d0d279e09484fb87e9d6944828e7019908ef22f"
+        ]
+      },
+      "incomplete": null
+    },
+    "Azure/enterprise-azure-policy-as-code#1388": {
+      "readAt": "2026-10-13T05:40:40.970Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "main",
+      "defaultBranch": "main",
+      "merged": true,
+      "mergedAt": "2026-08-31T10:48:32Z",
+      "mergeCommit": "bd5f4b5a2d35339329c846a77d6d8e8323728482",
+      "commits": {
+        "totalCount": 4,
+        "oids": [
+          "8406c8b840c2ee9e7ec29708ef7047f3cfc7c49d",
+          "d14f4199b1e12dabaed84e593610e172216903b3",
+          "3cbb96b633c6d119f5844e1bcd03c7d6b8ac5c9b",
+          "834401ddec5b48b70d8186fcb343fecab88fae44"
+        ]
+      },
+      "incomplete": null
+    },
+    "Azure/azure-service-operator#5652": {
+      "readAt": "2026-10-13T05:40:41.659Z",
+      "found": true,
+      "state": "MERGED",
+      "baseRefName": "main",
+      "defaultBranch": "main",
+      "merged": true,
+      "mergedAt": "2026-09-03T00:33:30Z",
+      "mergeCommit": "8d7809694138dd8093f9f66f89324805a12648d2",
+      "commits": {
+        "totalCount": 6,
+        "oids": [
+          "5e7bf9c9ae5c0d007605d048ba4f0bbcf115f733",
+          "fcacd07037d8e539e9d41ad13736e5bc363ad277",
+          "e8fc610fbca79ecfe64c329214ff6c20709bb9ae",
+          "66a29d61a26bab22976a690634a78091cc067ae9",
+          "3fe30bb93f8532ff286a707cf2dce90f69c97748",
+          "96a9614f3e5830931c6129e2d45b7114d6050417"
+        ]
+      },
+      "incomplete": null
+    }
+  },
+  "targets": {
+    "electron/windows-installer#612": {
+      "readAt": "2026-10-13T05:40:02.975Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "electron/windows-installer#612",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-08-17T23:06:12Z",
+          "actor": "erickzhao",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "electron/windows-installer#614"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "electron/windows-installer#386": {
+      "readAt": "2026-10-13T05:40:03.409Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "electron/windows-installer#386",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-08-17T23:06:13Z",
+          "actor": "erickzhao",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "electron/windows-installer#614"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "electron/windows-installer#474": {
+      "readAt": "2026-10-13T05:40:03.756Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "electron/windows-installer#474",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-08-17T23:06:13Z",
+          "actor": "erickzhao",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "electron/windows-installer#614"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "electron/windows-installer#558": {
+      "readAt": "2026-10-13T05:40:04.088Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "electron/windows-installer#558",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-08-17T23:06:14Z",
+          "actor": "erickzhao",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "electron/windows-installer#614"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "stacklok/toolhive#5567": {
+      "readAt": "2026-10-13T05:40:05.015Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "stacklok/toolhive#5567",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-25T21:45:05Z",
+          "actor": "claude",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "stacklok/toolhive#5646"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "IgniteUI/igniteui-angular#17067": {
+      "readAt": "2026-10-13T05:40:05.880Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "IgniteUI/igniteui-angular#17067",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-05-28T00:37:36Z",
+          "actor": "github-actions",
+          "closer": null
+        },
+        {
+          "createdAt": "2026-06-23T06:57:07Z",
+          "actor": "kdinev",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "IgniteUI/igniteui-angular#17068"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "fwupd/fwupd#10066": {
+      "readAt": "2026-10-13T05:40:06.710Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "fwupd/fwupd#10066",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-22T15:43:39Z",
+          "actor": "superm1",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "fwupd/fwupd#10067"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "NeurodataWithoutBorders/pynwb#2093": {
+      "readAt": "2026-10-13T05:40:07.486Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "NeurodataWithoutBorders/pynwb#2093",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-26T18:54:03Z",
+          "actor": "rly",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "NeurodataWithoutBorders/pynwb#2176"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "electron/update-electron-app#136": {
+      "readAt": "2026-10-13T05:40:08.238Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "electron/update-electron-app#136",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-28T02:32:12Z",
+          "actor": "MarshallOfSound",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "electron/update-electron-app#234"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "electron/rebuild#654": {
+      "readAt": "2026-10-13T05:40:08.969Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "electron/rebuild#654",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-28T04:02:26Z",
+          "actor": "VerteDinde",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "electron/rebuild#1284"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "electron/asar#277": {
+      "readAt": "2026-10-13T05:40:09.992Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "electron/asar#277",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-28T03:42:27Z",
+          "actor": "VerteDinde",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "electron/asar#450"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "electron/osx-sign#368": {
+      "readAt": "2026-10-13T05:40:10.850Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "electron/osx-sign#368",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-27T22:22:08Z",
+          "actor": "dsanders11",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "electron/osx-sign#429"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "electron/forge#4104": {
+      "readAt": "2026-10-13T05:40:11.747Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "electron/forge#4104",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-07-01T18:05:40Z",
+          "actor": "MarshallOfSound",
+          "closer": null
+        }
+      ],
+      "incomplete": null
+    },
+    "microsoft/pg_durable#130": {
+      "readAt": "2026-10-13T05:40:12.645Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "microsoft/pg_durable#130",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-23T11:40:36Z",
+          "actor": "pinodeca",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "microsoft/pg_durable#183"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "Azure/azure-functions-host#11726": {
+      "readAt": "2026-10-13T05:40:13.525Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "Azure/azure-functions-host#11726",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-22T18:44:49Z",
+          "actor": "liliankasem",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "Azure/azure-functions-host#11837"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "replicate/cog#3061": {
+      "readAt": "2026-10-13T05:40:14.587Z",
+      "found": true,
+      "typename": "PullRequest",
+      "resolved": "replicate/cog#3061",
+      "state": "CLOSED",
+      "stateReason": null,
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-25T17:53:29Z",
+          "actor": "markphelps",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "replicate/cog#3063"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "replicate/cog#3060": {
+      "readAt": "2026-10-13T05:40:14.942Z",
+      "found": true,
+      "typename": "PullRequest",
+      "resolved": "replicate/cog#3060",
+      "state": "CLOSED",
+      "stateReason": null,
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-25T17:53:30Z",
+          "actor": "markphelps",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "replicate/cog#3063"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "replicate/cog#3059": {
+      "readAt": "2026-10-13T05:40:15.513Z",
+      "found": true,
+      "typename": "PullRequest",
+      "resolved": "replicate/cog#3059",
+      "state": "CLOSED",
+      "stateReason": null,
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-25T17:53:30Z",
+          "actor": "markphelps",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "replicate/cog#3063"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "replicate/cog#3058": {
+      "readAt": "2026-10-13T05:40:15.893Z",
+      "found": true,
+      "typename": "PullRequest",
+      "resolved": "replicate/cog#3058",
+      "state": "CLOSED",
+      "stateReason": null,
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-25T17:53:31Z",
+          "actor": "markphelps",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "replicate/cog#3063"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "replicate/cog#3054": {
+      "readAt": "2026-10-13T05:40:16.360Z",
+      "found": true,
+      "typename": "PullRequest",
+      "resolved": "replicate/cog#3054",
+      "state": "CLOSED",
+      "stateReason": null,
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-25T17:53:32Z",
+          "actor": "markphelps",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "replicate/cog#3063"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "replicate/cog#3053": {
+      "readAt": "2026-10-13T05:40:16.825Z",
+      "found": true,
+      "typename": "PullRequest",
+      "resolved": "replicate/cog#3053",
+      "state": "CLOSED",
+      "stateReason": null,
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-25T17:53:32Z",
+          "actor": "markphelps",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "replicate/cog#3063"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "replicate/cog#3043": {
+      "readAt": "2026-10-13T05:40:17.213Z",
+      "found": true,
+      "typename": "PullRequest",
+      "resolved": "replicate/cog#3043",
+      "state": "CLOSED",
+      "stateReason": null,
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-25T17:53:33Z",
+          "actor": "markphelps",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "replicate/cog#3063"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "replicate/cog#3040": {
+      "readAt": "2026-10-13T05:40:17.593Z",
+      "found": true,
+      "typename": "PullRequest",
+      "resolved": "replicate/cog#3040",
+      "state": "CLOSED",
+      "stateReason": null,
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-25T17:53:34Z",
+          "actor": "markphelps",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "replicate/cog#3063"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "replicate/cog#3039": {
+      "readAt": "2026-10-13T05:40:17.952Z",
+      "found": true,
+      "typename": "PullRequest",
+      "resolved": "replicate/cog#3039",
+      "state": "CLOSED",
+      "stateReason": null,
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-25T17:53:34Z",
+          "actor": "markphelps",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "replicate/cog#3063"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "replicate/cog#3038": {
+      "readAt": "2026-10-13T05:40:18.383Z",
+      "found": true,
+      "typename": "PullRequest",
+      "resolved": "replicate/cog#3038",
+      "state": "CLOSED",
+      "stateReason": null,
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-25T17:53:35Z",
+          "actor": "markphelps",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "replicate/cog#3063"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "replicate/cog#3037": {
+      "readAt": "2026-10-13T05:40:18.831Z",
+      "found": true,
+      "typename": "PullRequest",
+      "resolved": "replicate/cog#3037",
+      "state": "CLOSED",
+      "stateReason": null,
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-25T17:53:36Z",
+          "actor": "markphelps",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "replicate/cog#3063"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "replicate/cog#3030": {
+      "readAt": "2026-10-13T05:40:19.471Z",
+      "found": true,
+      "typename": "PullRequest",
+      "resolved": "replicate/cog#3030",
+      "state": "CLOSED",
+      "stateReason": null,
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-25T17:53:36Z",
+          "actor": "markphelps",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "replicate/cog#3063"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "replicate/cog#2986": {
+      "readAt": "2026-10-13T05:40:19.840Z",
+      "found": true,
+      "typename": "PullRequest",
+      "resolved": "replicate/cog#2986",
+      "state": "CLOSED",
+      "stateReason": null,
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-25T17:10:39Z",
+          "actor": "dependabot",
+          "closer": null
+        }
+      ],
+      "incomplete": null
+    },
+    "replicate/cog#2985": {
+      "readAt": "2026-10-13T05:40:20.243Z",
+      "found": true,
+      "typename": "PullRequest",
+      "resolved": "replicate/cog#2985",
+      "state": "CLOSED",
+      "stateReason": null,
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-25T17:53:37Z",
+          "actor": "markphelps",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "replicate/cog#3063"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "replicate/cog#2941": {
+      "readAt": "2026-10-13T05:40:22.052Z",
+      "found": true,
+      "typename": "PullRequest",
+      "resolved": "replicate/cog#2941",
+      "state": "CLOSED",
+      "stateReason": null,
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-25T17:53:37Z",
+          "actor": "markphelps",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "replicate/cog#3063"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "replicate/cog#2940": {
+      "readAt": "2026-10-13T05:40:22.426Z",
+      "found": true,
+      "typename": "PullRequest",
+      "resolved": "replicate/cog#2940",
+      "state": "CLOSED",
+      "stateReason": null,
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-25T17:53:38Z",
+          "actor": "markphelps",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "replicate/cog#3063"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "replicate/cog#2900": {
+      "readAt": "2026-10-13T05:40:22.876Z",
+      "found": true,
+      "typename": "PullRequest",
+      "resolved": "replicate/cog#2900",
+      "state": "CLOSED",
+      "stateReason": null,
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-25T17:53:39Z",
+          "actor": "markphelps",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "replicate/cog#3063"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "replicate/cog#2890": {
+      "readAt": "2026-10-13T05:40:23.233Z",
+      "found": true,
+      "typename": "PullRequest",
+      "resolved": "replicate/cog#2890",
+      "state": "CLOSED",
+      "stateReason": null,
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-25T17:53:39Z",
+          "actor": "markphelps",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "replicate/cog#3063"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "replicate/cog#2867": {
+      "readAt": "2026-10-13T05:40:23.631Z",
+      "found": true,
+      "typename": "PullRequest",
+      "resolved": "replicate/cog#2867",
+      "state": "CLOSED",
+      "stateReason": null,
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-25T17:53:40Z",
+          "actor": "markphelps",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "replicate/cog#3063"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "CarlosNZ/json-edit-react#122": {
+      "readAt": "2026-10-13T05:40:24.439Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "CarlosNZ/json-edit-react#122",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2025-03-08T09:56:01Z",
+          "actor": "CarlosNZ",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "CarlosNZ/json-edit-react#177"
+          }
+        },
+        {
+          "createdAt": "2025-03-21T01:03:15Z",
+          "actor": "CarlosNZ",
+          "closer": null
+        }
+      ],
+      "incomplete": null
+    },
+    "dbeaver/pro#8871": {
+      "readAt": "2026-10-13T05:40:25.198Z",
+      "found": false,
+      "incomplete": "the target was not found"
+    },
+    "sebastienros/jint#2541": {
+      "readAt": "2026-10-13T05:40:25.877Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "sebastienros/jint#2541",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-23T13:17:16Z",
+          "actor": "lahma",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "sebastienros/jint#2542"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "rubyevents/rubyevents#1810": {
+      "readAt": "2026-10-13T05:40:27.002Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "rubyevents/rubyevents#1810",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-25T01:19:39Z",
+          "actor": "ChaelCodes",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "rubyevents/rubyevents#1813"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "apify/crawlee#3769": {
+      "readAt": "2026-10-13T05:40:27.817Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "apify/crawlee#3769",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-06-22T11:12:52Z",
+          "actor": "barjin",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "apify/crawlee#3771"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "MasterGroosha/aiogram-3-guide#105": {
+      "readAt": "2026-10-13T05:40:28.635Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "MasterGroosha/aiogram-3-guide#105",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-09-05T19:33:06Z",
+          "actor": "MasterGroosha",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "MasterGroosha/aiogram-3-guide#106"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "kestra-io/kestra#18471": {
+      "readAt": "2026-10-13T05:40:29.416Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "kestra-io/kestra#18471",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-08-31T09:38:09Z",
+          "actor": "flcarre",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "kestra-io/kestra#18553"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "bcherny/json-schema-to-typescript#613": {
+      "readAt": "2026-10-13T05:40:30.048Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "bcherny/json-schema-to-typescript#613",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-09-06T19:00:18Z",
+          "actor": "bcherny",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "bcherny/json-schema-to-typescript#840"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "alltheplaces/alltheplaces#11273": {
+      "readAt": "2026-10-13T05:40:32.102Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "alltheplaces/alltheplaces#11273",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-08-31T15:36:48Z",
+          "actor": "iandees",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "alltheplaces/alltheplaces#18342"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "growilabs/growi#11835": {
+      "readAt": "2026-10-13T05:40:32.954Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "growilabs/growi#11835",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-09-02T14:10:32Z",
+          "actor": "yuki-takei",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "growilabs/growi#11837"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "nickustinov/itsytv-macos#57": {
+      "readAt": "2026-10-13T05:40:34.165Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "nickustinov/itsytv-macos#57",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-09-01T08:39:29Z",
+          "actor": "nickustinov",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "nickustinov/itsytv-macos#58"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "devtron-labs/devtron#7013": {
+      "readAt": "2026-10-13T05:40:35.163Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "devtron-labs/devtron#7013",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-09-01T12:53:56Z",
+          "actor": "Shivam-nagar23",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "devtron-labs/devtron#7016"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "aspnet/Benchmarks#2178": {
+      "readAt": "2026-10-13T05:40:35.802Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "aspnet/Benchmarks#2178",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-09-02T19:42:43Z",
+          "actor": "LoopedBard3",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "aspnet/Benchmarks#2188"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "betaflight/betaflight#15566": {
+      "readAt": "2026-10-13T05:40:36.560Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "betaflight/betaflight#15566",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-09-05T20:29:09Z",
+          "actor": "blckmn",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "betaflight/betaflight#15567"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "Tencent/tdesign-vue-next#6917": {
+      "readAt": "2026-10-13T05:40:37.521Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "Tencent/tdesign-vue-next#6917",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-09-01T07:47:47Z",
+          "actor": "uyarn",
+          "closer": null
+        }
+      ],
+      "incomplete": null
+    },
+    "PrismarineJS/minecraft-data#1252": {
+      "readAt": "2026-10-13T05:40:38.134Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "PrismarineJS/minecraft-data#1252",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-09-06T20:45:03Z",
+          "actor": "extremeheat",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "PrismarineJS/minecraft-data#1253"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "nmstate/kubernetes-nmstate#1572": {
+      "readAt": "2026-10-13T05:40:38.940Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "nmstate/kubernetes-nmstate#1572",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-09-01T13:32:15Z",
+          "actor": "kubevirt-prow",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "nmstate/kubernetes-nmstate#1573"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "polarsource/polar#405": {
+      "readAt": "2026-10-13T05:40:39.712Z",
+      "found": true,
+      "typename": "PullRequest",
+      "resolved": "polarsource/polar#405",
+      "state": "MERGED",
+      "stateReason": null,
+      "closedEvents": [
+        {
+          "createdAt": "2023-05-14T20:06:10Z",
+          "actor": "birkjernstrom",
+          "closer": null
+        }
+      ],
+      "incomplete": null
+    },
+    "microsoft/TypeScript#64025": {
+      "readAt": "2026-10-13T05:40:40.584Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "microsoft/TypeScript#64025",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-09-01T19:20:41Z",
+          "actor": "jakebailey",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "microsoft/TypeScript#64026"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "Azure/enterprise-azure-policy-as-code#1385": {
+      "readAt": "2026-10-13T05:40:41.330Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "Azure/enterprise-azure-policy-as-code#1385",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-08-31T10:48:34Z",
+          "actor": "anwather",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "Azure/enterprise-azure-policy-as-code#1388"
+          }
+        }
+      ],
+      "incomplete": null
+    },
+    "Azure/azure-service-operator#5650": {
+      "readAt": "2026-10-13T05:40:42.046Z",
+      "found": true,
+      "typename": "Issue",
+      "resolved": "Azure/azure-service-operator#5650",
+      "state": "CLOSED",
+      "stateReason": "COMPLETED",
+      "closedEvents": [
+        {
+          "createdAt": "2026-09-03T00:33:32Z",
+          "actor": "theunrepentantgeek",
+          "closer": {
+            "type": "PullRequest",
+            "pr": "Azure/azure-service-operator#5652"
+          }
+        }
+      ],
+      "incomplete": null
+    }
+  }
+}

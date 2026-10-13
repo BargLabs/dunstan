@@ -1,0 +1,120 @@
+{
+  "repository": "example-org/example-repo",
+  "family": "shas",
+  "evidence": {
+    "items": {
+      "commits": {
+        "status": "ok",
+        "entries": [
+          {
+            "sha": "3f9a2b104c5d6e7f8091a2b3c4d5e6f708192a3b",
+            "headline": "Bump the lint configuration"
+          },
+          {
+            "sha": "3f9a2b19e8d7c6b5a49382716f5e4d3c2b1a09f8",
+            "headline": "Add the response cache"
+          },
+          {
+            "sha": "8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f",
+            "headline": "Document the cache settings"
+          }
+        ]
+      },
+      "timeline": {
+        "status": "ok",
+        "entries": [
+          {
+            "id": "evt-1",
+            "event": "referenced",
+            "ref": "5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f80"
+          },
+          {
+            "id": "evt-2",
+            "event": "referenced",
+            "ref": "3f9a2b1f00112233445566778899aabbccddeeff"
+          },
+          { "id": "evt-3", "event": "reviewed", "detail": "approved" }
+        ]
+      },
+      "tests": { "status": "ok", "entries": [] }
+    }
+  },
+  "claims": [
+    {
+      "id": "prefix7-later-commit",
+      "confusion": "a 7-hex prefix two commits share; the claim's commit is the later one",
+      "text": "Commit 3f9a2b1 adds the response cache.",
+      "kind": "commit_present",
+      "declaredValue": "3f9a2b1",
+      "expectCandidates": ["3f9a2b19e8d7c6b5a49382716f5e4d3c2b1a09f8"],
+      "forbidCandidates": [],
+      "expectCheck": { "verdict": "pass", "observed": "3f9a2b19e8d7c6b5a49382716f5e4d3c2b1a09f8" }
+    },
+    {
+      "id": "prefix7-earlier-commit",
+      "confusion": "a 7-hex prefix two commits share; the claim's commit is the earlier one",
+      "text": "Commit 3f9a2b1 bumps the lint configuration.",
+      "kind": "commit_present",
+      "declaredValue": "3f9a2b1",
+      "expectCandidates": ["3f9a2b104c5d6e7f8091a2b3c4d5e6f708192a3b"],
+      "forbidCandidates": [],
+      "expectCheck": { "verdict": "pass", "observed": "3f9a2b104c5d6e7f8091a2b3c4d5e6f708192a3b" }
+    },
+    {
+      "id": "prefix10-unambiguous",
+      "confusion": "a 10-hex prefix that tells the two commits apart",
+      "text": "Commit 3f9a2b19e8 adds the response cache.",
+      "kind": "commit_present",
+      "declaredValue": "3f9a2b19e8",
+      "expectCandidates": ["3f9a2b19e8d7c6b5a49382716f5e4d3c2b1a09f8"],
+      "forbidCandidates": ["3f9a2b104c5d6e7f8091a2b3c4d5e6f708192a3b"],
+      "expectCheck": { "verdict": "pass", "observed": "3f9a2b19e8d7c6b5a49382716f5e4d3c2b1a09f8" }
+    },
+    {
+      "id": "full-declared-short-text",
+      "confusion": "the full SHA declared, the shared 7-hex prefix in the text",
+      "text": "Commit 3f9a2b1 adds the response cache.",
+      "kind": "commit_present",
+      "declaredValue": "3f9a2b19e8d7c6b5a49382716f5e4d3c2b1a09f8",
+      "expectCandidates": ["3f9a2b19e8d7c6b5a49382716f5e4d3c2b1a09f8"],
+      "forbidCandidates": ["3f9a2b104c5d6e7f8091a2b3c4d5e6f708192a3b"],
+      "expectCheck": { "verdict": "pass", "observed": "3f9a2b19e8d7c6b5a49382716f5e4d3c2b1a09f8" }
+    },
+    {
+      "id": "full-not-in-pull-request",
+      "confusion": "a full SHA from the timeline, not a commit of the pull request, whose prefix two commits share",
+      "text": "Commit 3f9a2b1 is part of this change.",
+      "kind": "commit_present",
+      "declaredValue": "3f9a2b1f00112233445566778899aabbccddeeff",
+      "expectCandidates": [],
+      "forbidCandidates": [
+        "3f9a2b104c5d6e7f8091a2b3c4d5e6f708192a3b",
+        "3f9a2b19e8d7c6b5a49382716f5e4d3c2b1a09f8"
+      ],
+      "expectCheck": { "verdict": "unverifiable", "reason": "declared_item_not_among_candidates" }
+    },
+    {
+      "id": "timeline-only",
+      "confusion": "a SHA in a timeline event's ref and not among the commits",
+      "text": "Commit 5d6e7f8 is part of this change.",
+      "kind": "commit_present",
+      "declaredValue": "5d6e7f8",
+      "expectCandidates": [],
+      "forbidCandidates": [],
+      "expectCheck": { "verdict": "unverifiable", "reason": "no_matching_record_item" }
+    },
+    {
+      "id": "timeline-only-shared-prefix",
+      "confusion": "a timeline-only SHA that shares a 7-hex prefix with two commits",
+      "text": "Commit 3f9a2b1f00 is part of this change.",
+      "kind": "commit_present",
+      "declaredValue": "3f9a2b1f00",
+      "expectCandidates": [],
+      "forbidCandidates": [
+        "3f9a2b104c5d6e7f8091a2b3c4d5e6f708192a3b",
+        "3f9a2b19e8d7c6b5a49382716f5e4d3c2b1a09f8"
+      ],
+      "expectCheck": { "verdict": "unverifiable", "reason": "no_matching_record_item" }
+    }
+  ]
+}

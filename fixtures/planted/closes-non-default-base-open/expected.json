@@ -1,0 +1,28 @@
+{
+  "description": "Declares closes #34 on a pull request merged into release-2.0, not the default branch; #34 is still open",
+  "blockStatus": "found",
+  "verdict": "unverifiable",
+  "claims": [
+    {
+      "id": "head:/headCommit",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/0",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/1",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/2",
+      "verdict": "pass"
+    },
+    {
+      "id": "reference:/references/0",
+      "verdict": "unverifiable",
+      "reason": "closing_base_not_default"
+    }
+  ]
+}

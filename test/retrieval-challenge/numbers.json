@@ -1,0 +1,87 @@
+{
+  "repository": "example-org/example-repo",
+  "family": "numbers",
+  "evidence": {
+    "items": {
+      "commits": { "status": "ok", "entries": [] },
+      "timeline": {
+        "status": "ok",
+        "entries": [
+          { "id": "evt-1", "event": "cross-referenced", "ref": "example-org/example-repo#12" },
+          { "id": "evt-2", "event": "cross-referenced", "ref": "other-org/tool#12" },
+          { "id": "evt-3", "event": "connected", "ref": "example-org/example-repo#15" },
+          { "id": "evt-4", "event": "cross-referenced", "ref": "example-org/example-repo#120" },
+          { "id": "evt-5", "event": "labeled", "detail": "bug" }
+        ]
+      },
+      "tests": { "status": "ok", "entries": [] }
+    }
+  },
+  "claims": [
+    {
+      "id": "subject-repo-number",
+      "confusion": "#12 in the subject repository against other-org/tool#12 and #120",
+      "text": "Fixes #12.",
+      "kind": "reference_in_timeline",
+      "declaredValue": "#12",
+      "expectCandidates": ["evt-1"],
+      "forbidCandidates": ["evt-2", "evt-4"],
+      "expectCheck": {
+        "verdict": "pass",
+        "observed": { "event": "cross-referenced", "ref": "example-org/example-repo#12" }
+      }
+    },
+    {
+      "id": "other-repo-number",
+      "confusion": "other-org/tool#12 against the subject repository's #12",
+      "text": "Fixes other-org/tool#12.",
+      "kind": "reference_in_timeline",
+      "declaredValue": "other-org/tool#12",
+      "expectCandidates": ["evt-2"],
+      "forbidCandidates": ["evt-1"],
+      "expectCheck": {
+        "verdict": "pass",
+        "observed": { "event": "cross-referenced", "ref": "other-org/tool#12" }
+      }
+    },
+    {
+      "id": "other-repo-number-case",
+      "confusion": "other-org/tool#12 written with capitals, against #12",
+      "text": "Fixes Other-Org/Tool#12.",
+      "kind": "reference_in_timeline",
+      "declaredValue": "Other-Org/Tool#12",
+      "expectCandidates": ["evt-2"],
+      "forbidCandidates": ["evt-1"],
+      "expectCheck": {
+        "verdict": "pass",
+        "observed": { "event": "cross-referenced", "ref": "other-org/tool#12" }
+      }
+    },
+    {
+      "id": "number-prefix",
+      "confusion": "#120 against #12, a prefix of it",
+      "text": "Refs #120.",
+      "kind": "reference_in_timeline",
+      "declaredValue": "#120",
+      "expectCandidates": ["evt-4"],
+      "forbidCandidates": ["evt-1"],
+      "expectCheck": {
+        "verdict": "pass",
+        "observed": { "event": "cross-referenced", "ref": "example-org/example-repo#120" }
+      }
+    },
+    {
+      "id": "connected-reference",
+      "confusion": "#15 is named only by a connected event, not a cross-reference",
+      "text": "Refs #15.",
+      "kind": "reference_in_timeline",
+      "declaredValue": "#15",
+      "expectCandidates": ["evt-3"],
+      "forbidCandidates": [],
+      "expectCheck": {
+        "verdict": "pass",
+        "observed": { "event": "connected", "ref": "example-org/example-repo#15" }
+      }
+    }
+  ]
+}

@@ -105,6 +105,37 @@ describe('verifyRecord', () => {
     ]);
   });
 
+  // Spec 0.1.4: who closed a closes target is in the evidence, so offline verify recomputes the pass
+  // from the record alone, and a record without it does not verify.
+  it('recomputes a closes a commit of the pull request closed from the recorded close events', () => {
+    const c = loadCases('controls').find((x) => x.name === 'closes-commit-closer');
+    if (c === undefined) throw new Error('no closes-commit-closer control');
+    const record = JSON.parse(serializeRecord(runCase(c)));
+    expect(record.predicate.verdict).toBe('pass');
+    expect(record.predicate.claims[4]).toMatchObject({
+      id: 'reference:/references/0',
+      verdict: 'pass',
+      observed: {
+        closing: [],
+        closedBy: {
+          at: '2026-10-08T10:00:02Z',
+          closer: { kind: 'commit', oid: 'c0de000000000000000000000000000000000001' },
+        },
+      },
+    });
+    expect(verifyRecord(record).problems).toEqual([]);
+
+    record.predicate.evidence.closeEvents.pullRequest.commits = [record.predicate.subject.headSha];
+    const result = verifyRecord(record);
+    expect(result.ok).toBe(false);
+    expect(result.problems.map((p) => p.member)).toEqual([
+      '/predicate/claims/4',
+      '/predicate/verdict',
+      '/predicate/digests/claims',
+      '/predicate/digests/evidence',
+    ]);
+  });
+
   it('ignores read times and other provenance in sources', () => {
     const record = full();
     for (const s of record.predicate.evidence.sources) s.readAt = '2031-01-01T00:00:00Z';

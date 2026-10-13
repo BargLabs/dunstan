@@ -1,8 +1,8 @@
-// The GitHub evidence reader (spec section 6). REST plus two fixed GraphQL queries over fetch, with a
-// token from GITHUB_TOKEN; no `gh`, so it runs where the GitHub CLI is absent. It reads metadata
-// only: pull request state, file lists, commit ids, check runs, closing references, JUnit
-// test-report counts and deployments, and, for advisories only, the type of the object at a path
-// (comparison 0.3.0). It never reads a repository file.
+// The GitHub evidence reader (spec section 6). REST plus four fixed GraphQL queries over fetch, with
+// a token from GITHUB_TOKEN; no `gh`, so it runs where the GitHub CLI is absent. It reads metadata
+// only: pull request state, file lists, commit ids, check runs, closing references, who closed a
+// `closes` target (spec 0.1.4), JUnit test-report counts and deployments, and, for advisories only,
+// the type of the object at a path (comparison 0.3.0). It never reads a repository file.
 //
 // Every section the block needs is written, as `ok` with its data, `unreadable` with the source kind
 // when a read failed, or `unpopulated` with the field when the source answered without it. A failed
@@ -14,6 +14,10 @@ import type {
   Block,
   CheckRun,
   CheckRunsEvidence,
+  CloseBaseEvidence,
+  CloseEvent,
+  CloseEventsEvidence,
+  CloseTargetEvidence,
   ClosingReferencesEvidence,
   Deployment,
   DeploymentRelation,
@@ -27,6 +31,7 @@ import type {
   SourceKind,
   TestRecordEvidence,
   TestRecordRun,
+  Unread,
 } from '../check/types.js';
 import { canonicalize } from '../spec/jcs.js';
 import type { JsonValue } from '../spec/json.js';
@@ -291,6 +296,267 @@ async function readClosingReferences(
   return unreadable('closing_references');
 }
 
+// ---------------------------------------------------------------- who closed a closes target (GraphQL)
+
+// Spec 0.1.4. The closing references list issues only, leave out an issue a commit message closed,
+// and are not populated for a pull request into a branch other than the default. GitHub's record of
+// a close is the closer of the target's ClosedEvent: the pull request or the commit that closed it.
+// Two fixed queries read it, each exported so the hosted route allowlist admits exactly it. Neither
+// asks for a body, a title, a commit message or anything in a file: ids, names, states and times.
+
+// The pull request's side: its base branch, its repository's default branch, and its commit ids.
+export const CLOSE_BASE_QUERY = `query($owner: String!, $name: String!, $number: Int!, $after: String) {
+  repository(owner: $owner, name: $name) {
+    defaultBranchRef { name }
+    pullRequest(number: $number) {
+      baseRefName
+      commits(first: 100, after: $after) {
+        totalCount
+        nodes { commit { oid } }
+        pageInfo { hasNextPage endCursor }
+      }
+    }
+  }
+}`;
+
+// One target, an issue or a pull request: what it is, its state, and every ClosedEvent's closer.
+// The two types' timelines are distinct connections, so each is asked for in full.
+export const CLOSE_EVENTS_QUERY = `query($owner: String!, $name: String!, $number: Int!, $after: String) {
+  repository(owner: $owner, name: $name) {
+    issueOrPullRequest(number: $number) {
+      __typename
+      ... on Issue {
+        state
+        timelineItems(itemTypes: [CLOSED_EVENT], first: 100, after: $after) {
+          nodes {
+            ... on ClosedEvent {
+              createdAt
+              closer {
+                __typename
+                ... on PullRequest { number repository { nameWithOwner } }
+                ... on Commit { oid }
+              }
+            }
+          }
+          pageInfo { hasNextPage endCursor }
+        }
+      }
+      ... on PullRequest {
+        state
+        timelineItems(itemTypes: [CLOSED_EVENT], first: 100, after: $after) {
+          nodes {
+            ... on ClosedEvent {
+              createdAt
+              closer {
+                __typename
+                ... on PullRequest { number repository { nameWithOwner } }
+                ... on Commit { oid }
+              }
+            }
+          }
+          pageInfo { hasNextPage endCursor }
+        }
+      }
+    }
+  }
+}`;
+
+// The page budget of one target's close events: 1,000 ClosedEvents. A target with more is
+// unreadable, never read short.
+const CLOSE_EVENT_PAGES = 10;
+
+const COMMIT_OID = /^[0-9a-f]{40}$/;
+
+function commitOid(value: unknown): string {
+  const oid = str(value);
+  if (!COMMIT_OID.test(oid)) throw new ShapeError();
+  return oid;
+}
+
+type GraphqlPage<T, H> = { head: H; items: T[]; pageInfo: unknown } | { unpopulated: string };
+
+// Every page of one fixed GraphQL query, at most `budget` pages. `page` reads one answer's `data`:
+// what every page repeats (`head`, taken from the first), the page's items and its pageInfo, or the
+// field the answer lacks. A page that fails, answers with an error or in another shape, or a budget
+// reached, makes the read unreadable (spec section 6).
+async function readGraphqlPages<T, H>(
+  client: GitHubClient,
+  kind: SourceKind,
+  locator: string,
+  query: string,
+  variables: Record<string, unknown>,
+  budget: number,
+  page: (data: Obj) => GraphqlPage<T, H>,
+): Promise<{ status: 'ok'; head: H; items: T[] } | Unread> {
+  const items: T[] = [];
+  let head: { value: H } | undefined;
+  let after: string | null = null;
+  for (let n = 1; n <= budget; n++) {
+    const at: string = `${locator}${after === null ? '' : `(after:${after})`}`;
+    const read: Read = await client.read(kind, '/graphql', {
+      method: 'POST',
+      locator: at,
+      requestBody: JSON.stringify({ query, variables: { ...variables, after } }),
+    });
+    if (!read.ok) return unreadable(kind);
+    try {
+      const body = obj(read.json);
+      // GraphQL reports errors with HTTP 200. A partial answer is not evidence.
+      if (body.errors !== undefined && body.errors !== null) throw new ShapeError();
+      const answer = page(obj(body.data));
+      if ('unpopulated' in answer) return { status: 'unpopulated', field: answer.unpopulated };
+      head ??= { value: answer.head };
+      items.push(...answer.items);
+      const info = obj(answer.pageInfo);
+      if (info.hasNextPage !== true) return { status: 'ok', head: head.value, items };
+      after = str(info.endCursor);
+    } catch (e) {
+      if (!(e instanceof ShapeError)) throw e;
+      client.markParseError(at);
+      return unreadable(kind);
+    }
+  }
+  return unreadable(kind);
+}
+
+async function readCloseBase(
+  client: GitHubClient,
+  repository: string,
+  number: number,
+): Promise<CloseBaseEvidence> {
+  const { owner, name } = splitRepo(repository);
+  const read = await readGraphqlPages(
+    client,
+    'pull_request_commits',
+    `POST /graphql repository(${repository}).pullRequest(${number}).commits`,
+    CLOSE_BASE_QUERY,
+    { owner, name, number },
+    MAX_PAGES,
+    (data) => {
+      const repo = obj(data.repository);
+      const pr = obj(repo.pullRequest);
+      const commits = obj(pr.commits);
+      // A repository with no default branch answers null; an absent member is another shape.
+      const branch = repo.defaultBranchRef;
+      return {
+        head: {
+          baseRef: str(pr.baseRefName),
+          defaultBranch: branch === null ? null : str(obj(branch).name),
+          total: int(commits.totalCount),
+        },
+        items: arr(commits.nodes).map((node) => commitOid(obj(obj(node).commit).oid)),
+        pageInfo: commits.pageInfo,
+      };
+    },
+  );
+  if (read.status !== 'ok') return read;
+  const commits = [...new Set(read.items)].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  // GitHub lists at most 250 commits of a pull request. A list shorter than the count it gives is
+  // not the pull request's commits.
+  if (commits.length < read.head.total) return unreadable('pull_request_commits');
+  return {
+    status: 'ok',
+    baseRef: read.head.baseRef,
+    defaultBranch: read.head.defaultBranch,
+    commits,
+  };
+}
+
+const TARGET_TYPES: Record<string, 'issue' | 'pull_request'> = {
+  Issue: 'issue',
+  PullRequest: 'pull_request',
+};
+const TARGET_STATES: Record<string, 'open' | 'closed' | 'merged'> = {
+  OPEN: 'open',
+  CLOSED: 'closed',
+  MERGED: 'merged',
+};
+
+// A ClosedEvent as recorded: its time and its closer, a pull request (owner/repo#N), a commit, or
+// anything else (a project) by kind alone. Null when GitHub records no closer.
+function closeEvent(node: unknown): CloseEvent {
+  const n = obj(node);
+  const at = timestamp(n.createdAt);
+  if (n.closer === null) return { at, closer: null };
+  const closer = obj(n.closer);
+  const type = str(closer.__typename);
+  if (type === 'PullRequest') {
+    const ref = `${str(obj(closer.repository).nameWithOwner)}#${int(closer.number)}`;
+    if (!ISSUE_REF.test(ref)) throw new ShapeError();
+    return { at, closer: { kind: 'pull_request', ref } };
+  }
+  if (type === 'Commit') return { at, closer: { kind: 'commit', oid: commitOid(closer.oid) } };
+  return { at, closer: { kind: 'other' } };
+}
+
+async function readCloseTarget(client: GitHubClient, ref: string): Promise<CloseTargetEvidence> {
+  const [repo, num] = ref.split('#') as [string, string];
+  const { owner, name } = splitRepo(repo);
+  const read = await readGraphqlPages(
+    client,
+    'issue',
+    `POST /graphql repository(${repo}).issueOrPullRequest(${num}).timelineItems(CLOSED_EVENT)`,
+    CLOSE_EVENTS_QUERY,
+    { owner, name, number: Number(num) },
+    CLOSE_EVENT_PAGES,
+    (data) => {
+      const item = obj(data.repository).issueOrPullRequest;
+      // No issue or pull request answered: no evidence of who closed it, not an empty list.
+      if (item === null || item === undefined) return { unpopulated: 'issueOrPullRequest' };
+      const target = obj(item);
+      const type = TARGET_TYPES[str(target.__typename)];
+      const state = TARGET_STATES[str(target.state)];
+      if (type === undefined || state === undefined) throw new ShapeError();
+      if (type === 'issue' && state === 'merged') throw new ShapeError();
+      const timeline = obj(target.timelineItems);
+      return {
+        head: { type, state },
+        items: arr(timeline.nodes).map(closeEvent),
+        pageInfo: timeline.pageInfo,
+      };
+    },
+  );
+  if (read.status !== 'ok') return { ref, ...read };
+  return { ref, status: 'ok', ...read.head, events: read.items };
+}
+
+// The targets whose close events are read: each `closes` that exists and that the closing
+// references, read, do not list, under the identity it resolves to (`resolvedAs`, or its own), once
+// each, in order of first appearance in the block.
+function closeTargets(
+  block: Block,
+  repository: string,
+  closing: ClosingReferencesEvidence | undefined,
+  references: readonly ReferenceEvidence[] | undefined,
+): string[] {
+  if (closing?.status !== 'ok') return [];
+  const listed = (ref: string) => closing.issues.some((issue) => sameIssue(issue, ref));
+  const out: string[] = [];
+  for (const reference of block.references ?? []) {
+    if (reference.relation !== 'closes' || !('issue' in reference)) continue;
+    const target = qualifyIssue(reference.issue, repository);
+    if (listed(target)) continue;
+    const entry = references?.find((r) => r.kind === 'issue' && sameIssue(r.ref, target));
+    if (entry?.kind !== 'issue' || entry.status !== 'ok' || !entry.exists) continue;
+    const at = entry.resolvedAs ?? target;
+    if (listed(at) || out.some((o) => sameIssue(o, at))) continue;
+    out.push(at);
+  }
+  return out;
+}
+
+async function readCloseEvents(
+  client: GitHubClient,
+  repository: string,
+  number: number,
+  targets: readonly string[],
+): Promise<CloseEventsEvidence> {
+  const pullRequest = await readCloseBase(client, repository, number);
+  const read: CloseTargetEvidence[] = [];
+  for (const target of targets) read.push(await readCloseTarget(client, target));
+  return { pullRequest, targets: read };
+}
+
 // ---------------------------------------------------------------- object type at a path (GraphQL)
 
 // The second GraphQL query, and the only one the advisory section reads (comparison 0.3.0): the
@@ -520,21 +786,88 @@ async function readCheckRuns(
     (json) => arr(obj(json).check_runs),
     (item): CheckRun => {
       const r = obj(item);
-      return {
+      const run: CheckRun = {
         id: int(r.id),
         name: str(r.name),
         status: str(r.status),
         conclusion: strOrNull(r.conclusion),
       };
+      // The suite names the run's workflow run, if any (section 7.5). The API types
+      // `check_suite` and `app` as nullable; a run without them is recorded without them. A suite
+      // that is there and malformed is a shape error, since the count reads it. No check reads
+      // the slug, so one that is not a non-empty string is left out rather than failing the read.
+      if (r.check_suite !== null && r.check_suite !== undefined) {
+        const suite = int(obj(r.check_suite).id);
+        if (suite < 1) throw new ShapeError();
+        run.checkSuiteId = suite;
+      }
+      const slug = (r.app as { slug?: unknown } | null | undefined)?.slug;
+      if (typeof slug === 'string' && slug !== '') run.appSlug = slug;
+      return run;
     },
   );
   if (runs === null) return unreadable('check_runs');
+  // Each run of a workflow is a check suite of its own, so the workflow runs at the head name the
+  // workflow of each Actions check run (section 7.5, amended 2026-10-13). They are read after the
+  // check runs, so every listed run's suite already exists. A read that fails, or that names one
+  // suite twice, makes the check runs unreadable: they are never counted per suite instead.
+  if (runs.some((r) => r.checkSuiteId !== undefined)) {
+    const workflowRuns = await readWorkflowRunsAt(client, repository, commit);
+    if (workflowRuns === null) return unreadable('workflow_runs');
+    for (const run of runs) {
+      const workflow =
+        run.checkSuiteId === undefined ? undefined : workflowRuns.get(run.checkSuiteId);
+      if (workflow === undefined) continue;
+      run.workflowPath = workflow.path;
+      run.workflowRunId = workflow.id;
+      run.runAttempt = workflow.attempt;
+    }
+  }
   return {
     status: 'ok',
     commit,
     excludedIds: [...new Set(excludedIds)].sort((a, b) => a - b),
     runs: [...new Map(runs.map((r) => [r.id, r])).values()].sort((a, b) => a.id - b.id),
   };
+}
+
+// Every workflow run at the head, by its check suite: its id, its path less any `@<ref>` (as
+// section 7.5's test records read it) and its attempt, the latest, as the listing gives it. A run
+// that names no suite is matched by no check run. Null when the listing is unreadable, or names a
+// suite twice.
+async function readWorkflowRunsAt(
+  client: GitHubClient,
+  repository: string,
+  commit: string,
+): Promise<Map<number, WorkflowRun> | null> {
+  const listed = await readAllPages(
+    client,
+    'workflow_runs',
+    (page) =>
+      `/repos/${repository}/actions/runs?head_sha=${commit}&per_page=${PER_PAGE}&page=${page}`,
+    (json) => arr(obj(json).workflow_runs),
+    (item): { suite: number | null; run: WorkflowRun } => {
+      const r = obj(item);
+      let suite: number | null = null;
+      if (r.check_suite_id !== null && r.check_suite_id !== undefined) {
+        suite = int(r.check_suite_id);
+        if (suite < 1) throw new ShapeError();
+      }
+      const run = { id: int(r.id), attempt: int(r.run_attempt), path: str(r.path) };
+      run.path = run.path.replace(/@.*$/, '');
+      if (run.id < 1 || run.attempt < 1 || run.path === '') throw new ShapeError();
+      return { suite, run };
+    },
+  );
+  if (listed === null) return null;
+  const bySuite = new Map<number, WorkflowRun>();
+  for (const { suite, run } of listed) {
+    if (suite === null) continue;
+    const seen = bySuite.get(suite);
+    if (seen !== undefined && seen.id !== run.id) return null;
+    bySuite.set(suite, run);
+  }
+  return bySuite;
 }
 
 // ---------------------------------------------------------------- JUnit test records
@@ -749,6 +1082,10 @@ export async function readEvidence(
       evidence.closingReferences,
     );
     if (references !== undefined) evidence.references = references;
+    const closeTargetRefs = closeTargets(block, repository, evidence.closingReferences, references);
+    if (closeTargetRefs.length > 0) {
+      evidence.closeEvents = await readCloseEvents(client, repository, pr.number, closeTargetRefs);
+    }
     if (block.checks !== undefined) {
       evidence.checkRuns = await readCheckRuns(
         client,

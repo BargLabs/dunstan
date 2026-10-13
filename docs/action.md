@@ -72,7 +72,7 @@ what a branch requires.
 | Input | Default | Meaning |
 | --- | --- | --- |
 | `report-source` | none, required | `pr-body`, `comment:<author-login>` (that author's newest comment on the pull request) or `file:<path>` (a file in the workspace). The Action never guesses where a report is; with no value it concludes `failure`. |
-| `github-token` | `${{ github.token }}` | Needs `contents: read`, `pull-requests: read`, `issues: read` (to read an issue a block closes or cites), `deployments: read` (for `deployedAt`), `checks: write`, `actions: read` (to read a JUnit artifact a block names). Nothing else. Without `issues: read` or `deployments: read` the claims that need them are `unverifiable`, never passed. |
+| `github-token` | `${{ github.token }}` | Needs `contents: read`, `pull-requests: read`, `issues: read` (to read an issue a block closes or cites), `deployments: read` (for `deployedAt`), `checks: write`, `actions: read` (to read a JUnit artifact a block names, and the workflow runs a `checks` claim is counted by). Nothing else. Without `issues: read` or `deployments: read` the claims that need them are `unverifiable`, never passed. |
 | `unverifiable-conclusion` | `failure` | The conclusion for an `unverifiable` verdict: `failure` or `neutral`. |
 | `sign-key-path`, `signer` | none | An SSH private key and the signer principal: the record is written as its JCS bytes with a detached signature, both uploaded. |
 | `advisory` | `false` | `true` also reads the report's prose for asserted claims and records each one, compared with the evidence, as an advisory (DRAFT 0.2.0, [`docs/advisory.md`](advisory.md)). Advisories never change the verdict, the conclusion or the title. The summary gains one row counting them, and a section listing each `differs` note as a "possible disagreement, unverified" ([`docs/advisory.md`](advisory.md), "How a `differs` note is shown"). |
@@ -94,7 +94,7 @@ Action concludes `success` for `pass` and nothing else:
 | --- | --- | --- |
 | `pass` | `success` | A block was found and every claim in it holds against the record. |
 | `fail` | `failure` | At least one claim is contradicted by the record. The table names the claim and the reason. |
-| `unverifiable` | `failure` (default) | The record cannot answer a claim (a source unreadable, a field unpopulated, checks still running, a `closes` issue not yet among an open pull request's closing references), or there is no single valid block: `block_missing`, `block_ambiguous`, `block_invalid`. Not a pass. |
+| `unverifiable` | `failure` (default) | The record cannot answer a claim (a source unreadable, a field unpopulated, checks still running, a `closes` issue not yet among an open pull request's closing references, a `closes` target still open after a merge into a branch other than the default), or there is no single valid block: `block_missing`, `block_ambiguous`, `block_invalid`. Not a pass. |
 | `unverifiable` | `neutral`, with `unverifiable-conclusion: neutral` | The same verdict, reported without blocking. A neutral required check lets the merge through, so this setting merges claims nobody could check. Choose it deliberately, for example while agents are being moved onto the block. |
 | none (`error`) | `failure` | No record: `report-source` missing or malformed, the report source unreadable (no comment by that author, no such file), the pull request unreadable, an event Dunstan cannot check, `file:` under `pull_request_target`, or a crash. The reason is in the summary. |
 | any | `failure` | The record could not be uploaded as the artifact. A verdict whose record is not kept cannot be re-run. |
@@ -117,16 +117,53 @@ The step's exit status follows the conclusion: it fails for `failure` and succee
 It never comments on the pull request, labels it, reviews it or merges it.
 
 The check run is created in progress before any evidence is read, and the Action excludes it and its
-own job's check run from the counted check runs (a `checks` claim never counts the checker). A
+own job's check run from the counted check runs (a `checks` claim never counts the checker). An
+excluded run also hides every earlier run of its name, in any workflow run, so the `dunstan` and job
+check runs of an earlier Dunstan run on the same commit (before the body was edited, say) are not
+counted either. Give the Dunstan job a name no other check uses: an earlier run of another
+workflow's job of that name would be hidden the same way. A
 `checks` claim is checked against the check runs at the moment the Action runs: if CI is still
 running, `checks.allSucceeded` is `unverifiable: checks_incomplete`. Re-run the Dunstan job once CI
 has finished.
 
+The counted check runs are the latest run per workflow and job name (spec section 7.5). GitHub names
+an Actions check run after its job, not its workflow, and each run of a workflow is a check suite of
+its own, so the Action also reads the workflow runs at the head and records, for each check run,
+the `workflowPath`, `workflowRunId` and `runAttempt` of the workflow run it belongs to, beside its
+`checkSuiteId` and `appSlug`. Then:
+
+- Two workflows that each have a job `test` give two checks: `checks.total` counts both, and a
+  failure in either makes `checks.allSucceeded` `false`.
+- One workflow that runs more than once on the head commit is one check per job, as its latest
+  workflow run ran it. That is not only a re-run: a workflow on both `push` and `pull_request` runs
+  twice on a pull request's head, and closing and reopening the pull request runs it again. So
+  `checks.total` counts each job once, and an earlier run that failed does not make
+  `checks.allSucceeded` `false` when a later run of the same workflow succeeded.
+- A check run of no workflow, such as one another app created, is counted per check suite and
+  name. A record written before workflows were recorded is counted per check suite and name, and
+  one written before suites were, by name alone, as each was then.
+
+If the workflow runs cannot be read, the `checks` claims are
+`unverifiable: source_unreadable:workflow_runs`; they are never counted another way. A re-run of a
+job stays in its workflow run's check suite, as observed on 2026-10-13 (the spec's section 17,
+"Re-runs, observed 2026-10-13"; `experiments/checks-probe-2026-10/results.json`, snapshot
+`afterRerun`): the re-run supersedes the failed first attempt, so a job that failed and then
+succeeded on a re-run counts as succeeded.
+
 A `closes` claim reads the closing references GitHub computes after a pull request is opened or its
-body is edited. While the pull request is open, an existing issue missing from them is
-`unverifiable: closing_link_unsettled`, never `fail`; once it is merged or closed, the same absence
-fails with `not_closing` (spec section 7.4). Re-run the Dunstan job if the closing references were
-not computed yet when it ran.
+body is edited. Those list issues only, leave out an issue a commit message closed, and are not
+populated for a pull request into a branch other than the default, so for an existing target missing
+from them the Action also reads who closed it: every ClosedEvent of the target, and the pull
+request's base branch, default branch and commits (spec 0.1.4, section 7.4). The claim passes when a
+ClosedEvent names this pull request, one of its commits or its merge commit as the closer, for an
+issue or a pull request target. Otherwise, while the pull request is open it is
+`unverifiable: closing_link_unsettled`, never `fail`; merged into a branch other than the default
+with the target still open it is `unverifiable: closing_base_not_default`; a target already closed
+whose timeline shows no ClosedEvent yet is `unverifiable: closing_event_unsettled`, because GitHub
+sets the state seconds before it shows the event; and once it is merged into the default branch or
+closed, it fails with `not_closing` only when no ClosedEvent of the target names this pull request
+or its commits. Re-run the Dunstan job if the closing references or the ClosedEvent were not there
+yet when it ran, or once the base branch is merged into the default branch.
 
 **Fork pull requests.** GitHub gives a `pull_request` workflow from a fork a read-only token, which
 cannot create check runs. The Action then writes the job summary and the step's exit status only, and

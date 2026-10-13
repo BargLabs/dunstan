@@ -1,0 +1,27 @@
+{
+  "description": "Declares closes #32; a commit of this pull request says \"Fixes #32\", and GitHub records that commit as the closer of #32",
+  "blockStatus": "found",
+  "verdict": "pass",
+  "claims": [
+    {
+      "id": "head:/headCommit",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/0",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/1",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/2",
+      "verdict": "pass"
+    },
+    {
+      "id": "reference:/references/0",
+      "verdict": "pass"
+    }
+  ]
+}

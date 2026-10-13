@@ -10,9 +10,12 @@ import {
   type Scenario,
 } from '../__tests__/fake-github.js';
 import { runChecks } from '../check/index.js';
-import type { Block, Evidence } from '../check/types.js';
+import type { Block, CheckRun, Evidence } from '../check/types.js';
 import { validateRecord } from '../spec/schema.js';
 import {
+  CLOSE_BASE_QUERY,
+  CLOSE_EVENTS_QUERY,
+  CLOSING_QUERY,
   PATH_QUERY,
   PullRequestUnreadable,
   readEvidence,
@@ -118,8 +121,22 @@ function fullScenario(): Scenario {
       { id: 11, name: 'lint', status: 'completed', conclusion: 'success' },
     ],
     workflowRuns: [
-      { id: 501, run_attempt: 2, path: '.github/workflows/ci.yml', head_sha: HEAD },
-      { id: 502, run_attempt: 1, path: '.github/workflows/other/ci.yml', head_sha: HEAD },
+      {
+        id: 501,
+        check_suite_id: 5010,
+        run_attempt: 2,
+        event: 'pull_request',
+        path: '.github/workflows/ci.yml',
+        head_sha: HEAD,
+      },
+      {
+        id: 502,
+        check_suite_id: 5020,
+        run_attempt: 1,
+        event: 'push',
+        path: '.github/workflows/other/ci.yml',
+        head_sha: HEAD,
+      },
     ],
     jobs: { 501: ['lint', 'test'], 502: ['test'] },
     artifacts: { 501: [{ id: 9001, name: 'junit-report', expired: false }] },
@@ -327,7 +344,7 @@ describe('readEvidence', () => {
       });
     });
 
-    it('that exists and is not linked: the claim fails not_closing', async () => {
+    it('that exists and is not linked, nor closed by the pull request: the claim fails not_closing', async () => {
       const s = fullScenario();
       s.closing = [];
       s.repositories = { 'private-org/oncall': 200 };
@@ -336,10 +353,17 @@ describe('readEvidence', () => {
       expect(evidence.references).toEqual([
         { kind: 'issue', ref: 'private-org/oncall#11', status: 'ok', exists: true },
       ]);
+      // Spec 0.1.4: who closed it is read before the claim can fail.
+      expect(evidence.closeEvents).toEqual({
+        pullRequest: { status: 'ok', baseRef: 'main', defaultBranch: 'main', commits: [HEAD] },
+        targets: [
+          { ref: 'private-org/oncall#11', status: 'ok', type: 'issue', state: 'open', events: [] },
+        ],
+      });
       expect(row(evidence)).toMatchObject({
         verdict: 'fail',
         reason: 'not_closing',
-        observed: { closing: [] },
+        observed: { closing: [], state: 'open', events: [] },
       });
     });
 
@@ -447,6 +471,260 @@ describe('readEvidence', () => {
       });
     });
 
+    // Spec 0.1.4: the closing references are not the only record of a close. Each ClosedEvent of
+    // the target names its closer, a pull request or a commit; the pull request's base, default
+    // branch and commits are read beside them.
+    describe('who closed it', () => {
+      const TARGET = 'private-org/oncall#11';
+      const COMMIT = 'c0de000000000000000000000000000000000001';
+      const linked = (closeEvents: Scenario['closeEvents'] = {}) => {
+        const s = fullScenario();
+        s.closing = [];
+        s.repositories = { 'private-org/oncall': 200 };
+        s.issues = { [TARGET]: 200 };
+        s.closeEvents = closeEvents;
+        return s;
+      };
+      const closedBy = (closer: unknown, createdAt = '2026-10-01T14:05:11Z') => ({
+        createdAt,
+        closer,
+      });
+      const thisPr = { __typename: 'PullRequest', number: 7, repository: { nameWithOwner: REPO } };
+
+      it('records every ClosedEvent and its closer, and the claim passes on this pull request', async () => {
+        const { evidence, fake } = await read(
+          linked({
+            [TARGET]: {
+              state: 'CLOSED',
+              events: [
+                closedBy(null, '2026-09-01T00:00:00Z'),
+                closedBy({ __typename: 'ProjectV2', id: 'P_1' }, '2026-09-02T00:00:00Z'),
+                closedBy({ __typename: 'Commit', oid: COMMIT }, '2026-09-03T00:00:00Z'),
+                closedBy(thisPr),
+              ],
+            },
+          }),
+          CLOSES,
+        );
+        expect(evidenceSchemaErrors(evidence)).toEqual([]);
+        expect(evidence.closeEvents?.targets).toEqual([
+          {
+            ref: TARGET,
+            status: 'ok',
+            type: 'issue',
+            state: 'closed',
+            events: [
+              { at: '2026-09-01T00:00:00Z', closer: null },
+              { at: '2026-09-02T00:00:00Z', closer: { kind: 'other' } },
+              { at: '2026-09-03T00:00:00Z', closer: { kind: 'commit', oid: COMMIT } },
+              {
+                at: '2026-10-01T14:05:11Z',
+                closer: { kind: 'pull_request', ref: `${REPO}#7` },
+              },
+            ],
+          },
+        ]);
+        expect(row(evidence)).toMatchObject({
+          verdict: 'pass',
+          observed: {
+            closing: [],
+            closedBy: {
+              at: '2026-10-01T14:05:11Z',
+              closer: { kind: 'pull_request', ref: `${REPO}#7` },
+            },
+          },
+        });
+        // The two fixed queries, each with its own variables, and nothing else.
+        expect(fake.graphql.map((b) => JSON.parse(b))).toEqual([
+          {
+            query: CLOSING_QUERY,
+            variables: { owner: 'example-org', name: 'example-repo', number: 7, after: null },
+          },
+          {
+            query: CLOSE_BASE_QUERY,
+            variables: { owner: 'example-org', name: 'example-repo', number: 7, after: null },
+          },
+          {
+            query: CLOSE_EVENTS_QUERY,
+            variables: { owner: 'private-org', name: 'oncall', number: 11, after: null },
+          },
+        ]);
+        expect(evidence.sources.map((x) => `${x.kind} ${x.locator}`)).toEqual(
+          expect.arrayContaining([
+            `issue POST /graphql repository(private-org/oncall).issueOrPullRequest(11).timelineItems(CLOSED_EVENT)`,
+            `pull_request_commits POST /graphql repository(${REPO}).pullRequest(7).commits`,
+          ]),
+        );
+      });
+
+      it('records a pull request target and its state, so a closes of a pull request it supersedes passes', async () => {
+        const block: Block = { ...CLOSES, references: [{ issue: '#8', relation: 'closes' }] };
+        const s = linked({
+          [`${REPO}#8`]: { type: 'PullRequest', state: 'CLOSED', events: [closedBy(thisPr)] },
+        });
+        // The issues API answers for a pull request number too, so it exists.
+        s.issues = { [`${REPO}#8`]: 200 };
+        const { evidence } = await read(s, block);
+        expect(evidence.references).toEqual([
+          { kind: 'issue', ref: `${REPO}#8`, status: 'ok', exists: true },
+        ]);
+        expect(evidence.closeEvents?.targets).toEqual([
+          {
+            ref: `${REPO}#8`,
+            status: 'ok',
+            type: 'pull_request',
+            state: 'closed',
+            events: [
+              { at: '2026-10-01T14:05:11Z', closer: { kind: 'pull_request', ref: `${REPO}#7` } },
+            ],
+          },
+        ]);
+        expect(runChecks(block, evidence, REPO)[3]).toMatchObject({ verdict: 'pass' });
+        s.closeEvents = { [`${REPO}#8`]: { type: 'PullRequest', state: 'MERGED' } };
+        const merged = await read(s, block);
+        expect(merged.evidence.closeEvents?.targets[0]).toMatchObject({ state: 'merged' });
+      });
+
+      it('reads every commit of the pull request across pages, and a commit closer among them passes', async () => {
+        const commits = Array.from({ length: 230 }, (_, i) => i.toString(16).padStart(40, '0'));
+        const s = linked({
+          [TARGET]: {
+            state: 'CLOSED',
+            events: [closedBy({ __typename: 'Commit', oid: commits[150] })],
+          },
+        });
+        s.prCommits = commits;
+        const { evidence } = await read(s, CLOSES);
+        expect(evidence.closeEvents?.pullRequest).toEqual({
+          status: 'ok',
+          baseRef: 'main',
+          defaultBranch: 'main',
+          commits: [...commits].sort(),
+        });
+        expect(row(evidence)).toMatchObject({
+          verdict: 'pass',
+          observed: { closedBy: { closer: { kind: 'commit', oid: commits[150] } } },
+        });
+      });
+
+      it('records a commit list shorter than GitHub counts as unreadable, never as complete', async () => {
+        const s = linked({
+          [TARGET]: { state: 'CLOSED', events: [closedBy({ __typename: 'Commit', oid: COMMIT })] },
+        });
+        s.prCommits = [HEAD];
+        s.prCommitsTotal = 251;
+        const { evidence } = await read(s, CLOSES);
+        expect(evidence.closeEvents?.pullRequest).toEqual({
+          status: 'unreadable',
+          source: 'pull_request_commits',
+        });
+        expect(row(evidence)).toMatchObject({
+          verdict: 'unverifiable',
+          reason: 'source_unreadable:pull_request_commits',
+        });
+        delete s.prCommitsTotal;
+        s.prCommitsStatus = 502;
+        const failed = await read(s, CLOSES);
+        expect(failed.evidence.closeEvents?.pullRequest).toEqual({
+          status: 'unreadable',
+          source: 'pull_request_commits',
+        });
+      });
+
+      it('records the base and the default branch, and a merge elsewhere with the target open is closing_base_not_default', async () => {
+        const s = linked();
+        s.baseRef = 'release-2.0';
+        const { evidence } = await read(s, CLOSES);
+        expect(evidenceSchemaErrors(evidence)).toEqual([]);
+        expect(evidence.closeEvents?.pullRequest).toMatchObject({
+          baseRef: 'release-2.0',
+          defaultBranch: 'main',
+        });
+        expect(row(evidence)).toMatchObject({
+          verdict: 'unverifiable',
+          reason: 'closing_base_not_default',
+        });
+        s.defaultBranch = null;
+        s.baseRef = 'main';
+        const none = await read(s, CLOSES);
+        expect(none.evidence.closeEvents?.pullRequest).toMatchObject({ defaultBranch: null });
+        expect(evidenceSchemaErrors(none.evidence)).toEqual([]);
+      });
+
+      it('records close events over the page budget as unreadable, and the claim is unverifiable', async () => {
+        const many = Array.from({ length: 1001 }, () => closedBy(null));
+        const s = linked({ [TARGET]: { state: 'CLOSED', events: many } });
+        const { evidence, fake } = await read(s, CLOSES);
+        expect(evidence.closeEvents?.targets).toEqual([
+          { ref: TARGET, status: 'unreadable', source: 'issue' },
+        ]);
+        expect(fake.graphql.filter((b) => b.includes('issueOrPullRequest'))).toHaveLength(10);
+        expect(row(evidence)).toMatchObject({
+          verdict: 'unverifiable',
+          reason: 'source_unreadable:issue',
+        });
+        // Within the budget every page is read.
+        s.closeEvents = { [TARGET]: { state: 'CLOSED', events: many.slice(0, 1000) } };
+        const within = await read(s, CLOSES);
+        expect(within.evidence.closeEvents?.targets[0]).toMatchObject({ status: 'ok' });
+      });
+
+      it('is unreadable on an HTTP error, a GraphQL error or an unexpected shape, and unpopulated on no item', async () => {
+        const answers: [Scenario['closeEvents'], unknown][] = [
+          [{ [TARGET]: 502 }, { ref: TARGET, status: 'unreadable', source: 'issue' }],
+          [{ [TARGET]: { state: 'SHUT' } }, { ref: TARGET, status: 'unreadable', source: 'issue' }],
+          [
+            { [TARGET]: { type: 'Discussion' } },
+            { ref: TARGET, status: 'unreadable', source: 'issue' },
+          ],
+          [
+            { [TARGET]: { state: 'CLOSED', events: [{ createdAt: 'yesterday', closer: null }] } },
+            { ref: TARGET, status: 'unreadable', source: 'issue' },
+          ],
+          [
+            {
+              [TARGET]: {
+                state: 'CLOSED',
+                events: [closedBy({ __typename: 'Commit', oid: 'abc' })],
+              },
+            },
+            { ref: TARGET, status: 'unreadable', source: 'issue' },
+          ],
+          [{ [TARGET]: null }, { ref: TARGET, status: 'unpopulated', field: 'issueOrPullRequest' }],
+        ];
+        for (const [closeEvents, expected] of answers) {
+          const { evidence } = await read(linked(closeEvents), CLOSES);
+          expect(evidence.closeEvents?.targets, JSON.stringify(closeEvents)).toEqual([expected]);
+          expect(evidenceSchemaErrors(evidence)).toEqual([]);
+          expect(row(evidence)?.verdict).toBe('unverifiable');
+        }
+      });
+
+      it('reads a transferred issue under the identity GitHub resolves it to', async () => {
+        const MOVED = 'private-org/tracker#4';
+        const s = linked({ [MOVED]: { state: 'CLOSED', events: [closedBy(thisPr)] } });
+        s.transferred = { [TARGET]: MOVED };
+        const { evidence, fake } = await read(s, CLOSES);
+        expect(evidence.closeEvents?.targets).toMatchObject([{ ref: MOVED, status: 'ok' }]);
+        expect(fake.graphql.at(-1)).toContain('"owner":"private-org","name":"tracker","number":4');
+        expect(row(evidence)).toMatchObject({
+          verdict: 'pass',
+          observed: { ref: TARGET, resolvedAs: MOVED },
+        });
+      });
+
+      it('reads nothing for a closes the closing references list, a cites, or a target that is not found', async () => {
+        const listed = await read(fullScenario(), FULL_BLOCK);
+        expect(listed.evidence.closeEvents).toBeUndefined();
+        expect(listed.fake.graphql.some((b) => b.includes('issueOrPullRequest'))).toBe(false);
+        const s = linked();
+        s.issues = {};
+        const missing = await read(s, CLOSES);
+        expect(missing.evidence.closeEvents).toBeUndefined();
+        expect(row(missing.evidence)).toMatchObject({ verdict: 'fail', reason: 'not_found' });
+      });
+    });
+
     it('is not read when the closing references themselves could not be read', async () => {
       const s = fullScenario();
       s.closing = null;
@@ -535,6 +813,256 @@ describe('readEvidence', () => {
     expect(evidence.checkRuns).toMatchObject({ excludedIds: [13] });
     const claims = runChecks(FULL_BLOCK, evidence, REPO);
     expect(claims.find((c) => c.id === 'count:/checks/allSucceeded')?.verdict).toBe('pass');
+  });
+
+  it("records each check run's check suite and app, and counts two workflows' `test` apart", async () => {
+    const s = fullScenario();
+    s.checkRuns = [
+      {
+        id: 21,
+        name: 'test',
+        status: 'completed',
+        conclusion: 'failure',
+        check_suite: { id: 70 },
+        app: { slug: 'github-actions', name: 'GitHub Actions' },
+      },
+      {
+        id: 22,
+        name: 'test',
+        status: 'completed',
+        conclusion: 'success',
+        check_suite: { id: 80 },
+        app: { slug: 'github-actions' },
+      },
+      // A run whose answer names no check suite or app is recorded without them.
+      { id: 23, name: 'lint', status: 'completed', conclusion: 'success', check_suite: null },
+    ];
+    const { evidence } = await read(s, FULL_BLOCK);
+    expect(evidenceSchemaErrors(evidence)).toEqual([]);
+    expect(evidence.checkRuns).toEqual({
+      status: 'ok',
+      commit: HEAD,
+      excludedIds: [],
+      runs: [
+        {
+          id: 21,
+          name: 'test',
+          status: 'completed',
+          conclusion: 'failure',
+          checkSuiteId: 70,
+          appSlug: 'github-actions',
+        },
+        {
+          id: 22,
+          name: 'test',
+          status: 'completed',
+          conclusion: 'success',
+          checkSuiteId: 80,
+          appSlug: 'github-actions',
+        },
+        { id: 23, name: 'lint', status: 'completed', conclusion: 'success' },
+      ],
+    });
+    const claims = runChecks(FULL_BLOCK, evidence, REPO);
+    expect(claims.find((c) => c.id === 'count:/checks/allSucceeded')).toMatchObject({
+      verdict: 'fail',
+      observed: false,
+      reason: 'all_succeeded_mismatch',
+    });
+  });
+
+  it('leaves out an app slug that is not a non-empty string, and reads the run', async () => {
+    const s = fullScenario();
+    s.checkRuns = [
+      { id: 21, name: 'test', status: 'completed', conclusion: 'success', app: { slug: 7 } },
+      { id: 22, name: 'lint', status: 'completed', conclusion: 'success', app: 'github-actions' },
+    ];
+    const { evidence } = await read(s, FULL_BLOCK);
+    expect(evidenceSchemaErrors(evidence)).toEqual([]);
+    expect(evidence.checkRuns).toEqual({
+      status: 'ok',
+      commit: HEAD,
+      excludedIds: [],
+      runs: [
+        { id: 21, name: 'test', status: 'completed', conclusion: 'success' },
+        { id: 22, name: 'lint', status: 'completed', conclusion: 'success' },
+      ],
+    });
+  });
+
+  it('records the check runs unreadable when a check suite id is not a positive integer', async () => {
+    for (const check_suite of [{ id: 0 }, {}, { id: '70' }]) {
+      const s = fullScenario();
+      s.checkRuns = [
+        { id: 21, name: 'test', status: 'completed', conclusion: 'success', check_suite },
+      ];
+      const { evidence } = await read(s, FULL_BLOCK);
+      expect(evidence.checkRuns).toEqual({ status: 'unreadable', source: 'check_runs' });
+    }
+  });
+
+  // Spec 0.1.4, amended 2026-10-13: each run of a workflow is a check suite of its own, so the
+  // workflow runs at the head name the workflow each Actions check run belongs to.
+  describe('the workflow of each check run', () => {
+    const CI = '.github/workflows/ci.yml';
+    const actions = (id: number, name: string, conclusion: string, suite: number) => ({
+      id,
+      name,
+      status: 'completed',
+      conclusion,
+      check_suite: { id: suite },
+      app: { slug: 'github-actions' },
+    });
+    const workflowRun = (id: number, suite: number, event: string, path = CI) => ({
+      id,
+      check_suite_id: suite,
+      run_attempt: 1,
+      event,
+      path,
+      head_sha: HEAD,
+    });
+    // ci.yml on push (suite 70) and on pull_request (suite 80); the push run's `test` failed and
+    // the pull_request run's passed. An external app's run has a suite and no workflow.
+    const twiceOnOneHead = () => {
+      const s = fullScenario();
+      s.checkRuns = [
+        actions(21, 'test', 'failure', 70),
+        actions(22, 'lint', 'success', 70),
+        actions(23, 'test', 'success', 80),
+        actions(24, 'lint', 'success', 80),
+        {
+          id: 25,
+          name: 'preview',
+          status: 'completed',
+          conclusion: 'success',
+          check_suite: { id: 90 },
+          app: { slug: 'example-deploys' },
+        },
+      ];
+      s.workflowRuns = [
+        workflowRun(100, 70, 'push'),
+        workflowRun(101, 80, 'pull_request'),
+        ...(s.workflowRuns ?? []),
+      ];
+      return s;
+    };
+    const CHECKS: Block = { ...FULL_BLOCK, checks: { total: 3, allSucceeded: true } };
+
+    it("records each run's workflow path, run and attempt, and counts a workflow run twice once", async () => {
+      const { evidence, fake } = await read(twiceOnOneHead(), CHECKS);
+      expect(evidenceSchemaErrors(evidence)).toEqual([]);
+      expect(fake.requests).toContain(
+        `GET /repos/${REPO}/actions/runs?head_sha=${HEAD}&per_page=100&page=1`,
+      );
+      const at = (suite: number, runId: number) => ({
+        checkSuiteId: suite,
+        appSlug: 'github-actions',
+        workflowPath: CI,
+        workflowRunId: runId,
+        runAttempt: 1,
+      });
+      expect(evidence.checkRuns).toEqual({
+        status: 'ok',
+        commit: HEAD,
+        excludedIds: [],
+        runs: [
+          { id: 21, name: 'test', status: 'completed', conclusion: 'failure', ...at(70, 100) },
+          { id: 22, name: 'lint', status: 'completed', conclusion: 'success', ...at(70, 100) },
+          { id: 23, name: 'test', status: 'completed', conclusion: 'success', ...at(80, 101) },
+          { id: 24, name: 'lint', status: 'completed', conclusion: 'success', ...at(80, 101) },
+          {
+            id: 25,
+            name: 'preview',
+            status: 'completed',
+            conclusion: 'success',
+            checkSuiteId: 90,
+            appSlug: 'example-deploys',
+          },
+        ],
+      });
+      const claims = runChecks(CHECKS, evidence, REPO);
+      expect(claims.find((c) => c.id === 'count:/checks/total')).toMatchObject({
+        verdict: 'pass',
+        observed: 3,
+      });
+      expect(claims.find((c) => c.id === 'count:/checks/allSucceeded')).toMatchObject({
+        verdict: 'pass',
+        observed: true,
+      });
+    });
+
+    it('the record schema takes a workflow path, run and attempt only together, with a suite', async () => {
+      const { evidence } = await read(twiceOnOneHead(), CHECKS);
+      if (evidence.checkRuns?.status !== 'ok') throw new Error('unread');
+      const first = evidence.checkRuns.runs[0] as CheckRun;
+      for (const drop of ['checkSuiteId', 'workflowRunId', 'runAttempt', 'workflowPath'] as const) {
+        const run: CheckRun = { ...first };
+        delete run[drop];
+        const errors = evidenceSchemaErrors({
+          ...evidence,
+          checkRuns: { ...evidence.checkRuns, runs: [run] },
+        });
+        expect(errors.map((e) => e.keyword)).toContain('dependentRequired');
+      }
+    });
+
+    it('records a workflow path without the ref GitHub may give after `@`', async () => {
+      const s = twiceOnOneHead();
+      s.workflowRuns = [
+        workflowRun(100, 70, 'push', `${CI}@refs/heads/main`),
+        workflowRun(101, 80, 'pull_request'),
+      ];
+      const { evidence } = await read(s, CHECKS);
+      const runs = evidence.checkRuns?.status === 'ok' ? evidence.checkRuns.runs : [];
+      expect(runs.map((r) => r.workflowPath)).toEqual([CI, CI, CI, CI, undefined]);
+    });
+
+    it('records the check runs unreadable when the workflow runs cannot be read, never counted per suite', async () => {
+      const s = twiceOnOneHead();
+      s.workflowRunsStatus = 502;
+      const { evidence } = await read(s, CHECKS);
+      expect(evidence.checkRuns).toEqual({ status: 'unreadable', source: 'workflow_runs' });
+      expect(
+        evidence.sources.find((x) => x.locator.includes('/actions/runs?head_sha='))?.error,
+      ).toBe('http_502');
+      const claims = runChecks(CHECKS, evidence, REPO);
+      for (const id of ['count:/checks/total', 'count:/checks/allSucceeded']) {
+        expect(claims.find((c) => c.id === id)).toMatchObject({
+          verdict: 'unverifiable',
+          observed: null,
+          reason: 'source_unreadable:workflow_runs',
+        });
+      }
+    });
+
+    it('records the check runs unreadable when two workflow runs name one check suite', async () => {
+      const s = twiceOnOneHead();
+      s.workflowRuns = [workflowRun(100, 70, 'push'), workflowRun(101, 70, 'pull_request')];
+      const { evidence } = await read(s, CHECKS);
+      expect(evidence.checkRuns).toEqual({ status: 'unreadable', source: 'workflow_runs' });
+    });
+
+    it('records the check runs unreadable when a workflow run answers in another shape', async () => {
+      for (const odd of [
+        { check_suite_id: 0 },
+        { check_suite_id: '70' },
+        { path: '' },
+        { path: '@refs/heads/main' },
+        { run_attempt: 0 },
+        { id: 0 },
+      ]) {
+        const s = twiceOnOneHead();
+        s.workflowRuns = [{ ...workflowRun(100, 70, 'push'), ...odd }];
+        const { evidence } = await read(s, CHECKS);
+        expect(evidence.checkRuns).toEqual({ status: 'unreadable', source: 'workflow_runs' });
+      }
+    });
+
+    it('reads no workflow runs when no check run names a check suite', async () => {
+      const { evidence, fake } = await read(fullScenario(), FULL_BLOCK);
+      expect(evidence.checkRuns?.status).toBe('ok');
+      expect(fake.requests.some((r) => r.includes('/actions/runs?'))).toBe(false);
+    });
   });
 
   it('records unreadable check runs, and their claims are unverifiable', async () => {

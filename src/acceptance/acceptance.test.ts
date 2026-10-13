@@ -50,6 +50,13 @@ describe('acceptance (c): planted defects', () => {
       'closes-nonexistent-issue',
       // Spec 0.1.2: a closes missing from an open pull request's closing references.
       'closes-unsettled-open',
+      // Spec 0.1.4: a closes read by who closed the target.
+      'closes-closed-by-other',
+      'closes-non-default-base-open',
+      // Spec 0.1.4, amended 2026-10-12: a closed target whose ClosedEvent is not visible yet.
+      'closes-closed-no-event-yet',
+      // Spec 0.1.4, amended 2026-10-12 (10T3): two workflows' check runs of one job name.
+      'checks-same-name-two-workflows',
     ]) {
       expect(names).toContain(required);
     }
@@ -73,6 +80,12 @@ describe('acceptance (c): positive controls', () => {
         'rename',
         // Spec 0.1.3: a closes on an issue since transferred to another repository.
         'closes-transferred',
+        // Spec 0.1.4: a closes this pull request, or a commit of it, is recorded as closing.
+        'closes-pr-target-closed-by-this-pr',
+        'closes-commit-closer',
+        // Spec 0.1.4, amended 2026-10-13 (10T4): one workflow run twice on one head.
+        'checks-push-and-pull-request',
+        'checks-reopened-same-workflow',
       ]),
     );
   });

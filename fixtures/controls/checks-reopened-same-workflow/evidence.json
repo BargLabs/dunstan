@@ -1,0 +1,260 @@
+{
+  "pullRequest": {
+    "status": "ok",
+    "number": 166,
+    "state": "closed",
+    "merged": true,
+    "mergedAt": "2026-10-01T14:05:09Z",
+    "headSha": "a11ce5e0c0ffee00d00dfeed0000111122223333",
+    "mergeSha": "feedface00000000000000000000000000000001",
+    "changedFiles": 3
+  },
+  "files": {
+    "status": "ok",
+    "complete": true,
+    "entries": [
+      {
+        "path": "docs/cache.md",
+        "status": "modified"
+      },
+      {
+        "path": "src/cache.test.ts",
+        "status": "added"
+      },
+      {
+        "path": "src/cache.ts",
+        "status": "modified"
+      }
+    ]
+  },
+  "closingReferences": {
+    "status": "ok",
+    "issues": ["example-org/example-repo#17"]
+  },
+  "references": [
+    {
+      "kind": "issue",
+      "ref": "example-org/example-docs#5",
+      "status": "ok",
+      "exists": true
+    },
+    {
+      "kind": "commit",
+      "ref": "c17ed00000000000000000000000000000000001",
+      "status": "ok",
+      "exists": true,
+      "reachableFromHead": true
+    }
+  ],
+  "checkRuns": {
+    "status": "ok",
+    "commit": "a11ce5e0c0ffee00d00dfeed0000111122223333",
+    "excludedIds": [],
+    "runs": [
+      {
+        "id": 9001,
+        "name": "lint",
+        "status": "completed",
+        "conclusion": "success",
+        "checkSuiteId": 6001,
+        "appSlug": "github-actions",
+        "workflowPath": ".github/workflows/ci.yml",
+        "workflowRunId": 7001,
+        "runAttempt": 1
+      },
+      {
+        "id": 9002,
+        "name": "typecheck",
+        "status": "completed",
+        "conclusion": "success",
+        "checkSuiteId": 6001,
+        "appSlug": "github-actions",
+        "workflowPath": ".github/workflows/ci.yml",
+        "workflowRunId": 7001,
+        "runAttempt": 1
+      },
+      {
+        "id": 9003,
+        "name": "test",
+        "status": "completed",
+        "conclusion": "failure",
+        "checkSuiteId": 6001,
+        "appSlug": "github-actions",
+        "workflowPath": ".github/workflows/ci.yml",
+        "workflowRunId": 7001,
+        "runAttempt": 1
+      },
+      {
+        "id": 9004,
+        "name": "lint",
+        "status": "completed",
+        "conclusion": "success",
+        "checkSuiteId": 6003,
+        "appSlug": "github-actions",
+        "workflowPath": ".github/workflows/ci.yml",
+        "workflowRunId": 7003,
+        "runAttempt": 1
+      },
+      {
+        "id": 9005,
+        "name": "typecheck",
+        "status": "completed",
+        "conclusion": "success",
+        "checkSuiteId": 6003,
+        "appSlug": "github-actions",
+        "workflowPath": ".github/workflows/ci.yml",
+        "workflowRunId": 7003,
+        "runAttempt": 1
+      },
+      {
+        "id": 9006,
+        "name": "test",
+        "status": "completed",
+        "conclusion": "success",
+        "checkSuiteId": 6003,
+        "appSlug": "github-actions",
+        "workflowPath": ".github/workflows/ci.yml",
+        "workflowRunId": 7003,
+        "runAttempt": 1
+      }
+    ]
+  },
+  "testRecords": [
+    {
+      "record": {
+        "kind": "junit",
+        "workflow": ".github/workflows/ci.yml",
+        "job": "test",
+        "artifact": "junit-report",
+        "path": "reports/junit.xml"
+      },
+      "status": "ok",
+      "runs": [
+        {
+          "runId": 7003,
+          "runAttempt": 1,
+          "executed": 128,
+          "failed": 0
+        }
+      ]
+    }
+  ],
+  "deployments": [
+    {
+      "environment": "production",
+      "status": "ok",
+      "deployments": [
+        {
+          "id": 5001,
+          "sha": "feedface00000000000000000000000000000001",
+          "relation": "merge",
+          "successAt": "2026-10-01T14:12:30Z"
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "kind": "artifact",
+      "locator": "GET /repos/example-org/example-repo/actions/artifacts/37003/zip#reports/junit.xml",
+      "sha256": "7a7419e4e97a97d7eabdf91363874c07c25926ad00f0e17decc6c9fb1596f7a5",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "check_runs",
+      "locator": "GET /repos/example-org/example-repo/commits/a11ce5e0c0ffee00d00dfeed0000111122223333/check-runs?filter=latest&per_page=100&page=1",
+      "sha256": "d62eb6ade0efdc4428d55f370cc5a317095df342846a931f8756ee9d5c57eb75",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "closing_references",
+      "locator": "POST /graphql repository(example-org/example-repo).pullRequest(166).closingIssuesReferences",
+      "sha256": "a0b19bcb1833e679c26c4e84469cfc1f9d4f5e3a9c466da9a8caad6cc75579de",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "commit",
+      "locator": "GET /repos/example-org/example-repo/commits/c17ed00000000000000000000000000000000001",
+      "sha256": "58a0a3d97aba44276ee81667dfdd70915da80693c7f82059f8426459f939b2f1",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "compare",
+      "locator": "GET /repos/example-org/example-repo/compare/c17ed00000000000000000000000000000000001...a11ce5e0c0ffee00d00dfeed0000111122223333",
+      "sha256": "113578049fd5541527b4384697f4ef5d73570ae4849116ae87eb5008e4e50f79",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "deployments",
+      "locator": "GET /repos/example-org/example-repo/deployments/5001/statuses?per_page=100&page=1",
+      "sha256": "7199156c4dfb7b194f5f443c5729524409f5f753ce27324ff207df6d66a686d3",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "deployments",
+      "locator": "GET /repos/example-org/example-repo/deployments?environment=production&sha=a11ce5e0c0ffee00d00dfeed0000111122223333&per_page=100&page=1",
+      "sha256": "b8b063edf63a917005600efbdd4046ddcaa26a58ed4cb1613741f0ca992693a7",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "issue",
+      "locator": "GET /repos/example-org/example-docs/issues/5",
+      "sha256": "89e3e451baa5bd736cf4714d3c8f0ab99f37268efd3179fcfd7ccbfca54f37a3",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "pull_request",
+      "locator": "GET /repos/example-org/example-repo/pulls/166",
+      "sha256": "406adcc522fd2afee28de1630f7fa5cd49dda8a4a67f1eed195e8fd599210de2",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "pull_request_files",
+      "locator": "GET /repos/example-org/example-repo/pulls/166/files?per_page=100&page=1",
+      "sha256": "8510c1138ff276dd91d7a16b4ead4ee2a5b925e8df4cfe730336d8fa90e1f0d6",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "repository",
+      "locator": "GET /repos/example-org/example-docs",
+      "sha256": "40f40127ff20363b46f40d0bc5af280dd96c6090c091bf23677cead405b88e5c",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "workflow_runs",
+      "locator": "GET /repos/example-org/example-repo/actions/runs/7001/artifacts?name=junit-report&per_page=100&page=1",
+      "sha256": "e0d2b693a7d97371f2fe751f87850ff80536778d350a56aebd5fc7e2393bc0a4",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "workflow_runs",
+      "locator": "GET /repos/example-org/example-repo/actions/runs/7001/jobs?filter=latest&per_page=100&page=1",
+      "sha256": "f062530ac5ed21891eb0b8591f079fdba80f440df2ea6076625d48bd2d545bd1",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "workflow_runs",
+      "locator": "GET /repos/example-org/example-repo/actions/runs/7003/artifacts?name=junit-report&per_page=100&page=1",
+      "sha256": "456f57026daffd4fb28267647d94aa4a403ef1a74de8ee9e181244e1541e4b27",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "workflow_runs",
+      "locator": "GET /repos/example-org/example-repo/actions/runs/7003/jobs?filter=latest&per_page=100&page=1",
+      "sha256": "8b2c807ba545c669d1ff573abc7ff3ec5fca3d0e2312d72381e5d68aa06a7d72",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "workflow_runs",
+      "locator": "GET /repos/example-org/example-repo/actions/runs?head_sha=a11ce5e0c0ffee00d00dfeed0000111122223333&per_page=100&page=1",
+      "sha256": "451c9d9aff57c7d3a7f0b07fce61ac20e55b393c4b8a9cd8ccf98bfa7360a1db",
+      "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "workflow_runs",
+      "locator": "GET /repos/example-org/example-repo/actions/workflows/ci.yml/runs?head_sha=a11ce5e0c0ffee00d00dfeed0000111122223333&per_page=100&page=1",
+      "sha256": "7c26f2cc82353e7441069c8961c80c08179af938220aa3790ed04d50f9712265",
+      "readAt": "2026-10-04T12:00:00Z"
+    }
+  ]
+}

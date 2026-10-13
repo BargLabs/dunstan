@@ -1,0 +1,699 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`the retrieval challenge set > checks/case-lower: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "220 = name",
+    "221 1.715542 (not combined)",
+    "205 0",
+    "214 0",
+    "230 0",
+  ],
+  "observed": true,
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > checks/case-upper: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "221 = name",
+    "220 1.715542 (not combined)",
+    "205 0",
+    "214 0",
+    "230 0",
+  ],
+  "observed": false,
+  "reason": "all_succeeded_mismatch",
+  "verdict": "fail",
+}
+`;
+
+exports[`the retrieval challenge set > checks/matrix-job: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "240 = name",
+    "241 1.864136 (not combined)",
+    "205 1.325943 (not combined)",
+    "214 0",
+    "220 0",
+  ],
+  "observed": true,
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > checks/rerun-in-progress: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "252 = name",
+    "205 0",
+    "214 0",
+    "220 0",
+    "221 0",
+  ],
+  "observed": null,
+  "reason": "checks_incomplete",
+  "verdict": "unverifiable",
+}
+`;
+
+exports[`the retrieval challenge set > checks/rerun-latest-failed: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "214 = name",
+    "205 0",
+    "220 0",
+    "221 0",
+    "230 0",
+  ],
+  "observed": false,
+  "reason": "all_succeeded_mismatch",
+  "verdict": "fail",
+}
+`;
+
+exports[`the retrieval challenge set > checks/same-name-two-workflows: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "205 = name",
+    "240 0.812675",
+    "241 0.812675",
+    "214 0",
+    "220 0",
+  ],
+  "observed": false,
+  "reason": "all_succeeded_mismatch",
+  "verdict": "fail",
+}
+`;
+
+exports[`the retrieval challenge set > checks/short-name: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "230 1.715542",
+    "232 1.303812",
+    "205 0",
+    "214 0",
+    "220 0",
+  ],
+  "observed": false,
+  "reason": "all_succeeded_mismatch",
+  "verdict": "fail",
+}
+`;
+
+exports[`the retrieval challenge set > checks/short-name-alone: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "231 2.307024",
+    "205 0",
+    "214 0",
+    "220 0",
+    "221 0",
+  ],
+  "observed": true,
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > checks/short-name-in-longer: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "232 = name",
+    "230 1.715542 (not combined)",
+    "205 0",
+    "214 0",
+    "220 0",
+  ],
+  "observed": true,
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > lexical/api-version-later: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "api.v1.lists users 3.381665",
+    "api.v2.lists users 3.381665",
+    "upload.accepts a 0 byte file 0",
+    "upload.accepts a 1 byte file 0",
+  ],
+  "observed": false,
+  "reason": "test_outcome_mismatch",
+  "verdict": "fail",
+}
+`;
+
+exports[`the retrieval challenge set > lexical/byte-size-later: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "upload.accepts a 0 byte file 2.254444",
+    "upload.accepts a 1 byte file 2.254444",
+    "api.v1.lists users 0",
+    "api.v2.lists users 0",
+  ],
+  "observed": false,
+  "reason": "test_outcome_mismatch",
+  "verdict": "fail",
+}
+`;
+
+exports[`the retrieval challenge set > lexical/byte-size-later-said-to-fail: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "upload.accepts a 0 byte file 2.254444",
+    "upload.accepts a 1 byte file 2.254444",
+    "api.v1.lists users 0",
+    "api.v2.lists users 0",
+  ],
+  "observed": false,
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > lexical/package-later: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "511 2.966373",
+    "512 2.966373",
+    "501 0",
+    "502 0",
+  ],
+  "observed": false,
+  "reason": "all_succeeded_mismatch",
+  "verdict": "fail",
+}
+`;
+
+exports[`the retrieval challenge set > lexical/shard-earlier: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "501 2.966373",
+    "502 2.966373",
+    "511 0",
+    "512 0",
+  ],
+  "observed": false,
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > lexical/shard-later: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "501 2.966373",
+    "502 2.966373",
+    "511 0",
+    "512 0",
+  ],
+  "observed": false,
+  "reason": "all_succeeded_mismatch",
+  "verdict": "fail",
+}
+`;
+
+exports[`the retrieval challenge set > lexical/shard-later-named: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "502 = name",
+    "501 2.966373 (not combined)",
+    "511 0",
+    "512 0",
+  ],
+  "observed": true,
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > lexical/shard-later-said-to-fail: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "501 2.966373",
+    "502 2.966373",
+    "511 0",
+    "512 0",
+  ],
+  "observed": false,
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > numbers/connected-reference: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "evt-3 = ref",
+    "evt-1 0",
+    "evt-2 0",
+    "evt-4 0",
+    "evt-5 0",
+  ],
+  "observed": {
+    "event": "connected",
+    "ref": "example-org/example-repo#15",
+  },
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > numbers/number-prefix: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "evt-4 = ref",
+    "evt-1 0",
+    "evt-2 0",
+    "evt-3 0",
+    "evt-5 0",
+  ],
+  "observed": {
+    "event": "cross-referenced",
+    "ref": "example-org/example-repo#120",
+  },
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > numbers/other-repo-number: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "evt-2 = ref",
+    "evt-1 1.05523 (not combined)",
+    "evt-3 0.279514",
+    "evt-4 0.26099",
+    "evt-5 0",
+  ],
+  "observed": {
+    "event": "cross-referenced",
+    "ref": "other-org/tool#12",
+  },
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > numbers/other-repo-number-case: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "evt-2 = ref",
+    "evt-1 1.05523 (not combined)",
+    "evt-3 0.279514",
+    "evt-4 0.26099",
+    "evt-5 0",
+  ],
+  "observed": {
+    "event": "cross-referenced",
+    "ref": "other-org/tool#12",
+  },
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > numbers/subject-repo-number: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "evt-1 = ref",
+    "evt-2 0.850613",
+    "evt-3 0",
+    "evt-4 0",
+    "evt-5 0",
+  ],
+  "observed": {
+    "event": "cross-referenced",
+    "ref": "example-org/example-repo#12",
+  },
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > paths/context-only: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "src/parse/tokens.ts = path",
+    "test/parse/grammar.test.ts 3.815559 (not combined)",
+    "src/config/load.ts 1.01511 (not combined)",
+    "src/text/format.ts 1.01511 (not combined)",
+    "src/check/check.ts 0.94312",
+  ],
+  "observed": null,
+  "reason": "declared_item_not_among_candidates",
+  "verdict": "unverifiable",
+}
+`;
+
+exports[`the retrieval challenge set > paths/monorepo-changed: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "packages/c/index.ts = path",
+    "packages/a/index.ts 4.041164 (not combined)",
+    "src/config/load.ts 0.239105",
+    "src/text/format.ts 0.239105",
+    "src/check/check.ts 0.222148",
+  ],
+  "observed": "packages/c/index.ts",
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > paths/monorepo-not-changed: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "packages/a/index.ts 4.041164",
+    "packages/c/index.ts 4.041164",
+    "src/config/load.ts 0.239105",
+    "src/text/format.ts 0.239105",
+    "src/check/check.ts 0.222148",
+  ],
+  "observed": null,
+  "reason": "declared_item_not_among_candidates",
+  "verdict": "unverifiable",
+}
+`;
+
+exports[`the retrieval challenge set > paths/nested-test-file: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "test/check/checks.test.ts = path",
+    "test/parse/grammar.test.ts 2.388341 (not combined)",
+    "src/check/check.ts 2.075581 (not combined)",
+    "src/check/checks.ts 2.075581 (not combined)",
+    "packages/a/index.ts 0.245832",
+  ],
+  "observed": "test/check/checks.test.ts",
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > paths/prefix-longer: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "bin/release-notes = path",
+    "bin/release 4.248256 (not combined)",
+    "packages/a/index.ts 0",
+    "packages/c/index.ts 0",
+    "src/check/check.ts 0",
+  ],
+  "observed": "bin/release-notes",
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > paths/prefix-shorter: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "bin/release = path",
+    "bin/release-notes 3.795333 (not combined)",
+    "packages/a/index.ts 0",
+    "packages/c/index.ts 0",
+    "src/check/check.ts 0",
+  ],
+  "observed": "bin/release",
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > paths/rename-old-path: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "src/config/load.ts = previousPath",
+    "src/text/format.ts 1.01511 (not combined)",
+    "src/check/check.ts 0.94312",
+    "src/check/checks.ts 0.94312",
+    "src/parse/tokens.ts 0.94312",
+  ],
+  "observed": "src/config/load.ts",
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > paths/rename-old-path-reused: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "src/text/format.ts = previousPath",
+    "src/util/format.ts = path",
+    "src/config/load.ts 1.01511 (not combined)",
+    "src/check/check.ts 0.94312",
+    "src/check/checks.ts 0.94312",
+  ],
+  "observed": "src/text/format.ts",
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > paths/sibling-not-changed: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "src/check/check.ts 2.796553",
+    "src/check/checks.ts 2.796553",
+    "test/check/checks.test.ts 1.942261",
+    "src/config/load.ts 1.01511",
+    "src/text/format.ts 1.01511",
+  ],
+  "observed": null,
+  "reason": "declared_item_not_among_candidates",
+  "verdict": "unverifiable",
+}
+`;
+
+exports[`the retrieval challenge set > paths/sibling-plural: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "src/check/checks.ts = path",
+    "src/check/check.ts 2.796553 (not combined)",
+    "test/check/checks.test.ts 1.942261 (not combined)",
+    "src/config/load.ts 1.01511 (not combined)",
+    "src/text/format.ts 1.01511 (not combined)",
+  ],
+  "observed": "src/check/checks.ts",
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > paths/sibling-singular: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "src/check/check.ts = path",
+    "src/check/checks.ts 2.796553 (not combined)",
+    "test/check/checks.test.ts 1.942261 (not combined)",
+    "src/config/load.ts 1.01511 (not combined)",
+    "src/text/format.ts 1.01511 (not combined)",
+  ],
+  "observed": "src/check/check.ts",
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > shas/full-declared-short-text: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "3f9a2b104c5d6e7f8091a2b3c4d5e6f708192a3b = sha",
+    "3f9a2b19e8d7c6b5a49382716f5e4d3c2b1a09f8 = sha",
+    "8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f 0.906065",
+  ],
+  "observed": "3f9a2b19e8d7c6b5a49382716f5e4d3c2b1a09f8",
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > shas/full-not-in-pull-request: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "3f9a2b104c5d6e7f8091a2b3c4d5e6f708192a3b = sha",
+    "3f9a2b19e8d7c6b5a49382716f5e4d3c2b1a09f8 = sha",
+    "8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f 0",
+  ],
+  "observed": null,
+  "reason": "declared_item_not_among_candidates",
+  "verdict": "unverifiable",
+}
+`;
+
+exports[`the retrieval challenge set > shas/prefix7-earlier-commit: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "3f9a2b104c5d6e7f8091a2b3c4d5e6f708192a3b = sha",
+    "3f9a2b19e8d7c6b5a49382716f5e4d3c2b1a09f8 = sha",
+    "8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f 0",
+  ],
+  "observed": "3f9a2b104c5d6e7f8091a2b3c4d5e6f708192a3b",
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > shas/prefix7-later-commit: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "3f9a2b104c5d6e7f8091a2b3c4d5e6f708192a3b = sha",
+    "3f9a2b19e8d7c6b5a49382716f5e4d3c2b1a09f8 = sha",
+    "8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f 0.906065",
+  ],
+  "observed": "3f9a2b104c5d6e7f8091a2b3c4d5e6f708192a3b",
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > shas/prefix10-unambiguous: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "3f9a2b19e8d7c6b5a49382716f5e4d3c2b1a09f8 = sha",
+    "8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f 0.906065",
+    "3f9a2b104c5d6e7f8091a2b3c4d5e6f708192a3b 0",
+  ],
+  "observed": "3f9a2b19e8d7c6b5a49382716f5e4d3c2b1a09f8",
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > shas/timeline-only: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "3f9a2b104c5d6e7f8091a2b3c4d5e6f708192a3b 0",
+    "3f9a2b19e8d7c6b5a49382716f5e4d3c2b1a09f8 0",
+    "8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f 0",
+  ],
+  "observed": null,
+  "reason": "no_matching_record_item",
+  "verdict": "unverifiable",
+}
+`;
+
+exports[`the retrieval challenge set > shas/timeline-only-shared-prefix: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "3f9a2b104c5d6e7f8091a2b3c4d5e6f708192a3b 0",
+    "3f9a2b19e8d7c6b5a49382716f5e4d3c2b1a09f8 0",
+    "8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f 0",
+  ],
+  "observed": null,
+  "reason": "no_matching_record_item",
+  "verdict": "unverifiable",
+}
+`;
+
+exports[`the retrieval challenge set > tests/one-token-apart-failed: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "cache.store.evicts the newest entry = name",
+    "cache.store.evicts the oldest entry 2.13878 (not combined)",
+    "http.retry.gives up after three attempts 0",
+    "queue.retry.gives up after three attempts 0",
+    "parse.number.reads a number 0",
+  ],
+  "observed": false,
+  "reason": "test_outcome_mismatch",
+  "verdict": "fail",
+}
+`;
+
+exports[`the retrieval challenge set > tests/one-token-apart-passed: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "cache.store.evicts the oldest entry = name",
+    "cache.store.evicts the newest entry 2.13878 (not combined)",
+    "http.retry.gives up after three attempts 0",
+    "queue.retry.gives up after three attempts 0",
+    "parse.number.reads a number 0",
+  ],
+  "observed": true,
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > tests/one-token-longer: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "parse.number.reads a negative number = name",
+    "parse.number.reads a number 2.692261 (not combined)",
+    "cache.store.evicts the oldest entry 0",
+    "cache.store.evicts the newest entry 0",
+    "http.retry.gives up after three attempts 0",
+  ],
+  "observed": false,
+  "reason": "test_outcome_mismatch",
+  "verdict": "fail",
+}
+`;
+
+exports[`the retrieval challenge set > tests/one-token-shorter: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "parse.number.reads a number = name",
+    "parse.number.reads a negative number 2.522264 (not combined)",
+    "cache.store.evicts the oldest entry 0",
+    "cache.store.evicts the newest entry 0",
+    "http.retry.gives up after three attempts 0",
+  ],
+  "observed": true,
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > tests/same-name-classname-in-prose: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "http.retry.gives up after three attempts = name",
+    "queue.retry.gives up after three attempts = name",
+    "cache.store.evicts the oldest entry 0",
+    "cache.store.evicts the newest entry 0",
+    "parse.number.reads a number 0",
+  ],
+  "observed": false,
+  "reason": "test_outcome_mismatch",
+  "verdict": "fail",
+}
+`;
+
+exports[`the retrieval challenge set > tests/same-name-classname-qualified: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "queue.retry.gives up after three attempts = name",
+    "http.retry.gives up after three attempts 5.557648 (not combined)",
+    "cache.store.evicts the oldest entry 0",
+    "cache.store.evicts the newest entry 0",
+    "parse.number.reads a number 0",
+  ],
+  "observed": true,
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > tests/same-name-declared-failing: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "http.retry.gives up after three attempts = name",
+    "queue.retry.gives up after three attempts = name",
+    "cache.store.evicts the oldest entry 0",
+    "cache.store.evicts the newest entry 0",
+    "parse.number.reads a number 0",
+  ],
+  "observed": false,
+  "reason": null,
+  "verdict": "pass",
+}
+`;

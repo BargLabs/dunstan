@@ -1,0 +1,101 @@
+{
+  "repository": "example-org/example-repo",
+  "family": "tests",
+  "evidence": {
+    "items": {
+      "commits": { "status": "ok", "entries": [] },
+      "timeline": { "status": "ok", "entries": [] },
+      "tests": {
+        "status": "ok",
+        "entries": [
+          { "classname": "cache.store", "name": "evicts the oldest entry", "outcome": "passed" },
+          { "classname": "cache.store", "name": "evicts the newest entry", "outcome": "failed" },
+          {
+            "classname": "http.retry",
+            "name": "gives up after three attempts",
+            "outcome": "failed"
+          },
+          {
+            "classname": "queue.retry",
+            "name": "gives up after three attempts",
+            "outcome": "passed"
+          },
+          { "classname": "parse.number", "name": "reads a number", "outcome": "passed" },
+          { "classname": "parse.number", "name": "reads a negative number", "outcome": "failed" }
+        ]
+      }
+    }
+  },
+  "claims": [
+    {
+      "id": "one-token-apart-passed",
+      "confusion": "evicts the oldest entry against evicts the newest entry",
+      "text": "The test \"evicts the oldest entry\" passes.",
+      "kind": "test_passed",
+      "declaredValue": true,
+      "expectCandidates": ["cache.store.evicts the oldest entry"],
+      "forbidCandidates": ["cache.store.evicts the newest entry"],
+      "expectCheck": { "verdict": "pass", "observed": true }
+    },
+    {
+      "id": "one-token-apart-failed",
+      "confusion": "evicts the newest entry against evicts the oldest entry",
+      "text": "The test \"evicts the newest entry\" passes.",
+      "kind": "test_passed",
+      "declaredValue": true,
+      "expectCandidates": ["cache.store.evicts the newest entry"],
+      "forbidCandidates": ["cache.store.evicts the oldest entry"],
+      "expectCheck": { "verdict": "fail", "reason": "test_outcome_mismatch", "observed": false }
+    },
+    {
+      "id": "same-name-classname-in-prose",
+      "confusion": "one name under two classnames; the prose says which (queue retry), and it comes later",
+      "text": "The queue retry test \"gives up after three attempts\" passes.",
+      "kind": "test_passed",
+      "declaredValue": true,
+      "expectCandidates": ["queue.retry.gives up after three attempts"],
+      "forbidCandidates": ["http.retry.gives up after three attempts"],
+      "expectCheck": { "verdict": "pass", "observed": true }
+    },
+    {
+      "id": "same-name-classname-qualified",
+      "confusion": "one name under two classnames; the claim gives classname.name",
+      "text": "queue.retry.gives up after three attempts passes.",
+      "kind": "test_passed",
+      "declaredValue": true,
+      "expectCandidates": ["queue.retry.gives up after three attempts"],
+      "forbidCandidates": ["http.retry.gives up after three attempts"],
+      "expectCheck": { "verdict": "pass", "observed": true }
+    },
+    {
+      "id": "same-name-declared-failing",
+      "confusion": "one name under two classnames; the claim is that the http one fails",
+      "text": "The http retry test \"gives up after three attempts\" fails.",
+      "kind": "test_passed",
+      "declaredValue": false,
+      "expectCandidates": ["http.retry.gives up after three attempts"],
+      "forbidCandidates": ["queue.retry.gives up after three attempts"],
+      "expectCheck": { "verdict": "pass", "observed": false }
+    },
+    {
+      "id": "one-token-shorter",
+      "confusion": "reads a number against reads a negative number",
+      "text": "The test \"reads a number\" passes.",
+      "kind": "test_passed",
+      "declaredValue": true,
+      "expectCandidates": ["parse.number.reads a number"],
+      "forbidCandidates": ["parse.number.reads a negative number"],
+      "expectCheck": { "verdict": "pass", "observed": true }
+    },
+    {
+      "id": "one-token-longer",
+      "confusion": "reads a negative number against reads a number",
+      "text": "The test \"reads a negative number\" passes.",
+      "kind": "test_passed",
+      "declaredValue": true,
+      "expectCandidates": ["parse.number.reads a negative number"],
+      "forbidCandidates": ["parse.number.reads a number"],
+      "expectCheck": { "verdict": "fail", "reason": "test_outcome_mismatch", "observed": false }
+    }
+  ]
+}

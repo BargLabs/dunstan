@@ -1,0 +1,112 @@
+{
+  "repository": "example-org/example-repo",
+  "family": "lexical",
+  "evidence": {
+    "checkRuns": {
+      "status": "ok",
+      "commit": "c0ffee0000000000000000000000000000000002",
+      "excludedIds": [],
+      "runs": [
+        { "id": 501, "name": "e2e (shard 1)", "status": "completed", "conclusion": "failure" },
+        { "id": 502, "name": "e2e (shard 2)", "status": "completed", "conclusion": "success" },
+        { "id": 511, "name": "publish (pkg-a)", "status": "completed", "conclusion": "failure" },
+        { "id": 512, "name": "publish (pkg-b)", "status": "completed", "conclusion": "success" }
+      ]
+    },
+    "items": {
+      "commits": { "status": "ok", "entries": [] },
+      "timeline": { "status": "ok", "entries": [] },
+      "tests": {
+        "status": "ok",
+        "entries": [
+          { "classname": "upload", "name": "accepts a 0 byte file", "outcome": "failed" },
+          { "classname": "upload", "name": "accepts a 1 byte file", "outcome": "passed" },
+          { "classname": "api.v1", "name": "lists users", "outcome": "failed" },
+          { "classname": "api.v2", "name": "lists users", "outcome": "passed" }
+        ]
+      }
+    }
+  },
+  "claims": [
+    {
+      "id": "shard-later",
+      "confusion": "e2e (shard 2) and e2e (shard 1) tie once the one-digit token is dropped; shard 2 comes later",
+      "text": "e2e shard 2 passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "expectCandidates": ["502"],
+      "forbidCandidates": ["501"],
+      "expectCheck": { "verdict": "pass", "observed": true }
+    },
+    {
+      "id": "shard-later-named",
+      "confusion": "as shard-later, with the job named exactly",
+      "text": "e2e (shard 2) passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "expectCandidates": ["502"],
+      "forbidCandidates": ["501"],
+      "expectCheck": { "verdict": "pass", "observed": true }
+    },
+    {
+      "id": "shard-earlier",
+      "confusion": "the same tie, where the claim's job comes first",
+      "text": "e2e shard 1 fails.",
+      "kind": "check_succeeded",
+      "declaredValue": false,
+      "expectCandidates": ["501"],
+      "forbidCandidates": ["502"],
+      "expectCheck": { "verdict": "pass", "observed": false }
+    },
+    {
+      "id": "shard-later-said-to-fail",
+      "confusion": "the shard tie, where the claim says shard 2 fails and shard 2 succeeded: the failed shard 1 must not make the claim true",
+      "text": "e2e shard 2 fails.",
+      "kind": "check_succeeded",
+      "declaredValue": false,
+      "expectCandidates": ["502"],
+      "forbidCandidates": ["501"],
+      "expectCheck": { "verdict": "fail", "reason": "all_succeeded_mismatch", "observed": true }
+    },
+    {
+      "id": "package-later",
+      "confusion": "publish (pkg-b) and publish (pkg-a) tie once the one-letter token is dropped; pkg-b comes later",
+      "text": "publish pkg-b succeeds.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "expectCandidates": ["512"],
+      "forbidCandidates": ["511"],
+      "expectCheck": { "verdict": "pass", "observed": true }
+    },
+    {
+      "id": "byte-size-later",
+      "confusion": "accepts a 1 byte file and accepts a 0 byte file tie; the 1 byte test comes later",
+      "text": "The 1 byte upload test passes.",
+      "kind": "test_passed",
+      "declaredValue": true,
+      "expectCandidates": ["upload.accepts a 1 byte file"],
+      "forbidCandidates": ["upload.accepts a 0 byte file"],
+      "expectCheck": { "verdict": "pass", "observed": true }
+    },
+    {
+      "id": "byte-size-later-said-to-fail",
+      "confusion": "the byte-size tie, where the claim says the 1 byte test fails and it passed: the failed 0 byte test must not make the claim true",
+      "text": "The 1 byte upload test fails.",
+      "kind": "test_passed",
+      "declaredValue": false,
+      "expectCandidates": ["upload.accepts a 1 byte file"],
+      "forbidCandidates": ["upload.accepts a 0 byte file"],
+      "expectCheck": { "verdict": "fail", "reason": "test_outcome_mismatch", "observed": true }
+    },
+    {
+      "id": "api-version-later",
+      "confusion": "lists users under api.v1 and api.v2 tie for 'version 2'; api.v2 comes later",
+      "text": "API version 2 can list users.",
+      "kind": "test_passed",
+      "declaredValue": true,
+      "expectCandidates": ["api.v2.lists users"],
+      "forbidCandidates": ["api.v1.lists users"],
+      "expectCheck": { "verdict": "pass", "observed": true }
+    }
+  ]
+}

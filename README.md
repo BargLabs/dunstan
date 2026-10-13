@@ -27,7 +27,7 @@ report a pull request's handback before it says done ([`plugins/dunstan/`](plugi
 /plugin install dunstan@barglabs
 ```
 
-The plugin runs the MCP server with `npx -y dunstan@0.1.6 mcp`, the `dunstan` npm package at that
+The plugin runs the MCP server with `npx -y dunstan@0.1.7 mcp`, the `dunstan` npm package at that
 exact version: one self-contained file, no dependencies.
 
 **The token.** When you enable the plugin, Claude Code asks for an optional GitHub token and keeps it
@@ -191,10 +191,11 @@ baseline, a negated list or a deliberate test failure as claims, and since 0.1.3
 list or a merge time after a colon ([`docs/advisory.md`](docs/advisory.md), "Attribution" and
 "Lists, merge times and own references"). Extractor 0.1.4's rules did not generalise to held-out
 pull requests and were reverted ("Labels, used names and descriptions"). No figure is published
-for 0.1.3, so a record it writes says "unmeasured". The comparison that runs is 0.3.0: a file claim
+for 0.1.3, so a record it writes says "unmeasured". The comparison that runs is 0.4.0: a file claim
 not among the changed files is a possible disagreement only when its path is a file at the head,
-and is unanswered when nothing or a directory is there ("Paths that are not at the head"). It is
-unmeasured too: the `differs` figure stays bound to comparison 0.2.0.
+and is unanswered when nothing or a directory is there ("Paths that are not at the head"), and a
+`closes` claim is settled by who closed the target, as the gate's is ("Closes read by who closed
+the target"). It is unmeasured too: the `differs` figure stays bound to comparison 0.2.0.
 
 The base rate is always shown next to the `differs` figure: among the 44 advisories the record
 could check, none was a false claim (0 of 44), so 0 of 20 means there was little to find, not that

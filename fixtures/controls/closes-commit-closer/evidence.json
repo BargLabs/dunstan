@@ -1,0 +1,108 @@
+{
+  "pullRequest": {
+    "status": "ok",
+    "number": 161,
+    "state": "closed",
+    "merged": true,
+    "mergedAt": "2026-10-08T10:00:00Z",
+    "headSha": "a11ce5e0c0ffee00d00dfeed0000111122223333",
+    "mergeSha": "feedface00000000000000000000000000000001",
+    "changedFiles": 3
+  },
+  "files": {
+    "status": "ok",
+    "complete": true,
+    "entries": [
+      {
+        "path": "docs/cache.md",
+        "status": "modified"
+      },
+      {
+        "path": "src/cache.test.ts",
+        "status": "added"
+      },
+      {
+        "path": "src/cache.ts",
+        "status": "modified"
+      }
+    ]
+  },
+  "closingReferences": {
+    "status": "ok",
+    "issues": []
+  },
+  "references": [
+    {
+      "kind": "issue",
+      "ref": "example-org/example-repo#32",
+      "status": "ok",
+      "exists": true
+    }
+  ],
+  "closeEvents": {
+    "pullRequest": {
+      "status": "ok",
+      "baseRef": "main",
+      "defaultBranch": "main",
+      "commits": [
+        "a11ce5e0c0ffee00d00dfeed0000111122223333",
+        "c0de000000000000000000000000000000000001"
+      ]
+    },
+    "targets": [
+      {
+        "ref": "example-org/example-repo#32",
+        "status": "ok",
+        "type": "issue",
+        "state": "closed",
+        "events": [
+          {
+            "at": "2026-10-08T10:00:02Z",
+            "closer": {
+              "kind": "commit",
+              "oid": "c0de000000000000000000000000000000000001"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "sources": [
+    {
+      "kind": "closing_references",
+      "locator": "POST /graphql repository(example-org/example-repo).pullRequest(161).closingIssuesReferences",
+      "sha256": "312fc9dc8975bc270316cf3ee88d34259a6eee8c1245a6884a615e84535d8597",
+      "readAt": "2026-10-11T12:00:00Z"
+    },
+    {
+      "kind": "issue",
+      "locator": "GET /repos/example-org/example-repo/issues/32",
+      "sha256": "dd20d63853d0671e718d318a1f54b24c7912fb425a07cf4ca282101fe23dec6f",
+      "readAt": "2026-10-11T12:00:00Z"
+    },
+    {
+      "kind": "issue",
+      "locator": "POST /graphql repository(example-org/example-repo).issueOrPullRequest(32).timelineItems(CLOSED_EVENT)",
+      "sha256": "b3cf2c90446609e3125654b5c96ecedfdff8221b4572cb1cdeb7d966966ee23f",
+      "readAt": "2026-10-11T12:00:00Z"
+    },
+    {
+      "kind": "pull_request",
+      "locator": "GET /repos/example-org/example-repo/pulls/161",
+      "sha256": "ea191e190be6b14197b8a4d2363d9903f5065bb94bed7ce244a8a21c74696cf4",
+      "readAt": "2026-10-11T12:00:00Z"
+    },
+    {
+      "kind": "pull_request_commits",
+      "locator": "POST /graphql repository(example-org/example-repo).pullRequest(161).commits",
+      "sha256": "8ff1d265d7787a9c57de8aecb1dc39d6e66aa8564d1b5c0d9f5d81ffeb917be4",
+      "readAt": "2026-10-11T12:00:00Z"
+    },
+    {
+      "kind": "pull_request_files",
+      "locator": "GET /repos/example-org/example-repo/pulls/161/files?per_page=100&page=1",
+      "sha256": "424d996c715f6fb3c65720fc67e1a9fb8e56b774824084969b346486c71abe87",
+      "readAt": "2026-10-11T12:00:00Z"
+    }
+  ]
+}

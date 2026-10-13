@@ -1,0 +1,179 @@
+{
+  "probe": "closes-probe-2026-10",
+  "repository": "BargLabs/closes-probe-sandbox",
+  "defaultBranch": "main",
+  "initialCommit": "f3d000c43c3a5c2efa9bfb2f40580843617e46f1",
+  "startedAt": "2026-10-12T11:21:23.619Z",
+  "finishedAt": "2026-10-12T11:24:21.844Z",
+  "cases": [
+    {
+      "case": "i",
+      "what": "A commit message \"Fixes #a\"; the pull request body names no issue; merged with a merge commit.",
+      "target": {
+        "kind": "issue",
+        "number": 1
+      },
+      "commits": [
+        "eb4fc5d0b562ae9917399e71592dc33217ebad16"
+      ],
+      "steps": [
+        {
+          "pullRequest": 2,
+          "base": "main",
+          "head": "probe-i",
+          "body": "Case (i).",
+          "mergeMethod": "merge",
+          "mergeCommit": "98352036187f7cad5f64dbad5f51bd3551e6d445",
+          "closingBefore": [],
+          "closingAfter": [],
+          "target": {
+            "type": "Issue",
+            "state": "CLOSED",
+            "closedEvents": []
+          }
+        }
+      ]
+    },
+    {
+      "case": "ii",
+      "what": "The same as (i), squash-merged: the squash commit carries the one commit's message.",
+      "target": {
+        "kind": "issue",
+        "number": 3
+      },
+      "commits": [
+        "467513d4e227ac7c27ba902bc2af7db5edceb3d5"
+      ],
+      "steps": [
+        {
+          "pullRequest": 4,
+          "base": "main",
+          "head": "probe-ii",
+          "body": "Case (ii).",
+          "mergeMethod": "squash",
+          "mergeCommit": "8392a37c48fdc6b59df68fcf30fb7a7049336889",
+          "closingBefore": [],
+          "closingAfter": [],
+          "target": {
+            "type": "Issue",
+            "state": "CLOSED",
+            "closedEvents": []
+          }
+        }
+      ]
+    },
+    {
+      "case": "iii",
+      "what": "A commit message \"Fixes #b\" on a branch merged into a non-default base, then that base merged into the default branch.",
+      "target": {
+        "kind": "issue",
+        "number": 5
+      },
+      "commits": [
+        "2017d22c1a20b266076fc506895f7955b9d70a1d"
+      ],
+      "steps": [
+        {
+          "pullRequest": 6,
+          "base": "probe-base-iii",
+          "head": "probe-iii",
+          "body": "Case (iii), first merge.",
+          "mergeMethod": "merge",
+          "mergeCommit": "8c82df30b3a467e1893458ba650942e06f150ec7",
+          "closingBefore": [],
+          "closingAfter": [],
+          "target": {
+            "type": "Issue",
+            "state": "OPEN",
+            "closedEvents": []
+          }
+        },
+        {
+          "pullRequest": 7,
+          "base": "main",
+          "head": "probe-base-iii",
+          "body": "Case (iii), second merge.",
+          "mergeMethod": "merge",
+          "mergeCommit": "027a943708f1b5a812f2888f459ccca1eade5210",
+          "closingBefore": [],
+          "closingAfter": [],
+          "target": {
+            "type": "Issue",
+            "state": "CLOSED",
+            "closedEvents": [
+              {
+                "at": "2026-10-12T11:22:53Z",
+                "closer": {
+                  "commit": "2017d22c1a20b266076fc506895f7955b9d70a1d"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "case": "iv",
+      "what": "A pull request body \"Closes #c\" with a non-default base.",
+      "target": {
+        "kind": "issue",
+        "number": 8
+      },
+      "commits": [
+        "c8412a8d719395c8a1405f19236bfe87ca6e7e59"
+      ],
+      "steps": [
+        {
+          "pullRequest": 9,
+          "base": "probe-base-iv",
+          "head": "probe-iv",
+          "body": "Closes #8",
+          "mergeMethod": "merge",
+          "mergeCommit": "4272ca08c8e1ea6ce3e07cfc36c79bb06e3841b9",
+          "closingBefore": [],
+          "closingAfter": [],
+          "target": {
+            "type": "Issue",
+            "state": "OPEN",
+            "closedEvents": []
+          }
+        }
+      ]
+    },
+    {
+      "case": "v",
+      "what": "A pull request body \"Closes #d\" where #d is an open pull request.",
+      "target": {
+        "kind": "pull_request",
+        "number": 10
+      },
+      "commits": [
+        "acd8393b39142498b62318fa70400c61b145d568"
+      ],
+      "steps": [
+        {
+          "pullRequest": 11,
+          "base": "main",
+          "head": "probe-v",
+          "body": "Closes #10",
+          "mergeMethod": "merge",
+          "mergeCommit": "463c2fb0ef7365c68a6a5840cf1caad88b42f522",
+          "closingBefore": [],
+          "closingAfter": [],
+          "target": {
+            "type": "PullRequest",
+            "state": "CLOSED",
+            "closedEvents": [
+              {
+                "at": "2026-10-12T11:24:16Z",
+                "closer": {
+                  "pullRequest": "BargLabs/closes-probe-sandbox#11"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

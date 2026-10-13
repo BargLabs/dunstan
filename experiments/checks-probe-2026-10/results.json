@@ -1,0 +1,606 @@
+{
+  "probe": "checks-probe-2026-10",
+  "repository": "BargLabs/closes-probe-sandbox",
+  "branch": "checks-probe",
+  "commit": "8c786d2aa86576266cc9a251287498677e9af910",
+  "startedAt": "2026-10-13T05:04:20.367Z",
+  "finishedAt": "2026-10-13T05:05:37.806Z",
+  "workflows": [
+    {
+      "key": "fails-first",
+      "path": ".github/workflows/checks-probe-fails-first.yml",
+      "events": [
+        "push"
+      ]
+    },
+    {
+      "key": "succeeds",
+      "path": ".github/workflows/checks-probe-succeeds.yml",
+      "events": [
+        "push"
+      ]
+    },
+    {
+      "key": "push-and-pull-request",
+      "path": ".github/workflows/checks-probe-push-and-pull-request.yml",
+      "events": [
+        "push",
+        "pull_request"
+      ]
+    }
+  ],
+  "snapshots": {
+    "first": {
+      "checkRuns": {
+        "latest": [
+          {
+            "id": 115138723505,
+            "name": "test",
+            "status": "completed",
+            "conclusion": "success",
+            "checkSuiteId": 103903156916,
+            "appSlug": "github-actions",
+            "htmlUrl": "https://github.com/BargLabs/closes-probe-sandbox/actions/runs/38349554612/job/115138723505"
+          },
+          {
+            "id": 115138578368,
+            "name": "build",
+            "status": "completed",
+            "conclusion": "success",
+            "checkSuiteId": 103903158709,
+            "appSlug": "github-actions",
+            "htmlUrl": "https://github.com/BargLabs/closes-probe-sandbox/actions/runs/38349555320/job/115138578368"
+          },
+          {
+            "id": 115138576643,
+            "name": "test",
+            "status": "completed",
+            "conclusion": "failure",
+            "checkSuiteId": 103903156982,
+            "appSlug": "github-actions",
+            "htmlUrl": "https://github.com/BargLabs/closes-probe-sandbox/actions/runs/38349554638/job/115138576643"
+          },
+          {
+            "id": 115138576459,
+            "name": "first",
+            "status": "completed",
+            "conclusion": "success",
+            "checkSuiteId": 103903156916,
+            "appSlug": "github-actions",
+            "htmlUrl": "https://github.com/BargLabs/closes-probe-sandbox/actions/runs/38349554612/job/115138576459"
+          },
+          {
+            "id": 115138576393,
+            "name": "build",
+            "status": "completed",
+            "conclusion": "success",
+            "checkSuiteId": 103903156934,
+            "appSlug": "github-actions",
+            "htmlUrl": "https://github.com/BargLabs/closes-probe-sandbox/actions/runs/38349554617/job/115138576393"
+          }
+        ],
+        "all": [
+          {
+            "id": 115138723505,
+            "name": "test",
+            "status": "completed",
+            "conclusion": "success",
+            "checkSuiteId": 103903156916,
+            "appSlug": "github-actions",
+            "htmlUrl": "https://github.com/BargLabs/closes-probe-sandbox/actions/runs/38349554612/job/115138723505"
+          },
+          {
+            "id": 115138578368,
+            "name": "build",
+            "status": "completed",
+            "conclusion": "success",
+            "checkSuiteId": 103903158709,
+            "appSlug": "github-actions",
+            "htmlUrl": "https://github.com/BargLabs/closes-probe-sandbox/actions/runs/38349555320/job/115138578368"
+          },
+          {
+            "id": 115138576643,
+            "name": "test",
+            "status": "completed",
+            "conclusion": "failure",
+            "checkSuiteId": 103903156982,
+            "appSlug": "github-actions",
+            "htmlUrl": "https://github.com/BargLabs/closes-probe-sandbox/actions/runs/38349554638/job/115138576643"
+          },
+          {
+            "id": 115138576459,
+            "name": "first",
+            "status": "completed",
+            "conclusion": "success",
+            "checkSuiteId": 103903156916,
+            "appSlug": "github-actions",
+            "htmlUrl": "https://github.com/BargLabs/closes-probe-sandbox/actions/runs/38349554612/job/115138576459"
+          },
+          {
+            "id": 115138576393,
+            "name": "build",
+            "status": "completed",
+            "conclusion": "success",
+            "checkSuiteId": 103903156934,
+            "appSlug": "github-actions",
+            "htmlUrl": "https://github.com/BargLabs/closes-probe-sandbox/actions/runs/38349554617/job/115138576393"
+          }
+        ]
+      },
+      "checkSuites": [
+        {
+          "id": 103903144288,
+          "appSlug": "claude",
+          "status": "queued",
+          "conclusion": null
+        },
+        {
+          "id": 103903156916,
+          "appSlug": "github-actions",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 103903156934,
+          "appSlug": "github-actions",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 103903156982,
+          "appSlug": "github-actions",
+          "status": "completed",
+          "conclusion": "failure"
+        },
+        {
+          "id": 103903158709,
+          "appSlug": "github-actions",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "workflowRunsAtHead": [
+        {
+          "id": 38349555320,
+          "path": ".github/workflows/checks-probe-push-and-pull-request.yml",
+          "event": "pull_request",
+          "runAttempt": 1,
+          "checkSuiteId": 103903158709
+        },
+        {
+          "id": 38349554617,
+          "path": ".github/workflows/checks-probe-push-and-pull-request.yml",
+          "event": "push",
+          "runAttempt": 1,
+          "checkSuiteId": 103903156934
+        },
+        {
+          "id": 38349554638,
+          "path": ".github/workflows/checks-probe-fails-first.yml",
+          "event": "push",
+          "runAttempt": 1,
+          "checkSuiteId": 103903156982
+        },
+        {
+          "id": 38349554612,
+          "path": ".github/workflows/checks-probe-succeeds.yml",
+          "event": "push",
+          "runAttempt": 1,
+          "checkSuiteId": 103903156916
+        }
+      ],
+      "workflowRuns": [
+        {
+          "id": 38349555320,
+          "path": ".github/workflows/checks-probe-push-and-pull-request.yml",
+          "event": "pull_request",
+          "runAttempt": 1,
+          "checkSuiteId": 103903158709,
+          "conclusion": "success",
+          "attempts": [
+            {
+              "attempt": 1,
+              "checkSuiteId": 103903158709,
+              "conclusion": "success"
+            }
+          ],
+          "jobs": [
+            {
+              "id": 115138578368,
+              "runId": 38349555320,
+              "runAttempt": 1,
+              "name": "build",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 38349554617,
+          "path": ".github/workflows/checks-probe-push-and-pull-request.yml",
+          "event": "push",
+          "runAttempt": 1,
+          "checkSuiteId": 103903156934,
+          "conclusion": "success",
+          "attempts": [
+            {
+              "attempt": 1,
+              "checkSuiteId": 103903156934,
+              "conclusion": "success"
+            }
+          ],
+          "jobs": [
+            {
+              "id": 115138576393,
+              "runId": 38349554617,
+              "runAttempt": 1,
+              "name": "build",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 38349554638,
+          "path": ".github/workflows/checks-probe-fails-first.yml",
+          "event": "push",
+          "runAttempt": 1,
+          "checkSuiteId": 103903156982,
+          "conclusion": "failure",
+          "attempts": [
+            {
+              "attempt": 1,
+              "checkSuiteId": 103903156982,
+              "conclusion": "failure"
+            }
+          ],
+          "jobs": [
+            {
+              "id": 115138576643,
+              "runId": 38349554638,
+              "runAttempt": 1,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "failure"
+            }
+          ]
+        },
+        {
+          "id": 38349554612,
+          "path": ".github/workflows/checks-probe-succeeds.yml",
+          "event": "push",
+          "runAttempt": 1,
+          "checkSuiteId": 103903156916,
+          "conclusion": "success",
+          "attempts": [
+            {
+              "attempt": 1,
+              "checkSuiteId": 103903156916,
+              "conclusion": "success"
+            }
+          ],
+          "jobs": [
+            {
+              "id": 115138576459,
+              "runId": 38349554612,
+              "runAttempt": 1,
+              "name": "first",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "id": 115138723505,
+              "runId": 38349554612,
+              "runAttempt": 1,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ]
+    },
+    "afterRerun": {
+      "checkRuns": {
+        "latest": [
+          {
+            "id": 115138812364,
+            "name": "test",
+            "status": "completed",
+            "conclusion": "success",
+            "checkSuiteId": 103903156982,
+            "appSlug": "github-actions",
+            "htmlUrl": "https://github.com/BargLabs/closes-probe-sandbox/actions/runs/38349554638/job/115138812364"
+          },
+          {
+            "id": 115138723505,
+            "name": "test",
+            "status": "completed",
+            "conclusion": "success",
+            "checkSuiteId": 103903156916,
+            "appSlug": "github-actions",
+            "htmlUrl": "https://github.com/BargLabs/closes-probe-sandbox/actions/runs/38349554612/job/115138723505"
+          },
+          {
+            "id": 115138578368,
+            "name": "build",
+            "status": "completed",
+            "conclusion": "success",
+            "checkSuiteId": 103903158709,
+            "appSlug": "github-actions",
+            "htmlUrl": "https://github.com/BargLabs/closes-probe-sandbox/actions/runs/38349555320/job/115138578368"
+          },
+          {
+            "id": 115138576459,
+            "name": "first",
+            "status": "completed",
+            "conclusion": "success",
+            "checkSuiteId": 103903156916,
+            "appSlug": "github-actions",
+            "htmlUrl": "https://github.com/BargLabs/closes-probe-sandbox/actions/runs/38349554612/job/115138576459"
+          },
+          {
+            "id": 115138576393,
+            "name": "build",
+            "status": "completed",
+            "conclusion": "success",
+            "checkSuiteId": 103903156934,
+            "appSlug": "github-actions",
+            "htmlUrl": "https://github.com/BargLabs/closes-probe-sandbox/actions/runs/38349554617/job/115138576393"
+          }
+        ],
+        "all": [
+          {
+            "id": 115138812364,
+            "name": "test",
+            "status": "completed",
+            "conclusion": "success",
+            "checkSuiteId": 103903156982,
+            "appSlug": "github-actions",
+            "htmlUrl": "https://github.com/BargLabs/closes-probe-sandbox/actions/runs/38349554638/job/115138812364"
+          },
+          {
+            "id": 115138723505,
+            "name": "test",
+            "status": "completed",
+            "conclusion": "success",
+            "checkSuiteId": 103903156916,
+            "appSlug": "github-actions",
+            "htmlUrl": "https://github.com/BargLabs/closes-probe-sandbox/actions/runs/38349554612/job/115138723505"
+          },
+          {
+            "id": 115138578368,
+            "name": "build",
+            "status": "completed",
+            "conclusion": "success",
+            "checkSuiteId": 103903158709,
+            "appSlug": "github-actions",
+            "htmlUrl": "https://github.com/BargLabs/closes-probe-sandbox/actions/runs/38349555320/job/115138578368"
+          },
+          {
+            "id": 115138576643,
+            "name": "test",
+            "status": "completed",
+            "conclusion": "failure",
+            "checkSuiteId": 103903156982,
+            "appSlug": "github-actions",
+            "htmlUrl": "https://github.com/BargLabs/closes-probe-sandbox/actions/runs/38349554638/job/115138576643"
+          },
+          {
+            "id": 115138576459,
+            "name": "first",
+            "status": "completed",
+            "conclusion": "success",
+            "checkSuiteId": 103903156916,
+            "appSlug": "github-actions",
+            "htmlUrl": "https://github.com/BargLabs/closes-probe-sandbox/actions/runs/38349554612/job/115138576459"
+          },
+          {
+            "id": 115138576393,
+            "name": "build",
+            "status": "completed",
+            "conclusion": "success",
+            "checkSuiteId": 103903156934,
+            "appSlug": "github-actions",
+            "htmlUrl": "https://github.com/BargLabs/closes-probe-sandbox/actions/runs/38349554617/job/115138576393"
+          }
+        ]
+      },
+      "checkSuites": [
+        {
+          "id": 103903144288,
+          "appSlug": "claude",
+          "status": "queued",
+          "conclusion": null
+        },
+        {
+          "id": 103903156916,
+          "appSlug": "github-actions",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 103903156934,
+          "appSlug": "github-actions",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 103903156982,
+          "appSlug": "github-actions",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 103903158709,
+          "appSlug": "github-actions",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "workflowRunsAtHead": [
+        {
+          "id": 38349555320,
+          "path": ".github/workflows/checks-probe-push-and-pull-request.yml",
+          "event": "pull_request",
+          "runAttempt": 1,
+          "checkSuiteId": 103903158709
+        },
+        {
+          "id": 38349554617,
+          "path": ".github/workflows/checks-probe-push-and-pull-request.yml",
+          "event": "push",
+          "runAttempt": 1,
+          "checkSuiteId": 103903156934
+        },
+        {
+          "id": 38349554612,
+          "path": ".github/workflows/checks-probe-succeeds.yml",
+          "event": "push",
+          "runAttempt": 1,
+          "checkSuiteId": 103903156916
+        },
+        {
+          "id": 38349554638,
+          "path": ".github/workflows/checks-probe-fails-first.yml",
+          "event": "push",
+          "runAttempt": 2,
+          "checkSuiteId": 103903156982
+        }
+      ],
+      "workflowRuns": [
+        {
+          "id": 38349555320,
+          "path": ".github/workflows/checks-probe-push-and-pull-request.yml",
+          "event": "pull_request",
+          "runAttempt": 1,
+          "checkSuiteId": 103903158709,
+          "conclusion": "success",
+          "attempts": [
+            {
+              "attempt": 1,
+              "checkSuiteId": 103903158709,
+              "conclusion": "success"
+            }
+          ],
+          "jobs": [
+            {
+              "id": 115138578368,
+              "runId": 38349555320,
+              "runAttempt": 1,
+              "name": "build",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 38349554617,
+          "path": ".github/workflows/checks-probe-push-and-pull-request.yml",
+          "event": "push",
+          "runAttempt": 1,
+          "checkSuiteId": 103903156934,
+          "conclusion": "success",
+          "attempts": [
+            {
+              "attempt": 1,
+              "checkSuiteId": 103903156934,
+              "conclusion": "success"
+            }
+          ],
+          "jobs": [
+            {
+              "id": 115138576393,
+              "runId": 38349554617,
+              "runAttempt": 1,
+              "name": "build",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 38349554612,
+          "path": ".github/workflows/checks-probe-succeeds.yml",
+          "event": "push",
+          "runAttempt": 1,
+          "checkSuiteId": 103903156916,
+          "conclusion": "success",
+          "attempts": [
+            {
+              "attempt": 1,
+              "checkSuiteId": 103903156916,
+              "conclusion": "success"
+            }
+          ],
+          "jobs": [
+            {
+              "id": 115138576459,
+              "runId": 38349554612,
+              "runAttempt": 1,
+              "name": "first",
+              "status": "completed",
+              "conclusion": "success"
+            },
+            {
+              "id": 115138723505,
+              "runId": 38349554612,
+              "runAttempt": 1,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 38349554638,
+          "path": ".github/workflows/checks-probe-fails-first.yml",
+          "event": "push",
+          "runAttempt": 2,
+          "checkSuiteId": 103903156982,
+          "conclusion": "success",
+          "attempts": [
+            {
+              "attempt": 1,
+              "checkSuiteId": 103903156982,
+              "conclusion": "failure"
+            },
+            {
+              "attempt": 2,
+              "checkSuiteId": 103903156982,
+              "conclusion": "success"
+            }
+          ],
+          "jobs": [
+            {
+              "id": 115138576643,
+              "runId": 38349554638,
+              "runAttempt": 1,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "failure"
+            },
+            {
+              "id": 115138812364,
+              "runId": 38349554638,
+              "runAttempt": 2,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "answers": {
+    "rerunKeepsCheckSuite": true,
+    "latestListsBothWorkflows": true,
+    "latestDropsEarlierAttempt": true,
+    "failedHasLowerId": true,
+    "pushAndPullRequestTwoSuites": true,
+    "pushAndPullRequestSamePath": true,
+    "listingNamesLatestAttemptSuite": true,
+    "everyActionsSuiteListed": true
+  }
+}

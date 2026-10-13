@@ -117,6 +117,18 @@ function lookup(type: ItemType, evidence: Evidence): Map<string, JsonValue> {
 
 const ISSUE_REF = /^(?:[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9._-]{1,100})?#[1-9][0-9]{0,9}$/;
 
+// The candidates the check combines, from one claim's candidates of its item type. An identifier
+// match closes the set: when there is one, the check combines the identifier matches only, and a
+// lexical candidate beside them, at or above the floor or not, is recorded as what retrieval saw
+// and never decides the verdict. Without one, it combines every candidate at or above the floor. A
+// candidate below the floor was filled in to make up k: a place to look, never evidence. So
+// neither filling nor a near-identical item found lexically can change the verdict of a claim that
+// names its item exactly, including for the kinds that aggregate over their candidates.
+export function combinedCandidates(typed: readonly Candidate[], floor: number): Candidate[] {
+  const exact = typed.filter((c) => c.score === null);
+  return exact.length > 0 ? exact : typed.filter((c) => c.score !== null && c.score >= floor);
+}
+
 // The check for one reader claim: a pure function of the claim (its kind, declared value, recorded
 // candidates and recorded floor) and the evidence. It never runs retrieval, so offline verification
 // recomputes it from the record even where a fresh retrieval would rank differently.
@@ -143,11 +155,7 @@ export function checkReaderClaim(
   if (typed.some((c) => entries.get(c.id) === undefined)) {
     return unverifiable('candidate_not_in_evidence');
   }
-  // A candidate below the floor was filled in to make up k: a place to look, never evidence. The
-  // check reads identifier matches and candidates at or above the floor only, so filling cannot
-  // change a verdict, including for the kinds that aggregate over their candidates.
-  const floor = claim.retrieval.floor;
-  const relevant = typed.filter((c) => c.score === null || c.score >= floor);
+  const relevant = combinedCandidates(typed, claim.retrieval.floor);
   const observed = relevant.map((c) => entries.get(c.id));
 
   // A file missing from an incomplete list may be among the files that could not be listed.
@@ -209,7 +217,7 @@ export function checkReaderClaim(
 }
 
 // Retrieves a reader claim's candidates from the evidence and checks it: the readerClaims entry a
-// record carries. Every candidate at or above the floor is kept, so the check sees them all; when
+// record carries. Every candidate at or above the floor is kept, so the record shows them all; when
 // fewer than k reach it, the list is filled to k (FILL_TO_K) with the next items below the floor.
 export function readReaderClaim(
   input: ReaderClaimInput,

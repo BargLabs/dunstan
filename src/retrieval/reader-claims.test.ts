@@ -155,6 +155,36 @@ describe('reader claims', () => {
     }
   });
 
+  it('combines only the identifier matches when there is one: a lexical candidate never decides', () => {
+    // 101 (lint) succeeded, 103 (typecheck) failed.
+    const run = (id: string, score: number | null) => ({
+      type: 'check_run' as const,
+      id,
+      score,
+      matchedField: 'name',
+    });
+    const check = (candidates: ReturnType<typeof run>[], declaredValue: boolean) =>
+      checkReaderClaim(
+        { kind: 'check_succeeded', declaredValue, candidates, retrieval: { floor: BM25_FLOOR } },
+        storage,
+        REPO,
+      );
+    // Named exactly, lint passes, though the failed typecheck run is a lexical match well above the
+    // floor and is recorded.
+    expect(check([run('101', null), run('103', 4)], true)).toEqual({
+      observed: true,
+      verdict: 'pass',
+    });
+    // With no identifier match, every candidate at or above the floor is combined, as before.
+    expect(check([run('101', 4), run('103', 4)], true)).toEqual({
+      observed: false,
+      verdict: 'fail',
+      reason: 'all_succeeded_mismatch',
+    });
+    // Two identifier matches are both combined.
+    expect(check([run('101', null), run('103', null)], true)).toMatchObject({ verdict: 'fail' });
+  });
+
   it('refuses a recorded candidate the evidence does not hold', () => {
     const c = read(claim('The typecheck job passes', 'check_succeeded', true));
     const forged = {

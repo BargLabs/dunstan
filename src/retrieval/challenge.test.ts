@@ -1,0 +1,368 @@
+// The retrieval challenge set (test/retrieval-challenge/; docs/retrieval.md, "Challenge set"): typed
+// claims against record items built to be confused with the right one. Each case states the
+// candidates Arm A should propose first, the ones the check must not read, and the check's verdict.
+// This test records what Arm A and the check do today, exactly (the snapshot), and lists every case
+// where that differs from the case's expectation as a known miss. It passes on today's code. A new
+// miss or a fixed one fails it until KNOWN_MISSES and the snapshot are updated, so every change in
+// retrieval shows as a diff. It measures; it fixes nothing.
+//
+// Arm B is not run: Dunstan ships no embedding provider, and the test double in retrieval-fixtures.ts
+// is a hashed bag of words, not a model.
+
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { describe, expect, it } from 'vitest';
+import type { Evidence, Verdict } from '../check/types.js';
+import { loadCorpus } from '../eval/retrieval.js';
+import type { JsonValue } from '../spec/json.js';
+import { type ItemSnapshot, recordItems } from './items.js';
+import { combinedCandidates, READER_CLAIM_KINDS, readReaderClaim } from './reader-claims.js';
+import { BM25_FLOOR, retrieve } from './retrieve.js';
+import type { Candidate } from './types.js';
+
+const DIR = fileURLToPath(new URL('../../test/retrieval-challenge/', import.meta.url));
+const FAMILIES = ['checks', 'lexical', 'numbers', 'paths', 'shas', 'tests'];
+
+interface ChallengeClaim {
+  id: string;
+  // What the confusable is, in one line.
+  confusion: string;
+  text: string;
+  kind: string;
+  declaredValue: JsonValue;
+  // The ids the check should read first, in this order: the head of Arm A's list.
+  expectCandidates: string[];
+  // The ids the check must not read: no identifier match, and no score at or above the floor.
+  forbidCandidates: string[];
+  // reason and observed are compared when given.
+  expectCheck: { verdict: Verdict; reason?: string; observed?: JsonValue };
+}
+
+interface ChallengeFamily {
+  repository: string;
+  family: string;
+  evidence: ItemSnapshot;
+  claims: ChallengeClaim[];
+}
+
+// What a miss reaches: a wrong verdict or reason, a wrong observed value under the right verdict, or
+// only a wrong candidate (a confusable the check reads, or the right item ranked below another).
+type Effect = 'verdict' | 'observed' | 'candidates';
+
+// Every case where today's behaviour differs from the case's expectation, keyed family/case. Each is
+// for a later change to fix, or to keep with a reason. Since 10X an identifier match closes the set
+// the check combines (docs/retrieval.md, "Exact identifiers close the set"), so a lexical candidate
+// read beside one is no longer a miss.
+const KNOWN_MISSES = new Map<string, { effect: Effect; reason: string }>([
+  // checks
+  [
+    'checks/same-name-two-workflows',
+    {
+      effect: 'verdict',
+      reason:
+        'The record keeps the latest run per name, so the Nightly test (205, failed) stands for the Checks one (201): a fail. A run carries no workflow, suite or app, so this evidence is the same as the build re-run, which must fail.',
+    },
+  ],
+  [
+    'checks/short-name',
+    {
+      effect: 'candidates',
+      reason: "ci-docs (232) shares the token ci and is read; ci's failure decides anyway.",
+    },
+  ],
+  // lexical
+  [
+    'lexical/shard-later',
+    {
+      effect: 'verdict',
+      reason:
+        'No job is named whole, so nothing closes the set; one-character tokens are dropped, so shard 1 (failed) ties with shard 2 and is read.',
+    },
+  ],
+  [
+    'lexical/shard-later-said-to-fail',
+    {
+      effect: 'verdict',
+      reason:
+        'A false pass: the tied shard 1 (failed) is read, so "shard 2 fails" holds though shard 2 succeeded.',
+    },
+  ],
+  [
+    'lexical/shard-earlier',
+    {
+      effect: 'candidates',
+      reason: "The tied shard 2 is read too; shard 1's failure decides anyway.",
+    },
+  ],
+  [
+    'lexical/package-later',
+    {
+      effect: 'verdict',
+      reason:
+        'No job is named whole, so nothing closes the set; one-character tokens are dropped, so pkg-a (failed) ties with pkg-b and is read.',
+    },
+  ],
+  [
+    'lexical/byte-size-later',
+    {
+      effect: 'verdict',
+      reason:
+        'No test is named whole, so nothing closes the set; the 0 byte test (failed) ties with the 1 byte test and is read.',
+    },
+  ],
+  [
+    'lexical/byte-size-later-said-to-fail',
+    {
+      effect: 'verdict',
+      reason:
+        'A false pass: the tied 0 byte test (failed) is read, so "the 1 byte test fails" holds though it passed.',
+    },
+  ],
+  [
+    'lexical/api-version-later',
+    {
+      effect: 'verdict',
+      reason: '"version 2" matches neither v1 nor v2, so they tie and api.v1 (failed) is read.',
+    },
+  ],
+  // paths
+  [
+    'paths/sibling-not-changed',
+    {
+      effect: 'candidates',
+      reason: 'The changed siblings are read; the verdict stays unverifiable.',
+    },
+  ],
+  [
+    'paths/monorepo-not-changed',
+    {
+      effect: 'candidates',
+      reason:
+        'packages/a and packages/c index.ts tie and are both read; the verdict stays unverifiable.',
+    },
+  ],
+  [
+    'paths/rename-old-path-reused',
+    {
+      effect: 'observed',
+      reason:
+        'The renamed src/text/format.ts matches on previousPath, comes first by record order and is observed.',
+    },
+  ],
+  // shas
+  [
+    'shas/prefix7-later-commit',
+    {
+      effect: 'observed',
+      reason:
+        'Both commits match the 7-hex prefix; record order puts the lint commit first and it is observed.',
+    },
+  ],
+  [
+    'shas/full-declared-short-text',
+    {
+      effect: 'candidates',
+      reason: "The text's 7-hex prefix names the lint commit too, ahead of the declared one.",
+    },
+  ],
+  [
+    'shas/full-not-in-pull-request',
+    {
+      effect: 'candidates',
+      reason: "The text's 7-hex prefix names both commits, though the declared SHA is neither.",
+    },
+  ],
+  // tests
+  [
+    'tests/same-name-classname-in-prose',
+    {
+      effect: 'verdict',
+      reason:
+        'The prose says "queue retry", not queue.retry, so the bare name is an identifier match under both classnames and http.retry (failed) is read.',
+    },
+  ],
+  [
+    'tests/same-name-declared-failing',
+    {
+      effect: 'candidates',
+      reason: "queue.retry's case is read too; http.retry's failure decides anyway.",
+    },
+  ],
+]);
+
+// The family files are read by the corpus loader; a challenge case extends a corpus claim.
+const families = loadCorpus(DIR) as unknown as Map<string, ChallengeFamily>;
+
+const READER = { name: 'challenge-set', version: '0.0.0' };
+
+function evidenceOf(snapshot: ItemSnapshot): Evidence {
+  return {
+    pullRequest: {
+      status: 'ok',
+      number: 7,
+      state: 'open',
+      merged: false,
+      mergedAt: null,
+      headSha: '0'.repeat(40),
+      mergeSha: null,
+      changedFiles: snapshot.files?.status === 'ok' ? snapshot.files.entries.length : 0,
+    },
+    ...snapshot,
+    sources: [],
+  };
+}
+
+interface Run {
+  key: string;
+  family: ChallengeFamily;
+  claim: ChallengeClaim;
+  // Arm A, unfilled: the identifier matches and the candidates at or above the floor.
+  armA: Candidate[];
+  // The candidates the check reads: Arm A's identifier matches if there are any, which close the
+  // set, and otherwise all of Arm A.
+  combined: Candidate[];
+  recorded: ReturnType<typeof readReaderClaim>;
+}
+
+const runs: Run[] = [...families].flatMap(([name, family]) =>
+  family.claims.map((claim) => {
+    const type = READER_CLAIM_KINDS.get(claim.kind);
+    const query = { text: claim.text, declaredValue: claim.declaredValue };
+    const armA = retrieve(query, recordItems(family.evidence), {
+      repository: family.repository,
+      ...(type === undefined ? {} : { types: [type] }),
+    });
+    const recorded = readReaderClaim(
+      { text: claim.text, kind: claim.kind, declaredValue: claim.declaredValue, reader: READER },
+      evidenceOf(family.evidence),
+      family.repository,
+    );
+    const combined = combinedCandidates(armA, BM25_FLOOR);
+    return { key: `${name}/${claim.id}`, family, claim, armA, combined, recorded };
+  }),
+);
+
+// How today's behaviour falls short of the case's expectation, if it does: the effect, and each
+// shortfall in words.
+function shortfalls({ claim, armA, combined, recorded }: Run): {
+  effect: Effect;
+  found: string[];
+} | null {
+  const ids = armA.map((c) => c.id);
+  const readIds = combined.map((c) => c.id);
+  const want = claim.expectCheck;
+  const found: string[] = [];
+  let effect: Effect = 'candidates';
+
+  if (
+    recorded.verdict !== want.verdict ||
+    (want.reason !== undefined && recorded.reason !== want.reason)
+  ) {
+    effect = 'verdict';
+    found.push(
+      `check ${recorded.verdict}/${recorded.reason ?? '-'}, expected ${want.verdict}/${want.reason ?? 'any'}`,
+    );
+  } else if (
+    want.observed !== undefined &&
+    JSON.stringify(recorded.observed) !== JSON.stringify(want.observed)
+  ) {
+    effect = 'observed';
+    found.push(
+      `observed ${JSON.stringify(recorded.observed)}, expected ${JSON.stringify(want.observed)}`,
+    );
+  }
+  const head = ids.slice(0, claim.expectCandidates.length);
+  if (JSON.stringify(head) !== JSON.stringify(claim.expectCandidates)) {
+    found.push(`first ${JSON.stringify(head)}, expected ${JSON.stringify(claim.expectCandidates)}`);
+  }
+  const read = claim.forbidCandidates.filter((id) => readIds.includes(id));
+  if (read.length > 0) found.push(`the check reads ${JSON.stringify(read)}`);
+  return found.length === 0 ? null : { effect, found };
+}
+
+// One line per candidate, as recorded (filled ones too): id, then its score, or the field an
+// identifier match named. A candidate at or above the floor that an identifier match leaves out of
+// the set the check combines is marked so.
+function summary({ combined, recorded }: Run) {
+  const notCombined = (c: Candidate) =>
+    c.score !== null && c.score >= BM25_FLOOR && !combined.some((x) => x.id === c.id);
+  return {
+    candidates: recorded.candidates.map(
+      (c) =>
+        `${c.id} ${c.score === null ? `= ${c.matchedField}` : c.score}${notCombined(c) ? ' (not combined)' : ''}`,
+    ),
+    verdict: recorded.verdict,
+    reason: recorded.reason ?? null,
+    observed: recorded.observed,
+  };
+}
+
+describe('the retrieval challenge set', () => {
+  it('has six families of at least three cases, each naming items its record holds', () => {
+    expect([...families.keys()]).toEqual(FAMILIES);
+    for (const [name, family] of families) {
+      expect(family.family).toBe(name);
+      expect(family.claims.length).toBeGreaterThanOrEqual(3);
+      const items = recordItems(family.evidence);
+      for (const claim of family.claims) {
+        const type = READER_CLAIM_KINDS.get(claim.kind);
+        expect(type, `${name}/${claim.id}`).toBeDefined();
+        const ids = new Set(items.filter((i) => i.type === type).map((i) => i.id));
+        for (const id of [...claim.expectCandidates, ...claim.forbidCandidates]) {
+          expect(ids.has(id), `${name}/${claim.id}: ${id}`).toBe(true);
+        }
+        expect(claim.confusion.length).toBeGreaterThan(0);
+      }
+    }
+    expect(new Set(runs.map((r) => r.key)).size).toBe(runs.length);
+  });
+
+  it.each(runs)('$key: Arm A and the check, as they stand', (run) => {
+    // The check reads exactly Arm A's unfilled list: the recorded list filled to k has it as its head.
+    const read = run.recorded.candidates.filter((c) => c.score === null || c.score >= BM25_FLOOR);
+    expect(read).toEqual(run.armA);
+    expect(summary(run)).toMatchSnapshot();
+  });
+
+  it('misses exactly the known misses', () => {
+    const found = new Map<string, { effect: Effect; found: string[] }>();
+    for (const run of runs) {
+      const miss = shortfalls(run);
+      if (miss !== null) found.set(run.key, miss);
+    }
+    const effects = (m: ReadonlyMap<string, { effect: Effect }>) =>
+      Object.fromEntries([...m].map(([key, v]) => [key, v.effect]));
+    expect(effects(found), JSON.stringify(Object.fromEntries(found), null, 2)).toEqual(
+      effects(KNOWN_MISSES),
+    );
+  });
+
+  it('gives each known miss a family it belongs to and a reason', () => {
+    for (const [key, miss] of KNOWN_MISSES) {
+      expect(FAMILIES).toContain(key.split('/')[0]);
+      expect(miss.reason.length, key).toBeGreaterThan(0);
+    }
+  });
+
+  // docs/retrieval.md states the counts; this keeps its table in step with the cases and the list.
+  it('has the counts docs/retrieval.md states', () => {
+    const misses = [...KNOWN_MISSES];
+    const of = (family: string) => (key: string) => key.startsWith(`${family}/`);
+    const row = (name: string, cases: number, known: [string, { effect: Effect }][]) =>
+      `| ${name} | ${cases} | ${known.length} | ${known.filter(([, m]) => m.effect === 'verdict').length} |`;
+    const table = [
+      '| Family | Cases | Known misses | Of which a wrong verdict |',
+      '| --- | --- | --- | --- |',
+      ...FAMILIES.map((family) =>
+        row(
+          `\`${family}\``,
+          runs.filter((r) => of(family)(r.key)).length,
+          misses.filter(([key]) => of(family)(key)),
+        ),
+      ),
+      row('All', runs.length, misses),
+    ].join('\n');
+    const docs = readFileSync(new URL('../../docs/retrieval.md', import.meta.url), 'utf8');
+    expect(docs).toContain(table);
+  });
+});

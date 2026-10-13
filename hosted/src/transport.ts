@@ -9,9 +9,15 @@
 // The App holds Contents: read because GitHub requires it for the git-database commit and compare
 // endpoints (docs/hosted.md, "Contents: read"). This guard is what keeps that permission to commit
 // existence and ancestry, and the type of the object at a path: no route that returns a file's
-// contents is on the list, and the two GraphQL routes admit only their own fixed query.
+// contents is on the list, and the four GraphQL routes admit only their own fixed query.
 
-import { CLOSING_QUERY, isPathExpression, PATH_QUERY } from '../../src/evidence/github.js';
+import {
+  CLOSE_BASE_QUERY,
+  CLOSE_EVENTS_QUERY,
+  CLOSING_QUERY,
+  isPathExpression,
+  PATH_QUERY,
+} from '../../src/evidence/github.js';
 
 export const GITHUB_API_ORIGIN = 'https://api.github.com';
 
@@ -67,17 +73,20 @@ function fixedQueryVariables(text: string, fixed: string): Record<string, unknow
   return variables as Record<string, unknown>;
 }
 
-// Exactly the body the reader sends: the closing-references query and its four variables.
-function isClosingReferencesQuery(text: string): boolean {
-  const v = fixedQueryVariables(text, CLOSING_QUERY);
-  return (
-    v !== null &&
-    Object.keys(v).join(',') === 'owner,name,number,after' &&
-    typeof v.owner === 'string' &&
-    typeof v.name === 'string' &&
-    Number.isSafeInteger(v.number) &&
-    (v.after === null || typeof v.after === 'string')
-  );
+// Exactly the body the reader sends for one of the three queries that page by `after`: the query
+// and its four variables, owner, repository, number and cursor.
+function isPagedQuery(fixed: string): (text: string) => boolean {
+  return (text) => {
+    const v = fixedQueryVariables(text, fixed);
+    return (
+      v !== null &&
+      Object.keys(v).join(',') === 'owner,name,number,after' &&
+      typeof v.owner === 'string' &&
+      typeof v.name === 'string' &&
+      Number.isSafeInteger(v.number) &&
+      (v.after === null || typeof v.after === 'string')
+    );
+  };
 }
 
 // Exactly the body the advisory's path query sends (comparison 0.3.0): the query, which asks for
@@ -100,13 +109,24 @@ function isPathQuery(text: string): boolean {
 export const ROUTES: readonly Route[] = [
   route('pull request', 'GET', `/repos/${REPO}/pulls/${NUM}`),
   route('pull request files', 'GET', `/repos/${REPO}/pulls/${NUM}/files\\?${PAGE}`),
-  route('closing references (GraphQL)', 'POST', '/graphql', { body: isClosingReferencesQuery }),
+  route('closing references (GraphQL)', 'POST', '/graphql', { body: isPagedQuery(CLOSING_QUERY) }),
+  // Spec 0.1.4: who closed a closes target, and the pull request's base and commit ids.
+  route('close base and commits (GraphQL)', 'POST', '/graphql', {
+    body: isPagedQuery(CLOSE_BASE_QUERY),
+  }),
+  route('close events (GraphQL)', 'POST', '/graphql', { body: isPagedQuery(CLOSE_EVENTS_QUERY) }),
   route('object type at a path (GraphQL)', 'POST', '/graphql', { body: isPathQuery }),
   route('repository', 'GET', `/repos/${REPO}`),
   route('issue', 'GET', `/repos/${REPO}/issues/${NUM}`, { redirectsTo: 'issue' }),
   route('commit (git database)', 'GET', `/repos/${REPO}/git/commits/${SHA}`),
   route('compare', 'GET', `/repos/${REPO}/compare/${SHA}\\.\\.\\.${SHA}\\?per_page=1`),
   route('check runs', 'GET', `/repos/${REPO}/commits/${SHA}/check-runs\\?filter=latest&${PAGE}`),
+  // Spec 0.1.4, amended 2026-10-13: the workflow run of each check run's suite.
+  route(
+    'workflow runs at a commit',
+    'GET',
+    `/repos/${REPO}/actions/runs\\?head_sha=${SHA}&${PAGE}`,
+  ),
   route(
     'workflow runs',
     'GET',
@@ -199,7 +219,7 @@ export function checkRoute(
       throw new RouteRefused(`${method} ${target}: ${forbidden.name} reads repository contents`);
     }
   }
-  // Two routes share POST /graphql; each admits only its own fixed body.
+  // Four routes share POST /graphql; each admits only its own fixed body.
   const routes = ROUTES.filter((r) => r.method === method && r.path.test(target));
   if (routes.length === 0) throw new RouteRefused(`${method} ${target}: not on the allowlist`);
   const match = routes.find(

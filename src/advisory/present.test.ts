@@ -120,14 +120,19 @@ const FIGURES_LINE =
 // reason `closing_link_unsettled` of spec 0.1.2, which the 0.1 record schema's claim reason and the
 // DRAFT schema's advisory note both gained; and but for comparison 0.3.0, for which the DRAFT
 // schema's advisory section gained `pathsAtHead` and its note the three existence notes; and but
-// for spec 0.1.3, for which the 0.1 record schema's issue reference evidence gained `resolvedAs`. A
-// change to any of them is a record change.
+// for spec 0.1.3, for which the 0.1 record schema's issue reference evidence gained `resolvedAs`;
+// and but for spec 0.1.4 and comparison 0.4.0, for which the 0.1 record schema gained the
+// `closeEvents` section, the `pull_request_commits` source kind and the reason
+// `closing_base_not_default`, and the DRAFT schema's evidence the section and its advisory note the
+// reason, and, amended 2026-10-12, both schemas the reason `closing_event_unsettled` and the 0.1
+// record schema's check runs the optional `checkSuiteId` and `appSlug`, and, amended 2026-10-13,
+// `workflowPath`, `workflowRunId` and `runAttempt`. A change to any of them is a record change.
 const SCHEMA_SHA256: Record<string, string> = {
   'handback-block-0.1.schema.json':
     '331d142be28bf7c9deac7f76cad83731bf00679b952418004270c70344db46a7',
-  'record-0.1.schema.json': '0ba4c7ff6a7a1412179e12d6696fa86cd25ab2c58908924da34bd5e7fc8ab411',
+  'record-0.1.schema.json': '34dfead1fb6243a3c0f55a3a8511a36bbf216182931a9ab82a4a285c92b8fa24',
   'record-0.2-draft.schema.json':
-    '1b4b0075a2aee668f9689cf5852705c3bdc0707ad28c361b0a60b3846982b22c',
+    '71173f40a289f1b570e1f343a8b57f22162864cf5bb3be68a992132d091c1490',
 };
 
 const evidence: Evidence = {
@@ -151,6 +156,11 @@ const evidence: Evidence = {
   },
   closingReferences: { status: 'ok', issues: [`${REPO}#12`] },
   references: [{ kind: 'issue', ref: `${REPO}#13`, status: 'ok', exists: true }],
+  // Spec 0.1.4: #13 is open, and the pull request merged into the default branch.
+  closeEvents: {
+    pullRequest: { status: 'ok', baseRef: 'main', defaultBranch: 'main', commits: [HEAD] },
+    targets: [{ ref: `${REPO}#13`, status: 'ok', type: 'issue', state: 'open', events: [] }],
+  },
   checkRuns: {
     status: 'ok',
     commit: HEAD,
@@ -204,8 +214,8 @@ describe('the record does not change, but for the figure fields', () => {
   it('keeps the notes, the comparison and the extractor, and every digest of a record', () => {
     const record = build();
     const a = record.predicate.advisory;
-    expect(a?.comparison).toEqual({ version: '0.3.0' });
-    expect(COMPARISON_VERSION).toBe('0.3.0');
+    expect(a?.comparison).toEqual({ version: '0.4.0' });
+    expect(COMPARISON_VERSION).toBe('0.4.0');
     expect(a?.pathsAtHead).toEqual([{ path: 'src/z.ts', status: 'ok', object: 'Blob' }]);
     expect(a?.extractor).toEqual(EXTRACTOR);
     expect(EXTRACTOR.version).toBe('0.1.3');
@@ -214,7 +224,12 @@ describe('the record does not change, but for the figure fields', () => {
       ['file_changed', 'b.ts', 'pkg/b.ts', 'agrees_by_name'],
       ['file_changed', 'src/z.ts', null, 'differs:declared_not_changed'],
       ['reference_closes', '#12', { closing: [`${REPO}#12`] }, 'agrees'],
-      ['reference_closes', '#13', { closing: [`${REPO}#12`] }, 'differs:not_closing'],
+      [
+        'reference_closes',
+        '#13',
+        { closing: [`${REPO}#12`], state: 'open', events: [] },
+        'differs:not_closing',
+      ],
       ['head_commit', '9e8d7c6', HEAD, 'differs:head_mismatch'],
       ['checks_succeeded', true, false, 'differs:all_succeeded_mismatch'],
       ['check_count', 3, 2, 'differs:count_mismatch'],
@@ -225,19 +240,32 @@ describe('the record does not change, but for the figure fields', () => {
     // the published figures, and again when the extractor became 0.1.2, 0.1.3 and 0.1.4: each names
     // a new grammar with no figure published. 0.1.4 was reverted, and the digest was 0.1.3's
     // again, 4abc9677…; then comparison 0.3.0 named itself and recorded the answer for src/z.ts.
+    // Spec 0.1.4 and comparison 0.4.0: the evidence gained #13's close events (9ff3e3e4… before),
+    // and the advisory digest moved (455e8b97… before) with the comparison's name and #13's
+    // `observed`, which now carries the state and close events read. #13's note is unchanged.
     expect(record.predicate.digests).toEqual({
       claims: '56cccb4067679d0c95cf609ad87d9ea8eae7198b330baaa9cc0babeb0991b576',
-      evidence: '9ff3e3e482ccf21a30847863450476e0594d137006dca39b29f77d543b656951',
-      advisory: '455e8b97ca3106ed49d07ee8101a81ffe9abbf616e6c8da96654548732d33282',
+      evidence: '4f508a64cc2f97ef466366f01e6b9491d0f698b43a96817c1a6517e90bcdea09',
+      advisory: '2b4b5132c96fe30b990b773b93292602052e4389ae7390d35acbf4f5b3a7498e',
     });
     // Named as extractor 0.1.1 and comparison 0.2.0, with their figures and without the answers
     // 0.3.0 records, the section is byte for byte the one pinned when the figures were published:
     // extractors 0.1.2, 0.1.3 and 0.1.4 changed the extractor's identity and figures here, and
-    // comparison 0.3.0 its identity and the answers, and no advisory of this report.
+    // comparison 0.3.0 its identity and the answers, and no advisory of this report. Comparison
+    // 0.4.0 changed one advisory's `observed` and nothing else: #13's, which now also carries the
+    // state and close events the closes check read. With #13's `observed` as 0.3.0 gave it, the
+    // section is the published one again.
     if (a === undefined) throw new Error('fixture');
     const { pathsAtHead: _answers, ...section } = a;
+    const changed = section.advisories.filter(
+      (x) => JSON.stringify(x.observed) !== JSON.stringify(build030Observed(x)),
+    );
+    expect(changed.map((x) => [x.kind, x.value, x.note])).toEqual([
+      ['reference_closes', '#13', 'differs:not_closing'],
+    ]);
     const as011 = {
       ...section,
+      advisories: section.advisories.map((x) => ({ ...x, observed: build030Observed(x) })),
       extractor: { version: '0.1.1', digest: { sha256: EXTRACTOR_0_1_1 } },
       comparison: { version: COMPARISON_0_2_0 },
       precision: precisionFor(EXTRACTOR_0_1_1),
@@ -293,7 +321,7 @@ describe('the record does not change, but for the figure fields', () => {
       expect(text, name).not.toContain(ADVISORY_LINE);
       for (const shows of [
         'not among the changed files',
-        'not among the closing references',
+        'not closed by this pull request or its commits',
         'the head is another commit',
         'the check runs read otherwise',
         'the record holds another count',
@@ -320,6 +348,14 @@ describe('the record does not change, but for the figure fields', () => {
     }
   });
 });
+
+// An advisory's `observed` as comparison 0.3.0 gave it: a `not_closing` closes note observed the
+// closing references only (spec 0.1.3).
+function build030Observed(advisory: { note: string; observed: unknown }): unknown {
+  if (advisory.note !== 'differs:not_closing') return advisory.observed;
+  const { closing } = advisory.observed as { closing: unknown };
+  return { closing };
+}
 
 function fallsBack(record: ReturnType<typeof build>): void {
   for (const [name, text] of Object.entries(surfacesOf(record))) {

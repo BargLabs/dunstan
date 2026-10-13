@@ -1,0 +1,59 @@
+{
+  "description": "Declares three checks, all succeeded. ci.yml ran on push (workflow run 7001, check suite 6001) and on pull_request (workflow run 7002, suite 6002), each running lint, typecheck and test; the six check runs are one workflow's three jobs, the latest workflow run's",
+  "blockStatus": "found",
+  "verdict": "pass",
+  "claims": [
+    {
+      "id": "head:/headCommit",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/0",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/1",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/2",
+      "verdict": "pass"
+    },
+    {
+      "id": "reference:/references/0",
+      "verdict": "pass"
+    },
+    {
+      "id": "reference:/references/1",
+      "verdict": "pass"
+    },
+    {
+      "id": "reference:/references/2",
+      "verdict": "pass"
+    },
+    {
+      "id": "count:/tests/0/count",
+      "verdict": "pass"
+    },
+    {
+      "id": "count:/tests/0/failures",
+      "verdict": "pass"
+    },
+    {
+      "id": "count:/checks/total",
+      "verdict": "pass"
+    },
+    {
+      "id": "count:/checks/allSucceeded",
+      "verdict": "pass"
+    },
+    {
+      "id": "time:/mergedAt",
+      "verdict": "pass"
+    },
+    {
+      "id": "time:/deployedAt",
+      "verdict": "pass"
+    }
+  ]
+}

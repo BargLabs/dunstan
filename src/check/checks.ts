@@ -14,11 +14,14 @@ import type {
   Block,
   CheckRun,
   Claim,
+  CloseTargetEvidence,
   DeploymentsEvidence,
   Evidence,
   JunitRecord,
+  Reference,
   ReferenceEvidence,
   TestRecordEvidence,
+  Unread,
 } from './types.js';
 
 // ---------------------------------------------------------------- 7.2 head
@@ -124,6 +127,85 @@ function findReference(
   );
 }
 
+// A `closes` whose target exists and is not among the closing references (spec 0.1.4, section 7.4).
+// The closing references list issues only, leave out an issue a commit message closed, and are not
+// populated for a pull request into a branch other than the default; GitHub's record of a close is
+// the closer of the target's ClosedEvent, a pull request or a commit. `at` is the identity the
+// target's close events were read under; `observed` is what the closing references showed.
+function closedBy(
+  reference: Reference,
+  field: string,
+  evidence: Evidence,
+  repository: string,
+  at: string,
+  observed: Record<string, unknown>,
+): Claim {
+  const pr = evidence.pullRequest;
+  const section = evidence.closeEvents;
+  const target = section?.targets.find((t) => sameIssue(t.ref, at));
+  const side = section?.pullRequest;
+  // Why the close events cannot settle the claim, if they cannot: rows 2 and 3 are read first, so
+  // a recorded close by this pull request passes whatever else is unread.
+  let unread: string | undefined;
+  if (section === undefined || target === undefined) unread = absentSection('closeEvents');
+  else if (target.status !== 'ok') unread = unreadReason(target);
+  const events = target?.status === 'ok' ? target.events : [];
+  const sideUnread = () =>
+    side === undefined ? absentSection('closeEvents') : unreadReason(side as Unread);
+
+  // Rows 2 and 3 read every ClosedEvent, not only the latest: a target this pull request closed and
+  // someone later reopened was closed by it.
+  const self = `${repository}#${pr.number}`;
+  const byThis = events.find(
+    (e) => e.closer?.kind === 'pull_request' && sameIssue(e.closer.ref, self),
+  );
+  if (byThis !== undefined) {
+    return pass('reference', field, reference, { ...observed, closedBy: byThis });
+  }
+  // A commit closes its issue when it lands on the default branch. The merge commit is the pull
+  // request's own record; any other commit is one of its commits only if the commit list says so.
+  for (const e of events) {
+    if (e.closer?.kind !== 'commit') continue;
+    const oid = e.closer.oid;
+    if (oid === pr.mergeSha || (side?.status === 'ok' && side.commits.includes(oid))) {
+      return pass('reference', field, reference, { ...observed, closedBy: e });
+    }
+    if (side?.status !== 'ok') unread ??= sideUnread();
+  }
+  // GitHub computes the closing references asynchronously after the pull request is opened or its
+  // body is edited, so while it is open an absence may not be settled yet.
+  if (pr.state === 'open' && !pr.merged) {
+    return unverifiable('reference', field, reference, 'closing_link_unsettled');
+  }
+  // GitHub acts on closing keywords only in a pull request into the default branch. A target still
+  // open after a merge elsewhere may yet be closed when that branch is merged into the default.
+  if (pr.merged && target?.status === 'ok' && target.state === 'open') {
+    if (side?.status !== 'ok') unread ??= sideUnread();
+    else if (side.baseRef !== side.defaultBranch) {
+      return unverifiable('reference', field, reference, 'closing_base_not_default');
+    }
+  }
+  if (unread !== undefined) return unverifiable('reference', field, reference, unread);
+  const settled = target as CloseTargetEvidence & { status: 'ok' };
+  // GitHub sets a target's state to closed seconds before its timeline shows the ClosedEvent
+  // (observed 2026-10-12). A closed target whose complete read holds no ClosedEvent at all has a
+  // close not yet recorded, which may be this pull request's. A ClosedEvent with a null closer is
+  // not this case: it is recorded, and it is not this pull request's close.
+  if (settled.state === 'closed' && settled.events.length === 0) {
+    return unverifiable('reference', field, reference, 'closing_event_unsettled');
+  }
+  // A target open after a merge into the default branch, closed by another pull request, another
+  // commit or no recorded closer, or a pull request closed without merging: this pull request did
+  // not close it.
+  return fail(
+    'reference',
+    field,
+    reference,
+    { ...observed, state: settled.state, events: settled.events },
+    'not_closing',
+  );
+}
+
 export function checkReferences(block: Block, evidence: Evidence, repository: string): Claim[] {
   return (block.references ?? []).map((reference, i): Claim => {
     const field = `/references/${i}`;
@@ -157,19 +239,12 @@ export function checkReferences(block: Block, evidence: Evidence, repository: st
       // answered the read of its old one with that identity (spec 0.1.3). Only that recorded identity
       // is compared; nothing is inferred.
       const resolved = entry.kind === 'issue' ? entry.resolvedAs : undefined;
+      const named =
+        resolved === undefined ? observed : { ...observed, ref: target, resolvedAs: resolved };
       if (resolved !== undefined && closing.issues.some((issue) => sameIssue(issue, resolved))) {
-        return pass('reference', field, reference, {
-          ...observed,
-          ref: target,
-          resolvedAs: resolved,
-        });
+        return pass('reference', field, reference, named);
       }
-      // GitHub computes the closing references asynchronously after the pull request is opened or
-      // its body is edited, so while it is open an absence may not be settled yet.
-      const pr = evidence.pullRequest;
-      return pr.state === 'open' && !pr.merged
-        ? unverifiable('reference', field, reference, 'closing_link_unsettled')
-        : fail('reference', field, reference, observed, 'not_closing');
+      return closedBy(reference, field, evidence, repository, resolved ?? target, named);
     }
 
     if ('issue' in reference) {
@@ -263,18 +338,49 @@ function checkTests(block: Block, evidence: Evidence): Claim[] {
   return rows;
 }
 
-// The check runs at the head: the latest run per name, less any the checker excluded.
+// What one counted check run stands for (spec section 7.5): a job of a workflow, by the workflow's
+// path; else a check of one check suite (a run of no workflow, or of a record that recorded no
+// workflows); else, in a record that recorded no suites, the name alone.
+function checkKey(run: CheckRun): string {
+  if (run.workflowPath !== undefined)
+    return JSON.stringify(['workflow', run.workflowPath, run.name]);
+  if (run.checkSuiteId !== undefined) return JSON.stringify(['suite', run.checkSuiteId, run.name]);
+  return JSON.stringify(['name', run.name]);
+}
+
+// Whether `a` is later than `b` of the same key: the higher workflow run id, then run attempt, then
+// check run id. Runs of one key either all carry a workflow run or none does.
+function later(a: CheckRun, b: CheckRun): boolean {
+  if ((a.workflowRunId ?? 0) !== (b.workflowRunId ?? 0)) {
+    return (a.workflowRunId ?? 0) > (b.workflowRunId ?? 0);
+  }
+  if ((a.runAttempt ?? 0) !== (b.runAttempt ?? 0)) return (a.runAttempt ?? 0) > (b.runAttempt ?? 0);
+  return a.id > b.id;
+}
+
+// The check runs at the head: the latest run per workflow and name, less any the checker excluded.
+// GitHub names an Actions check run after its job, and each run of a workflow is a check suite of
+// its own: two workflows' `test` jobs are two checks and neither hides the other, and one workflow
+// run twice on the head (on push and pull_request, or after a reopen) is one check per job, its
+// latest workflow run's. A run of no workflow is keyed by its check suite, and a run of a record
+// that recorded no suites by its name alone, as each was then. An excluded run also supersedes
+// every earlier run of its name, in any suite: those are the checker's own earlier runs.
 export function countedCheckRuns(
   runs: readonly CheckRun[],
   excludedIds: readonly number[],
 ): CheckRun[] {
+  const excluded = new Set(excludedIds);
+  const checker = new Map<string, number>();
   const latest = new Map<string, CheckRun>();
   for (const run of runs) {
-    const seen = latest.get(run.name);
-    if (seen === undefined || run.id > seen.id) latest.set(run.name, run);
+    if (excluded.has(run.id)) checker.set(run.name, Math.max(checker.get(run.name) ?? 0, run.id));
+    const key = checkKey(run);
+    const seen = latest.get(key);
+    if (seen === undefined || later(run, seen)) latest.set(key, run);
   }
-  const excluded = new Set(excludedIds);
-  return [...latest.values()].filter((run) => !excluded.has(run.id)).sort((a, b) => a.id - b.id);
+  return [...latest.values()]
+    .filter((run) => !excluded.has(run.id) && run.id > (checker.get(run.name) ?? 0))
+    .sort((a, b) => a.id - b.id);
 }
 
 function checkChecks(block: Block, evidence: Evidence): Claim[] {

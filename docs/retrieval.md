@@ -23,7 +23,7 @@ record order:
 | --- | --- | --- | --- |
 | `commit` | `evidence.items.commits` (draft) | the 40-hex SHA | `sha`, `headline` (first line of the message) |
 | `timeline_event` | `evidence.items.timeline` (draft) | the event id | `event`, `ref` (an issue or commit), `detail` |
-| `check_run` | `evidence.checkRuns` (0.1): the latest run per name, less excluded runs | the run id | `name` |
+| `check_run` | `evidence.checkRuns` (0.1): the latest run per workflow path and name, less excluded runs | the run id | `name` |
 | `file` | `evidence.files` (0.1) | the path | `path`, `previousPath` |
 | `test` | `evidence.items.tests` (draft), from one JUnit record | `classname.name` | `name`, `classname` |
 
@@ -44,7 +44,14 @@ publish".
    - a changed file's `path` or `previousPath`, occurring whole: no path character directly before
      or after it, though a sentence's full stop is allowed;
    - a check run's `name`, or a test's `name` or `classname.name`, occurring whole and
-     case-sensitively. Names shorter than 4 characters are skipped (`MIN_NAME_LENGTH`).
+     case-sensitively. Names shorter than 4 characters are skipped (`MIN_NAME_LENGTH`). A test's
+     `classname.name`, once named, restricts its bare `name` to that test case: the same `name`
+     under another classname, or under none, is not an identifier match for that claim.
+   - A job name is a whole name only where the text does not continue it: not with a hyphen
+     (`build-docs` does not name `build`), not as part of a longer job name of the record named at
+     the same place (`build docs` does not name `build`), and not with a matrix leg (`test
+     (ubuntu-latest)` does not name `test`). A claim about a matrix job names its leg, and a bare
+     `test` names the job called `test` and nothing else.
 
    An identifier match has `score: null` and ranks above every lexical match.
 2. **BM25** (`bm25.ts`, in-repo, no dependency): k1 = 1.2, b = 0.75, Lucene IDF
@@ -67,13 +74,35 @@ publish".
    list: every candidate at or above the floor is still recorded. Its claims record
    `"retrieval": {"arm": "A-fill", "floor": 1, "k": 5}`. No embedding model is used or needed.
 
-   **A filled candidate is never evidence.** The check reads only identifier matches and candidates
-   at or above the recorded floor, so filling changes no verdict. A claim whose candidates are all
+   **A filled candidate is never evidence.** The check never reads a candidate below the recorded
+   floor, so filling changes no verdict. A claim whose candidates are all
    filled is `unverifiable` with `no_matching_record_item`, as it was with none. This matters most
    for `check_succeeded` and `test_passed`, which aggregate over their candidates (spec D.10,
    question 4): a filled run or test case never decides them. For `file_changed`, `commit_present`
    and `reference_in_timeline` a filled candidate could not make a claim pass anyway, since the
    declared item has to be among the candidates and an item the claim names is an identifier match.
+
+### Exact identifiers close the set
+
+The check combines a set of the claim's candidates (`combinedCandidates`, `reader-claims.ts`; DRAFT
+0.2.0, D.6):
+
+1. **Exact identifier matches close the set.** If at least one candidate of the claim's item type is
+   an identifier match (`score: null`), the check combines the identifier matches only. A lexical
+   candidate stays in the recorded list, at or above the floor or not, as evidence of what
+   retrieval saw. Its numeric `score` beside an identifier match marks it as not combined, so the
+   record needs no new field, and it never decides a verdict.
+2. **A qualified test name restricts the match** (step 1 above). `queue.retry.gives up after three
+   attempts` names that test case only, and not `http.retry.gives up after three attempts`.
+3. **Without an identifier match, nothing changes.** The check combines every candidate at or above
+   the floor, in the same order. With none, the claim is `unverifiable`, `no_matching_record_item`.
+
+This matters for `check_succeeded` and `test_passed`, which aggregate over what they combine. A
+sibling one token apart ("evicts the newest entry" beside "evicts the oldest entry"), a job whose
+name differs only in a token BM25 drops (`e2e (shard 1)` beside `e2e (shard 2)`), or the same name
+under another classname would otherwise join the aggregate. It could then turn a claim that names
+the right item exactly from `pass` into `fail`. Retrieval itself is unchanged: it ranks and records
+the same candidates as before, and only what the check combines differs.
 
 ### The floor, and why 1
 
@@ -178,6 +207,100 @@ sampled, and `chance.recallAtK` divides by the claim count.
 13 of 14 there (A-fill 14 of 14; chance 0.814). The miss is a claim written to share no word with its commit ("more resilient to
 flaky networks" against "Add exponential backoff to blob uploads"): it is the kind of gap Arm B is
 meant to measure. The real measurement runs on a private corpus outside this repository.
+
+## Challenge set
+
+The corpus tests what retrieval finds. `test/retrieval-challenge/` tests what it should not confuse:
+typed claims against record items built to be mistaken for the right one. In the second open-source
+study, 4 of the 7 file misreads named a path that is a file at the head
+(`experiments/open-source-advisory-2026-10-study2/result.md`), so a confusable that exists is the
+common case, not the rare one. This is a challenge set, not a sample: its cases are chosen to be
+hard, and it gives no rate. Every item is constructed.
+
+One file per family, each one pull request's evidence in the corpus's shape, read by the corpus
+loader:
+
+- `paths`: sibling and nested paths; monorepo duplicates; a rename named by its old path, and a new
+  file added at that old path; a path that is a prefix of another; an existing file mentioned only
+  as context, which was not changed.
+- `shas`: a 7-hex prefix two commits share; a SHA in a timeline event's `ref` and not among the
+  commits.
+- `numbers`: `#N` in the subject repository against `owner/repo#N`; `#120` against `#12`; an issue
+  named only by a `connected` event. A `closes` claim is not a reader claim: section 7.4 of the spec
+  settles it by who closed the target, so the set has no `closes` case.
+- `checks`: the right name on the wrong run (a re-run; one job name in two workflows); names that
+  differ only in case; names below `MIN_NAME_LENGTH`; a matrix job.
+- `tests`: test names one token apart; one `name` under two `classname`s.
+- `lexical`: BM25 ties broken by record order where the right item comes later, because a token of
+  one character is dropped; and the same ties under a claim that the right item failed, where it
+  succeeded.
+
+A case gives the claim (`text`, `kind`, `declaredValue`), its `confusion` in one line,
+`expectCandidates` (the ids the check should read first, in that order), `forbidCandidates` (ids the
+check must not read: no identifier match and no score at or above the floor) and `expectCheck` (the
+verdict, and the reason and observed value where stated).
+
+`src/retrieval/challenge.test.ts` runs Arm A and the check (`readReaderClaim`) on every case and
+snapshots the candidates and the check exactly. Every case where that differs from its expectation
+is in `KNOWN_MISSES`, with its family, its effect (`verdict`, `observed` under the right verdict, or
+`candidates` only) and one line of reason. The test passes on today's code. A new miss or a fixed
+one fails it until the list and the snapshot are updated, so every change in retrieval is a diff.
+Arm B is not run: Dunstan ships no embedding provider.
+
+| Family | Cases | Known misses | Of which a wrong verdict |
+| --- | --- | --- | --- |
+| `checks` | 9 | 2 | 1 |
+| `lexical` | 8 | 7 | 6 |
+| `numbers` | 5 | 0 | 0 |
+| `paths` | 11 | 3 | 0 |
+| `shas` | 7 | 3 | 0 |
+| `tests` | 7 | 2 | 1 |
+| All | 47 | 17 | 8 |
+
+When the set was first measured there were 35 known misses, 14 of them wrong verdicts. One of them
+was a `closes` claim that a cross-reference passed; that case has since been dropped, since its pass
+follows the spec's `reference_in_timeline` row:
+
+| Family | Known misses | Of which a wrong verdict |
+| --- | --- | --- |
+| `checks` | 6 | 4 |
+| `lexical` | 6 | 5 |
+| `numbers` | 3 | 1 |
+| `paths` | 10 | 0 |
+| `shas` | 3 | 0 |
+| `tests` | 7 | 4 |
+
+"Exact identifiers close the set" fixed 18 of those misses, 6 of them wrong verdicts. A case is
+fixed when it names its item exactly and the confusable was only a lexical match. The wrong verdicts
+left are all in the kinds that aggregate over their candidates, `check_succeeded` and
+`test_passed`, where no single identifier match closes the set:
+
+- the claim names its item only loosely ("e2e shard 2", "the 1 byte upload test"), so the
+  confusable ties lexically and is read. Two of these are false passes: a claim that the item
+  failed, about one that succeeded, holds because the tied confusable failed;
+- the confusable is an identifier match too: one name under two classnames with the classname only
+  in prose, or the latest run per name.
+
+Matching a job name whole (step 1 above) then fixed the matrix job: `test (ubuntu-latest)` no longer
+names `test`. That left 17 misses, 8 of them wrong verdicts. Case and the short names inside longer
+ones were already fixed by exact identifiers.
+
+The latest run per name is not fixed. In `checks/same-name-two-workflows`, the record keeps one run
+of `test` where two workflows ran one each. A 0.1 check run carries `id`, `name`, `status` and
+`conclusion`, and no workflow, check suite or app. So that evidence is the same as a re-run of
+`build` in one workflow (`checks/rerun-latest-failed`), and a check that is a function of the
+evidence gives both the same verdict. Calling every name held by two runs ambiguous would make the
+re-run cases `unverifiable` too. Telling them apart needs the evidence to carry each run's check
+suite or workflow.
+
+In the other kinds the declared item has to be among the candidates, so a confusable read beside it
+changes no verdict, though it can change the observed value.
+
+To add a case, add a claim to its family's file (or add a family file and its name to `FAMILIES`),
+run `pnpm exec vitest run src/retrieval/challenge.test.ts --update` to write its snapshot, and read
+the snapshot's diff. If it misses, add it to `KNOWN_MISSES` with a reason, and update the table
+above; the test checks the table. The claims carry no `expected`, so this is not a corpus for
+`dunstan-eval retrieval`.
 
 ## Not here
 

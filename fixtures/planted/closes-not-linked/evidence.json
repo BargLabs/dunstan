@@ -52,6 +52,23 @@
       "reachableFromHead": true
     }
   ],
+  "closeEvents": {
+    "pullRequest": {
+      "status": "ok",
+      "baseRef": "main",
+      "defaultBranch": "main",
+      "commits": ["a11ce5e0c0ffee00d00dfeed0000111122223333"]
+    },
+    "targets": [
+      {
+        "ref": "example-org/example-repo#17",
+        "status": "ok",
+        "type": "issue",
+        "state": "open",
+        "events": []
+      }
+    ]
+  },
   "checkRuns": {
     "status": "ok",
     "commit": "a11ce5e0c0ffee00d00dfeed0000111122223333",
@@ -167,10 +184,22 @@
       "readAt": "2026-10-04T12:00:00Z"
     },
     {
+      "kind": "issue",
+      "locator": "POST /graphql repository(example-org/example-repo).issueOrPullRequest(17).timelineItems(CLOSED_EVENT)",
+      "sha256": "1d6b5e3f0a6c1c5ab8f2a0d6c9f3b4e7a2d5c8f1b4e7a0d3c6f9b2e5a8d1c4f7",
+      "readAt": "2026-10-11T12:00:00Z"
+    },
+    {
       "kind": "pull_request",
       "locator": "GET /repos/example-org/example-repo/pulls/108",
       "sha256": "d5670a5fb9f438d772c463ea4a599205b88983793850480e34216629f8e9eb95",
       "readAt": "2026-10-04T12:00:00Z"
+    },
+    {
+      "kind": "pull_request_commits",
+      "locator": "POST /graphql repository(example-org/example-repo).pullRequest(108).commits",
+      "sha256": "8a2e4c6f1b3d5e7a9c0b2d4f6e8a1c3b5d7f9e0a2c4b6d8f1e3a5c7b9d0f2e4a",
+      "readAt": "2026-10-11T12:00:00Z"
     },
     {
       "kind": "pull_request_files",

@@ -1,0 +1,28 @@
+{
+  "description": "Declares closes #33, which is not among the closing references and which another pull request (#150) closed",
+  "blockStatus": "found",
+  "verdict": "fail",
+  "claims": [
+    {
+      "id": "head:/headCommit",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/0",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/1",
+      "verdict": "pass"
+    },
+    {
+      "id": "scope:/filesChanged/2",
+      "verdict": "pass"
+    },
+    {
+      "id": "reference:/references/0",
+      "verdict": "fail",
+      "reason": "not_closing"
+    }
+  ]
+}

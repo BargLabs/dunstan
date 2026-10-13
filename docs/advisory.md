@@ -72,7 +72,7 @@ never shows it as "differs", "mismatch" or "false", nor as anything that says th
 | Note in the record | Shown as |
 | --- | --- |
 | `differs:declared_not_changed` | possible disagreement, unverified: not among the changed files |
-| `differs:not_closing` | possible disagreement, unverified: not among the closing references |
+| `differs:not_closing` | possible disagreement, unverified: not closed by this pull request or its commits |
 | `differs:not_found` | possible disagreement, unverified: not found in the record |
 | `differs:not_reachable` | possible disagreement, unverified: not reachable from the head |
 | `differs:head_mismatch` | possible disagreement, unverified: the head is another commit |
@@ -88,6 +88,13 @@ is `unverifiable` there (spec 0.1.2, section 7.4). An advisory never gates, but 
 claim more than the evidence holds. An issue since transferred to another repository is compared
 under the identity GitHub resolves its old name to, as the gate's claim is (spec 0.1.3, sections 6
 and 7.4): when the closing references list it there, the note is `agrees`, not `differs:not_closing`.
+Since comparison 0.4.0 the note is also settled by who closed the target, as the gate's claim is
+(spec 0.1.4): a target this pull request, one of its commits or its merge commit closed is `agrees`,
+a merge into a branch other than the default with the target still open is
+`unanswered:closing_base_not_default`, and a closed target whose ClosedEvent GitHub does not show
+yet is `unanswered:closing_event_unsettled` ("Closes read by who closed the target", below). So
+`differs:not_closing` now says what was read: the target is not among the closing references, and
+no ClosedEvent of it names this pull request or one of its commits as the closer.
 
 Every surface that shows advisories also prints one fixed line beside them. For a record that
 carries the published figures (extractor 0.1.1 and comparison 0.2.0), the line states them, filled
@@ -118,9 +125,11 @@ The surfaces are:
 
 **The wording changes presentation only.** The record's `note` is still `differs:<reason>`, and the
 wording left the comparison at 0.2.0. A consumer that reads the record reads the same notes. The
-record changes since are the figure fields of the advisory section ("Measured figures", below) and
+record changes since are the figure fields of the advisory section ("Measured figures", below),
 comparison 0.3.0, which keeps `differs:declared_not_changed` only for a path that is a file at the
-head ("Paths that are not at the head", below).
+head ("Paths that are not at the head", below), and comparison 0.4.0, which reads who closed a
+`closes` target ("Closes read by who closed the target", below). The `not_closing` wording changed
+with 0.4.0 to say what is now read.
 `src/advisory/present.ts` holds the wording. `src/advisory/present.test.ts` pins the schemas'
 SHA-256 and a record's notes and digests, and checks each surface's text, with and without the
 figures.
@@ -138,12 +147,12 @@ figures.
    `observed` and `note`. A file claim is also matched by name ("Bare file names", below), and one
    still not among the changed files is a disagreement only when its path is a file at the head.
    The rules of this step are the **comparison**, versioned apart from the extractor: the record's
-   `advisory.comparison.version` is `0.3.0`.
+   `advisory.comparison.version` is `0.4.0`.
 
 | Kind | Value | Gate check | Notes it can carry |
 | --- | --- | --- | --- |
 | `file_changed` | path | 7.3 scope, one declared path, then by name, then the path at the head | `agrees`, `agrees_by_name`, `differs:declared_not_changed` (a file at the head), `unanswered:no_such_path`, `unanswered:directory`, `unanswered:source_unreadable:path`, `unanswered:ambiguous_path`, `unanswered:file_list_truncated` |
-| `reference_closes` | `#N`, `owner/repo#N` | 7.4 `closes` | `agrees`, `differs:not_closing` (merged or closed pull request), `differs:not_found`, `unanswered:closing_link_unsettled` (open pull request), `unanswered:…` |
+| `reference_closes` | `#N`, `owner/repo#N` | 7.4 `closes` | `agrees` (among the closing references, or closed by this pull request or one of its commits), `differs:not_closing` (merged or closed pull request), `differs:not_found`, `unanswered:closing_link_unsettled` (open pull request), `unanswered:closing_base_not_default` (merged elsewhere, target open), `unanswered:closing_event_unsettled` (target closed, no ClosedEvent yet), `unanswered:…` |
 | `commit` | 7 to 40 hex | 7.2 if the head starts with it, else 7.4 `cites` (40 hex only) | `agrees`, `differs:not_found`, `differs:not_reachable`, `unanswered:…` |
 | `head_commit` | 7 to 40 hex | 7.2 head | `agrees`, `differs:head_mismatch` |
 | `checks_succeeded` | boolean | 7.5 `allSucceeded` | `agrees`, `differs:all_succeeded_mismatch`, `unanswered:checks_incomplete`, `unanswered:no_check_runs` |
@@ -228,7 +237,8 @@ It is sent only with advisories on, only for a `file_changed` claim the changed 
 `differs:declared_not_changed`, and only after the file list was read in full. A claim on a changed
 file, a name match, an ambiguous name or a truncated list asks nothing. A bare name or a partial
 path is asked at the root, as written: `cli.ts` names `<head>:cli.ts`. The hosted route allowlist
-admits this query and the closing-references query, each only as written (`docs/hosted.md`).
+admits this query, the closing-references query and the two close queries of spec 0.1.4, each only
+as written (`docs/hosted.md`).
 
 **What the record holds.** The answers are the evidence the note was computed from, so they are
 recorded beside the notes, not in the 0.1 `evidence`: the advisory section's `pathsAtHead` holds
@@ -260,7 +270,47 @@ and is not rebound, so a record compared by 0.3.0 carries `null` for `differsAcc
 
 The rules are pinned by synthetic tests in `advise.test.ts`, "a file claim not among the changed
 files: does the path exist at the head? (comparison 0.3.0)", "pathsToRead" and the 0.3.0 record and
-command-line tests, and in `src/evidence/github.test.ts`, "readPathObjects".
+command-line tests, and in `src/evidence/github.test.ts`, "readPathObjects". Comparison 0.4.0 keeps
+every rule of this section as written.
+
+### Closes read by who closed the target (comparison 0.4.0)
+
+A `reference_closes` claim is compared by the gate's 7.4 `closes` check, which spec 0.1.4 changed:
+the closing references (GraphQL `closingIssuesReferences`) list issues only, leave out an issue that
+a keyword in a commit message closed, and are not populated for a pull request into a branch other
+than the default. GitHub's record of a close is the closer of the target's ClosedEvent, and the
+check now reads it. Comparison 0.4.0 is 0.3.0 with that check under it. For a target that exists
+and is not among the closing references:
+
+| What the record shows | Note |
+| --- | --- |
+| a ClosedEvent of the target names this pull request as its closer | `agrees` |
+| a ClosedEvent names one of the pull request's commits, or its merge commit | `agrees` |
+| the pull request is open and unmerged | `unanswered:closing_link_unsettled`, as before |
+| merged into a branch other than the default, and the target is open | `unanswered:closing_base_not_default` |
+| the close events, or the commits a commit closer needs, could not be read | `unanswered:source_unreadable:…` or `unanswered:evidence_field_unpopulated:…` |
+| the target is closed, and its close events hold no ClosedEvent yet | `unanswered:closing_event_unsettled` |
+| otherwise: open after a merge into the default branch, closed by another pull request or commit or by no recorded closer, or a pull request closed unmerged | `differs:not_closing` |
+
+GitHub sets a target's state to closed seconds before its timeline shows the ClosedEvent (observed
+2026-10-12, `experiments/closes-probe-2026-10/`), so a closed target with no ClosedEvent at all is
+not yet a disagreement. A ClosedEvent that records no closer is: the close is recorded, and it is
+not this pull request's. Comparison 0.4.0 was amended for this before it was released, so its
+version is unchanged.
+
+Every ClosedEvent is read, not only the latest, and the target may be an issue or a pull request.
+The two queries are the gate's own (spec section 6, `closeEvents`), so a block's `closes` reads
+them too; with advisories on they are also asked for the `closes` claims the prose makes, as the
+other sections are (D.11.5). They ask for ids, names, states and times only: never a body, a title
+or a commit message.
+
+**Comparison 0.4.0 is unmeasured.** The published `differs` figure is bound to comparison 0.2.0
+and is not rebound, so a record compared by 0.4.0 carries `null` for `differsAccuracy`, shown as
+"unmeasured", until 0.4.0 is measured.
+
+The rules are pinned by synthetic tests in `advise.test.ts`, "reference_closes is settled by who
+closed the target (spec 0.1.4, comparison 0.4.0)", and in `src/check/checks.test.ts`, "a closes
+missing from the closing references is settled by who closed the target".
 
 ## The grammar, as written
 
@@ -608,8 +658,9 @@ constructed reports ("Extractor 0.1.3 on constructed reports (recall)", below), 
 measured on real pull requests. So a record the running checker writes carries `null` for both
 figures, shown as "unmeasured", until a precision measured on real pull requests is published for
 0.1.3. No figure here is rebound to it. The `differs` figure and its base rate are bound to
-comparison 0.2.0 too, and the comparison that runs since 2026-10-07 is 0.3.0 ("Paths that are not
-at the head", above), so `differsAccuracy` stays `null` until 0.3.0 is measured.
+comparison 0.2.0 too. The comparison that ran from 2026-10-07 was 0.3.0 ("Paths that are not at the
+head", above), and the one that runs since 2026-10-11 is 0.4.0 ("Closes read by who closed the
+target", above), so `differsAccuracy` stays `null` until 0.4.0 is measured.
 
 | Figure | Value | n | Wilson 95% interval | Bound to |
 | --- | --- | --- | --- | --- |

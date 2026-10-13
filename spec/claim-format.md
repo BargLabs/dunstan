@@ -1,6 +1,6 @@
 # The Dunstan claim format
 
-Version 0.1.3. Draft. Licensed under Apache-2.0 (`spec/LICENSE`).
+Version 0.1.4. Draft. Licensed under Apache-2.0 (`spec/LICENSE`).
 
 A coding agent that finishes a task writes a completion report. This specification defines a block
 the agent declares inside that report, the checks a checker runs on each declared field against the
@@ -27,7 +27,7 @@ verdict.
 16. [Reason codes](#16-reason-codes)
 17. [Changes](#17-changes)
 
-Not part of 0.1.3: [DRAFT 0.2.0: reader claims and retrieval](#draft-020-reader-claims-and-retrieval),
+Not part of 0.1.4: [DRAFT 0.2.0: reader claims and retrieval](#draft-020-reader-claims-and-retrieval),
 with [advisories from prose](#d11-advisories-from-prose), for the operator to check.
 
 ## 1. Conventions
@@ -186,13 +186,15 @@ The record schema defines its shape. Its sections:
 | `files` | always, if a block was found | the changed-file entries `{path, status, previousPath?}` and `complete` |
 | `closingReferences` | a `closes` reference is declared | the pull request's closing issues, as `owner/repo#N` |
 | `references` | a `cites` reference is declared, or a `closes` issue is not among the closing references | per cited issue or commit, and per such `closes` issue: `exists`, for a commit `reachableFromHead`, and for an issue GitHub answers as another issue `resolvedAs` |
-| `checkRuns` | `checks` is declared | the check runs at `headCommit`, and any `excludedIds` |
+| `closeEvents` | a `closes` target exists and is not among the closing references | per such target, under the identity it resolves to: its `type`, `state` and every ClosedEvent `{at, closer}`; and the pull request's `baseRef`, the repository's `defaultBranch` and the pull request's `commits` |
+| `checkRuns` | `checks` is declared | the check runs at `headCommit`, each `{id, name, status, conclusion}` with its `checkSuiteId` (`check_suite.id`) and `appSlug` (`app.slug`) when the API gives them, and, for a run whose check suite is a workflow run's, that run's `workflowPath`, `workflowRunId` and `runAttempt`; and any `excludedIds` |
 | `testRecords` | a `junit` test record is declared | per distinct record: the candidate runs and their counts |
 | `deployments` | `deployedAt` is declared | the candidate deployments to that environment (section 7.6), each with its `relation` to the pull request |
 | `sources` | always | one entry per read: `{kind, locator, sha256, etag?, readAt, error?}` |
 
-**Read status.** Every section except `pullRequest` and `sources`, and every entry of `references`,
-`testRecords` and `deployments`, carries a `status`:
+**Read status.** Every section except `pullRequest`, `closeEvents` and `sources`, every entry of
+`references`, `testRecords`, `deployments` and `closeEvents.targets`, and `closeEvents.pullRequest`,
+carries a `status`:
 
 - `ok`: the source answered with the data.
 - `unreadable`, with the source `kind`: the read errored (any HTTP error other than the not-found
@@ -220,8 +222,37 @@ section 7.4 compares issues; the entry's `ref` stays the issue read. An answer t
 issue is unparseable, so the read is `unreadable` with kind `issue`, as is a redirect the checker
 cannot follow or read. `resolvedAs` is in the evidence, so offline verify reads it as recorded.
 
-**Source kinds.** `pull_request`, `pull_request_files`, `closing_references`, `repository`, `issue`,
-`commit`, `compare`, `check_runs`, `workflow_runs`, `artifact`, `deployments`.
+**Close events.** GitHub records each close of an issue or a pull request as a ClosedEvent whose
+`closer` is the pull request or the commit that closed it, or nothing. For each `closes` target that
+exists and is not among the closing references, under `resolvedAs` when recorded (else as declared),
+a checker reads with GraphQL `issueOrPullRequest`: `type` (`issue` or `pull_request`), `state`
+(`open`, `closed`, or for a pull request `merged`) and every `timelineItems(itemTypes:
+[CLOSED_EVENT])` node as `{at, closer}`, `at` its `createdAt`, `closer` `{kind: "pull_request",
+ref: "owner/repo#N"}`, `{kind: "commit", oid}`, `{kind: "other"}` for any other closer type, or
+`null`. A target read with an error, or with more than 1,000 ClosedEvents (ten pages of 100), is
+`unreadable` with kind `issue`; an answer with no item is `unpopulated` with field
+`issueOrPullRequest`. Once per pull request, `closeEvents.pullRequest` holds its `baseRef`
+(`baseRefName`), its repository's `defaultBranch` (`defaultBranchRef.name`, `null` if there is none)
+and its `commits`, every commit id it holds. A commit list shorter than the count GitHub gives for it
+(GitHub lists at most 250) is `unreadable` with kind `pull_request_commits`, never short. The merge
+commit is `pullRequest.mergeSha`. Both reads ask for ids, names, states and times only.
+
+**Workflow runs.** Each run of a GitHub Actions workflow is a check suite of its own, and a check
+run does not name its workflow. When any check run read has a `checkSuiteId`, a checker reads,
+after the check runs, every workflow run at `headCommit` (`GET
+/repos/{owner}/{repo}/actions/runs?head_sha=<headCommit>`, every page). For each check run whose
+`checkSuiteId` is a listed run's `check_suite_id`, it records that run's `path`, less any `@` and
+what follows it, as `workflowPath`, its `id` as `workflowRunId` and its `run_attempt` as
+`runAttempt`. The listing gives each workflow run at its latest attempt, so `runAttempt` is that
+attempt, not necessarily the one that created the check run. A check run whose suite no listed
+run names, such as one an app other than GitHub Actions created, is recorded without the three. A
+listing that is unreadable, or that names one check suite for two workflow runs, makes `checkRuns`
+`unreadable` with kind `workflow_runs`: the check runs are never recorded as if no workflow run
+had been read.
+
+**Source kinds.** `pull_request`, `pull_request_files`, `pull_request_commits`,
+`closing_references`, `repository`, `issue`, `commit`, `compare`, `check_runs`, `workflow_runs`,
+`artifact`, `deployments`.
 
 **Sources.** `locator` names the request (method and path, or the GraphQL field read). `sha256` is
 over the response body bytes as received. `etag` is the response's ETag, if any. `error` is present
@@ -232,8 +263,10 @@ paginated read is one entry per page; if any page is unreadable, the section is 
 are in code-unit order of `path`; `closingReferences.issues` in code-unit order; `checkRuns.runs` and
 `deployments[].deployments` in ascending `id`; `testRecords[].runs` in ascending `runId`;
 `references`, `testRecords` and `deployments` in order of first appearance in the block, one entry per
-distinct reference, record or environment; `sources` in code-unit order of `kind`, then of `locator`,
-one entry per locator.
+distinct reference, record or environment; `closeEvents.targets` likewise, one per distinct identity
+read, each target's `events` in the order GitHub lists them; `closeEvents.pullRequest.commits` in
+code-unit order, once each; `sources` in code-unit order of `kind`, then of `locator`, one entry per
+locator.
 
 ## 7. Claims and checks
 
@@ -291,27 +324,52 @@ limit of 3,000 files. If the list is unreadable, the same rows are `unverifiable
 One row per `references[i]`, `reference:/references/<i>`. `#N` resolves to `owner/repo#N` in the
 subject repository.
 
-- **`closes`** passes only if the issue is among the pull request's closing references as the API
-  records them (GraphQL `closingIssuesReferences`). Text in the pull request body that GitHub did not
-  record as closing does not count. GitHub leaves out of that list any issue whose repository the
-  reader cannot see, so an issue missing from the list does not by that alone fail: the checker
-  reads the issue as it reads a cited one (section 6, "Not found"), and the claim is
-  - `unverifiable` with `source_unreadable:repository` if the issue's repository is unreadable;
-  - `unverifiable` with `source_unreadable:issue` if the issue's read errors;
-  - `fail` with `not_found` if the issue does not exist;
-  - `pass` if the issue exists, its entry records `resolvedAs` (section 6, "Resolved identity": an
-    issue transferred to another repository), and that issue is among the closing references;
-  - `unverifiable` with `closing_link_unsettled` if the issue exists and the pull request is open
-    (`pullRequest.state` is `open` and `merged` is `false`);
-  - `fail` with `not_closing` if the issue exists and the pull request is merged or closed.
+- **`closes`** names a target, an issue or a pull request, that the pull request P closes. It passes
+  (row 1) if the target is among P's closing references as the API records them (GraphQL
+  `closingIssuesReferences`). Text in the pull request body that GitHub did not record does not
+  count. GitHub leaves out of that list any issue whose repository the reader cannot see, so a target
+  missing from the list does not by that alone fail: the checker reads it as it reads a cited one
+  (section 6, "Not found"), and the claim is
+  - `unverifiable` with `source_unreadable:repository` if the target's repository is unreadable;
+  - `unverifiable` with `source_unreadable:issue` if the target's read errors;
+  - `fail` with `not_found` if the target does not exist (the issues API answers for a pull request
+    number too, so a pull request target exists);
+  - `pass` if the target exists, its entry records `resolvedAs` (section 6, "Resolved identity": an
+    issue transferred to another repository), and that identity is among the closing references.
 
-  GitHub computes the closing references asynchronously after a pull request is opened or its body
-  is edited, so while it is open an issue missing from the list may yet be added. The list of a
-  merged or closed pull request is read as settled. `observed` is `{closing: [...]}`, with
-  `exists: false` added for `not_found`, `ref` (the issue read) and `resolvedAs` added for a pass
-  under the resolved identity, and `null` for `closing_link_unsettled` (section 7.1). A `resolvedAs`
-  that is not among the closing references changes nothing: the claim is `closing_link_unsettled` or
-  `not_closing` as above.
+  The closing references are not GitHub's whole record of a close: they list issues only, never a
+  pull request; they leave out an issue that a keyword in a commit message closed; and GitHub does
+  not act on keywords in a pull request into a branch other than the default. GitHub's record of a
+  close is the closer of the target's ClosedEvent (section 6, "Close events"). Otherwise, with T the
+  target's `closeEvents` entry (under `resolvedAs` when recorded), the claim is, in this order:
+
+  | # | Evidence | Verdict, reason |
+  | --- | --- | --- |
+  | 2 | some ClosedEvent of T has closer P (`kind` `pull_request`, `ref` P) | `pass` |
+  | 3 | some ClosedEvent of T has a commit closer whose `oid` is one of `closeEvents.pullRequest.commits` or `pullRequest.mergeSha` | `pass` |
+  | 4 | P is open and unmerged (`state` `open`, `merged` `false`) | `unverifiable`, `closing_link_unsettled` |
+  | 5 | P is merged, `baseRef` is not `defaultBranch`, and T's `state` is `open` | `unverifiable`, `closing_base_not_default` |
+  | 6 | T, or the part of `closeEvents.pullRequest` a row above needs, is unread or absent | `unverifiable`, with its `source_unreadable:<kind>` or `evidence_field_unpopulated:<field>` (`closeEvents` when the section or T's entry is absent) |
+  | 7 | T's `state` is `closed`, and its read is complete but holds no ClosedEvent (`events` is empty) | `unverifiable`, `closing_event_unsettled` |
+  | 8 | otherwise: T open after a merge into the default branch, T closed by another pull request, another commit or no recorded closer (a ClosedEvent whose `closer` is `null`), or P closed without merging | `fail`, `not_closing` |
+
+  Rows 2 and 3 read every ClosedEvent, not only the latest: a target P closed that was later reopened
+  was closed by P. A row 2 or 3 pass needs only the event it rests on, so it passes whatever else is
+  unread. Row 3 needs `closeEvents.pullRequest.commits` only for a commit that is not the merge
+  commit, and row 5 needs `baseRef` and `defaultBranch`. GitHub computes the closing references
+  asynchronously after a pull request is opened or its body is edited, so while P is open an absence
+  may yet change (row 4). Keywords do not act on a non-default base, but a later merge of that base
+  into the default branch can still close T by a commit message, so row 5 is not yet decidable; the
+  record holds no commit message, so a body keyword on a non-default base, which never closes T,
+  stays row 5 for as long as T is open. GitHub sets T's `state` to closed before T's timeline shows
+  the ClosedEvent (observed, section 17), so a closed T whose complete read holds no ClosedEvent at
+  all has a close that is not yet recorded, and it may be P's (row 7). A ClosedEvent whose `closer`
+  is `null` is not row 7: the close is recorded, and it records no closer. A close by another pull
+  request, another commit, or no recorded closer is not P's close (row 8).
+  `observed` is `{closing: [...]}`, with `exists: false` added for `not_found`; `ref` (the target
+  read) and `resolvedAs` added when the target resolved to another identity; `closedBy`, the
+  ClosedEvent `{at, closer}` a row 2 or 3 pass rests on; `state` and `events`, T's, for `not_closing`;
+  and `null` for an `unverifiable` row (section 7.1).
 - **`cites`, issue or pull request,** passes if it exists, and otherwise fails with `not_found`.
   `observed` is `{exists}`.
 - **`cites`, commit,** passes if the commit exists in the subject repository and is reachable from the
@@ -341,11 +399,35 @@ the artifact read `unreadable`.
 For a record of any other kind the rows are `unverifiable` with `no_comparable_record_field`. A test
 count is never compared with a check-run total, or with anything other than the record it names.
 
-**Checks.** The check runs are those the API lists for `headCommit` (latest run per name), less any
-the checker excluded: a checker running inside a check run MUST exclude that run and list its id in
-`checkRuns.excludedIds`.
+**Checks.** The check runs are those the API lists for `headCommit`, the latest run per key, less
+any the checker excluded: a checker running inside a check run MUST exclude that run and list its
+id in `checkRuns.excludedIds`. GitHub names an Actions check run after its job, not its workflow,
+and each run of a workflow is a check suite of its own. The key is what one check is:
 
-- `count:/checks/total` compares `total` with the number of check runs; `count_mismatch` if unequal.
+1. a run with a `workflowPath`: the workflow path and the name. Two workflows that each have a job
+   `test` give two keys, so both are counted and neither hides the other. One workflow run more
+   than once on `headCommit` (on `push` and on `pull_request`, or again when the pull request is
+   reopened) gives one key per job, so each job is counted once, as its latest workflow run ran it;
+2. otherwise a run with a `checkSuiteId`: the check suite and the name. This is a run of no
+   workflow, such as one an app other than GitHub Actions created, and every run of a record
+   written before `workflowPath` was recorded. No path is inferred for it. If one app put two check
+   suites on one commit, its runs of a name would be counted once per suite, which can fail a
+   correct claim, never pass a wrong one;
+3. otherwise the name alone: every run of a record written before `checkSuiteId` was recorded, so
+   such a record counts as it did then.
+
+The latest run of a key is the one with the highest `workflowRunId`, then the highest
+`runAttempt`, then the highest `id`; a run without the first two compares as 0 on them, so among
+runs of no workflow the highest `id` is the latest. Two runs of different kinds of key, such as a
+run with a `workflowPath` and a run of the same name with neither member, never supersede each
+other: both are counted, which can fail `allSucceeded`, never pass it. An excluded run also
+supersedes every run of its name with a lower `id`, whatever its key: a checker run again on the
+same head (after the pull request body is edited) runs in a new run of its workflow, and its
+earlier runs are its own. So a run of another workflow with the name of an excluded run and a lower
+`id` is not counted either; a checker's own runs should have names no other check uses.
+
+- `count:/checks/total` compares `total` with the number of check runs counted so, each key once;
+  `count_mismatch` if unequal.
 - `count:/checks/allSucceeded` compares `allSucceeded` with an observed value: `false` if any
   completed run's conclusion is anything other than `success` (including `skipped` and `neutral`);
   otherwise `unverifiable` with `checks_incomplete` if any run is not completed; otherwise `true`. It
@@ -419,7 +501,7 @@ one ingests the other.
 
 | Member | Value |
 | --- | --- |
-| `spec` | The full version of this specification the checker implements, `"0.1.3"`. |
+| `spec` | The full version of this specification the checker implements, `"0.1.4"`. |
 | `checker` | `{name, version, digest: {sha256}}`; the digest is of the distributed checker artifact that ran. |
 | `report` | `{sha256, source: {kind, locator}}`, `kind` one of `pr-body`, `pr-comment`, `file`, `stdin`, `api`. |
 | `block` | `{status, sha256, value}`, plus `reason` and `count` or `errors` when not `found`. |
@@ -506,8 +588,9 @@ names carry the major and minor.
 ## 14. Security and privacy
 
 - A record holds no file contents and no report text, only digests and metadata. Publishing a record
-  publishes the block, the repository and pull request numbers, file paths, check names, workflow
-  names and deployment environment names.
+  publishes the block, the repository and pull request numbers, file paths, check names, check suite
+  ids, the slugs of the apps that created check runs, workflow names, the paths, ids and attempts
+  of the workflow runs check runs belong to, and deployment environment names.
 - The block is untrusted input. Its paths are validated as repository-relative and are compared as
   strings, never opened.
 - A JUnit file is read for element counts only.
@@ -533,7 +616,8 @@ against the schemas and check each record's block, report and claim and evidence
 - `spec/examples/records/`: `pass.json`, `fail.json` (an undeclared file and a short test count,
   which fail, beside a `closes` of an existing issue missing from an open pull request's closing
   references, which is `unverifiable` with `closing_link_unsettled`: a `fail` decides even beside an
-  `unverifiable` row), `unverifiable.json` (a non-JUnit test record and unreadable check runs) and
+  `unverifiable` row; its evidence holds the issue's close events, open with none, which the open
+  pull request leaves unsettled), `unverifiable.json` (a non-JUnit test record and unreadable check runs) and
   `block_missing.json`.
 
 ## 16. Reason codes
@@ -547,12 +631,14 @@ against the schemas and check each record's block, report and claim and evidence
 | `declared_not_changed` | fail | A declared path is not in the changed set. |
 | `undeclared_file` | fail | A changed file is not declared. |
 | `file_list_truncated` | unverifiable | The changed-file list is incomplete. |
-| `not_closing` | fail | The issue exists but is not among the closing references of a merged or closed pull request. |
-| `closing_link_unsettled` | unverifiable | The issue exists but is not among the closing references of an open pull request, which GitHub may not have computed yet. |
+| `not_closing` | fail | The target exists, is not among the closing references of a merged or closed pull request, and no ClosedEvent of it names that pull request or one of its commits as the closer; a closed target has at least one ClosedEvent. |
+| `closing_link_unsettled` | unverifiable | The target exists but is not among the closing references of an open pull request, which GitHub may not have computed yet. |
+| `closing_base_not_default` | unverifiable | The pull request merged into a branch other than the default, and the target is still open: a later merge into the default branch may yet close it. |
+| `closing_event_unsettled` | unverifiable | The target is closed, and its complete close-event read holds no ClosedEvent: GitHub sets the state before its timeline shows the event, so who closed it is not yet recorded. |
 | `not_found` | fail | The cited issue, pull request or commit, or the issue a `closes` names, does not exist. |
 | `not_reachable` | fail | The cited commit is not reachable from the head. |
 | `count_mismatch` | fail | A declared count differs from the record. |
-| `all_succeeded_mismatch` | fail | `allSucceeded` differs from the check runs' conclusions. |
+| `all_succeeded_mismatch` | fail | `allSucceeded` differs from the conclusions of the check runs counted, the latest per workflow path and name (section 7.5). |
 | `checks_incomplete` | unverifiable | A check run has not completed. |
 | `no_check_runs` | unverifiable | There are no check runs at the head. |
 | `no_comparable_record_field` | unverifiable | The test record's kind has no comparable field in this version. |
@@ -566,6 +652,187 @@ against the schemas and check each record's block, report and claim and evidence
 
 ## 17. Changes
 
+- **0.1.4** (2026-10-11, amended 2026-10-12 and 2026-10-13 before release). Erratum to sections 6,
+  7.4 and 16, and (amended 2026-10-12, "Checks per check suite", and 2026-10-13, "Checks per
+  workflow path", below) 7.5 and 14, corrected in checker 0.1.7. In 0.1.3 a `closes` target that exists and is missing from the closing
+  references failed with `not_closing` once the pull request was merged or closed. GraphQL
+  `closingIssuesReferences` is not GitHub's whole record of a close, so that fail rested on an
+  absence from a derived list, not on evidence that the pull request did not close the target, which
+  section 2 forbids. The list has three gaps:
+  - it lists issues only, so a pull request target is never in it. Observed: a public pull request
+    that names 19 targets with `Closes:`, 18 of them pull requests whose ClosedEvent `closer` is that
+    pull request, has an empty `closingIssuesReferences`; and observed 2026-10-12, case (v) below;
+  - it leaves out an issue a keyword in a commit message closes, which GitHub documents happens when
+    the commit lands on the default branch, without the pull request showing as linked. **Observed
+    2026-10-12**, cases (i), (ii) and (iii) below;
+  - GitHub documents that it ignores closing keywords in a pull request whose base is not the
+    default branch. **Observed 2026-10-12**, cases (iii) and (iv) below.
+
+  GitHub's documentation: <https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/linking-a-pull-request-to-an-issue>.
+  The checker now reads who closed the target: the evidence gains `closeEvents` (section 6, "Close
+  events"), each such target's type, state and every ClosedEvent's closer, and the pull request's
+  base branch, default branch and commit ids, and section 7.4 decides by its table. A target closed
+  by this pull request (row 2), or by one of its commits or its merge commit (row 3; observed
+  2026-10-12), passes, whichever ClosedEvent records it. An open pull request is
+  `closing_link_unsettled` as before (row 4). A merge into a branch other than the default, with the
+  target still open, is `unverifiable` with the new reason `closing_base_not_default` (row 5;
+  observed 2026-10-12). A close-event read that is unread, absent or over its budget is
+  `unverifiable` (row 6): so a 0.1.3 record of a merged pull request's `closes`, which has no
+  `closeEvents`, would now be `unverifiable`, never `fail`, and a checker writing 0.1.4 records reads
+  the section. A closed target whose complete read holds no ClosedEvent is `unverifiable` with the
+  new reason `closing_event_unsettled` (row 7, added 2026-10-12). Only then is the claim
+  `not_closing` (row 8), with the target's `state` and `events` in `observed`.
+  `closingIssuesReferences`, `not_found`, `resolvedAs` and every other `unverifiable` reason are
+  unchanged. `closeEvents` is inside the evidence, so `digests.evidence` covers it and offline verify
+  reproduces the verdict. `record-0.1.schema.json` gains the optional section, the source kind
+  `pull_request_commits` and the reasons `closing_base_not_default` and `closing_event_unsettled`; a
+  0.1.3 record stays valid. The block format and `handback-block-0.1.schema.json` are unchanged; a
+  0.1 block stays valid. Example records: `fail.json` gains the close events of #21 (open, none) and
+  its evidence digest changes; its `closes` row stays `closing_link_unsettled` and its claims digest
+  and verdict are unchanged. Every example carries spec 0.1.4 and checker 0.1.7. The acceptance
+  cases gain the controls `closes-pr-target-closed-by-this-pr` and `closes-commit-closer` and the
+  planted `closes-closed-by-other`, `closes-non-default-base-open` and (2026-10-12)
+  `closes-closed-no-event-yet`; the preregistered tables are unchanged, and `closes-not-linked`,
+  whose evidence gains the close events 0.1.4 reads for #17 (open, none, merged into the default
+  branch), keeps `fail` with `not_closing`.
+
+  **The probe, 2026-10-12.** The operator ran `experiments/closes-probe-2026-10/probe.mjs` against an
+  empty sandbox repository from 11:21:23Z to 11:24:21Z; its output is
+  `experiments/closes-probe-2026-10/results.json`, and a re-read of the five targets at 11:25:48Z is
+  `reread-2026-10-12.json` beside it. In every case the closing references were empty before and
+  after the merge.
+  - (i) A commit "Fixes #1", the body silent, merged with a merge commit: at the re-read, a
+    ClosedEvent whose closer is the pull request's own commit. Row 3.
+  - (ii) The same, squash-merged: at the re-read, a ClosedEvent whose closer is the squash merge
+    commit, the pull request's merge commit. Row 3, by `mergeSha`.
+  - (iii) A commit "Fixes #5" merged by pull request 6 into a branch other than the default: #5
+    open after that merge (row 5 for pull request 6). After that branch was merged into the default
+    branch, a ClosedEvent whose closer is pull request 6's own commit (row 3 for it).
+  - (iv) A body "Closes #8" in a pull request into a branch other than the default: #8 open after
+    the merge, with no ClosedEvent, at the probe's read and at the re-read. Row 5.
+  - (v) A body "Closes #10", where #10 is a pull request: #10 closed, with a ClosedEvent whose closer
+    is the pull request; it was never among the closing references. Row 2.
+
+  **Row 7 and its reason are added by the probe.** In cases (i) and (ii), when the probe read the
+  target it was already closed and its timeline held no ClosedEvent; the re-read shows the event.
+  GitHub had set the state before the timeline showed the event. Under rows 2 to 7 as first written
+  that read is `not_closing`, a false fail in a window of seconds after every commit-message close,
+  which any check run straight after a merge can read in. The amended table makes it `unverifiable`
+  with `closing_event_unsettled`. A ClosedEvent whose closer is `null` (closed by hand, or by
+  something GitHub does not attribute) is unchanged: the close is recorded and is not this pull
+  request's, so it is `not_closing` (row 8).
+
+  **Known limits.** Case (iv) stays `unverifiable` with `closing_base_not_default` for as long as the
+  target is open, which may be forever: a body keyword on a branch other than the default never
+  closes the target, and the record holds no commit message, so the checker cannot tell case (iv)
+  from case (iii) before its base reaches the default branch. That is a known limit; it is never a
+  pass. No case used a rebase merge: row 3 for a rebase merge, whose commits on the default branch
+  are new commits, is not observed.
+
+  **Checks per check suite (amended 2026-10-12).** Found while drafting reader claims (D.10).
+  Section 7.5 counted the latest run per name across every run at the head. GitHub names an Actions
+  check run after its job, not its workflow, so two workflows that each have a job `test` give two
+  runs named `test`. When the one with the lower `id` failed and the one with the higher `id`
+  succeeded, the failure was dropped: `checks.allSucceeded: true` passed, and `checks.total` counted
+  the two runs as one. That pass rested on a run the check had set aside, not on evidence that every
+  check succeeded, which section 2 forbids: a false pass in the 0.1 gate. The evidence now records
+  each run's `checkSuiteId` (`check_suite.id`) and `appSlug` (`app.slug`) when the API gives them
+  (section 6), and section 7.5 counts the latest run per check suite and name, so the two runs are
+  two and the failed one is read. A later run of a name in the same suite still supersedes the
+  earlier one. A run with no `checkSuiteId` is keyed by its name alone; every run of a record written
+  before this amendment has none, so such a record counts, and verifies, byte for byte as before.
+  Each run of a workflow is a check suite of its own, so keying by suite alone would count a
+  checker's own earlier runs on the same head (its job's run and its `dunstan` run from before the
+  pull request body was edited), which the latest, excluded, run of each name used to supersede. An
+  excluded run therefore supersedes every run of its name with a lower `id`, in any suite, as it did
+  before this amendment; a record without check suites counts the same either way.
+  `appSlug` is recorded, and no check reads it. Both members are inside the evidence, so
+  `digests.evidence` covers them and offline verify reproduces the verdict. `record-0.1.schema.json`
+  gains the two optional members on a check run; a record without them stays valid. Section 14 adds
+  them to what a record publishes. The block format and `handback-block-0.1.schema.json` are
+  unchanged; a 0.1 block stays valid. No example record changes: none records a check suite. The
+  acceptance cases gain the planted `checks-same-name-two-workflows`; every existing case keeps its
+  expected values, and the preregistered tables are unchanged.
+
+  **The probe, 2026-10-13.** GitHub's documentation does not show whether a re-run of an Actions job
+  keeps its check suite, or whether `filter=latest` already keeps one run per check suite and name;
+  until the probe ran, this note marked both questions "probe pending". The operator ran
+  `experiments/checks-probe-2026-10/probe.mjs` against the sandbox repository from 05:04:20Z to
+  05:05:37Z; its output is `experiments/checks-probe-2026-10/results.json`, with two snapshots,
+  `first` (before the re-run) and `afterRerun`.
+  - A re-run keeps its check suite: the failed `test` job's attempts 1 and 2 are two check runs in
+    one suite (`afterRerun`, `checkRuns.all`). So its latest attempt supersedes the earlier one, as
+    it did, and a re-run that later succeeded is not failed.
+  - `filter=latest` lists both workflows' `test` runs, the failed one with the lower `id`, as in the
+    false pass (`first`, `checkRuns.latest`). The read does not hide the failure; the reader's
+    filter needs no erratum.
+  - Once the re-run has completed, `filter=latest` leaves out the failed first attempt
+    (`afterRerun`, `checkRuns.latest`; `checkRuns.all` still lists it).
+
+  (Amended 2026-10-13: the key is now the workflow path and name, "Checks per workflow path" below,
+  and the re-run question bears on it as that note says.)
+
+  **Checks per workflow path (amended 2026-10-13).** Found in review of the amendment above, before
+  release. Each run of a workflow is a check suite of its own, so counted per check suite and name
+  a workflow run more than once on `headCommit` was counted once per run: a workflow on both `push`
+  and `pull_request`, or one run again when the pull request is reopened. `total` then counted each
+  job once per run, so a correct `total` failed with `count_mismatch`, and a failed earlier run
+  made the observed `allSucceeded` `false` though a later run of the same workflow succeeded. Those
+  are fails on correct claims, not passes; but a workflow on `push` and `pull_request` is common, so
+  they would have been common, and the amendment above would have traded a rare false pass for a
+  frequent false fail. A check means a job of a workflow, so section 7.5 now keys an Actions run by
+  its workflow path and name, the latest workflow run winning. A check run does not name its
+  workflow, so the evidence records it (section 6, "Workflow runs"): the checker reads every
+  workflow run at `headCommit` and gives each check run whose check suite is a workflow run's that
+  run's `workflowPath`, `workflowRunId` and `runAttempt`. Two workflows' `test` jobs still have two
+  keys, so the failure the amendment above found is still read, and its planted case keeps `fail`.
+  The latest run of a key is the highest `workflowRunId`, then `runAttempt`, then check run `id`.
+  A workflow-runs read that fails, or that names one check suite twice, makes `checkRuns`
+  `unreadable` with kind `workflow_runs`, so the claims are `unverifiable` with
+  `source_unreadable:workflow_runs`; they are never counted per suite instead. No reason is added.
+
+  A run with a check suite and no workflow path is keyed by its check suite and name: a run of no
+  workflow, and every run of a record written under the amendment above, which recorded no
+  workflows. None of those records was released. No path is inferred for them. A run of an app
+  other than GitHub Actions has no workflow; keying it by its suite rather than by its app keeps
+  apart any two suites the record cannot show to be one check, so a GitHub Actions run whose suite
+  is not among the workflow runs listed is never merged with another workflow's run of its name. A
+  record with neither member counts by name alone, as before. The excluded-run rule of the
+  amendment above stands: an excluded run supersedes every run of its name with a lower `id`,
+  whatever its key.
+
+  The three members are inside the evidence, so `digests.evidence` covers them and offline verify
+  reproduces the verdict. `record-0.1.schema.json` gains them as optional members of a check run,
+  each of `workflowRunId` and `runAttempt` requiring `workflowPath`, and `workflowPath` requiring
+  all three of `checkSuiteId`, `workflowRunId` and `runAttempt`; a record without them stays valid.
+  Section 14 adds them to what a record publishes. The block format and
+  `handback-block-0.1.schema.json` are unchanged; a 0.1 block stays valid. No example record
+  changes: none records a check suite. The acceptance cases gain the positive controls
+  `checks-push-and-pull-request` and `checks-reopened-same-workflow`, each of which fails when
+  counted per check suite and name. Every existing case keeps its expected values, and
+  `checks-same-name-two-workflows`, written by the amendment above's reader, is counted per check
+  suite and name and keeps `fail` with `all_succeeded_mismatch`.
+
+  **Re-runs, observed 2026-10-13.** Until the probe ran, this note marked the re-run case "probe
+  pending". The workflow-runs listing gives each workflow run once, at its latest attempt, with that
+  attempt's `check_suite_id`. The probe of 2026-10-13 above
+  (`experiments/checks-probe-2026-10/results.json`) observed, on the sandbox repository:
+  - A re-run keeps its check suite (`afterRerun`, `checkRuns.all`, and the failed workflow run's
+    `attempts` in `workflowRuns`), and the listing gives that workflow run at attempt 2 with the
+    same `check_suite_id` (`afterRerun`, `workflowRunsAtHead`). So every attempt's check runs carry
+    the same `workflowRunId` and `runAttempt`, and the highest check run `id` is the latest: a
+    re-run is resolved by the latest workflow run, then the latest attempt, then the check run
+    `id`, and the failed first attempt is superseded by the attempt that succeeded.
+  - Every GitHub Actions check run's suite is a listed workflow run's (`afterRerun`, `checkRuns.all`
+    and `workflowRunsAtHead`; `first` shows the same). So every Actions check run is recorded with
+    its workflow path, and none is keyed by its suite for want of one.
+  - The workflow on `push` and `pull_request` gave two workflow runs at the head, in two check
+    suites, with one `path` (`first`, `workflowRunsAtHead`). So its job `build` is one key and is
+    counted once, which counted per check suite and name it was not.
+
+  Each observation is what the rule above was written to rely on: no code, verdict, version,
+  example record or acceptance case changes. Reading each attempt (`GET
+  .../actions/runs/{id}/attempts/{n}`) is not needed, since no attempt is in a suite of its own.
 - **0.1.3** (2026-10-07). Erratum to sections 6 and 7.4, corrected in checker 0.1.6. In 0.1.2 a
   `closes` issue that had been transferred to another repository failed with `not_closing` when the
   report named it as it was before the transfer. GitHub lists it among the closing references under
@@ -611,8 +878,8 @@ against the schemas and check each record's block, report and claim and evidence
 ## DRAFT 0.2.0: reader claims and retrieval
 
 > **DRAFT. Not normative. For the operator to check.** Nothing in this section changes version
-> 0.1.3. Sections 1 to 17, `handback-block-0.1.schema.json`, `record-0.1.schema.json` and every 0.1
-> verdict stand as written. A 0.1.3 checker ignores this section. The key words of section 1 are
+> 0.1.4. Sections 1 to 17, `handback-block-0.1.schema.json`, `record-0.1.schema.json` and every 0.1
+> verdict stand as written. A 0.1.4 checker ignores this section. The key words of section 1 are
 > used here to say what 0.2.0 would require if it is adopted. Until then they bind nothing. Open
 > questions are in D.10 and D.11.8. The reference implementations are `src/retrieval/` and
 > `src/advisory/`, and the rationale is in `docs/retrieval.md` and `docs/advisory.md`.
@@ -646,7 +913,7 @@ order** is fixed:
 | --- | --- | --- | --- | --- |
 | 1 | `commit` | `items.commits.entries`, in the API's order | `sha` | `sha`, `headline` |
 | 2 | `timeline_event` | `items.timeline.entries`, in the API's order | `id` | `event`, `ref`, `detail` |
-| 3 | `check_run` | `checkRuns.runs`, counted as in section 7.5 | the run `id` as a string | `name` |
+| 3 | `check_run` | `checkRuns.runs`, counted as in section 7.5 (the latest per workflow path and name) | the run `id` as a string | `name` |
 | 4 | `file` | `files.entries` | `path` | `path`, `previousPath` |
 | 5 | `test` | `items.tests.entries`, code-unit order of `id` | `classname.name`, or `name` | `name`, `classname` |
 
@@ -667,7 +934,12 @@ Retrieval MUST be deterministic and MUST NOT use a model or the network. Given a
    - `#N` (in the subject repository) or `owner/repo#N`, matched to a timeline event's `ref`;
    - a changed file's `path` or `previousPath`, occurring whole;
    - a check run's `name`, or a test's `name` or `classname.name`, of at least 4 characters,
-     occurring whole and case-sensitively.
+     occurring whole and case-sensitively. A named `classname.name` restricts its `name` to that
+     test: the same `name` under another classname, or under none, is not an identifier match for
+     that claim. A check run's `name` MUST NOT match where the text continues it with a hyphen, as
+     part of a longer check run `name` of the record occurring whole at the same place, or with a
+     matrix leg (` (` directly after it): `test` is not named by `test (ubuntu-latest)`, and a
+     claim about a matrix job names its leg.
 
    An identifier match has `score: null`.
 2. **BM25** over every item's fields: k1 = 1.2, b = 0.75, IDF `ln(1 + (N − n + 0.5) / (n + 0.5))`
@@ -718,8 +990,16 @@ gap. Its scores, like BM25's, MUST NOT be read by a check.
 ### D.6 Kinds and checks
 
 The check is a pure function of `kind`, `declaredValue`, the recorded `candidates`, the recorded
-`retrieval.floor` and the evidence. It never runs retrieval. After step 3 it reads only identifier
-matches and candidates at or above the floor: a filled candidate (D.4) is skipped. In order:
+`retrieval.floor` and the evidence. It never runs retrieval. After step 3 it reads only the
+candidates it **combines**, from those of the kind's item type:
+
+- **Exact identifier matches close the set.** If at least one is an identifier match
+  (`score: null`), it combines the identifier matches only. A lexical candidate stays in the
+  recorded list, as what retrieval saw. Its numeric `score` beside an identifier match marks it as
+  not combined, and it MUST NOT decide the verdict.
+- Otherwise it combines every candidate at or above the floor.
+
+A filled candidate (D.4) is never combined. In order:
 
 1. A kind not in the table below, or a `declaredValue` of the wrong type for its kind:
    `unverifiable`, `no_comparable_record_field`.
@@ -737,8 +1017,8 @@ matches and candidates at or above the floor: a filled candidate (D.4) is skippe
 | `file_changed` | a path | `file` | a candidate's `path` or `previousPath` equals it; `observed` is the path | `unverifiable`, `declared_item_not_among_candidates` (or `file_list_truncated`) |
 | `commit_present` | 7 to 40 hex digits | `commit` | a candidate's SHA starts with it; `observed` is the SHA | `unverifiable`, `declared_item_not_among_candidates` |
 | `reference_in_timeline` | `#N` or `owner/repo#N` | `timeline_event` | a candidate's `ref` is that issue; `observed` is `{event, ref}` | `unverifiable`, `declared_item_not_among_candidates` |
-| `check_succeeded` | boolean | `check_run` | it equals the section 7.5 `allSucceeded` rule over the candidate runs | `fail`, `all_succeeded_mismatch`; `unverifiable`, `checks_incomplete` |
-| `test_passed` | boolean | `test` | it equals "no executed candidate failed" | `fail`, `test_outcome_mismatch`; `unverifiable`, `test_not_executed` if every candidate was skipped |
+| `check_succeeded` | boolean | `check_run` | it equals the section 7.5 `allSucceeded` rule over the combined runs | `fail`, `all_succeeded_mismatch`; `unverifiable`, `checks_incomplete` |
+| `test_passed` | boolean | `test` | it equals "no executed combined candidate failed" | `fail`, `test_outcome_mismatch`; `unverifiable`, `test_not_executed` if every combined candidate was skipped |
 
 New reason codes: `no_matching_record_item`, `declared_item_not_among_candidates`,
 `candidate_not_in_evidence`, `test_not_executed`, `test_outcome_mismatch`.
@@ -794,6 +1074,24 @@ record; and retrieval scores. It would still hold no file contents and no report
    `"0.2.0-draft"`).
 9. **The floor.** 1, for the reason in D.4 and `docs/retrieval.md`. The retrieval measurement
    takes recall at k = 5 on a private corpus and may propose another value.
+10. **One job name in two workflows.** The `check_run` items are the runs section 7.5 counts. As
+    first drafted that was the latest per name, so a claim about one workflow's `test` could be
+    decided by another workflow's later run of the same name, and a run in `checkRuns.runs`
+    carried no workflow, check suite or app, so that evidence could not be told apart from a
+    re-run in one workflow, whose latest run is the one to read. One option: a claim whose combined
+    run's name is held by more than one run in `checkRuns.runs` is `unverifiable`,
+    `ambiguous_check_run`, re-runs included. The other: the evidence records each run's check suite
+    (or workflow), and only runs of different suites are ambiguous. **Since spec 0.1.4 as amended
+    2026-10-12** (section 17, "Checks per check suite"), the evidence records each run's
+    `checkSuiteId` and section 7.5 counts the latest run per check suite and name. So two
+    workflows' `test` runs are now two items, and a claim naming `test` combines both; a re-run in
+    one suite is one item. The data for the second option is in the evidence; the `check_run` item
+    does not carry it yet. Which option the reader rule takes, and what a record without check suites gives, is
+    not decided here: the reader rule is unchanged. **Since the amendment of 2026-10-13** (section
+    17, "Checks per workflow path"), the evidence also records each Actions run's `workflowPath`,
+    and section 7.5 counts the latest run per workflow path and name: one workflow run twice on the
+    head is one item per job, and two workflows' `test` jobs are still two. The second option can
+    now key by the workflow itself; the reader rule is still unchanged.
 
 ### D.11 Advisories from prose
 
@@ -818,7 +1116,7 @@ A checker writes the section only when asked to (`dunstan check --advisory`; the
 ```json
 "advisory": {
   "extractor": { "version": "0.1.3", "digest": { "sha256": "<64 hex>" } },
-  "comparison": { "version": "0.3.0" },
+  "comparison": { "version": "0.4.0" },
   "precision": null,
   "differsAccuracy": null,
   "pathsAtHead": [
@@ -841,7 +1139,8 @@ A checker writes the section only when asked to (`dunstan check --advisory`; the
   (D.11.4). Its `version` is separate from the extractor's: a change to the comparison leaves the
   grammar and its digest as they were. `0.1.0` compared a file claim by exact path only. `0.2.0`
   also matches it by name. `0.3.0` also asks whether a path not among the changed files exists at
-  the head. A record written before `comparison` existed was compared by `0.1.0`.
+  the head. `0.4.0` compares a `reference_closes` claim by the spec 0.1.4 `closes` check, which
+  reads who closed the target (section 7.4). A record written before `comparison` existed was compared by `0.1.0`.
 - `pathsAtHead` (comparison 0.3.0) holds the answers a file claim's note was computed from (D.11.4,
   D.11.5): one entry for each distinct path in `pathsToRead`, in code-unit order of `path`. An
   entry is `{path, status: "ok", object}`, where `object` is `"Blob"` (a file), `"Tree"` (a
@@ -1049,6 +1348,33 @@ nothing is at that path at the head.
    unchanged.
 
 ### D.12 Changes to this draft
+
+- **2026-10-13.** Spec 0.1.4 as amended 2026-10-13 (section 17, "Checks per workflow path"). The
+  `check_run` items are the runs section 7.5 now counts, the latest per workflow path and name
+  (D.3). D.10 item 10 notes that the evidence now holds each Actions run's workflow; the reader
+  rule (D.4, D.6) is unchanged. A record without workflow paths gives the same items as before.
+
+- **2026-10-12.** Spec 0.1.4 as amended 2026-10-12 (section 17, "Checks per check suite"). The
+  `check_run` items are the runs section 7.5 now counts, the latest per check suite and name (D.3).
+  D.10 item 10 notes that the evidence now holds the data for its second option; the reader rule
+  (D.4, D.6) is unchanged. A record without check suites gives the same items as before.
+
+- **2026-10-11, amended 2026-10-12 before release.** Spec 0.1.4 (section 17), advisory comparison
+  0.4.0. A `reference_closes` advisory is compared by the 7.4 `closes` check, which now reads who
+  closed the target: an advisory naming a target this pull request, one of its commits or its merge
+  commit closed is `agrees`, with the ClosedEvent in `observed` as `closedBy`; a merge into a branch other than the default with the
+  target open is `unanswered:closing_base_not_default`; a closed target whose read holds no
+  ClosedEvent yet is `unanswered:closing_event_unsettled` (amended 2026-10-12: GitHub sets the
+  state before its timeline shows the event); and `differs:not_closing` carries the
+  target's `state` and `events` in `observed`. Because the notes a `reference_closes` claim can carry
+  changed, the comparison is versioned: `0.4.0`. Its other rules are 0.3.0's. No published figure
+  applies to comparison 0.4.0, so a record compared by it carries `null` for `differsAccuracy`,
+  shown as "unmeasured". The words a reader is shown for `differs:not_closing` become "not closed by
+  this pull request or its commits". The DRAFT schema's evidence references the 0.1 `closeEvents`
+  section, and its advisory note accepts `closing_base_not_default`, `closing_event_unsettled` and
+  `source_unreadable:pull_request_commits`. Comparison 0.4.0 was not released before the amendment,
+  so it is amended, not versioned again. The extractor is unchanged. The checker that runs it is
+  0.1.7.
 
 - **2026-10-07.** Spec 0.1.3 (section 17). A `reference_closes` advisory is compared by the 7.4
   `closes` check, so an advisory naming an issue since transferred to another repository, which the

@@ -1,0 +1,962 @@
+{
+  "tool": "experiments/open-source-advisory-2026-10-study2/erratum-1/tools/figures.mjs",
+  "inputs": {
+    "index": "3a0f1b0768a37a9446203a03698c068170333faeea15654ae0deb2634748c3b4",
+    "sample": "63c522fdc87dd052eb123f6e20d85500d9ac34a20afaa1b7ca61a68faf751732",
+    "labels": "2244cce317177df16042161c1aa2060f0043cfb727c65e439b4d1974aacf5152",
+    "closers": "ab8e390d2f5b5c7364720e03386a52c4a3fe367bdb9ec903d25f58bc30f4d56f",
+    "worksheet": "1fc8a985bd2237497a567541e546902b3ea8dc462068a512818699905a017a5e"
+  },
+  "published": {
+    "path": "figures/figures.json",
+    "sha256": "979a8cb3474200bf6a77131ce33a2b47275fdefa43c87429c2f8b95e9bf6f7b8",
+    "reproduced": true
+  },
+  "rulings": {
+    "ruled": 22,
+    "changed": [
+      {
+        "advisoryId": "replicate/cog#3063:1",
+        "from": "false_claim",
+        "to": "claim_holds"
+      },
+      {
+        "advisoryId": "replicate/cog#3063:2",
+        "from": "false_claim",
+        "to": "claim_holds"
+      },
+      {
+        "advisoryId": "replicate/cog#3063:3",
+        "from": "false_claim",
+        "to": "claim_holds"
+      },
+      {
+        "advisoryId": "replicate/cog#3063:4",
+        "from": "false_claim",
+        "to": "claim_holds"
+      },
+      {
+        "advisoryId": "replicate/cog#3063:5",
+        "from": "false_claim",
+        "to": "claim_holds"
+      },
+      {
+        "advisoryId": "replicate/cog#3063:6",
+        "from": "false_claim",
+        "to": "claim_holds"
+      },
+      {
+        "advisoryId": "replicate/cog#3063:7",
+        "from": "false_claim",
+        "to": "claim_holds"
+      },
+      {
+        "advisoryId": "replicate/cog#3063:8",
+        "from": "false_claim",
+        "to": "claim_holds"
+      },
+      {
+        "advisoryId": "replicate/cog#3063:9",
+        "from": "false_claim",
+        "to": "claim_holds"
+      },
+      {
+        "advisoryId": "replicate/cog#3063:10",
+        "from": "false_claim",
+        "to": "claim_holds"
+      },
+      {
+        "advisoryId": "replicate/cog#3063:11",
+        "from": "false_claim",
+        "to": "claim_holds"
+      },
+      {
+        "advisoryId": "replicate/cog#3063:12",
+        "from": "false_claim",
+        "to": "claim_holds"
+      },
+      {
+        "advisoryId": "replicate/cog#3063:14",
+        "from": "false_claim",
+        "to": "claim_holds"
+      },
+      {
+        "advisoryId": "replicate/cog#3063:15",
+        "from": "false_claim",
+        "to": "claim_holds"
+      },
+      {
+        "advisoryId": "replicate/cog#3063:16",
+        "from": "false_claim",
+        "to": "claim_holds"
+      },
+      {
+        "advisoryId": "replicate/cog#3063:17",
+        "from": "false_claim",
+        "to": "claim_holds"
+      },
+      {
+        "advisoryId": "replicate/cog#3063:18",
+        "from": "false_claim",
+        "to": "claim_holds"
+      },
+      {
+        "advisoryId": "replicate/cog#3063:19",
+        "from": "false_claim",
+        "to": "claim_holds"
+      }
+    ]
+  },
+  "ruled": {
+    "pullRequests": 150,
+    "errors": 0,
+    "faults": 0,
+    "descriptive": {
+      "advisories": 114,
+      "advisoriesPerPr": {
+        "mean": 0.76,
+        "median": 0,
+        "max": 21,
+        "histogram": {
+          "0": 84,
+          "1": 52,
+          "2": 7,
+          "3": 2,
+          "4": 1,
+          "5": 2,
+          "7": 1,
+          "21": 1
+        }
+      },
+      "bodiesEditedSinceSelection": 0,
+      "falseAccusationsRemoved": {
+        "k": 3,
+        "n": 27,
+        "value": 0.11111,
+        "wilson95": {
+          "low": 0.03852,
+          "high": 0.28058
+        }
+      },
+      "fileDiffersByCandidateNote": {
+        "unanswered:no_such_path": {
+          "not_a_claim": 3
+        },
+        "differs:declared_not_changed": {
+          "not_a_claim": 4
+        }
+      }
+    },
+    "M1": {
+      "k": 58,
+      "n": 60,
+      "value": 0.96667,
+      "wilson95": {
+        "low": 0.88636,
+        "high": 0.99081
+      }
+    },
+    "baseline": {
+      "name": "baseline",
+      "checkerVersion": "0.1.3",
+      "bundleSha256": "fd1377c058a928bf30e54c000bfb19e5eb3cd5eb71408ea4b093cc9ccf7170a5",
+      "extractorVersion": "0.1.3",
+      "extractorDigest": "2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37",
+      "comparison": "0.2.0",
+      "M2": {
+        "differs": 31,
+        "false_claim": {
+          "k": 4,
+          "n": 31,
+          "value": 0.12903,
+          "wilson95": {
+            "low": 0.05134,
+            "high": 0.28852
+          }
+        },
+        "claim_holds": {
+          "k": 18,
+          "n": 31,
+          "value": 0.58065,
+          "wilson95": {
+            "low": 0.40766,
+            "high": 0.73584
+          }
+        },
+        "not_a_claim": {
+          "k": 9,
+          "n": 31,
+          "value": 0.29032,
+          "wilson95": {
+            "low": 0.16096,
+            "high": 0.46592
+          }
+        }
+      },
+      "M3": {
+        "falseAccusations": 27,
+        "checkable": 95,
+        "k": 27,
+        "n": 95,
+        "value": 0.28421,
+        "wilson95": {
+          "low": 0.20328,
+          "high": 0.38191
+        }
+      },
+      "descriptive": {
+        "checkableShare": {
+          "k": 95,
+          "n": 114,
+          "value": 0.83333,
+          "wilson95": {
+            "low": 0.75431,
+            "high": 0.89063
+          }
+        },
+        "prsWithCheckable": {
+          "k": 57,
+          "n": 150,
+          "value": 0.38,
+          "wilson95": {
+            "low": 0.30624,
+            "high": 0.45976
+          }
+        },
+        "notes": {
+          "agrees": 50,
+          "agrees_by_name": 14,
+          "differs:all_succeeded_mismatch": 2,
+          "differs:declared_not_changed": 7,
+          "differs:not_closing": 22,
+          "unanswered:ambiguous_path": 6,
+          "unanswered:no_comparable_record_field": 12,
+          "unanswered:source_unreadable:repository": 1
+        }
+      }
+    },
+    "candidate": {
+      "name": "candidate",
+      "checkerVersion": "0.1.5",
+      "bundleSha256": "978a6f63d5932e2d52c89b73ca9ead3f29628cd847efd50fb4b7eb05daeab8c5",
+      "extractorVersion": "0.1.3",
+      "extractorDigest": "2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37",
+      "comparison": "0.3.0",
+      "sourceCommit": "e559598ec3c5b1a05e96270e0ba723d5cef6b1a3",
+      "M2": {
+        "differs": 28,
+        "false_claim": {
+          "k": 4,
+          "n": 28,
+          "value": 0.14286,
+          "wilson95": {
+            "low": 0.05699,
+            "high": 0.3149
+          }
+        },
+        "claim_holds": {
+          "k": 18,
+          "n": 28,
+          "value": 0.64286,
+          "wilson95": {
+            "low": 0.4583,
+            "high": 0.79294
+          }
+        },
+        "not_a_claim": {
+          "k": 6,
+          "n": 28,
+          "value": 0.21429,
+          "wilson95": {
+            "low": 0.10212,
+            "high": 0.39539
+          }
+        }
+      },
+      "M3": {
+        "falseAccusations": 24,
+        "checkable": 92,
+        "k": 24,
+        "n": 92,
+        "value": 0.26087,
+        "wilson95": {
+          "low": 0.18202,
+          "high": 0.35889
+        }
+      },
+      "descriptive": {
+        "checkableShare": {
+          "k": 92,
+          "n": 114,
+          "value": 0.80702,
+          "wilson95": {
+            "low": 0.72506,
+            "high": 0.86896
+          }
+        },
+        "prsWithCheckable": {
+          "k": 56,
+          "n": 150,
+          "value": 0.37333,
+          "wilson95": {
+            "low": 0.3,
+            "high": 0.45299
+          }
+        },
+        "notes": {
+          "agrees": 50,
+          "agrees_by_name": 14,
+          "differs:all_succeeded_mismatch": 2,
+          "differs:declared_not_changed": 4,
+          "differs:not_closing": 22,
+          "unanswered:ambiguous_path": 6,
+          "unanswered:no_comparable_record_field": 12,
+          "unanswered:no_such_path": 3,
+          "unanswered:source_unreadable:repository": 1
+        }
+      }
+    },
+    "LOST": {
+      "k": 0,
+      "n": 4,
+      "value": 0,
+      "wilson95": {
+        "low": 0,
+        "high": 0.48989
+      },
+      "byNote": {},
+      "advisoryIds": []
+    },
+    "bar": {
+      "m3WilsonHighAtMost": 0.05,
+      "m2FalseClaimShareAtLeast": 0.8,
+      "lostAtMost": 1,
+      "m3Met": false,
+      "m2Met": false,
+      "lostMet": true,
+      "met": false
+    },
+    "refutations": {
+      "notAClaim": {
+        "shareAtLeast": 0.3,
+        "minimum": 5,
+        "k": 6,
+        "n": 28,
+        "value": 0.21429,
+        "wilson95": {
+          "low": 0.10212,
+          "high": 0.39539
+        },
+        "decidable": true,
+        "refuted": false
+      },
+      "accusationsAtAFile": {
+        "shareAtLeast": 0.5,
+        "minimum": 6,
+        "k": 4,
+        "n": 7,
+        "value": 0.57143,
+        "wilson95": {
+          "low": 0.25046,
+          "high": 0.84178
+        },
+        "decidable": true,
+        "refuted": true
+      },
+      "falseClaimsLost": {
+        "shareAtLeast": 0.5,
+        "minimum": 4,
+        "k": 0,
+        "n": 0,
+        "value": null,
+        "wilson95": null,
+        "decidable": false,
+        "refuted": null
+      },
+      "noFewerAccusations": {
+        "baseline": 27,
+        "candidate": 24,
+        "decidable": true,
+        "refuted": false
+      }
+    }
+  },
+  "sensitivity": {
+    "published": {
+      "all": {
+        "M1": {
+          "k": 58,
+          "n": 60,
+          "value": 0.96667,
+          "wilson95": {
+            "low": 0.88636,
+            "high": 0.99081
+          }
+        },
+        "baseline M2 false_claim": {
+          "k": 22,
+          "n": 31,
+          "value": 0.70968,
+          "wilson95": {
+            "low": 0.53408,
+            "high": 0.83904
+          }
+        },
+        "baseline M3": {
+          "k": 9,
+          "n": 95,
+          "value": 0.09474,
+          "wilson95": {
+            "low": 0.05064,
+            "high": 0.17033
+          }
+        },
+        "candidate M2 false_claim": {
+          "k": 22,
+          "n": 28,
+          "value": 0.78571,
+          "wilson95": {
+            "low": 0.60461,
+            "high": 0.89788
+          }
+        },
+        "candidate M3": {
+          "k": 6,
+          "n": 92,
+          "value": 0.06522,
+          "wilson95": {
+            "low": 0.03023,
+            "high": 0.13506
+          }
+        },
+        "LOST": {
+          "k": 0,
+          "n": 22,
+          "value": 0,
+          "wilson95": {
+            "low": 0,
+            "high": 0.14865
+          }
+        }
+      },
+      "withoutDominant": {
+        "pr": "replicate/cog#3063",
+        "measures": {
+          "M1": {
+            "k": 49,
+            "n": 51,
+            "value": 0.96078,
+            "wilson95": {
+              "low": 0.86784,
+              "high": 0.98918
+            }
+          },
+          "baseline M2 false_claim": {
+            "k": 3,
+            "n": 11,
+            "value": 0.27273,
+            "wilson95": {
+              "low": 0.09746,
+              "high": 0.56565
+            }
+          },
+          "baseline M3": {
+            "k": 8,
+            "n": 75,
+            "value": 0.10667,
+            "wilson95": {
+              "low": 0.05505,
+              "high": 0.19661
+            }
+          },
+          "candidate M2 false_claim": {
+            "k": 3,
+            "n": 8,
+            "value": 0.375,
+            "wilson95": {
+              "low": 0.13684,
+              "high": 0.69426
+            }
+          },
+          "candidate M3": {
+            "k": 5,
+            "n": 72,
+            "value": 0.06944,
+            "wilson95": {
+              "low": 0.03003,
+              "high": 0.15248
+            }
+          },
+          "LOST": {
+            "k": 0,
+            "n": 3,
+            "value": 0,
+            "wilson95": {
+              "low": 0,
+              "high": 0.5615
+            }
+          }
+        }
+      },
+      "leaveOneOut": {
+        "prs": 150,
+        "M1": {
+          "min": {
+            "k": 49,
+            "n": 51,
+            "value": 0.96078,
+            "wilson95": {
+              "low": 0.86784,
+              "high": 0.98918
+            },
+            "pr": "replicate/cog#3063",
+            "ties": 1
+          },
+          "max": {
+            "k": 58,
+            "n": 58,
+            "value": 1,
+            "wilson95": {
+              "low": 0.93788,
+              "high": 1
+            },
+            "pr": "Azure/azure-sdk-for-python#47582",
+            "ties": 1
+          }
+        },
+        "baseline M2 false_claim": {
+          "min": {
+            "k": 3,
+            "n": 11,
+            "value": 0.27273,
+            "wilson95": {
+              "low": 0.09746,
+              "high": 0.56565
+            },
+            "pr": "replicate/cog#3063",
+            "ties": 1
+          },
+          "max": {
+            "k": 22,
+            "n": 28,
+            "value": 0.78571,
+            "wilson95": {
+              "low": 0.60461,
+              "high": 0.89788
+            },
+            "pr": "Azure/azure-sdk-for-python#47582",
+            "ties": 1
+          }
+        },
+        "baseline M3": {
+          "min": {
+            "k": 6,
+            "n": 92,
+            "value": 0.06522,
+            "wilson95": {
+              "low": 0.03023,
+              "high": 0.13506
+            },
+            "pr": "Azure/azure-sdk-for-python#47582",
+            "ties": 1
+          },
+          "max": {
+            "k": 8,
+            "n": 75,
+            "value": 0.10667,
+            "wilson95": {
+              "low": 0.05505,
+              "high": 0.19661
+            },
+            "pr": "replicate/cog#3063",
+            "ties": 1
+          }
+        },
+        "candidate M2 false_claim": {
+          "min": {
+            "k": 3,
+            "n": 8,
+            "value": 0.375,
+            "wilson95": {
+              "low": 0.13684,
+              "high": 0.69426
+            },
+            "pr": "replicate/cog#3063",
+            "ties": 1
+          },
+          "max": {
+            "k": 22,
+            "n": 26,
+            "value": 0.84615,
+            "wilson95": {
+              "low": 0.66469,
+              "high": 0.9385
+            },
+            "pr": "Azure/azure-sdk-for-python#47582",
+            "ties": 1
+          }
+        },
+        "candidate M3": {
+          "min": {
+            "k": 4,
+            "n": 90,
+            "value": 0.04444,
+            "wilson95": {
+              "low": 0.01742,
+              "high": 0.10877
+            },
+            "pr": "Azure/azure-sdk-for-python#47582",
+            "ties": 1
+          },
+          "max": {
+            "k": 5,
+            "n": 72,
+            "value": 0.06944,
+            "wilson95": {
+              "low": 0.03003,
+              "high": 0.15248
+            },
+            "pr": "replicate/cog#3063",
+            "ties": 1
+          }
+        },
+        "LOST": {
+          "min": {
+            "k": 0,
+            "n": 22,
+            "value": 0,
+            "wilson95": {
+              "low": 0,
+              "high": 0.14865
+            },
+            "pr": "ydb-platform/ydb#39295",
+            "ties": 150
+          },
+          "max": {
+            "k": 0,
+            "n": 22,
+            "value": 0,
+            "wilson95": {
+              "low": 0,
+              "high": 0.14865
+            },
+            "pr": "ydb-platform/ydb#39295",
+            "ties": 150
+          }
+        }
+      },
+      "largestContributor": {
+        "baseline": {
+          "pr": "replicate/cog#3063",
+          "ties": 1,
+          "k": 19,
+          "n": 22,
+          "value": 0.86364,
+          "wilson95": {
+            "low": 0.66665,
+            "high": 0.95251
+          }
+        },
+        "candidate": {
+          "pr": "replicate/cog#3063",
+          "ties": 1,
+          "k": 19,
+          "n": 22,
+          "value": 0.86364,
+          "wilson95": {
+            "low": 0.66665,
+            "high": 0.95251
+          }
+        }
+      }
+    },
+    "ruled": {
+      "all": {
+        "M1": {
+          "k": 58,
+          "n": 60,
+          "value": 0.96667,
+          "wilson95": {
+            "low": 0.88636,
+            "high": 0.99081
+          }
+        },
+        "baseline M2 false_claim": {
+          "k": 4,
+          "n": 31,
+          "value": 0.12903,
+          "wilson95": {
+            "low": 0.05134,
+            "high": 0.28852
+          }
+        },
+        "baseline M3": {
+          "k": 27,
+          "n": 95,
+          "value": 0.28421,
+          "wilson95": {
+            "low": 0.20328,
+            "high": 0.38191
+          }
+        },
+        "candidate M2 false_claim": {
+          "k": 4,
+          "n": 28,
+          "value": 0.14286,
+          "wilson95": {
+            "low": 0.05699,
+            "high": 0.3149
+          }
+        },
+        "candidate M3": {
+          "k": 24,
+          "n": 92,
+          "value": 0.26087,
+          "wilson95": {
+            "low": 0.18202,
+            "high": 0.35889
+          }
+        },
+        "LOST": {
+          "k": 0,
+          "n": 4,
+          "value": 0,
+          "wilson95": {
+            "low": 0,
+            "high": 0.48989
+          }
+        }
+      },
+      "withoutDominant": {
+        "pr": "replicate/cog#3063",
+        "measures": {
+          "M1": {
+            "k": 49,
+            "n": 51,
+            "value": 0.96078,
+            "wilson95": {
+              "low": 0.86784,
+              "high": 0.98918
+            }
+          },
+          "baseline M2 false_claim": {
+            "k": 3,
+            "n": 11,
+            "value": 0.27273,
+            "wilson95": {
+              "low": 0.09746,
+              "high": 0.56565
+            }
+          },
+          "baseline M3": {
+            "k": 8,
+            "n": 75,
+            "value": 0.10667,
+            "wilson95": {
+              "low": 0.05505,
+              "high": 0.19661
+            }
+          },
+          "candidate M2 false_claim": {
+            "k": 3,
+            "n": 8,
+            "value": 0.375,
+            "wilson95": {
+              "low": 0.13684,
+              "high": 0.69426
+            }
+          },
+          "candidate M3": {
+            "k": 5,
+            "n": 72,
+            "value": 0.06944,
+            "wilson95": {
+              "low": 0.03003,
+              "high": 0.15248
+            }
+          },
+          "LOST": {
+            "k": 0,
+            "n": 3,
+            "value": 0,
+            "wilson95": {
+              "low": 0,
+              "high": 0.5615
+            }
+          }
+        }
+      },
+      "leaveOneOut": {
+        "prs": 150,
+        "M1": {
+          "min": {
+            "k": 49,
+            "n": 51,
+            "value": 0.96078,
+            "wilson95": {
+              "low": 0.86784,
+              "high": 0.98918
+            },
+            "pr": "replicate/cog#3063",
+            "ties": 1
+          },
+          "max": {
+            "k": 58,
+            "n": 58,
+            "value": 1,
+            "wilson95": {
+              "low": 0.93788,
+              "high": 1
+            },
+            "pr": "Azure/azure-sdk-for-python#47582",
+            "ties": 1
+          }
+        },
+        "baseline M2 false_claim": {
+          "min": {
+            "k": 3,
+            "n": 30,
+            "value": 0.1,
+            "wilson95": {
+              "low": 0.0346,
+              "high": 0.25621
+            },
+            "pr": "electron/forge#4295",
+            "ties": 3
+          },
+          "max": {
+            "k": 3,
+            "n": 11,
+            "value": 0.27273,
+            "wilson95": {
+              "low": 0.09746,
+              "high": 0.56565
+            },
+            "pr": "replicate/cog#3063",
+            "ties": 1
+          }
+        },
+        "baseline M3": {
+          "min": {
+            "k": 8,
+            "n": 75,
+            "value": 0.10667,
+            "wilson95": {
+              "low": 0.05505,
+              "high": 0.19661
+            },
+            "pr": "replicate/cog#3063",
+            "ties": 1
+          },
+          "max": {
+            "k": 27,
+            "n": 90,
+            "value": 0.3,
+            "wilson95": {
+              "low": 0.21511,
+              "high": 0.40127
+            },
+            "pr": "llnl/sundials#966",
+            "ties": 1
+          }
+        },
+        "candidate M2 false_claim": {
+          "min": {
+            "k": 3,
+            "n": 27,
+            "value": 0.11111,
+            "wilson95": {
+              "low": 0.03852,
+              "high": 0.28058
+            },
+            "pr": "electron/forge#4295",
+            "ties": 3
+          },
+          "max": {
+            "k": 3,
+            "n": 8,
+            "value": 0.375,
+            "wilson95": {
+              "low": 0.13684,
+              "high": 0.69426
+            },
+            "pr": "replicate/cog#3063",
+            "ties": 1
+          }
+        },
+        "candidate M3": {
+          "min": {
+            "k": 5,
+            "n": 72,
+            "value": 0.06944,
+            "wilson95": {
+              "low": 0.03003,
+              "high": 0.15248
+            },
+            "pr": "replicate/cog#3063",
+            "ties": 1
+          },
+          "max": {
+            "k": 24,
+            "n": 87,
+            "value": 0.27586,
+            "wilson95": {
+              "low": 0.19294,
+              "high": 0.37774
+            },
+            "pr": "llnl/sundials#966",
+            "ties": 1
+          }
+        },
+        "LOST": {
+          "min": {
+            "k": 0,
+            "n": 4,
+            "value": 0,
+            "wilson95": {
+              "low": 0,
+              "high": 0.48989
+            },
+            "pr": "ydb-platform/ydb#39295",
+            "ties": 150
+          },
+          "max": {
+            "k": 0,
+            "n": 4,
+            "value": 0,
+            "wilson95": {
+              "low": 0,
+              "high": 0.48989
+            },
+            "pr": "ydb-platform/ydb#39295",
+            "ties": 150
+          }
+        }
+      },
+      "largestContributor": {
+        "baseline": {
+          "pr": "electron/forge#4295",
+          "ties": 4,
+          "k": 1,
+          "n": 4,
+          "value": 0.25,
+          "wilson95": {
+            "low": 0.04559,
+            "high": 0.69936
+          }
+        },
+        "candidate": {
+          "pr": "electron/forge#4295",
+          "ties": 4,
+          "k": 1,
+          "n": 4,
+          "value": 0.25,
+          "wilson95": {
+            "low": 0.04559,
+            "high": 0.69936
+          }
+        }
+      }
+    }
+  }
+}

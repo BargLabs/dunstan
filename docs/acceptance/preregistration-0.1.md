@@ -125,6 +125,66 @@ to be non-pass.
 | --- | --- | --- |
 | `closes-transferred` | A merged pull request whose block declares `closes #17`. The issue was transferred to `example-org/example-tracker`, where it is #4; the closing references list `example-org/example-tracker#4`, and the evidence records the read of #17 with `resolvedAs: "example-org/example-tracker#4"` | `pass`, every row; `reference:/references/0` passes under the resolved identity |
 
+Addendum, 2026-10-11, spec 0.1.4. Added cases. The rows above are unchanged, and every case above
+keeps its expected values. `closes-not-linked` is a merged pull request into the default branch;
+its evidence gains the `closeEvents` section spec 0.1.4 reads for #17 (an open issue with no
+ClosedEvent, the base `main` and the default branch `main`), so the record still shows the pull
+request did not close it and it keeps `fail` with `not_closing`. No other case's verdict rests on
+close events: in each, every `closes` is among the closing references, or is settled before them
+(an unreadable repository, a nonexistent issue, an absent closing-references list).
+`closes-unsettled-open` is an open pull request: its evidence carries no close events, and it is
+`closing_link_unsettled` either way (row 4 of section 7.4), unless a ClosedEvent named it. The two
+cases that pass are positive controls (`fixtures/controls/`), as decision rule 1 below requires.
+
+| Case | What it is | Expected |
+| --- | --- | --- |
+| `closes-pr-target-closed-by-this-pr` (control) | A merged pull request (#160) whose block declares `closes #31`, where #31 is a pull request it supersedes. The closing references are empty (they list issues only); #31's ClosedEvent names #160 as its closer | `pass`, every row |
+| `closes-commit-closer` (control) | A merged pull request (#161) whose block declares `closes #32`. The closing references are empty; #32's ClosedEvent names commit `c0de…0001`, one of the pull request's commits ("Fixes #32" in its message) | `pass`, every row |
+
+| Case | Expected verdict | Expected failing or unverifiable row and reason |
+| --- | --- | --- |
+| `closes-closed-by-other` | `fail` | `reference:/references/0` `not_closing` (#33 is not among the closing references, and its only ClosedEvent names another pull request, #150) |
+| `closes-non-default-base-open` | `unverifiable` | `reference:/references/0` `closing_base_not_default` (merged into `release-2.0`, not the default branch `main`; #34 is still open) |
+
+Addendum, 2026-10-12, spec 0.1.4 as amended before release. Added case. The rows above are
+unchanged, and every case above keeps its expected values. The probe run of 2026-10-12
+(`experiments/closes-probe-2026-10/`) observed a target whose state was already closed while its
+timeline held no ClosedEvent; section 7.4 now makes that read `unverifiable` with
+`closing_event_unsettled` (row 7), never `fail`. No case above has a closed target with no
+ClosedEvent, so none moves: `closes-closed-by-other` has one ClosedEvent, which names another pull
+request, and keeps `fail` with `not_closing`.
+
+| Case | Expected verdict | Expected failing or unverifiable row and reason |
+| --- | --- | --- |
+| `closes-closed-no-event-yet` | `unverifiable` | `reference:/references/0` `closing_event_unsettled` (a pull request, #163, merged into the default branch; #35 is not among the closing references, its state is closed, and its complete close-event read, taken three seconds after the merge, holds no ClosedEvent) |
+
+Addendum, 2026-10-12 (second), spec 0.1.4 as amended before release: checks per check suite. Added
+case. The rows above are unchanged, and every case above keeps its expected values. Section 7.5
+now counts the latest check run per check suite and name, not per name across the head, so two
+workflows' runs of one job name are two runs and a failed one is read. No case above records a
+check suite, so every case above is counted by name alone, as before, and none moves.
+
+| Case | Expected verdict | Expected failing or unverifiable row and reason |
+| --- | --- | --- |
+| `checks-same-name-two-workflows` | `fail` | `count:/checks/allSucceeded` `all_succeeded_mismatch` (a merged pull request, #164, whose block declares `total: 4` and `allSucceeded: true`; its four check runs are `lint`, `typecheck` and `test` in check suite 6001, where `test`, run 9003, concluded `failure`, and `test` in check suite 6002, run 9004, which concluded `success`. `count:/checks/total` passes with 4. Under section 7.5 as it stood, the latest run per name dropped run 9003: `allSucceeded` passed and `total` observed 3) |
+
+Addendum, 2026-10-13, spec 0.1.4 as amended before release: checks per workflow path. Added cases.
+The rows above are unchanged, and every case above keeps its expected values. Each run of a
+workflow is a check suite of its own, so counted per check suite and name a workflow run twice on
+one head (on `push` and `pull_request`, or again after a reopen) was counted once per run. Section
+7.5 now counts the latest check run per workflow path and name, the evidence recording each Actions
+run's workflow from the workflow runs at the head; a run with a check suite and no workflow path is
+counted per suite and name, as before. No case above records a workflow path, so none moves:
+`checks-same-name-two-workflows` records check suites and no workflow paths (it was written by the
+2026-10-12 reader), is counted per suite and name, and keeps `fail` with `all_succeeded_mismatch`.
+The two cases added pass, so they are positive controls (`fixtures/controls/`), as decision rule 1
+below requires. Counted per check suite and name, each would fail.
+
+| Case | What it is | Expected |
+| --- | --- | --- |
+| `checks-push-and-pull-request` (control) | A merged pull request (#165) whose block declares `total: 3` and `allSucceeded: true`. `ci.yml` ran on `push` (workflow run 7001, check suite 6001) and on `pull_request` (workflow run 7002, suite 6002), each running `lint`, `typecheck` and `test`, all `success`; the evidence records `workflowPath: ".github/workflows/ci.yml"` on all six check runs. Per check suite and name, `total` observed 6 | `pass`, every row; `count:/checks/total` passes with 3 |
+| `checks-reopened-same-workflow` (control) | A merged pull request (#166) whose block declares `total: 3` and `allSucceeded: true`. `ci.yml` ran when it was opened (workflow run 7001, suite 6001), where `test`, run 9003, concluded `failure` before it wrote its report, and again when it was reopened (workflow run 7003, suite 6003), where every job succeeded. Per check suite and name, run 9003 was read: `allSucceeded` observed `false` and `total` 6 | `pass`, every row; `count:/checks/allSucceeded` passes with `true` |
+
 ### Cross-machine (d)
 
 CI runs every fixture, planted and control, through `runChecks` and the record builder on

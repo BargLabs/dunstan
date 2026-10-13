@@ -24,7 +24,7 @@ self-contained file with no dependencies, so nothing is built and nothing else i
 /plugin install dunstan@barglabs
 ```
 
-The plugin starts the server with `npx -y dunstan@0.1.6 mcp` and adds the `dunstan-check` skill. When
+The plugin starts the server with `npx -y dunstan@0.1.7 mcp` and adds the `dunstan-check` skill. When
 you enable it, Claude Code asks for an optional GitHub token (below). It stores the value in your
 system's secure credential store and passes it to the server as `GITHUB_TOKEN`. Leave it empty to read
 public repositories anonymously (a `closes` reference then needs the token; see below). The plugin
@@ -41,7 +41,7 @@ environment setting:
   "mcpServers": {
     "dunstan": {
       "command": "npx",
-      "args": ["-y", "dunstan@0.1.6", "mcp"],
+      "args": ["-y", "dunstan@0.1.7", "mcp"],
       "env": { "GITHUB_TOKEN": "<a fine-grained, read-only token>" }
     }
   }
@@ -68,9 +68,9 @@ fine-grained personal access token at https://github.com/settings/personal-acces
 | Permission | What the checker reads with it |
 | --- | --- |
 | Metadata (always granted) | the repository: `GET /repos/{owner}/{repo}` |
-| Pull requests | the pull request and its changed files: `GET /pulls/{n}`, `GET /pulls/{n}/files`, and the closing references (GraphQL `closingIssuesReferences`) |
+| Pull requests | the pull request and its changed files: `GET /pulls/{n}`, `GET /pulls/{n}/files`, the closing references (GraphQL `closingIssuesReferences`), and for a `closes` target not among them its base branch and commit ids, and who closed a pull request target (GraphQL) |
 | Contents | commits and ancestry: `GET /git/commits/{sha}`, `GET /compare/{base}...{head}` |
-| Issues | each issue the block references: `GET /issues/{n}` |
+| Issues | each issue the block references: `GET /issues/{n}`, and for a `closes` issue not among the closing references who closed it (GraphQL `issueOrPullRequest` ClosedEvents) |
 | Actions | test counts from workflow runs: runs, jobs, and the named JUnit artifact |
 | Deployments | deployments and their statuses |
 
@@ -161,9 +161,10 @@ the prose. Details: [`docs/agents.md`](agents.md).
 ## What it reads and writes
 
 - It reads GitHub metadata with `GITHUB_TOKEN` from its own environment: the pull request, its file
-  list, commits, check runs, closing references, JUnit counts from artifacts and deployments. Every
-  request is a `GET`, or the one GraphQL query for closing references. It never reads a repository
-  file's contents.
+  list, commits, check runs, closing references, who closed a `closes` target not among them, JUnit
+  counts from artifacts and deployments. Every request is a `GET`, or one of three fixed GraphQL
+  queries: the closing references, and the two that read a target's ClosedEvents and the pull
+  request's base branch and commit ids. It never reads a repository file's contents.
 - It writes nothing to GitHub and nothing to the repository.
 - It writes a file only when the caller passes `outPath`, and never over an existing file. Without
   `outPath` the record is returned and not saved; its `rerun` commands name the file `dunstan check`

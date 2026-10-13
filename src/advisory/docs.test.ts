@@ -53,7 +53,7 @@ describe('docs/advisory.md', () => {
 
   it('states the fixed line with the published figures, and the figures and their binding', () => {
     // The figures were measured on extractor 0.1.1 and comparison 0.2.0; the extractor that runs is
-    // 0.1.3, and the comparison 0.3.0.
+    // 0.1.3, and the comparison 0.4.0.
     const measured = 'ab77ce47d1c5172ec912d1221e03bbe5b312ff5dc2acb594c4b8549fe602c360';
     const precision = precisionFor(measured);
     const differsAccuracy = differsAccuracyFor(measured, '0.2.0');
@@ -167,7 +167,6 @@ describe('docs/advisory.md', () => {
     const start = doc.indexOf(heading);
     const raw = doc.slice(start, doc.indexOf('\n### ', start + 1));
     const section = raw.replace(/\s+/g, ' ');
-    expect(COMPARISON_VERSION).toBe('0.3.0');
     for (const row of [
       '| a file (`Blob`) | `differs:declared_not_changed`, as before |',
       '| nothing | `unanswered:no_such_path` |',
@@ -179,6 +178,25 @@ describe('docs/advisory.md', () => {
     expect(raw).toContain(`\`\`\`graphql\n${PATH_QUERY}\n\`\`\``);
     expect(section).toContain('experiments/open-source-advisory-2026-10/result.md');
     expect(section).toContain('**Comparison 0.3.0 is unmeasured.**');
+    expect(section).toContain('Comparison 0.4.0 keeps every rule of this section as written.');
+  });
+
+  it('states comparison 0.4.0: closes read by who closed the target, and that it is unmeasured', () => {
+    const heading = '### Closes read by who closed the target (comparison 0.4.0)';
+    expect(doc).toContain(`\n${heading}\n`);
+    const start = doc.indexOf(heading);
+    const raw = doc.slice(start, doc.indexOf('\n## ', start + 1));
+    const section = raw.replace(/\s+/g, ' ');
+    expect(COMPARISON_VERSION).toBe('0.4.0');
+    for (const row of [
+      '| a ClosedEvent of the target names this pull request as its closer | `agrees` |',
+      '| merged into a branch other than the default, and the target is open | `unanswered:closing_base_not_default` |',
+      '| the target is closed, and its close events hold no ClosedEvent yet | `unanswered:closing_event_unsettled` |',
+    ]) {
+      expect(raw).toContain(row);
+    }
+    expect(section).toContain('never a body, a title or a commit message');
+    expect(section).toContain('**Comparison 0.4.0 is unmeasured.**');
     expect(differsAccuracyFor(EXTRACTOR.digest.sha256, COMPARISON_VERSION)).toBeNull();
   });
 
