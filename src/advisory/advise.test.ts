@@ -441,7 +441,13 @@ describe('a file named by a bare name or a partial path (comparison 0.2.0)', () 
     const retrieval = { floor: BM25_FLOOR };
     expect(
       checkReaderClaim(
-        { kind: 'file_changed', declaredValue: 'cli.ts', candidates, retrieval },
+        {
+          text: 'Changed cli.ts',
+          kind: 'file_changed',
+          declaredValue: 'cli.ts',
+          candidates,
+          retrieval,
+        },
         tool,
         REPO,
       ),

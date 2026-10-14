@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { caseEvidence, REPO } from '../__tests__/retrieval-fixtures.js';
 import { checkReferences, closesBlock } from '../check/checks.js';
-import type { CloseEvent, Evidence } from '../check/types.js';
+import type { CheckRun, CloseEvent, Evidence } from '../check/types.js';
 import { main } from '../cli/main.js';
 import { buildRecord, type DunstanRecord, recordBlock, serializeRecord } from '../record/build.js';
 import { CHECKER_NAME, CHECKER_VERSION } from '../record/checker.js';
@@ -12,6 +12,7 @@ import { verifyRecord } from '../record/verify.js';
 import { DRAFT_PREDICATE_TYPE, DRAFT_SPEC_VERSION, PREDICATE_TYPE } from '../spec/constants.js';
 import { extractHandbackBlock } from '../spec/extract.js';
 import { validateDraftRecord, validateRecord } from '../spec/schema.js';
+import { CHECK_RUN_EVENTS, unheldSuffixJobs, workflowJobs } from './identifiers.js';
 import { recordItems } from './items.js';
 import {
   checkReaderClaim,
@@ -167,7 +168,13 @@ describe('reader claims', () => {
     });
     const check = (candidates: ReturnType<typeof run>[], declaredValue: boolean) =>
       checkReaderClaim(
-        { kind: 'check_succeeded', declaredValue, candidates, retrieval: { floor: BM25_FLOOR } },
+        {
+          text: 'The lint job passes',
+          kind: 'check_succeeded',
+          declaredValue,
+          candidates,
+          retrieval: { floor: BM25_FLOOR },
+        },
         storage,
         REPO,
       );
@@ -203,7 +210,7 @@ describe('reader claims', () => {
       evidence = storage,
     ) =>
       checkReaderClaim(
-        { kind, declaredValue, candidates, retrieval: { floor: BM25_FLOOR } },
+        { text: 'It passes', kind, declaredValue, candidates, retrieval: { floor: BM25_FLOOR } },
         evidence,
         REPO,
       );
@@ -342,6 +349,291 @@ describe('reader claims', () => {
       verdict: 'unverifiable',
       reason: 'candidate_not_in_evidence',
     });
+  });
+});
+
+describe('a job named with its workflow (`<workflow> / <job>`)', () => {
+  const CHECKS = '.github/workflows/checks.yml';
+  const NIGHTLY = '.github/workflows/nightly.yml';
+  const legacy = (id: number, name: string, conclusion: string): CheckRun => ({
+    id,
+    name,
+    status: 'completed',
+    conclusion,
+  });
+  const ofWorkflow = (
+    id: number,
+    name: string,
+    conclusion: string,
+    workflowPath: string,
+    workflowRunId: number,
+  ): CheckRun => ({
+    ...legacy(id, name, conclusion),
+    checkSuiteId: workflowRunId - 8000,
+    appSlug: 'github-actions',
+    workflowPath,
+    workflowRunId,
+    runAttempt: 1,
+  });
+  const withRuns = (runs: CheckRun[]): Evidence => {
+    if (storage.checkRuns?.status !== 'ok') throw new Error('fixture');
+    return { ...storage, checkRuns: { ...storage.checkRuns, runs } };
+  };
+  const check = (text: string, evidence: Evidence, declared = true) =>
+    read(claim(text, 'check_succeeded', declared), evidence);
+  const cannot = { observed: null, verdict: 'unverifiable', reason: 'workflow_not_in_record' };
+  const pass = { observed: true, verdict: 'pass' };
+  const fail = { observed: false, verdict: 'fail', reason: 'all_succeeded_mismatch' };
+
+  const unrecorded = withRuns([legacy(201, 'test', 'success'), legacy(205, 'test', 'failure')]);
+  const recorded = withRuns([
+    ofWorkflow(201, 'test', 'success', CHECKS, 9001),
+    ofWorkflow(205, 'test', 'failure', NIGHTLY, 9002),
+  ]);
+
+  it('reads the form only: a workflow, a space, a slash, a space and a job named whole', () => {
+    const names = ['test', 'test (ubuntu-latest)', 'build', 'build-docs'];
+    expect(workflowJobs('Checks / test passes.', names)).toEqual([
+      { workflow: 'Checks', job: 'test' },
+    ]);
+    expect(workflowJobs(`${CHECKS} / test (ubuntu-latest) passes`, names)).toEqual([
+      { workflow: CHECKS, job: 'test (ubuntu-latest)' },
+    ]);
+    expect(workflowJobs('CI / build-docs passes', names)).toEqual([
+      { workflow: 'CI', job: 'build-docs' },
+    ]);
+    expect(workflowJobs('CI / a / test and Nightly / build pass', names)).toEqual([
+      { workflow: 'a', job: 'test' },
+      { workflow: 'Nightly', job: 'build' },
+    ]);
+    for (const text of ['CI/test passes', 'CI / builder passes', 'the test job in CI passes']) {
+      expect(workflowJobs(text, names), text).toEqual([]);
+    }
+  });
+
+  it('reads `<workflow> / <job> (<event>)` for the four events only, and a leg first', () => {
+    const names = ['test', 'test (ubuntu-latest)', 'test (push)', 'build'];
+    for (const event of CHECK_RUN_EVENTS.filter((e) => e !== 'push')) {
+      expect(workflowJobs(`CI / build (${event}) passes`, names), event).toEqual([
+        { workflow: 'CI', job: 'build' },
+      ]);
+    }
+    // `test (push)` is a run name of the record, so it names that run, as a leg.
+    expect(workflowJobs('CI / test (push) passes', names)).toEqual([
+      { workflow: 'CI', job: 'test (push)' },
+    ]);
+    // A leg with its event, as GitHub shows a matrix job.
+    expect(workflowJobs('CI / test (ubuntu-latest) (pull_request) passes', names)).toEqual([
+      { workflow: 'CI', job: 'test (ubuntu-latest)' },
+    ]);
+    for (const text of [
+      'CI / build (schedule) passes',
+      'CI / build (workflow_dispatch) passes',
+      'CI / build (Pull_request) passes',
+      'CI / build (pull_request passes',
+      'CI / build (pull) passes',
+      'CI / test (macos-latest) passes',
+    ]) {
+      expect(workflowJobs(text, names), text).toEqual([]);
+    }
+  });
+
+  it('reads a job named with its workflow and event as one named with its workflow', () => {
+    expect(check(`${CHECKS} / test (pull_request) passes.`, recorded)).toMatchObject(pass);
+    expect(check(`${NIGHTLY} / test (push) passes.`, recorded)).toMatchObject(fail);
+    expect(check('Checks / test (pull_request) fails.', recorded, false)).toMatchObject(cannot);
+    expect(check('CI / test (merge_group) passes.', unrecorded)).toMatchObject(cannot);
+    // With no workflow, the event is read as today: the bare job is not named.
+    expect(check('test (pull_request) passes.', recorded)).toMatchObject({
+      verdict: 'unverifiable',
+    });
+  });
+
+  it('is unverifiable where two runs share the job name and one carries no workflow', () => {
+    expect(check('Checks / test passes.', unrecorded)).toMatchObject(cannot);
+    expect(check('Checks / test fails.', unrecorded, false)).toMatchObject(cannot);
+    // A re-run in one workflow looks the same, so naming its workflow does not settle it either.
+    expect(check('CI / test passes.', unrecorded)).toMatchObject(cannot);
+    // A run of no workflow beside a workflow's run of the same name.
+    const mixed = withRuns([
+      ofWorkflow(201, 'test', 'success', CHECKS, 9001),
+      { ...legacy(207, 'test', 'failure'), checkSuiteId: 99, appSlug: 'other-app' },
+    ]);
+    expect(check(`${CHECKS} / test passes.`, mixed)).toMatchObject(cannot);
+  });
+
+  it('leaves a claim that names no workflow as it was', () => {
+    expect(check('The test job passes.', unrecorded)).toMatchObject(fail);
+    expect(check(`The test job in ${CHECKS} passes.`, recorded)).toMatchObject(fail);
+    // A job held by one run with no workflow is read as before, workflow named or not.
+    const alone = withRuns([legacy(231, 'deploy', 'success')]);
+    expect(check('CI / deploy passes.', alone)).toMatchObject(pass);
+  });
+
+  it("reads the named workflow's runs only, matched by path, the latest of a re-run", () => {
+    expect(check(`${CHECKS} / test passes.`, recorded)).toMatchObject(pass);
+    expect(check(`${NIGHTLY} / test passes.`, recorded)).toMatchObject(fail);
+    // The record holds the path, never the workflow's display name, and no file name is guessed.
+    expect(check('Checks / test passes.', recorded)).toMatchObject(cannot);
+    expect(check('checks.yml / test passes.', recorded)).toMatchObject(cannot);
+    // checks.yml ran twice; its later workflow run (9003) succeeded.
+    const rerun = withRuns([
+      ofWorkflow(201, 'test', 'failure', CHECKS, 9001),
+      ofWorkflow(205, 'test', 'failure', NIGHTLY, 9002),
+      ofWorkflow(206, 'test', 'success', CHECKS, 9003),
+    ]);
+    expect(check(`${CHECKS} / test passes.`, rerun)).toMatchObject(pass);
+  });
+
+  it('restricts each job named with a workflow, and no other', () => {
+    const both = withRuns([
+      ofWorkflow(201, 'test', 'success', CHECKS, 9001),
+      ofWorkflow(205, 'test', 'failure', NIGHTLY, 9002),
+      ofWorkflow(211, 'lint', 'success', CHECKS, 9001),
+      ofWorkflow(215, 'lint', 'failure', NIGHTLY, 9002),
+    ]);
+    expect(check(`${CHECKS} / test and ${CHECKS} / lint pass.`, both)).toMatchObject(pass);
+    // lint is named with no workflow, so both workflows' lint runs are read, as before.
+    expect(check(`${CHECKS} / test and lint pass.`, both)).toMatchObject(fail);
+  });
+
+  it("is declared_item_not_among_candidates when the workflow's run is counted and not combined", () => {
+    const candidates = [
+      { type: 'check_run' as const, id: '205', score: null, matchedField: 'name' },
+    ];
+    expect(
+      checkReaderClaim(
+        {
+          text: `${CHECKS} / test passes.`,
+          kind: 'check_succeeded',
+          declaredValue: true,
+          candidates,
+          retrieval: { floor: BM25_FLOOR },
+        },
+        recorded,
+        REPO,
+      ),
+    ).toEqual({
+      observed: null,
+      verdict: 'unverifiable',
+      reason: 'declared_item_not_among_candidates',
+    });
+  });
+
+  // Spec 0.1.5: a run of a workflow carries that workflow's name beside its path.
+  const named = (run: CheckRun, workflowName: string): CheckRun => ({ ...run, workflowName });
+  const byName = withRuns([
+    named(ofWorkflow(201, 'test', 'success', CHECKS, 9001), 'Checks'),
+    named(ofWorkflow(205, 'test', 'failure', NIGHTLY, 9002), 'Nightly'),
+  ]);
+  const ambiguous = { observed: null, verdict: 'unverifiable', reason: 'workflow_name_ambiguous' };
+  const unheld = { observed: null, verdict: 'unverifiable', reason: 'no_matching_record_item' };
+
+  it('reads a workflow the record names, the longest held whole before the slash, or else the word there', () => {
+    const names = ['test', 'build'];
+    const workflows = ['CI', 'Continuous Integration', 'Integration', CHECKS];
+    expect(workflowJobs('Continuous Integration / build passes', names, workflows)).toEqual([
+      { workflow: 'Continuous Integration', job: 'build' },
+    ]);
+    expect(workflowJobs('(CI / test) passes', names, workflows)).toEqual([
+      { workflow: 'CI', job: 'test' },
+    ]);
+    expect(workflowJobs(`\`${CHECKS} / test\` passes`, names, workflows)).toEqual([
+      { workflow: CHECKS, job: 'test' },
+    ]);
+    // Not whole: a name continued by a path character before it is not that name.
+    for (const text of ['MyCI / test passes', 'x.CI / test passes', 'pre-CI / test passes']) {
+      expect(workflowJobs(text, names, workflows)[0]?.workflow, text).toBe(text.split(' ')[0]);
+    }
+    expect(workflowJobs('Continuous Integration / build passes', names)).toEqual([
+      { workflow: 'Integration', job: 'build' },
+    ]);
+  });
+
+  it('reads a workflow by its name or its path, exactly, with or without its event', () => {
+    expect(check('Checks / test passes.', byName)).toMatchObject(pass);
+    expect(check('Nightly / test passes.', byName)).toMatchObject(fail);
+    expect(check('Nightly / test (push) passes.', byName)).toMatchObject(fail);
+    expect(check(`${CHECKS} / test passes.`, byName)).toMatchObject(pass);
+    // Case is not folded, and a file name is not guessed.
+    for (const text of ['checks / test passes.', 'checks.yml / test passes.']) {
+      expect(check(text, byName), text).toMatchObject(cannot);
+    }
+    const spaced = withRuns([
+      named(
+        ofWorkflow(210, 'build', 'success', '.github/workflows/ci.yml', 9001),
+        'Continuous Integration',
+      ),
+      named(ofWorkflow(214, 'build', 'failure', '.github/workflows/release.yml', 9002), 'Release'),
+    ]);
+    expect(check('Continuous Integration / build passes.', spaced)).toMatchObject(pass);
+    expect(check('Release / build passes.', spaced)).toMatchObject(fail);
+  });
+
+  it('is workflow_name_ambiguous where the name is held by two workflow paths', () => {
+    const twoCi = withRuns([
+      named(ofWorkflow(201, 'test', 'success', '.github/workflows/ci.yml', 9001), 'CI'),
+      named(ofWorkflow(205, 'test', 'failure', '.github/workflows/ci-nightly.yml', 9002), 'CI'),
+    ]);
+    expect(check('CI / test passes.', twoCi)).toMatchObject(ambiguous);
+    expect(check('CI / test fails.', twoCi, false)).toMatchObject(ambiguous);
+    // A path names one of them.
+    expect(check('.github/workflows/ci.yml / test passes.', twoCi)).toMatchObject(pass);
+    // One workflow of that name run twice on the head is one path, so one workflow.
+    const rerun = withRuns([
+      named(ofWorkflow(201, 'test', 'failure', '.github/workflows/ci.yml', 9001), 'CI'),
+      named(ofWorkflow(206, 'test', 'success', '.github/workflows/ci.yml', 9003), 'CI'),
+    ]);
+    expect(check('CI / test passes.', rerun)).toMatchObject(pass);
+  });
+
+  it('cannot place a workflow that is no path where a run of the job has a path and no name', () => {
+    const half = withRuns([
+      named(ofWorkflow(201, 'test', 'success', CHECKS, 9001), 'Checks'),
+      ofWorkflow(205, 'test', 'failure', NIGHTLY, 9002),
+    ]);
+    expect(check('Checks / test passes.', half)).toMatchObject(cannot);
+    // A path is still placed.
+    expect(check(`${CHECKS} / test passes.`, half)).toMatchObject(pass);
+    // A record written before 0.1.5 holds no names.
+    expect(check('Checks / test passes.', recorded)).toMatchObject(cannot);
+  });
+
+  it('names no run where a job named with its workflow is followed by a parenthesis the record does not hold', () => {
+    const names = ['test', 'test (ubuntu-latest)', 'build'];
+    for (const text of [
+      'CI / test (workflow_dispatch) passes',
+      'CI / build (schedule) passes',
+      'CI / test (macos-latest) passes',
+      'CI / test () passes',
+    ]) {
+      expect(unheldSuffixJobs(text, names), text).toHaveLength(1);
+    }
+    for (const text of [
+      'CI / test (ubuntu-latest) passes',
+      'CI / test (pull_request) passes',
+      'CI / test (ubuntu-latest) (merge_group) passes',
+      'CI / test (pull_request passes',
+      'CI / test passes (on push)',
+      'test (workflow_dispatch) passes',
+      'CI / deploy (schedule) passes',
+    ]) {
+      expect(unheldSuffixJobs(text, names), text).toEqual([]);
+    }
+    expect(check(`${CHECKS} / test (workflow_dispatch) fails.`, recorded, false)).toMatchObject(
+      unheld,
+    );
+    expect(
+      check(`The test job, ${CHECKS} / test (workflow_dispatch), fails.`, recorded, false),
+    ).toMatchObject(unheld);
+    expect(check('Checks / test (schedule) passes.', byName)).toMatchObject(unheld);
+    // The four events are read as before, and a leg that is a run names that run.
+    expect(check('Checks / test (pull_request) passes.', byName)).toMatchObject(pass);
+    const leg = withRuns([
+      named(ofWorkflow(240, 'test (ubuntu-latest)', 'success', CHECKS, 9001), 'Checks'),
+      named(ofWorkflow(241, 'test', 'failure', CHECKS, 9001), 'Checks'),
+    ]);
+    expect(check('Checks / test (ubuntu-latest) passes.', leg)).toMatchObject(pass);
   });
 });
 
@@ -497,7 +789,13 @@ describe('candidates filled to k', () => {
         reason: 'no_matching_record_item',
       });
       // Even read as evidence (a floor of 0), a fill cannot make an identity kind pass.
-      const asEvidence = { kind, declaredValue, candidates: filled ?? [], retrieval: { floor: 0 } };
+      const asEvidence = {
+        text,
+        kind,
+        declaredValue,
+        candidates: filled ?? [],
+        retrieval: { floor: 0 },
+      };
       expect(checkReaderClaim(asEvidence, storage, REPO)).toEqual({
         observed: null,
         verdict: 'unverifiable',
@@ -684,6 +982,68 @@ describe('a record with reader claims (DRAFT 0.2.0)', () => {
     last.reason = 'ambiguous';
     const pointers = validateDraftRecord(record).map((e) => e.pointer);
     expect(pointers).toContain('/predicate/readerClaims/2/reason');
+  });
+
+  it('validates and verifies offline a claim whose workflow the record cannot place, and reads its text to do so', () => {
+    if (storage.checkRuns?.status !== 'ok') throw new Error('fixture');
+    const run = (id: number, conclusion: string) => ({
+      id,
+      name: 'typecheck',
+      status: 'completed',
+      conclusion,
+    });
+    const twice = {
+      ...storage,
+      checkRuns: { ...storage.checkRuns, runs: [run(103, 'success'), run(104, 'failure')] },
+    };
+    const named = claim('CI / typecheck passes', 'check_succeeded', true);
+    const record = JSON.parse(JSON.stringify(build([named], twice))) as DunstanRecord;
+    expect(record.predicate.readerClaims?.[0]).toMatchObject({
+      verdict: 'unverifiable',
+      reason: 'workflow_not_in_record',
+    });
+    expect(validateDraftRecord(record)).toEqual([]);
+    expect(verifyRecord(record).problems).toEqual([]);
+    // The same candidates under a text that names no workflow recompute to the latest run's fail.
+    const first = record.predicate.readerClaims?.[0];
+    if (first === undefined) throw new Error('fixture');
+    first.text = 'The typecheck job passes';
+    expect(verifyRecord(record).problems.map((p) => p.member)).toContain(
+      '/predicate/readerClaims/0',
+    );
+  });
+
+  it('validates and verifies offline a claim naming a workflow by a name two workflow paths hold', () => {
+    if (storage.checkRuns?.status !== 'ok') throw new Error('fixture');
+    const run = (id: number, conclusion: string, workflowPath: string, workflowRunId: number) => ({
+      id,
+      name: 'typecheck',
+      status: 'completed',
+      conclusion,
+      checkSuiteId: workflowRunId - 8000,
+      workflowPath,
+      workflowName: 'CI',
+      workflowRunId,
+      runAttempt: 1,
+    });
+    const twoCi = {
+      ...storage,
+      checkRuns: {
+        ...storage.checkRuns,
+        runs: [
+          run(103, 'success', '.github/workflows/ci.yml', 9001),
+          run(104, 'failure', '.github/workflows/ci-nightly.yml', 9002),
+        ],
+      },
+    };
+    const named = claim('CI / typecheck passes', 'check_succeeded', true);
+    const record = JSON.parse(JSON.stringify(build([named], twoCi))) as DunstanRecord;
+    expect(record.predicate.readerClaims?.[0]).toMatchObject({
+      verdict: 'unverifiable',
+      reason: 'workflow_name_ambiguous',
+    });
+    expect(validateDraftRecord(record)).toEqual([]);
+    expect(verifyRecord(record).problems).toEqual([]);
   });
 
   it('validates and verifies offline a closing claim, and accepts each reason the closes check gives', () => {

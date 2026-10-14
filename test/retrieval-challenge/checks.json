@@ -65,6 +65,624 @@
       "expectCheck": { "verdict": "unverifiable" }
     },
     {
+      "id": "rerun-workflow-named",
+      "confusion": "build ran twice and the runs carry no workflow; the claim names a workflow the record cannot place either run in",
+      "text": "CI / build passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "expectCandidates": [],
+      "forbidCandidates": ["214"],
+      "expectCheck": { "verdict": "unverifiable", "reason": "workflow_not_in_record" }
+    },
+    {
+      "id": "same-name-two-workflows-recorded",
+      "confusion": "a job named test in two workflows whose runs carry their workflow paths: checks.yml (run 201, success) and nightly.yml (run 205, failure)",
+      "text": ".github/workflows/checks.yml / test passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "evidence": {
+        "checkRuns": {
+          "status": "ok",
+          "commit": "c0ffee0000000000000000000000000000000001",
+          "excludedIds": [],
+          "runs": [
+            {
+              "id": 201,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "success",
+              "checkSuiteId": 70,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/checks.yml",
+              "workflowRunId": 9001,
+              "runAttempt": 1
+            },
+            {
+              "id": 205,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "failure",
+              "checkSuiteId": 80,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/nightly.yml",
+              "workflowRunId": 9002,
+              "runAttempt": 1
+            }
+          ]
+        }
+      },
+      "expectCandidates": ["201"],
+      "forbidCandidates": ["205"],
+      "expectCheck": { "verdict": "pass", "observed": true }
+    },
+    {
+      "id": "same-name-two-workflows-recorded-other",
+      "confusion": "as same-name-two-workflows-recorded; the claim names nightly.yml, whose test (205) failed, and checks.yml's (201) succeeded",
+      "text": ".github/workflows/nightly.yml / test passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "evidence": {
+        "checkRuns": {
+          "status": "ok",
+          "commit": "c0ffee0000000000000000000000000000000001",
+          "excludedIds": [],
+          "runs": [
+            {
+              "id": 201,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "success",
+              "checkSuiteId": 70,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/checks.yml",
+              "workflowRunId": 9001,
+              "runAttempt": 1
+            },
+            {
+              "id": 205,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "failure",
+              "checkSuiteId": 80,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/nightly.yml",
+              "workflowRunId": 9002,
+              "runAttempt": 1
+            }
+          ]
+        }
+      },
+      "expectCandidates": [],
+      "forbidCandidates": ["201"],
+      "expectCheck": { "verdict": "fail", "reason": "all_succeeded_mismatch", "observed": false }
+    },
+    {
+      "id": "same-name-two-workflows-display-name",
+      "confusion": "as same-name-two-workflows-recorded; the claim names the workflow Checks by its display name, which the record does not hold (it holds paths)",
+      "text": "Checks / test passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "evidence": {
+        "checkRuns": {
+          "status": "ok",
+          "commit": "c0ffee0000000000000000000000000000000001",
+          "excludedIds": [],
+          "runs": [
+            {
+              "id": 201,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "success",
+              "checkSuiteId": 70,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/checks.yml",
+              "workflowRunId": 9001,
+              "runAttempt": 1
+            },
+            {
+              "id": 205,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "failure",
+              "checkSuiteId": 80,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/nightly.yml",
+              "workflowRunId": 9002,
+              "runAttempt": 1
+            }
+          ]
+        }
+      },
+      "expectCandidates": [],
+      "forbidCandidates": ["201", "205"],
+      "expectCheck": { "verdict": "unverifiable", "reason": "workflow_not_in_record" }
+    },
+    {
+      "id": "display-name-event-suffix",
+      "confusion": "as same-name-two-workflows-display-name; the claim copies GitHub's check name with its event, Checks / test (pull_request), and Checks is a display name the record does not hold",
+      "text": "Checks / test (pull_request) fails.",
+      "kind": "check_succeeded",
+      "declaredValue": false,
+      "evidence": {
+        "checkRuns": {
+          "status": "ok",
+          "commit": "c0ffee0000000000000000000000000000000001",
+          "excludedIds": [],
+          "runs": [
+            {
+              "id": 201,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "success",
+              "checkSuiteId": 70,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/checks.yml",
+              "workflowRunId": 9001,
+              "runAttempt": 1
+            },
+            {
+              "id": 205,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "failure",
+              "checkSuiteId": 80,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/nightly.yml",
+              "workflowRunId": 9002,
+              "runAttempt": 1
+            }
+          ]
+        }
+      },
+      "expectCandidates": [],
+      "forbidCandidates": ["201", "205"],
+      "expectCheck": { "verdict": "unverifiable", "reason": "workflow_not_in_record" }
+    },
+    {
+      "id": "path-event-suffix",
+      "confusion": "as same-name-two-workflows-recorded; the claim names checks.yml (run 201, success) with the event, as GitHub shows a check",
+      "text": ".github/workflows/checks.yml / test (pull_request) passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "evidence": {
+        "checkRuns": {
+          "status": "ok",
+          "commit": "c0ffee0000000000000000000000000000000001",
+          "excludedIds": [],
+          "runs": [
+            {
+              "id": 201,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "success",
+              "checkSuiteId": 70,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/checks.yml",
+              "workflowRunId": 9001,
+              "runAttempt": 1
+            },
+            {
+              "id": 205,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "failure",
+              "checkSuiteId": 80,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/nightly.yml",
+              "workflowRunId": 9002,
+              "runAttempt": 1
+            }
+          ]
+        }
+      },
+      "expectCandidates": ["201"],
+      "forbidCandidates": ["205"],
+      "expectCheck": { "verdict": "pass", "observed": true }
+    },
+    {
+      "id": "path-event-suffix-other",
+      "confusion": "as path-event-suffix; the claim names nightly.yml, whose test (205) failed, and checks.yml's (201) succeeded",
+      "text": ".github/workflows/nightly.yml / test (push) passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "evidence": {
+        "checkRuns": {
+          "status": "ok",
+          "commit": "c0ffee0000000000000000000000000000000001",
+          "excludedIds": [],
+          "runs": [
+            {
+              "id": 201,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "success",
+              "checkSuiteId": 70,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/checks.yml",
+              "workflowRunId": 9001,
+              "runAttempt": 1
+            },
+            {
+              "id": 205,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "failure",
+              "checkSuiteId": 80,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/nightly.yml",
+              "workflowRunId": 9002,
+              "runAttempt": 1
+            }
+          ]
+        }
+      },
+      "expectCandidates": [],
+      "forbidCandidates": ["201"],
+      "expectCheck": { "verdict": "fail", "reason": "all_succeeded_mismatch", "observed": false }
+    },
+    {
+      "id": "event-suffix-is-a-leg",
+      "confusion": "a run named test (push) beside two runs of test that carry no workflow; read as an event, CI / test (push) would name test, whose runs the record cannot place, and read as a leg it names the run test (push), which succeeded",
+      "text": "CI / test (push) passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "evidence": {
+        "checkRuns": {
+          "status": "ok",
+          "commit": "c0ffee0000000000000000000000000000000001",
+          "excludedIds": [],
+          "runs": [
+            { "id": 201, "name": "test", "status": "completed", "conclusion": "success" },
+            { "id": 205, "name": "test", "status": "completed", "conclusion": "failure" },
+            { "id": 260, "name": "test (push)", "status": "completed", "conclusion": "success" }
+          ]
+        }
+      },
+      "expectCandidates": ["260"],
+      "forbidCandidates": ["205"],
+      "expectCheck": { "verdict": "pass", "observed": true }
+    },
+    {
+      "id": "path-unheld-suffix",
+      "confusion": "checks.yml's test (201) succeeded and nightly.yml's (205) failed, beside four other jobs of checks.yml; the claim copies a check with an event the reader does not read, workflow_dispatch, and test (workflow_dispatch) is no run of the record, so the parenthesis was read as a leg, the workflow was not read, and BM25 combined both workflows' test runs and passed on nightly.yml's failure",
+      "text": ".github/workflows/checks.yml / test (workflow_dispatch) fails.",
+      "kind": "check_succeeded",
+      "declaredValue": false,
+      "evidence": {
+        "checkRuns": {
+          "status": "ok",
+          "commit": "c0ffee0000000000000000000000000000000001",
+          "excludedIds": [],
+          "runs": [
+            {
+              "id": 101,
+              "name": "build",
+              "status": "completed",
+              "conclusion": "success",
+              "checkSuiteId": 70,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/checks.yml",
+              "workflowRunId": 9001,
+              "runAttempt": 1
+            },
+            {
+              "id": 102,
+              "name": "lint",
+              "status": "completed",
+              "conclusion": "success",
+              "checkSuiteId": 70,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/checks.yml",
+              "workflowRunId": 9001,
+              "runAttempt": 1
+            },
+            {
+              "id": 103,
+              "name": "package",
+              "status": "completed",
+              "conclusion": "success",
+              "checkSuiteId": 70,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/checks.yml",
+              "workflowRunId": 9001,
+              "runAttempt": 1
+            },
+            {
+              "id": 104,
+              "name": "docs",
+              "status": "completed",
+              "conclusion": "success",
+              "checkSuiteId": 70,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/checks.yml",
+              "workflowRunId": 9001,
+              "runAttempt": 1
+            },
+            {
+              "id": 201,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "success",
+              "checkSuiteId": 70,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/checks.yml",
+              "workflowRunId": 9001,
+              "runAttempt": 1
+            },
+            {
+              "id": 205,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "failure",
+              "checkSuiteId": 80,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/nightly.yml",
+              "workflowRunId": 9002,
+              "runAttempt": 1
+            }
+          ]
+        }
+      },
+      "expectCandidates": [],
+      "forbidCandidates": ["201", "205"],
+      "expectCheck": { "verdict": "unverifiable", "reason": "no_matching_record_item" }
+    },
+    {
+      "id": "path-unheld-suffix-job-named",
+      "confusion": "as path-unheld-suffix, with only the two test runs; the text also names the test job bare, so both runs are identifier matches, the workflow is not read, and the claim passed on nightly.yml's failure though checks.yml's test succeeded",
+      "text": "The test job, .github/workflows/checks.yml / test (workflow_dispatch), fails.",
+      "kind": "check_succeeded",
+      "declaredValue": false,
+      "evidence": {
+        "checkRuns": {
+          "status": "ok",
+          "commit": "c0ffee0000000000000000000000000000000001",
+          "excludedIds": [],
+          "runs": [
+            {
+              "id": 201,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "success",
+              "checkSuiteId": 70,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/checks.yml",
+              "workflowRunId": 9001,
+              "runAttempt": 1
+            },
+            {
+              "id": 205,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "failure",
+              "checkSuiteId": 80,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/nightly.yml",
+              "workflowRunId": 9002,
+              "runAttempt": 1
+            }
+          ]
+        }
+      },
+      "expectCandidates": ["201"],
+      "forbidCandidates": ["201", "205"],
+      "expectCheck": { "verdict": "unverifiable", "reason": "no_matching_record_item" }
+    },
+    {
+      "id": "workflow-name",
+      "confusion": "a job named test in two workflows whose runs carry their workflow names: Checks (checks.yml, run 201, success) and Nightly (nightly.yml, run 205, failure); the claim names Checks by its name, as GitHub shows it",
+      "text": "Checks / test passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "evidence": {
+        "checkRuns": {
+          "status": "ok",
+          "commit": "c0ffee0000000000000000000000000000000001",
+          "excludedIds": [],
+          "runs": [
+            {
+              "id": 201,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "success",
+              "checkSuiteId": 70,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/checks.yml",
+              "workflowName": "Checks",
+              "workflowRunId": 9001,
+              "runAttempt": 1
+            },
+            {
+              "id": 205,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "failure",
+              "checkSuiteId": 80,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/nightly.yml",
+              "workflowName": "Nightly",
+              "workflowRunId": 9002,
+              "runAttempt": 1
+            }
+          ]
+        }
+      },
+      "expectCandidates": ["201"],
+      "forbidCandidates": ["205"],
+      "expectCheck": { "verdict": "pass", "observed": true }
+    },
+    {
+      "id": "workflow-name-event-other",
+      "confusion": "as workflow-name; the claim names Nightly, whose test (205) failed, by its name and with its event, and Checks' test (201) succeeded",
+      "text": "Nightly / test (push) passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "evidence": {
+        "checkRuns": {
+          "status": "ok",
+          "commit": "c0ffee0000000000000000000000000000000001",
+          "excludedIds": [],
+          "runs": [
+            {
+              "id": 201,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "success",
+              "checkSuiteId": 70,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/checks.yml",
+              "workflowName": "Checks",
+              "workflowRunId": 9001,
+              "runAttempt": 1
+            },
+            {
+              "id": 205,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "failure",
+              "checkSuiteId": 80,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/nightly.yml",
+              "workflowName": "Nightly",
+              "workflowRunId": 9002,
+              "runAttempt": 1
+            }
+          ]
+        }
+      },
+      "expectCandidates": [],
+      "forbidCandidates": ["201"],
+      "expectCheck": { "verdict": "fail", "reason": "all_succeeded_mismatch", "observed": false }
+    },
+    {
+      "id": "workflow-name-with-spaces",
+      "confusion": "a job named build in two workflows: Continuous Integration (ci.yml, run 210, success) and Release (release.yml, run 214, failure); the claim names the first by its name, which holds a space, so the word before the slash, Integration, names no workflow",
+      "text": "Continuous Integration / build passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "evidence": {
+        "checkRuns": {
+          "status": "ok",
+          "commit": "c0ffee0000000000000000000000000000000001",
+          "excludedIds": [],
+          "runs": [
+            {
+              "id": 210,
+              "name": "build",
+              "status": "completed",
+              "conclusion": "success",
+              "checkSuiteId": 70,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/ci.yml",
+              "workflowName": "Continuous Integration",
+              "workflowRunId": 9001,
+              "runAttempt": 1
+            },
+            {
+              "id": 214,
+              "name": "build",
+              "status": "completed",
+              "conclusion": "failure",
+              "checkSuiteId": 80,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/release.yml",
+              "workflowName": "Release",
+              "workflowRunId": 9002,
+              "runAttempt": 1
+            }
+          ]
+        }
+      },
+      "expectCandidates": ["210"],
+      "forbidCandidates": ["214"],
+      "expectCheck": { "verdict": "pass", "observed": true }
+    },
+    {
+      "id": "workflow-name-two-paths",
+      "confusion": "two workflow files, ci.yml (run 201, success) and ci-nightly.yml (run 205, failure), are both named CI, and each has a job test; CI names both",
+      "text": "CI / test passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "evidence": {
+        "checkRuns": {
+          "status": "ok",
+          "commit": "c0ffee0000000000000000000000000000000001",
+          "excludedIds": [],
+          "runs": [
+            {
+              "id": 201,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "success",
+              "checkSuiteId": 70,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/ci.yml",
+              "workflowName": "CI",
+              "workflowRunId": 9001,
+              "runAttempt": 1
+            },
+            {
+              "id": 205,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "failure",
+              "checkSuiteId": 80,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/ci-nightly.yml",
+              "workflowName": "CI",
+              "workflowRunId": 9002,
+              "runAttempt": 1
+            }
+          ]
+        }
+      },
+      "expectCandidates": [],
+      "forbidCandidates": ["201", "205"],
+      "expectCheck": { "verdict": "unverifiable", "reason": "workflow_name_ambiguous" }
+    },
+    {
+      "id": "workflow-name-one-unrecorded",
+      "confusion": "as workflow-name, but nightly.yml's run (205, failure) carries no workflow name, so the record cannot tell that its workflow is not also named Checks",
+      "text": "Checks / test passes.",
+      "kind": "check_succeeded",
+      "declaredValue": true,
+      "evidence": {
+        "checkRuns": {
+          "status": "ok",
+          "commit": "c0ffee0000000000000000000000000000000001",
+          "excludedIds": [],
+          "runs": [
+            {
+              "id": 201,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "success",
+              "checkSuiteId": 70,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/checks.yml",
+              "workflowName": "Checks",
+              "workflowRunId": 9001,
+              "runAttempt": 1
+            },
+            {
+              "id": 205,
+              "name": "test",
+              "status": "completed",
+              "conclusion": "failure",
+              "checkSuiteId": 80,
+              "appSlug": "github-actions",
+              "workflowPath": ".github/workflows/nightly.yml",
+              "workflowRunId": 9002,
+              "runAttempt": 1
+            }
+          ]
+        }
+      },
+      "expectCandidates": [],
+      "forbidCandidates": ["201", "205"],
+      "expectCheck": { "verdict": "unverifiable", "reason": "workflow_not_in_record" }
+    },
+    {
       "id": "case-lower",
       "confusion": "lint against Lint, a different job",
       "text": "The lint job passes.",

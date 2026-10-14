@@ -17,7 +17,12 @@ import type { Evidence, Verdict } from '../check/types.js';
 import { loadCorpus } from '../eval/retrieval.js';
 import type { JsonValue } from '../spec/json.js';
 import { type ItemSnapshot, recordItems } from './items.js';
-import { combinedCandidates, READER_CLAIM_KINDS, readReaderClaim } from './reader-claims.js';
+import {
+  combinedCandidates,
+  namedWorkflowRuns,
+  READER_CLAIM_KINDS,
+  readReaderClaim,
+} from './reader-claims.js';
 import { BM25_FLOOR, retrieve } from './retrieve.js';
 import type { Candidate } from './types.js';
 
@@ -25,8 +30,12 @@ const DIR = fileURLToPath(new URL('../../test/retrieval-challenge/', import.meta
 const FAMILIES = ['checks', 'closes', 'lexical', 'numbers', 'paths', 'shas', 'tests'];
 
 // The 0.1 sections a closes case's check reads (spec section 7.4), for that case alone: its pull
-// request's state over the family's, and its closing references, references and close events.
-type CaseEvidence = Partial<Pick<Evidence, 'closingReferences' | 'references' | 'closeEvents'>> & {
+// request's state over the family's, and its closing references, references and close events. A
+// checks case may carry its own check runs, and a tests case its own items, in place of the
+// family's, which retrieval reads too.
+type CaseEvidence = Partial<
+  Pick<Evidence, 'closingReferences' | 'references' | 'closeEvents' | 'checkRuns' | 'items'>
+> & {
   pullRequest?: Partial<Evidence['pullRequest']>;
 };
 
@@ -64,17 +73,17 @@ type Effect = 'verdict' | 'observed' | 'candidates';
 // candidates tie and disagree on the outcome is unverifiable (docs/retrieval.md, "Ties that
 // disagree are ambiguous"), and the check reads none of its candidates. Since 10Z a
 // reference_closes claim is the 0.1 gate's 7.4 row (docs/retrieval.md, "Closing claims"); the closes
-// family has no miss.
+// family has no miss. Since 10Y2 a check_succeeded claim that names its job's workflow reads that
+// workflow's runs, or is unverifiable when the record cannot tell which run is that workflow's
+// (docs/retrieval.md, "A job named with its workflow"). Since 10X3 a bare test name held under two
+// or more classnames names only the cases whose classname the text also names (docs/retrieval.md,
+// "A classname named apart from the name"); the tests family has no miss. Since 10Y3 a job named
+// with its workflow may carry its event, `<workflow> / <job> (<event>)`, and a classname shorter
+// than MIN_NAME_LENGTH never restricts a name. Since 10Y4 (spec 0.1.5) a run's evidence carries
+// its workflow's name, and a workflow is named by its path or its name; a name held by two paths,
+// or a job followed by a parenthesis the record does not hold, is unverifiable.
 const KNOWN_MISSES = new Map<string, { effect: Effect; reason: string }>([
   // checks
-  [
-    'checks/same-name-two-workflows',
-    {
-      effect: 'verdict',
-      reason:
-        'The record keeps the latest run per name, so the Nightly test (205, failed) stands for the Checks one (201): a fail. A run carries no workflow, suite or app, so this evidence is the same as the build re-run, which must fail.',
-    },
-  ],
   [
     'checks/short-name',
     {
@@ -88,7 +97,7 @@ const KNOWN_MISSES = new Map<string, { effect: Effect; reason: string }>([
     {
       effect: 'verdict',
       reason:
-        '"version 2" matches neither v1 nor v2, so they tie; api.v1 failed and api.v2 passed, so the check finds the claim ambiguous and it is unverifiable, not pass.',
+        'Kept on purpose. "version 2" matches neither v1 nor v2, so they tie and disagree, and the claim is unverifiable, which fails closed. Making "version 2" name v2 would be a guessed expansion.',
     },
   ],
   // paths
@@ -138,22 +147,6 @@ const KNOWN_MISSES = new Map<string, { effect: Effect; reason: string }>([
       reason: "The text's 7-hex prefix names both commits, though the declared SHA is neither.",
     },
   ],
-  // tests
-  [
-    'tests/same-name-classname-in-prose',
-    {
-      effect: 'verdict',
-      reason:
-        'The prose says "queue retry", not queue.retry, so the bare name is an identifier match under both classnames and http.retry (failed) is read.',
-    },
-  ],
-  [
-    'tests/same-name-declared-failing',
-    {
-      effect: 'candidates',
-      reason: "queue.retry's case is read too; http.retry's failure decides anyway.",
-    },
-  ],
 ]);
 
 // The family files are read by the corpus loader; a challenge case extends a corpus claim.
@@ -188,7 +181,8 @@ interface Run {
   // Arm A, unfilled: the identifier matches and the candidates at or above the floor.
   armA: Candidate[];
   // The candidates the check reads: Arm A's identifier matches if there are any, which close the
-  // set, and otherwise all of Arm A. A claim the check finds ambiguous reads none of them.
+  // set, and otherwise all of Arm A; of a job named with its workflow, that workflow's runs only. A
+  // claim the check finds ambiguous, or whose named workflow the record cannot place, reads none.
   combined: Candidate[];
   evidence: Evidence;
   recorded: ReturnType<typeof readReaderClaim>;
@@ -198,18 +192,20 @@ const runs: Run[] = [...families].flatMap(([name, family]) =>
   family.claims.map((claim) => {
     const type = READER_CLAIM_KINDS.get(claim.kind);
     const query = { text: claim.text, declaredValue: claim.declaredValue };
-    const armA = retrieve(query, recordItems(family.evidence), {
+    const evidence = evidenceOf(family.evidence, claim.evidence);
+    const armA = retrieve(query, recordItems(evidence), {
       repository: family.repository,
       ...(type === undefined ? {} : { types: [type] }),
     });
-    const evidence = evidenceOf(family.evidence, claim.evidence);
     const recorded = readReaderClaim(
       { text: claim.text, kind: claim.kind, declaredValue: claim.declaredValue, reader: READER },
       evidence,
       family.repository,
     );
+    const closed = combinedCandidates(armA, BM25_FLOOR);
+    const scoped = type === 'check_run' ? namedWorkflowRuns(claim.text, closed, evidence) : closed;
     const combined =
-      recorded.reason === 'ambiguous_candidates' ? [] : combinedCandidates(armA, BM25_FLOOR);
+      recorded.reason === 'ambiguous_candidates' || !Array.isArray(scoped) ? [] : scoped;
     return { key: `${name}/${claim.id}`, family, claim, armA, combined, evidence, recorded };
   }),
 );
@@ -275,8 +271,8 @@ describe('the retrieval challenge set', () => {
     for (const [name, family] of families) {
       expect(family.family).toBe(name);
       expect(family.claims.length).toBeGreaterThanOrEqual(3);
-      const items = recordItems(family.evidence);
       for (const claim of family.claims) {
+        const items = recordItems(evidenceOf(family.evidence, claim.evidence));
         const type = READER_CLAIM_KINDS.get(claim.kind);
         expect(type, `${name}/${claim.id}`).toBeDefined();
         const ids = new Set(items.filter((i) => i.type === type).map((i) => i.id));

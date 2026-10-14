@@ -30,6 +30,30 @@ exports[`the retrieval challenge set > checks/case-upper: Arm A and the check, a
 }
 `;
 
+exports[`the retrieval challenge set > checks/display-name-event-suffix: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "201 = name",
+    "205 = name",
+  ],
+  "observed": null,
+  "reason": "workflow_not_in_record",
+  "verdict": "unverifiable",
+}
+`;
+
+exports[`the retrieval challenge set > checks/event-suffix-is-a-leg: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "260 = name",
+    "205 0.211109",
+  ],
+  "observed": true,
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
 exports[`the retrieval challenge set > checks/matrix-job: Arm A and the check, as they stand 1`] = `
 {
   "candidates": [
@@ -42,6 +66,57 @@ exports[`the retrieval challenge set > checks/matrix-job: Arm A and the check, a
   "observed": true,
   "reason": null,
   "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > checks/path-event-suffix: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "201 = name",
+    "205 = name",
+  ],
+  "observed": true,
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > checks/path-event-suffix-other: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "201 = name",
+    "205 = name",
+  ],
+  "observed": false,
+  "reason": "all_succeeded_mismatch",
+  "verdict": "fail",
+}
+`;
+
+exports[`the retrieval challenge set > checks/path-unheld-suffix: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "201 1.029619 (not combined)",
+    "205 1.029619 (not combined)",
+    "101 0",
+    "102 0",
+    "103 0",
+  ],
+  "observed": null,
+  "reason": "no_matching_record_item",
+  "verdict": "unverifiable",
+}
+`;
+
+exports[`the retrieval challenge set > checks/path-unheld-suffix-job-named: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "201 = name",
+    "205 = name",
+  ],
+  "observed": null,
+  "reason": "no_matching_record_item",
+  "verdict": "unverifiable",
 }
 `;
 
@@ -75,6 +150,21 @@ exports[`the retrieval challenge set > checks/rerun-latest-failed: Arm A and the
 }
 `;
 
+exports[`the retrieval challenge set > checks/rerun-workflow-named: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "214 = name",
+    "230 1.715542 (not combined)",
+    "232 1.303812 (not combined)",
+    "205 0",
+    "220 0",
+  ],
+  "observed": null,
+  "reason": "workflow_not_in_record",
+  "verdict": "unverifiable",
+}
+`;
+
 exports[`the retrieval challenge set > checks/same-name-two-workflows: Arm A and the check, as they stand 1`] = `
 {
   "candidates": [
@@ -83,6 +173,42 @@ exports[`the retrieval challenge set > checks/same-name-two-workflows: Arm A and
     "241 0.812675",
     "214 0",
     "220 0",
+  ],
+  "observed": null,
+  "reason": "workflow_not_in_record",
+  "verdict": "unverifiable",
+}
+`;
+
+exports[`the retrieval challenge set > checks/same-name-two-workflows-display-…: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "201 = name",
+    "205 = name",
+  ],
+  "observed": null,
+  "reason": "workflow_not_in_record",
+  "verdict": "unverifiable",
+}
+`;
+
+exports[`the retrieval challenge set > checks/same-name-two-workflows-recorded: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "201 = name",
+    "205 = name",
+  ],
+  "observed": true,
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > checks/same-name-two-workflows-recorded…: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "201 = name",
+    "205 = name",
   ],
   "observed": false,
   "reason": "all_succeeded_mismatch",
@@ -128,6 +254,66 @@ exports[`the retrieval challenge set > checks/short-name-in-longer: Arm A and th
     "205 0",
     "214 0",
     "220 0",
+  ],
+  "observed": true,
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > checks/workflow-name: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "201 = name",
+    "205 = name",
+  ],
+  "observed": true,
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > checks/workflow-name-event-other: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "201 = name",
+    "205 = name",
+  ],
+  "observed": false,
+  "reason": "all_succeeded_mismatch",
+  "verdict": "fail",
+}
+`;
+
+exports[`the retrieval challenge set > checks/workflow-name-one-unrecorded: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "201 = name",
+    "205 = name",
+  ],
+  "observed": null,
+  "reason": "workflow_not_in_record",
+  "verdict": "unverifiable",
+}
+`;
+
+exports[`the retrieval challenge set > checks/workflow-name-two-paths: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "201 = name",
+    "205 = name",
+  ],
+  "observed": null,
+  "reason": "workflow_name_ambiguous",
+  "verdict": "unverifiable",
+}
+`;
+
+exports[`the retrieval challenge set > checks/workflow-name-with-spaces: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "210 = name",
+    "214 = name",
   ],
   "observed": true,
   "reason": null,
@@ -899,18 +1085,33 @@ exports[`the retrieval challenge set > tests/one-token-shorter: Arm A and the ch
 }
 `;
 
-exports[`the retrieval challenge set > tests/same-name-classname-in-prose: Arm A and the check, as they stand 1`] = `
+exports[`the retrieval challenge set > tests/same-name-classname-dotted-in-pro…: Arm A and the check, as they stand 1`] = `
 {
   "candidates": [
-    "http.retry.gives up after three attempts = name",
     "queue.retry.gives up after three attempts = name",
+    "http.retry.gives up after three attempts 5.557648 (not combined)",
     "cache.store.evicts the oldest entry 0",
     "cache.store.evicts the newest entry 0",
     "parse.number.reads a number 0",
   ],
-  "observed": false,
-  "reason": "test_outcome_mismatch",
-  "verdict": "fail",
+  "observed": true,
+  "reason": null,
+  "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > tests/same-name-classname-in-prose: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "queue.retry.gives up after three attempts = name",
+    "http.retry.gives up after three attempts 5.557648 (not combined)",
+    "cache.store.evicts the oldest entry 0",
+    "cache.store.evicts the newest entry 0",
+    "parse.number.reads a number 0",
+  ],
+  "observed": true,
+  "reason": null,
+  "verdict": "pass",
 }
 `;
 
@@ -933,7 +1134,7 @@ exports[`the retrieval challenge set > tests/same-name-declared-failing: Arm A a
 {
   "candidates": [
     "http.retry.gives up after three attempts = name",
-    "queue.retry.gives up after three attempts = name",
+    "queue.retry.gives up after three attempts 5.557648 (not combined)",
     "cache.store.evicts the oldest entry 0",
     "cache.store.evicts the newest entry 0",
     "parse.number.reads a number 0",
@@ -941,5 +1142,32 @@ exports[`the retrieval challenge set > tests/same-name-declared-failing: Arm A a
   "observed": false,
   "reason": null,
   "verdict": "pass",
+}
+`;
+
+exports[`the retrieval challenge set > tests/same-name-short-classname-as-word: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "io.flushes the buffer = name",
+    "queue.retry.flushes the buffer = name",
+  ],
+  "observed": false,
+  "reason": "test_outcome_mismatch",
+  "verdict": "fail",
+}
+`;
+
+exports[`the retrieval challenge set > tests/same-name-two-classnames-in-prose: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "http.retry.gives up after three attempts = name",
+    "queue.retry.gives up after three attempts = name",
+    "cache.store.evicts the oldest entry 0",
+    "cache.store.evicts the newest entry 0",
+    "parse.number.reads a number 0",
+  ],
+  "observed": false,
+  "reason": "test_outcome_mismatch",
+  "verdict": "fail",
 }
 `;

@@ -130,14 +130,18 @@ const FIGURES_LINE =
 // `ambiguous_candidates` the DRAFT schema gained when ties that disagree became ambiguous; and but
 // for the reader claim kind `reference_closes`, decided by the 7.4 closes row, for which the DRAFT
 // schema's reader claim reason gained that row's reasons (`not_closing`, `not_found`, the three
-// `closing_*` reasons and the sources `closing_references`, `repository` and `issue`). A change to
-// any of them is a record change.
+// `closing_*` reasons and the sources `closing_references`, `repository` and `issue`); and but for
+// the reader claim reason `workflow_not_in_record` the DRAFT schema gained when a check_succeeded
+// claim that names its job's workflow came to read that workflow's runs; and but for spec 0.1.5,
+// for which the 0.1 record schema's check runs gained the optional `workflowName`, requiring
+// `workflowPath`, and the DRAFT schema's reader claim reason `workflow_name_ambiguous`, for a
+// workflow named by a name two workflow paths hold. A change to any of them is a record change.
 const SCHEMA_SHA256: Record<string, string> = {
   'handback-block-0.1.schema.json':
     '331d142be28bf7c9deac7f76cad83731bf00679b952418004270c70344db46a7',
-  'record-0.1.schema.json': '34dfead1fb6243a3c0f55a3a8511a36bbf216182931a9ab82a4a285c92b8fa24',
+  'record-0.1.schema.json': 'cacdfc1dacc0bff6c1098bad6ac49ad5842a4e482543bade3f685ae279d7f9d0',
   'record-0.2-draft.schema.json':
-    '46a0875b4d8148d7a4109543a22e7dd8a510cf4667c547ff46bf9129b7965a1b',
+    'fd7f3ee3af40ecae62b0a0c249d26dba5d3b3560b51fadbce40dda97acce0c02',
 };
 
 const evidence: Evidence = {

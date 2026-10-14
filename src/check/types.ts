@@ -125,7 +125,9 @@ export interface CloseEventsEvidence {
 // app that created it, as the API names them; a record written before then has neither.
 // `workflowPath`, `workflowRunId` and `runAttempt` (amended 2026-10-13) are the workflow run whose
 // check suite it is, as the workflow runs at the head list it; a run of no workflow, or one in a
-// record written before then, has none of the three.
+// record written before then, has none of the three. `workflowName` (spec 0.1.5) is that workflow
+// run's `name`, as the same listing gives it; a run whose listing gives none, or one in a record
+// written before 0.1.5, has none. No 0.1 check reads it.
 export interface CheckRun {
   id: number;
   name: string;
@@ -134,6 +136,7 @@ export interface CheckRun {
   checkSuiteId?: number;
   appSlug?: string;
   workflowPath?: string;
+  workflowName?: string;
   workflowRunId?: number;
   runAttempt?: number;
 }

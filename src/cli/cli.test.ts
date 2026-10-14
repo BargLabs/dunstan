@@ -242,6 +242,58 @@ describe('dunstan rerun', () => {
     expect(r.out).toMatch(/^evidence unchanged/);
   });
 
+  // A record written before spec 0.1.5 holds each Actions run's workflow path and not its name. Its
+  // re-run reads the name and reports it as a field that moved, as any new evidence member is; the
+  // 0.1 gate reads nothing new, so the verdict stays.
+  it("reports a workflow's name the record did not hold as evidence_changed, the verdict unchanged", async () => {
+    const withChecks = (name?: string): Scenario => ({
+      ...scenario(),
+      pr: basePullRequest({
+        body: `\`\`\`dunstan-handback\n{"dunstan":"0.1","headCommit":"${HEAD}","filesChanged":["src/a.ts","src/b.ts"],"checks":{"total":1,"allSucceeded":true}}\n\`\`\`\n`,
+      }),
+      checkRuns: [
+        {
+          id: 21,
+          name: 'test',
+          status: 'completed',
+          conclusion: 'success',
+          check_suite: { id: 70 },
+          app: { slug: 'github-actions' },
+        },
+      ],
+      workflowRuns: [
+        {
+          id: 100,
+          check_suite_id: 70,
+          run_attempt: 1,
+          path: '.github/workflows/ci.yml',
+          head_sha: HEAD,
+          ...(name === undefined ? {} : { name }),
+        },
+      ],
+    });
+    const out = record('unnamed.json');
+    await run(
+      ['check', '--repo', REPO, '--pr', '7', '--report-pr-body', '--out', out],
+      withChecks(),
+    );
+    const old = JSON.parse(readFileSync(out, 'utf8'));
+    expect(old.predicate.evidence.checkRuns.runs[0].workflowPath).toBe('.github/workflows/ci.yml');
+    expect('workflowName' in old.predicate.evidence.checkRuns.runs[0]).toBe(false);
+    expect((await run(['verify', out])).code).toBe(0);
+
+    const r = await run(['rerun', out], withChecks('CI'));
+    expect(r.code).toBe(0);
+    expect(r.out).toMatch(
+      /^evidence_changed: 1 field\(s\)\n {2}\/evidence\/checkRuns\/runs\/0\/workflowName\n/,
+    );
+    expect(r.out).toMatch(/verdict: pass -> pass/);
+    const fresh = JSON.parse(readFileSync(record('unnamed.rerun.json'), 'utf8'));
+    expect(fresh.predicate.evidence.checkRuns.runs[0].workflowName).toBe('CI');
+    expect(fresh.predicate.claims).toEqual(old.predicate.claims);
+    expect(fresh.predicate.digests.claims).toBe(old.predicate.digests.claims);
+  });
+
   it('never overwrites the record it re-runs', async () => {
     const out = record('keep.json');
     await run(['check', '--repo', REPO, '--pr', '7', '--report-pr-body', '--out', out]);
@@ -289,7 +341,7 @@ describe('signing', () => {
     expect(ok.out).toMatch(/Good "dunstan-record" signature for checker@example.org/);
 
     // One changed byte breaks the signature even if the record still recomputes.
-    writeFileSync(out, bytes.replace('"spec":"0.1.4"', '"spec":"0.1.5"'));
+    writeFileSync(out, bytes.replace('"spec":"0.1.5"', '"spec":"0.1.6"'));
     const bad = await run(['verify', out, '--sig', `${out}.sig`, '--allowed-signers', allowed]);
     expect(bad.code).toBe(1);
     expect(bad.out).toMatch(/\/predicate\/assurance: signature/);

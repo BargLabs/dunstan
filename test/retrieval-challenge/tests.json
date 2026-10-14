@@ -78,6 +78,52 @@
       "expectCheck": { "verdict": "pass", "observed": false }
     },
     {
+      "id": "same-name-classname-dotted-in-prose",
+      "confusion": "one name under two classnames; the prose gives the classname as recorded, apart from the name",
+      "text": "The queue.retry test \"gives up after three attempts\" passes.",
+      "kind": "test_passed",
+      "declaredValue": true,
+      "expectCandidates": ["queue.retry.gives up after three attempts"],
+      "forbidCandidates": ["http.retry.gives up after three attempts"],
+      "expectCheck": { "verdict": "pass", "observed": true }
+    },
+    {
+      "id": "same-name-two-classnames-in-prose",
+      "confusion": "one name under two classnames; the prose names both, and one of them failed",
+      "text": "The queue retry and http retry tests \"gives up after three attempts\" pass.",
+      "kind": "test_passed",
+      "declaredValue": true,
+      "expectCandidates": [
+        "http.retry.gives up after three attempts",
+        "queue.retry.gives up after three attempts"
+      ],
+      "forbidCandidates": [],
+      "expectCheck": { "verdict": "fail", "reason": "test_outcome_mismatch", "observed": false }
+    },
+    {
+      "id": "same-name-short-classname-as-word",
+      "confusion": "one name under two classnames, io (passed) and queue.retry (failed); the prose uses io as an ordinary word, which names neither",
+      "text": "The test \"flushes the buffer\" passes, with no io errors.",
+      "kind": "test_passed",
+      "declaredValue": true,
+      "evidence": {
+        "items": {
+          "commits": { "status": "ok", "entries": [] },
+          "timeline": { "status": "ok", "entries": [] },
+          "tests": {
+            "status": "ok",
+            "entries": [
+              { "classname": "io", "name": "flushes the buffer", "outcome": "passed" },
+              { "classname": "queue.retry", "name": "flushes the buffer", "outcome": "failed" }
+            ]
+          }
+        }
+      },
+      "expectCandidates": ["io.flushes the buffer", "queue.retry.flushes the buffer"],
+      "forbidCandidates": [],
+      "expectCheck": { "verdict": "fail", "reason": "test_outcome_mismatch", "observed": false }
+    },
+    {
       "id": "one-token-shorter",
       "confusion": "reads a number against reads a negative number",
       "text": "The test \"reads a number\" passes.",

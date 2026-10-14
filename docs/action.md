@@ -129,8 +129,9 @@ has finished.
 The counted check runs are the latest run per workflow and job name (spec section 7.5). GitHub names
 an Actions check run after its job, not its workflow, and each run of a workflow is a check suite of
 its own, so the Action also reads the workflow runs at the head and records, for each check run,
-the `workflowPath`, `workflowRunId` and `runAttempt` of the workflow run it belongs to, beside its
-`checkSuiteId` and `appSlug`. Then:
+the `workflowPath`, `workflowRunId` and `runAttempt` of the workflow run it belongs to, and since
+spec 0.1.5 its `workflowName`, beside its `checkSuiteId` and `appSlug`. The count does not read the
+name. Then:
 
 - Two workflows that each have a job `test` give two checks: `checks.total` counts both, and a
   failure in either makes `checks.allSucceeded` `false`.

@@ -572,6 +572,7 @@
                     "additionalProperties": false,
                     "dependentRequired": {
                       "workflowPath": ["checkSuiteId", "workflowRunId", "runAttempt"],
+                      "workflowName": ["workflowPath"],
                       "workflowRunId": ["workflowPath"],
                       "runAttempt": ["workflowPath"]
                     },
@@ -592,6 +593,11 @@
                       },
                       "workflowPath": {
                         "description": "The `path` of the workflow run whose `check_suite_id` is the run's check suite, less any `@<ref>`, from the workflow runs at the head. Runs that have it are counted as the latest per workflow path and name. Added in spec 0.1.4, amended 2026-10-13.",
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "workflowName": {
+                        "description": "The `name` of that workflow run, as the listing gives it; absent where the listing gives none, null or the empty string. No 0.1 check reads it. Added in spec 0.1.5.",
                         "type": "string",
                         "minLength": 1
                       },

@@ -819,6 +819,7 @@ async function readCheckRuns(
         run.checkSuiteId === undefined ? undefined : workflowRuns.get(run.checkSuiteId);
       if (workflow === undefined) continue;
       run.workflowPath = workflow.path;
+      if (workflow.name !== undefined) run.workflowName = workflow.name;
       run.workflowRunId = workflow.id;
       run.runAttempt = workflow.attempt;
     }
@@ -832,9 +833,11 @@ async function readCheckRuns(
 }
 
 // Every workflow run at the head, by its check suite: its id, its path less any `@<ref>` (as
-// section 7.5's test records read it) and its attempt, the latest, as the listing gives it. A run
-// that names no suite is matched by no check run. Null when the listing is unreadable, or names a
-// suite twice.
+// section 7.5's test records read it), its attempt, the latest, and (spec 0.1.5) its workflow's
+// `name`, as the listing gives them. The name is taken as given, never trimmed or derived from the
+// path, and never the run's `display_title`; a name that is absent, null or empty is left out, and
+// one that is not a string is a shape error. A run that names no suite is matched by no check run.
+// Null when the listing is unreadable, or names a suite twice.
 async function readWorkflowRunsAt(
   client: GitHubClient,
   repository: string,
@@ -853,9 +856,11 @@ async function readWorkflowRunsAt(
         suite = int(r.check_suite_id);
         if (suite < 1) throw new ShapeError();
       }
-      const run = { id: int(r.id), attempt: int(r.run_attempt), path: str(r.path) };
+      const run: WorkflowRun = { id: int(r.id), attempt: int(r.run_attempt), path: str(r.path) };
       run.path = run.path.replace(/@.*$/, '');
       if (run.id < 1 || run.attempt < 1 || run.path === '') throw new ShapeError();
+      const name = strOrNull(r.name);
+      if (name !== null && name !== '') run.name = name;
       return { suite, run };
     },
   );
@@ -876,6 +881,8 @@ interface WorkflowRun {
   id: number;
   attempt: number;
   path: string;
+  // Read for the workflow runs at the head only (readWorkflowRunsAt).
+  name?: string;
 }
 
 async function readTestRecord(

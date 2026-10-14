@@ -192,6 +192,48 @@ describe('identifier matching', () => {
     ]);
   });
 
+  it('restricts a bare test name to the classnames the text names apart from it', () => {
+    const tests = [
+      item('test', 'http.retry.gives up', ['name', 'gives up'], ['classname', 'http.retry']),
+      item('test', 'queue.retry.gives up', ['name', 'gives up'], ['classname', 'queue.retry']),
+      item('test', 'retry.gives up', ['name', 'gives up'], ['classname', 'retry']),
+      item('test', 'gives up', ['name', 'gives up']),
+    ];
+    const of = (text: string) =>
+      [...identifierMatches({ text }, tests, REPO).keys()].map((i) => tests[i]?.id);
+    // As recorded, or with each `.` as one space; the longer classname wins where one lies inside
+    // another at the same place.
+    expect(of('The queue.retry test "gives up" passes')).toEqual(['queue.retry.gives up']);
+    expect(of('The queue retry test "gives up" passes')).toEqual(['queue.retry.gives up']);
+    expect(of('The retry test "gives up" passes')).toEqual(['retry.gives up']);
+    expect(of('The queue retry and http retry tests "gives up" pass')).toEqual([
+      'http.retry.gives up',
+      'queue.retry.gives up',
+    ]);
+    // Nothing looser: no other case, no partial segment, no other separator. Then every case is
+    // named, as before.
+    const all = ['http.retry.gives up', 'queue.retry.gives up', 'retry.gives up', 'gives up'];
+    expect(of('The Queue retry test "gives up" passes')).toEqual(['retry.gives up']);
+    expect(of('The queue test "gives up" passes')).toEqual(all);
+    expect(of('The queue_retry test "gives up" passes')).toEqual(all);
+    expect(of('The test "gives up" passes')).toEqual(all);
+  });
+
+  it('never restricts a bare test name to a classname shorter than MIN_NAME_LENGTH', () => {
+    const tests = [
+      item('test', 'io.flushes', ['name', 'flushes'], ['classname', 'io']),
+      item('test', 'queue.retry.flushes', ['name', 'flushes'], ['classname', 'queue.retry']),
+    ];
+    const of = (text: string) =>
+      [...identifierMatches({ text }, tests, REPO).keys()].map((i) => tests[i]?.id);
+    const all = ['io.flushes', 'queue.retry.flushes'];
+    expect(of('The test "flushes" passes, with no io errors')).toEqual(all);
+    expect(of('The io test "flushes" passes')).toEqual(all);
+    expect(of('The queue retry test "flushes" passes')).toEqual(['queue.retry.flushes']);
+    // The full identifier still names the case alone.
+    expect(of('io.flushes passes')).toEqual(['io.flushes']);
+  });
+
   it('matches a job name whole: not inside a longer job name, and not as a matrix leg', () => {
     const jobs = [
       item('check_run', '1', ['name', 'test']),
@@ -209,6 +251,24 @@ describe('identifier matching', () => {
     expect(of('build passes, and so does build docs')).toEqual(['3', '4']);
     expect(of('build-docs passes')).toEqual([]);
     expect(of('Test passes')).toEqual([]);
+  });
+
+  it('matches a job named with its workflow and event, unless the two are a leg', () => {
+    const jobs = [
+      item('check_run', '1', ['name', 'test']),
+      item('check_run', '2', ['name', 'test (ubuntu-latest)']),
+      item('check_run', '3', ['name', 'build']),
+      item('check_run', '5', ['name', 'build (push)']),
+    ];
+    const of = (text: string) =>
+      [...identifierMatches({ text }, jobs, REPO).keys()].map((i) => jobs[i]?.id);
+    expect(of('CI / test (pull_request) passes')).toEqual(['1']);
+    expect(of('CI / test (ubuntu-latest) (pull_request) passes')).toEqual(['2']);
+    expect(of('CI / build (push) passes')).toEqual(['5']);
+    expect(of('CI / build (merge_group) passes')).toEqual(['3']);
+    // With no workflow, or another event, it is read as today.
+    expect(of('test (pull_request) passes')).toEqual([]);
+    expect(of('CI / test (schedule) passes')).toEqual([]);
   });
 });
 

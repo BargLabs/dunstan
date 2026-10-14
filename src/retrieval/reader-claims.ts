@@ -22,6 +22,7 @@ import type {
   Verdict,
 } from '../check/types.js';
 import type { JsonValue } from '../spec/json.js';
+import { unheldSuffixJobs, workflowJobs } from './identifiers.js';
 import { recordItems, testId } from './items.js';
 import { type ARM_A, ARM_A_FILL, BM25_FLOOR, FILL_TO_K, retrieve, roundScore } from './retrieve.js';
 import type { Candidate, ItemType, RetrieveOptions } from './types.js';
@@ -166,11 +167,80 @@ function ambiguousCandidates(
   return tied.length >= 2 && new Set(tied.map(outcome)).size > 1;
 }
 
-// The check for one reader claim: a pure function of the claim (its kind, declared value, recorded
-// candidates and recorded floor) and the evidence. It never runs retrieval, so offline verification
+// The combined check runs a check_succeeded claim reads when its text names jobs with their
+// workflows (`<workflow> / <job>`, identifiers.ts): a run of a named job only if a workflow named
+// for that job is its `workflowPath` or (spec 0.1.5) its `workflowName`, exactly. Runs of a job the
+// text names with no workflow are read as before. A reason instead when the record cannot tell
+// which run is the named workflow's: two or more runs of the job in `checkRuns.runs` and one of them
+// with no workflow (a re-run in one workflow and two workflows' runs of one name then look alike);
+// a workflow that is no path of the job's runs, where one of them has a path and no name (a record
+// written before 0.1.5); a workflow that is the name or path of runs of the job under two or more
+// paths (workflow_name_ambiguous: naming one of two workflows of one name names both); or no
+// counted run of the job of that workflow. A text that names a workflow and then a job with a
+// parenthesis the record does not hold names no run (no_matching_record_item). A job held by one
+// run with no workflow is read as before. The runs are those section 7.5 counts, by workflow path
+// and name, the latest winning (countedCheckRuns).
+export function namedWorkflowRuns(
+  text: string,
+  combined: readonly Candidate[],
+  evidence: Evidence,
+): Candidate[] | { reason: string } {
+  const section = evidence.checkRuns;
+  if (section?.status !== 'ok') return [...combined];
+  const jobNames = [...new Set(section.runs.map((r) => r.name))];
+  if (unheldSuffixJobs(text, jobNames).length > 0) return { reason: 'no_matching_record_item' };
+  const recordedWorkflows = [
+    ...new Set(
+      section.runs.flatMap((r) => [r.workflowPath, r.workflowName]).filter((w) => w !== undefined),
+    ),
+  ];
+  const named = workflowJobs(text, jobNames, recordedWorkflows);
+  if (named.length === 0) return [...combined];
+  const counted = new Map(
+    countedCheckRuns(section.runs, section.excludedIds).map((r) => [String(r.id), r]),
+  );
+  const runOf = (c: Candidate) => counted.get(c.id);
+  const isOf = (r: CheckRun, workflow: string) =>
+    r.workflowPath === workflow || r.workflowName === workflow;
+  let kept = [...combined];
+  for (const job of new Set(named.map((n) => n.job))) {
+    const runs = section.runs.filter((r) => r.name === job);
+    if (runs.some((r) => r.workflowPath === undefined)) {
+      if (runs.length >= 2) return { reason: 'workflow_not_in_record' };
+      continue;
+    }
+    const workflows = new Set(named.filter((n) => n.job === job).map((n) => n.workflow));
+    for (const workflow of workflows) {
+      const byPath = runs.some((r) => r.workflowPath === workflow);
+      if (!byPath && runs.some((r) => r.workflowName === undefined)) {
+        return { reason: 'workflow_not_in_record' };
+      }
+      const paths = new Set(runs.filter((r) => isOf(r, workflow)).map((r) => r.workflowPath));
+      if (paths.size >= 2) return { reason: 'workflow_name_ambiguous' };
+    }
+    kept = kept.filter((c) => {
+      const run = runOf(c);
+      return run?.name !== job || [...workflows].some((w) => isOf(run, w));
+    });
+    for (const workflow of workflows) {
+      const of = (r: CheckRun | undefined) => r?.name === job && isOf(r, workflow);
+      if (kept.some((c) => of(runOf(c)))) continue;
+      return {
+        reason: [...counted.values()].some(of)
+          ? 'declared_item_not_among_candidates'
+          : 'workflow_not_in_record',
+      };
+    }
+  }
+  return kept;
+}
+
+// The check for one reader claim: a pure function of the claim (its text, kind, declared value,
+// recorded candidates and recorded floor) and the evidence. The text is read only for a workflow a
+// check_succeeded claim names its job with, and what follows that job. It never runs retrieval, so offline verification
 // recomputes it from the record even where a fresh retrieval would rank differently.
 export function checkReaderClaim(
-  claim: Pick<ReaderClaim, 'kind' | 'declaredValue' | 'candidates'> & {
+  claim: Pick<ReaderClaim, 'text' | 'kind' | 'declaredValue' | 'candidates'> & {
     retrieval: { floor: number };
   },
   evidence: Evidence,
@@ -204,8 +274,7 @@ export function checkReaderClaim(
   if (typed.some((c) => entries.get(c.id) === undefined)) {
     return unverifiable('candidate_not_in_evidence');
   }
-  const relevant = combinedCandidates(typed, claim.retrieval.floor);
-  const observed = relevant.map((c) => entries.get(c.id));
+  let relevant = combinedCandidates(typed, claim.retrieval.floor);
 
   // A file missing from an incomplete list may be among the files that could not be listed.
   const truncated = type === 'file' && evidence.files?.status === 'ok' && !evidence.files.complete;
@@ -213,6 +282,12 @@ export function checkReaderClaim(
     // The floor is stated beside the candidates, in the claim's retrieval member.
     return unverifiable(truncated ? 'file_list_truncated' : 'no_matching_record_item');
   }
+  if (type === 'check_run') {
+    const scoped = namedWorkflowRuns(claim.text, relevant, evidence);
+    if (!Array.isArray(scoped)) return unverifiable(scoped.reason);
+    relevant = scoped;
+  }
+  const observed = relevant.map((c) => entries.get(c.id));
   // The kinds that aggregate over what they combine read neither of two tied candidates that
   // disagree. The others need the declared item among the candidates, so a tie cannot mislead them.
   if (wantsBoolean && ambiguousCandidates(relevant, (c) => outcomeOf(type, entries.get(c.id)))) {
@@ -297,7 +372,13 @@ export function readReaderClaim(
     retrieval,
     candidates,
     ...checkReaderClaim(
-      { kind: input.kind, declaredValue: input.declaredValue, candidates, retrieval },
+      {
+        text: input.text,
+        kind: input.kind,
+        declaredValue: input.declaredValue,
+        candidates,
+        retrieval,
+      },
       evidence,
       repository,
     ),

@@ -1,7 +1,7 @@
 {
   "name": "dunstan",
   "displayName": "Dunstan",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Checks a coding agent's declared handback (head commit, changed files, tests, references, checks) against the pull request's own GitHub record before it says done. Deterministic: no model decides the verdict.",
   "author": {
     "name": "Barg Labs",

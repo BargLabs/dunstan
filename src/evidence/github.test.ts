@@ -1017,6 +1017,82 @@ describe('readEvidence', () => {
       expect(runs.map((r) => r.workflowPath)).toEqual([CI, CI, CI, CI, undefined]);
     });
 
+    // Spec 0.1.5: the same listing gives each workflow run's `name`, recorded as it is given.
+    it("records the workflow's name as the listing gives it, never the run's title", async () => {
+      const s = twiceOnOneHead();
+      s.workflowRuns = [
+        { ...workflowRun(100, 70, 'push'), name: 'Continuous Integration', display_title: 'Fix' },
+        { ...workflowRun(101, 80, 'pull_request'), name: ' ci ' },
+      ];
+      const { evidence } = await read(s, CHECKS);
+      expect(evidenceSchemaErrors(evidence)).toEqual([]);
+      const runs = evidence.checkRuns?.status === 'ok' ? evidence.checkRuns.runs : [];
+      expect(runs.map((r) => r.workflowName)).toEqual([
+        'Continuous Integration',
+        'Continuous Integration',
+        ' ci ',
+        ' ci ',
+        undefined,
+      ]);
+      expect(runs.map((r) => r.workflowPath)).toEqual([CI, CI, CI, CI, undefined]);
+      // The 0.1 gate reads nothing new.
+      const claims = runChecks(CHECKS, evidence, REPO);
+      expect(claims.find((c) => c.id === 'count:/checks/total')).toMatchObject({
+        verdict: 'pass',
+        observed: 3,
+      });
+    });
+
+    it('records no workflow name where the listing gives none, null or the empty string', async () => {
+      for (const name of [undefined, null, '']) {
+        const s = twiceOnOneHead();
+        s.workflowRuns = [
+          { ...workflowRun(100, 70, 'push'), name },
+          { ...workflowRun(101, 80, 'pull_request'), name },
+        ];
+        const { evidence } = await read(s, CHECKS);
+        expect(evidenceSchemaErrors(evidence)).toEqual([]);
+        const runs = evidence.checkRuns?.status === 'ok' ? evidence.checkRuns.runs : [];
+        expect(runs.map((r) => r.workflowPath)).toEqual([CI, CI, CI, CI, undefined]);
+        for (const run of runs) expect('workflowName' in run, String(name)).toBe(false);
+      }
+    });
+
+    it('records the check runs unreadable when a workflow name is not a string', async () => {
+      for (const name of [7, true, ['CI'], { name: 'CI' }]) {
+        const s = twiceOnOneHead();
+        s.workflowRuns = [{ ...workflowRun(100, 70, 'push'), name }];
+        const { evidence } = await read(s, CHECKS);
+        expect(evidence.checkRuns).toEqual({ status: 'unreadable', source: 'workflow_runs' });
+      }
+    });
+
+    it('the record schema takes a workflow name only beside a workflow path, and never empty', async () => {
+      const s = twiceOnOneHead();
+      s.workflowRuns = [
+        { ...workflowRun(100, 70, 'push'), name: 'CI' },
+        { ...workflowRun(101, 80, 'pull_request'), name: 'CI' },
+      ];
+      const { evidence } = await read(s, CHECKS);
+      const section = evidence.checkRuns;
+      if (section?.status !== 'ok') throw new Error('unread');
+      const first = section.runs[0] as CheckRun;
+      const errorsWith = (run: CheckRun) =>
+        evidenceSchemaErrors({ ...evidence, checkRuns: { ...section, runs: [run] } });
+      const pathless: CheckRun = { ...first };
+      delete pathless.workflowPath;
+      delete pathless.workflowRunId;
+      delete pathless.runAttempt;
+      expect(errorsWith(pathless).map((e) => e.keyword)).toContain('dependentRequired');
+      expect(errorsWith({ ...first, workflowName: '' }).map((e) => e.keyword)).toContain(
+        'minLength',
+      );
+      // A 0.1.4 record's run, with a path and no name, stays valid.
+      const unnamed: CheckRun = { ...first };
+      delete unnamed.workflowName;
+      expect(errorsWith(unnamed)).toEqual([]);
+    });
+
     it('records the check runs unreadable when the workflow runs cannot be read, never counted per suite', async () => {
       const s = twiceOnOneHead();
       s.workflowRunsStatus = 502;

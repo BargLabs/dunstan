@@ -19,12 +19,21 @@ This plugin adds two MCP tools and one skill:
 
 ## What it runs, reads and sends
 
-The plugin starts the MCP server with `npx -y dunstan@0.1.8 mcp`, which downloads the `dunstan`
+The plugin starts the MCP server with `npx -y dunstan@0.1.9 mcp`, which downloads the `dunstan`
 package at that exact version from the npm registry. The package is one self-contained file with no
 dependencies. The server runs on your machine and reads GitHub's API directly from it: the pull
 request, its files, commits, check runs, workflow runs and artifacts, deployments, and the issues the
 block references. Every request is a read. Nothing is written to GitHub or the repository, and nothing
 is sent to Barg Labs.
+
+## Changes in 0.1.9
+
+No 0.1 verdict changes: checked against the same handback and evidence, 0.1.8 and 0.1.9 give the
+same verdict and claims. A record now carries each check run's workflow name beside its workflow
+path (spec 0.1.5), and no 0.1 check reads it. In the DRAFT 0.2.0 reader claims, "CI / build passes"
+names the workflow by the name GitHub shows. Such a claim is `unverifiable` when two workflows share
+that name (`workflow_name_ambiguous`), and when the job is followed by a parenthesis the record does
+not hold (`no_matching_record_item`).
 
 ## Changes in 0.1.8
 

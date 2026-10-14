@@ -25,7 +25,7 @@ For the one pull request named in a request, and nothing else, the App reads:
 | Whether a cited issue exists, and whether its repository is readable; for an issue transferred to another repository, the identity GitHub answers with (spec 0.1.3) | `GET /repos/{o}/{r}/issues/{n}`, `GET /repos/{o}/{r}`; the issue read's redirect only to `GET /repositories/{id}/issues/{n}` or `GET /repos/{o}/{r}/issues/{n}` |
 | Whether a cited commit exists, and is reachable from the head | `GET /repos/{o}/{r}/git/commits/{sha}`, `GET /repos/{o}/{r}/compare/{a}...{b}` |
 | Check runs at the declared head | `GET /repos/{o}/{r}/commits/{sha}/check-runs` |
-| The workflow run of each check run's suite (spec 0.1.4, amended 2026-10-13): ids, paths, attempts | `GET /repos/{o}/{r}/actions/runs?head_sha={sha}` |
+| The workflow run of each check run's suite (spec 0.1.4, amended 2026-10-13): ids, paths, attempts, and (spec 0.1.5) workflow names | `GET /repos/{o}/{r}/actions/runs?head_sha={sha}` |
 | A named JUnit test-report artifact: element counts only | Actions workflow runs, jobs, artifacts, artifact download |
 | Deployments to the declared environment, and their statuses | `GET /repos/{o}/{r}/deployments`, `.../statuses` |
 | For an advisory only, whether a path a file claim names is a file, a directory or nothing at the head: the object's type, never its content (comparison 0.3.0; the endpoint asks for no advisories today) | GraphQL `object(expression: "<head>:<path>") { __typename }` (one fixed query) |

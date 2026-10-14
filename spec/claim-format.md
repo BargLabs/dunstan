@@ -187,7 +187,7 @@ The record schema defines its shape. Its sections:
 | `closingReferences` | a `closes` reference is declared | the pull request's closing issues, as `owner/repo#N` |
 | `references` | a `cites` reference is declared, or a `closes` issue is not among the closing references | per cited issue or commit, and per such `closes` issue: `exists`, for a commit `reachableFromHead`, and for an issue GitHub answers as another issue `resolvedAs` |
 | `closeEvents` | a `closes` target exists and is not among the closing references | per such target, under the identity it resolves to: its `type`, `state` and every ClosedEvent `{at, closer}`; and the pull request's `baseRef`, the repository's `defaultBranch` and the pull request's `commits` |
-| `checkRuns` | `checks` is declared | the check runs at `headCommit`, each `{id, name, status, conclusion}` with its `checkSuiteId` (`check_suite.id`) and `appSlug` (`app.slug`) when the API gives them, and, for a run whose check suite is a workflow run's, that run's `workflowPath`, `workflowRunId` and `runAttempt`; and any `excludedIds` |
+| `checkRuns` | `checks` is declared | the check runs at `headCommit`, each `{id, name, status, conclusion}` with its `checkSuiteId` (`check_suite.id`) and `appSlug` (`app.slug`) when the API gives them, and, for a run whose check suite is a workflow run's, that run's `workflowPath`, `workflowRunId` and `runAttempt`, and its `workflowName` when the listing gives one; and any `excludedIds` |
 | `testRecords` | a `junit` test record is declared | per distinct record: the candidate runs and their counts |
 | `deployments` | `deployedAt` is declared | the candidate deployments to that environment (section 7.6), each with its `relation` to the pull request |
 | `sources` | always | one entry per read: `{kind, locator, sha256, etag?, readAt, error?}` |
@@ -249,6 +249,17 @@ run names, such as one an app other than GitHub Actions created, is recorded wit
 listing that is unreadable, or that names one check suite for two workflow runs, makes `checkRuns`
 `unreadable` with kind `workflow_runs`: the check runs are never recorded as if no workflow run
 had been read.
+
+**Workflow names** (spec 0.1.5). From the same listing, a checker records each such run's `name`
+as `workflowName`, beside its `workflowPath`. That is the workflow's name as GitHub shows it in a
+check's `<workflow> / <job>`: the workflow file's `name:`, or its path when it sets none. It is
+recorded exactly as given: not trimmed, not case-folded, and never derived from the path. It is
+not the run's `display_title`, which is the run's title (a commit headline or a pull request
+title). Where the listing gives the run no `name`, or `null`, or the empty string, the check runs
+of that run are recorded without `workflowName`, and the rest of the run as above. A `name` that
+is present and not a string is unparseable, as any other shape error in the listing is, and makes
+`checkRuns` `unreadable` with kind `workflow_runs`. No section 7 check reads `workflowName`; it is
+evidence for a reader claim that names a workflow (D.6 step 5).
 
 **Source kinds.** `pull_request`, `pull_request_files`, `pull_request_commits`,
 `closing_references`, `repository`, `issue`, `commit`, `compare`, `check_runs`, `workflow_runs`,
@@ -590,7 +601,8 @@ names carry the major and minor.
 - A record holds no file contents and no report text, only digests and metadata. Publishing a record
   publishes the block, the repository and pull request numbers, file paths, check names, check suite
   ids, the slugs of the apps that created check runs, workflow names, the paths, ids and attempts
-  of the workflow runs check runs belong to, and deployment environment names.
+  of the workflow runs check runs belong to and (spec 0.1.5) those workflows' names, and deployment
+  environment names.
 - The block is untrusted input. Its paths are validated as repository-relative and are compared as
   strings, never opened.
 - A JUnit file is read for element counts only.
@@ -652,6 +664,49 @@ against the schemas and check each record's block, report and claim and evidence
 
 ## 17. Changes
 
+- **0.1.5** (2026-10-14). Evidence only, recorded by checker 0.1.9. GitHub shows a check of a
+  workflow as `<workflow name> / <job>`, and the record held each Actions run's workflow path and
+  not that name, so a DRAFT reader claim copied from a pull request, "CI / build passes", could
+  never be placed, and was always `unverifiable` (D.6 step 5). The evidence now records, for each
+  check run that has a `workflowPath`, the `name` of the same workflow run from the same listing as
+  `workflowName` (section 6, "Workflow names"), as given, and omits it where the listing gives no
+  name, `null` or the empty string. No request is added, and no token permission. No section 7
+  check reads it: section 7.5 still counts the latest run per `workflowPath` and `name`, so no 0.1
+  verdict, reason or count changes, and a 0.1 block stays valid. `workflowName` is inside the
+  evidence, so `digests.evidence` covers it and offline verify reproduces it.
+  `record-0.1.schema.json` gains it as an optional, non-empty member of a check run that requires
+  `workflowPath`; `workflowPath` does not require it, so a 0.1.4 record stays valid. Section 14
+  adds the names to what a record publishes. The block format and
+  `handback-block-0.1.schema.json` are unchanged. This is its own version, not a further amendment
+  of 0.1.4, so that a record's evidence means one thing per checker version: checker 0.1.8 never
+  records `workflowName`, and checker 0.1.9 records it wherever the listing names the workflow.
+
+  **Records already written.** A record is verified offline by the checker version it names
+  (section 12), so `dunstan verify` of a 0.1.4 record names checker 0.1.8 and is run with 0.1.8.
+  Checker 0.1.9 refuses it at `/predicate/checker`, as every checker refuses another version's
+  record. Its evidence holds no `workflowName` and its 0.1 claims read none. Recomputed from that
+  evidence, every 0.1 claim and verdict is the same under 0.1.9, and the record validates against
+  this schema. `dunstan rerun` of a 0.1.4 record re-reads the sources as 0.1.9 reads them, as it
+  did for `workflowPath` after the amendment of 2026-10-13. It treats the new member like any
+  other: where the listing names a workflow, the new evidence carries `workflowName` on that
+  workflow's check runs, so the evidence digest changes, and the re-run reports `evidence_changed`
+  with one `/evidence/checkRuns/runs/<i>/workflowName` per such run beside any other field that
+  moved. It writes the new record separately and leaves the old one unchanged. Where nothing else
+  moved, the new verdict is the old one. No `workflowName` is inferred for a record that lacks it.
+
+  Example records: each carries spec 0.1.5 and checker 0.1.9. None records a check suite, so none
+  gains `workflowName`, and their claims, verdicts and digests are unchanged. No acceptance case
+  changes: their evidence is written by hand and none gains the member.
+- **Examples** (2026-10-13; no spec version, rule, schema or verdict changes). The four example
+  records' `rerun` lines read `npx dunstan@0.1.1 verify <file>` and `npx dunstan@0.1.1 rerun <file>`.
+  Those lines were written by hand with the spec, before the checker existed, and are not what a
+  record carries: `dunstan@0.1.1` was never published to npm, so `npx` cannot run them, and the
+  checker writes `dunstan verify <file>` and `dunstan rerun <file>`, with the record's file name and
+  no version (section 12 says what each command does, not how it is spelled). The examples were
+  rebuilt by the checker the head builds, from each record's own block and evidence, and now carry
+  the lines a real record writes. Only `rerun` changes: it is outside every digest, and every
+  example's claims, verdict and digests are unchanged and verify byte for byte. A record is still
+  verified by the checker version it names (section 12, `checker.version`), not by its `rerun` line.
 - **0.1.4** (2026-10-11, amended 2026-10-12 and 2026-10-13 before release). Erratum to sections 6,
   7.4 and 16, and (amended 2026-10-12, "Checks per check suite", and 2026-10-13, "Checks per
   workflow path", below) 7.5 and 14, corrected in checker 0.1.7. In 0.1.3 a `closes` target that exists and is missing from the closing
@@ -936,10 +991,19 @@ Retrieval MUST be deterministic and MUST NOT use a model or the network. Given a
    - a check run's `name`, or a test's `name` or `classname.name`, of at least 4 characters,
      occurring whole and case-sensitively. A named `classname.name` restricts its `name` to that
      test: the same `name` under another classname, or under none, is not an identifier match for
-     that claim. A check run's `name` MUST NOT match where the text continues it with a hyphen, as
+     that claim. A test `name` that two or more test cases hold, named by that `name` and by no
+     `classname.name` of it, is restricted to the cases whose `classname` the text (or a string in
+     `declaredValue`) also names: occurring whole, bounded as a test `name` is, case-sensitively,
+     as recorded (`queue.retry`) or with each `.` replaced by one space (`queue retry`), and not
+     inside a longer `classname` of the record named at the same place (`retry` is not named by
+     `queue retry`). A `classname` shorter than 4 characters as recorded (`io`) is never named so,
+     and never restricts. Nothing looser names a `classname`. If the text names none of their
+     classnames, every case with that `name` is an identifier match (D.10, item 11). A check run's
+     `name` MUST NOT match where the text continues it with a hyphen, as
      part of a longer check run `name` of the record occurring whole at the same place, or with a
      matrix leg (` (` directly after it): `test` is not named by `test (ubuntu-latest)`, and a
-     claim about a matrix job names its leg.
+     claim about a matrix job names its leg. One exception: where the `name` is named with its
+     workflow (D.6 step 5) and ` (` begins ` (<event>)`, for an event of D.6 step 5, it matches.
 
    An identifier match has `score: null`.
 2. **BM25** over every item's fields: k1 = 1.2, b = 0.75, IDF `ln(1 + (N − n + 0.5) / (n + 0.5))`
@@ -990,8 +1054,9 @@ gap. Its scores, like BM25's, MUST NOT be read by a check.
 ### D.6 Kinds and checks
 
 The check is a pure function of `kind`, `declaredValue`, the recorded `candidates`, the recorded
-`retrieval.floor` and the evidence. It never runs retrieval. After step 3 it reads only the
-candidates it **combines**, from those of the kind's item type:
+`retrieval.floor`, the evidence and, for a workflow a `check_succeeded` claim names (step 5), `text`.
+It never runs retrieval. After step 3 it reads only the candidates it **combines**, from those of
+the kind's item type:
 
 - **Exact identifier matches close the set.** If at least one is an identifier match
   (`score: null`), it combines the identifier matches only. A lexical candidate stays in the
@@ -1008,7 +1073,7 @@ A filled candidate (D.4) is never combined. In order:
      `no_comparable_record_field`; otherwise the claim's `verdict`, `reason` and `observed` are
      those of the section 7.4 row of a block that declares one `{"issue": declaredValue,
      "relation": "closes"}` reference and nothing else, as D.11.4 compares a `reference_closes`
-     advisory. `#N` is in the subject repository. Steps 2 to 6 do not apply, and no candidate is
+     advisory. `#N` is in the subject repository. Steps 2 to 7 do not apply, and no candidate is
      read: a candidate, a cross-reference or a `connected` event never makes the claim `pass`,
      and evidence 7.4 needs that the record lacks gives the 7.4 row's reason, never `pass`.
 2. The evidence section for the kind's item type is unread: `unverifiable`, with
@@ -1018,7 +1083,55 @@ A filled candidate (D.4) is never combined. In order:
 4. **No candidate of that type at or above the floor: `unverifiable`, `no_matching_record_item`,
    with the floor stated in `retrieval.floor`. Never `pass`, whatever was filled.** For
    `file_changed` with an incomplete file list, the reason is `file_list_truncated`.
-5. **Ties that disagree are ambiguous.** For `check_succeeded` and `test_passed`: if no combined
+5. **A job named with its workflow.** For `check_succeeded` only. A claim **names a job with its
+   workflow** where its `text` holds `<workflow> / <job>`: a space, a solidus and a space (U+0020
+   U+002F U+0020); directly before them, `<workflow>`, the longest `workflowName` or `workflowPath`
+   of a run in `checkRuns.runs` that the text holds whole and that ends there, whole meaning that
+   the character before it, if any, is not an ASCII letter or digit, `.`, `_`, `/` or `-` (so a
+   name may hold spaces), or, if the record holds none there, the longest run of non-whitespace
+   characters that ends there, which then matches no run; directly after them, `<job>`, the `name`
+   of a run in `checkRuns.runs` that the
+   text names whole there, as D.4 step 1 matches a check run's `name` (case-sensitively; not
+   continued by a hyphen, by a longer check run `name` of the record at the same place, or by a
+   matrix leg), the longest such `name` if more than one is, and with no minimum length. The text
+   may hold the form more than once. Nothing else names a workflow, and none is inferred from other
+   words.
+
+   **With its event.** `<workflow> / <job> (<event>)`, where ` (<event>)` directly follows `<job>`
+   and `<event>` is exactly one of `push`, `pull_request`, `pull_request_target` or `merge_group`,
+   names the workflow and the job as `<workflow> / <job>` does: it is how GitHub's checks list on a
+   pull request shows a check. A matrix leg comes first: if `<job> (<event>)` is itself the `name`
+   of a run in `checkRuns.runs`, the text names that run, by the rule above. The list of events is
+   closed (D.10, item 12).
+
+   **A parenthesis the record does not hold.** Where the text holds `<workflow> / ` and directly
+   after it `<job> (<anything>)`, ` (` and any characters other than `(` and `)` up to a `)`, where
+   `<job>` is the `name` of a run in `checkRuns.runs` (bounded as above), `<job> (<anything>)` is no
+   run's `name`, and `<anything>` is none of the four events: `unverifiable`,
+   `no_matching_record_item`, whatever else the text names. The text names a matrix leg or an event
+   the record does not hold, so it names no run, and the claim is never decided by every
+   workflow's runs of `<job>`. For each job named with its workflow:
+   - If two or more runs in `checkRuns.runs` have that `name`, counted by section 7.5 or not, and
+     any of them has no `workflowPath`: `unverifiable`, `workflow_not_in_record`. The record cannot
+     tell a run of the named workflow from another workflow's run, or from an earlier run of the
+     same workflow.
+   - Otherwise, if every such run has a `workflowPath`, a run is **of** a `<workflow>` when its
+     `workflowPath` or its `workflowName` (section 6, "Workflow names") equals it, exactly. For each
+     `<workflow>` named for that job: if it is the `workflowPath` of none of the runs with that
+     `name`, and any of them has no `workflowName` (a record written before spec 0.1.5, or a listing
+     that named no workflow), `unverifiable`, `workflow_not_in_record`: the record cannot tell
+     whether that run's workflow has the name. If the runs with that `name` that are of it have two
+     or more different `workflowPath`s, `unverifiable`, `workflow_name_ambiguous`: two workflows
+     share the name, and naming one of them by it names both. Then the check combines, of the
+     combined candidates with that `name`, only those of a `<workflow>` named for that job. If no
+     run section 7.5 counts has that `name` and is of that `<workflow>`: `unverifiable`,
+     `workflow_not_in_record`. If one does and it is not combined: `unverifiable`,
+     `declared_item_not_among_candidates`.
+   - A job held by one run with no `workflowPath` is combined as before.
+
+   Combined candidates of a job the text does not name with a workflow are unaffected, and a claim
+   that names no job with its workflow is checked as before.
+6. **Ties that disagree are ambiguous.** For `check_succeeded` and `test_passed`: if no combined
    candidate is an identifier match, and two or more combined candidates tie on the top `score`
    (compared exactly after rounding to 6 decimal places, with no margin), and they disagree on the
    outcome the kind reads, the claim is `unverifiable`, `ambiguous_candidates`. The check neither
@@ -1026,7 +1139,7 @@ A filled candidate (D.4) is never combined. In order:
    conclusion, as section 7.5 reads it) or not completed, and a test case's `passed`, `failed` or
    `skipped`. Tied candidates that agree on the outcome are not ambiguous, and a candidate below the
    top score never makes a claim ambiguous.
-6. The kind's own check:
+7. The kind's own check:
 
 | `kind` | `declaredValue` | Item type | Passes when | Otherwise |
 | --- | --- | --- | --- | --- |
@@ -1044,7 +1157,8 @@ names it, a bare cross-reference included. A claim that the pull request closes 
 where the record mentions it, recorded, and never what decides it.
 
 New reason codes: `no_matching_record_item`, `declared_item_not_among_candidates`,
-`candidate_not_in_evidence`, `ambiguous_candidates`, `test_not_executed`, `test_outcome_mismatch`.
+`candidate_not_in_evidence`, `ambiguous_candidates`, `workflow_not_in_record`,
+`workflow_name_ambiguous`, `test_not_executed`, `test_outcome_mismatch`.
 A `reference_closes` claim gives the 7.4 reasons of section 16: `not_closing`, `not_found`,
 `closing_link_unsettled`, `closing_base_not_default`, `closing_event_unsettled`, and the unread
 reasons of its sections, `source_unreadable:closing_references`, `source_unreadable:repository`,
@@ -1120,7 +1234,35 @@ record; and retrieval scores. It would still hold no file contents and no report
     17, "Checks per workflow path"), the evidence also records each Actions run's `workflowPath`,
     and section 7.5 counts the latest run per workflow path and name: one workflow run twice on the
     head is one item per job, and two workflows' `test` jobs are still two. The second option can
-    now key by the workflow itself; the reader rule is still unchanged.
+    now key by the workflow itself; the reader rule is still unchanged. **Since 2026-10-14** (D.12),
+    a `check_succeeded` claim that names its job with its workflow (`<workflow> / <job>`, D.6 step
+    5) combines that workflow's runs of the job only, matched by `workflowPath`, and is
+    `unverifiable`, `workflow_not_in_record`, where two or more runs share the job's name and one of
+    them has no workflow. A claim that names no workflow is unchanged, so "test passes" still
+    combines both workflows' `test` runs, and a record without workflow paths still decides it by
+    the latest run per name. Whether such a claim should also be `unverifiable` stays open. As
+    first written, that step matched the workflow by its path alone, since the record held no
+    workflow's name, so a claim naming the workflow as GitHub shows it ("CI / test") was always
+    `unverifiable`. **Since spec 0.1.5** (section 17, D.12) the evidence holds each Actions run's
+    `workflowName` too, and step 5 matches a workflow by its path or its name; a name two workflow
+    paths share is `unverifiable`, `workflow_name_ambiguous`. That part of this item is closed.
+11. **One test name under two classnames, no classname named.** Since 2026-10-14 (D.12), a
+    `test_passed` claim that names a bare test `name` held under two or more classnames, and names
+    one or more of those classnames apart from it, reads the cases under the named classnames only
+    (D.4, step 1). A claim that names none of them, "the test \"gives up after three attempts\"
+    passes", still reads every case with that `name`, so one classname's failure fails it. One
+    option keeps that. The other makes such a claim `unverifiable`, since the record cannot tell
+    which case it means. Not decided here.
+12. **Other events after a job.** Since 2026-10-14 (D.12), `<workflow> / <job> (<event>)` names
+    the workflow and the job for four events only: `push`, `pull_request`, `pull_request_target`
+    and `merge_group` (D.6 step 5). A check copied with any other event, such as `schedule`,
+    `workflow_dispatch` or `release`, stays unrecognised. Since a later change of 2026-10-14
+    (D.12), with its workflow named and the job a run of the record, it is `unverifiable`,
+    `no_matching_record_item`, as is any parenthesis the record does not hold; without a workflow,
+    the parenthesis is read as a matrix leg, the job is not named, and the claim rests on BM25
+    alone, or is `unverifiable`. One option keeps the list closed, since an open one would read any
+    leg the record does not hold as an event. The other adds events as a check copied with them is
+    seen. Not decided here.
 
 ### D.11 Advisories from prose
 
@@ -1377,6 +1519,73 @@ nothing is at that path at the head.
    unchanged.
 
 ### D.12 Changes to this draft
+
+- **2026-10-14.** Spec 0.1.5 (section 17): a workflow named by its name, and a parenthesis the
+  record does not hold (D.6 step 5), with the new reason `workflow_name_ambiguous`. The evidence
+  now holds each Actions run's `workflowName`, so `<workflow>` in `<workflow> / <job>` matches a run
+  whose `workflowPath` or `workflowName` equals it, exactly, and "Checks / test passes", copied from
+  a pull request, is decided by Checks' runs where it was always `unverifiable`,
+  `workflow_not_in_record`. `<workflow>` is the longest recorded name or path the text holds whole
+  before ` / `, so a name may hold spaces ("Continuous Integration / build"). Where the runs of the
+  job that a name matches are under two or more workflow paths, the record holds two workflows of
+  that name and the claim names both: `unverifiable`, `workflow_name_ambiguous`. No reason fitted
+  exactly. `workflow_not_in_record` says the record cannot place the workflow, and here it holds
+  both. `ambiguous_candidates` is a tie between scores. So the DRAFT schema's reader claim reason
+  accepts the new one. Where a run of the job has a `workflowPath` and no `workflowName`, a
+  `<workflow>` that is not one of their paths is still `unverifiable`, `workflow_not_in_record`.
+  Separately, from the review of the change below: where a job named with its workflow is followed
+  by a parenthesis that is no run's name and none of the four events, the claim is
+  `unverifiable`, `no_matching_record_item`. Before, the parenthesis was read as a leg the record
+  does not hold, the workflow was not read, and the claim could be decided by every workflow's runs
+  of the job: "The test job, .github/workflows/checks.yml / test (workflow_dispatch), fails" passed
+  on nightly.yml's failure. A draft record written before this change that holds a
+  `check_succeeded` claim naming a workflow by its name, or followed by such a parenthesis, may
+  give a different `verdict`, `reason` and `observed` when its check is recomputed (D.8). A draft
+  record's evidence written before 0.1.5 holds no names, so its claims recompute as they did. No 0.1
+  verdict changes.
+
+- **2026-10-14.** A job named with its workflow and event (D.6 step 5), and a minimum length for a
+  classname named apart from the name (D.4, step 1). GitHub's checks list shows a check as
+  `<workflow> / <job> (<event>)`, and a claim copied from it, "Checks / test (pull_request) fails",
+  named no job: ` (` after the job was read as a matrix leg the record does not hold, so the
+  workflow it named was never read, and the claim rested on BM25 alone. Now, for the events `push`,
+  `pull_request`, `pull_request_target` and `merge_group`, the form names the workflow and the job
+  as `<workflow> / <job>` does, unless `<job> (<event>)` is itself a run's `name`, a matrix leg,
+  which it then names. Other events stay unrecognised (D.10, item 12). Separately, a `classname`
+  shorter than 4 characters as recorded no longer restricts a shared test `name`: an ordinary word
+  ("no io errors") named the classname `io` and narrowed the set to its case. No reason code is
+  new, and the DRAFT schema is unchanged. A draft record written before this change that holds a
+  `check_succeeded` claim with the event form may give a different `verdict`, `reason` and `observed`
+  when its check is recomputed (D.8), since step 5 reads the `text`; the classname rule acts in
+  retrieval only, so such a record verifies as before. No 0.1 verdict or 0.1 schema changes.
+
+- **2026-10-14.** A classname named apart from the name (D.4, step 1). A bare test `name` held by
+  two or more test cases under different classnames was an identifier match under each, so "The
+  queue retry test \"gives up after three attempts\" passes" combined `http.retry`'s case too and
+  failed on it. Now, where the text also names one or more of those classnames, whole and
+  case-sensitively, as recorded or with each `.` as one space, the `name` is an identifier match
+  for the cases under the named classnames only, as a full `classname.name` already restricts it.
+  A case left out keeps its BM25 score in the recorded list and is not combined (D.6). A claim that
+  names none of them is unchanged; whether it should be `unverifiable` is D.10, item 11. No reason
+  code is new, and the DRAFT schema is unchanged. Retrieval runs only when a record is written, so
+  a draft record written before this change verifies as before (D.8). No 0.1 verdict or 0.1 schema
+  changes.
+
+- **2026-10-14.** A job named with its workflow (D.6 step 5), with the new reason
+  `workflow_not_in_record`; ties that disagree are now D.6 step 6, and the kind's own check step 7.
+  A `check_succeeded` claim whose text gives `<workflow> / <job>`, GitHub's display form for a check
+  run of a workflow, combines only that workflow's runs of the job, by `workflowPath` and the
+  section 7.5 count. The record holds a workflow's path and not its `name:`, so the workflow is
+  matched to the path, exactly; a workflow named by its display name matches no run and is
+  `unverifiable`. Where two or more runs share the job's name and any of them has no
+  `workflowPath`, the record cannot tell which is the named workflow's, and the claim is
+  `unverifiable`, `workflow_not_in_record`, where it was decided by the latest run of that name. The
+  check now reads the claim's `text` for this step, and for nothing else. `ambiguous_candidates`
+  was not reused: it is a tie between scores, and a workflow the record cannot place is not one.
+  The DRAFT schema's reader claim reason accepts `workflow_not_in_record`. A draft record written
+  before this change that holds such a claim gives a different `verdict`, `reason` and `observed`
+  when its check is recomputed (D.8). No 0.1 verdict, 0.1 schema or claim that names no workflow
+  changes.
 
 - **2026-10-13.** A reader claim kind `reference_closes` (D.6), by the operator's ruling of
   2026-10-13. A reader could type "Closes #12" only as `reference_in_timeline`, which passes on a

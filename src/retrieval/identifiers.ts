@@ -58,21 +58,158 @@ function occursBounded(haystack: string, needle: string, inside: RegExp): boolea
   return boundedAt(haystack, needle, inside).length > 0;
 }
 
+// Where a text holds a test classname whole, apart from the name: as recorded ("queue.retry") or
+// with each `.` replaced by one space ("queue retry"), as [from, to) spans.
+function classnameSpans(text: string, classname: string): [number, number][] {
+  const forms = new Set([classname, classname.replaceAll('.', ' ')]);
+  return [...forms].flatMap((form) =>
+    boundedAt(text, form, WORD).map((at): [number, number] => [at, at + form.length]),
+  );
+}
+
+// Does a text name the classname whole? Not inside a longer classname of the record that the text
+// names at the same place ("retry" in "queue retry").
+function classnameNamed(text: string, classname: string, classnames: readonly string[]): boolean {
+  const longer = classnames
+    .filter((c) => c.length > classname.length)
+    .flatMap((c) => classnameSpans(text, c));
+  return classnameSpans(text, classname).some(
+    ([from, to]) => !longer.some(([l, r]) => l <= from && to <= r),
+  );
+}
+
+// The events GitHub's checks list may show after a workflow's job, as `<workflow> / <job>
+// (<event>)` (DRAFT 0.2.0, D.6). A closed list: any other text in the parentheses is read as a
+// matrix leg's is (D.10).
+export const CHECK_RUN_EVENTS = ['push', 'pull_request', 'pull_request_target', 'merge_group'];
+const EVENT_SUFFIX = new RegExp(`^ \\((?:${CHECK_RUN_EVENTS.join('|')})\\)`);
+
+const WORKFLOW_JOB = /(\S+) \/ /g;
+
+// Where a job may be named with its workflow in a text: directly after each `<workflow> / `.
+function afterWorkflows(text: string): number[] {
+  return [...text.matchAll(WORKFLOW_JOB)].map((m) => (m.index as number) + m[0].length);
+}
+
 // Does a text name the job `name` whole? Not inside a longer job name of the record that the text
 // names at the same place ("build" in "build docs"), and not as the job of a matrix leg ("test" in
 // "test (ubuntu-latest)"), which names that leg only: a claim about a matrix job names its leg, and
-// a bare `test` names the job literally called `test`.
+// a bare `test` names the job literally called `test`. Named with its workflow, a job may be
+// followed by its event ("CI / test (pull_request)"), unless the job and the event together are a
+// longer job name of the record, a leg, which they then name.
 function jobNamed(text: string, name: string, longer: readonly string[]): boolean {
   if (text === name) return true;
-  return boundedAt(text, name, JOB_NAME_CHAR).some(
-    (at) =>
-      !text.startsWith(' (', at + name.length) &&
-      !longer.some((l) =>
-        boundedAt(text, l, JOB_NAME_CHAR).some(
-          (from) => from <= at && at + name.length <= from + l.length,
-        ),
-      ),
+  const workflowed = afterWorkflows(text);
+  return boundedAt(text, name, JOB_NAME_CHAR).some((at) =>
+    jobNamedAt(text, name, at, longer, workflowed.includes(at)),
   );
+}
+
+// Whether the bounded occurrence of `name` at `at` names that job whole, as jobNamed reads it.
+function jobNamedAt(
+  text: string,
+  name: string,
+  at: number,
+  longer: readonly string[],
+  withWorkflow: boolean,
+): boolean {
+  const end = at + name.length;
+  return (
+    (!text.startsWith(' (', end) || (withWorkflow && EVENT_SUFFIX.test(text.slice(end)))) &&
+    !longer.some((l) =>
+      boundedAt(text, l, JOB_NAME_CHAR).some((from) => from <= at && end <= from + l.length),
+    )
+  );
+}
+
+// A job named with its workflow, as GitHub displays a check run of a workflow (DRAFT 0.2.0, D.6).
+export interface WorkflowJob {
+  workflow: string;
+  job: string;
+}
+
+const longest = (names: readonly string[]) => [...names].sort((a, b) => b.length - a.length)[0];
+
+// The check run name of the record that a text names whole at `at`, directly after `<workflow> / `,
+// as a job name is matched above, the longest if two are; or undefined.
+function jobAt(text: string, at: number, jobNames: readonly string[]): string | undefined {
+  return longest(
+    jobNames.filter((name) => {
+      const longer = jobNames.filter((n) => n.length > name.length && n.includes(name));
+      return (
+        boundedAt(text, name, JOB_NAME_CHAR).includes(at) &&
+        jobNamedAt(text, name, at, longer, true)
+      );
+    }),
+  );
+}
+
+// The workflow a text names before the ` / ` at `slash`: the longest of the record's workflow names
+// and paths (`workflows`) that the text holds whole there, ending at `slash` with no path character
+// directly before it; or else `token`, the run of non-space characters before the ` / `, which then
+// names no workflow of the record. A name may hold spaces ("Continuous Integration").
+function workflowBefore(
+  text: string,
+  slash: number,
+  token: string,
+  workflows: readonly string[],
+): string {
+  const whole = workflows.filter((w) => {
+    const from = slash - w.length;
+    return (
+      w.length > 0 &&
+      from >= 0 &&
+      text.startsWith(w, from) &&
+      !PATH_CHAR.test(text[from - 1] ?? ' ')
+    );
+  });
+  return longest(whole) ?? token;
+}
+
+// Each `<workflow> / <job>` in a text, or `<workflow> / <job> (<event>)` for an event of
+// CHECK_RUN_EVENTS: the workflow is what the text names before a space, a slash and a space
+// (workflowBefore), and the job is a check run name of the record that the text names whole directly
+// after them (jobAt). Nothing else in the text names a workflow, and a workflow is never guessed
+// from the words around a job.
+export function workflowJobs(
+  text: string,
+  jobNames: readonly string[],
+  workflows: readonly string[] = [],
+): WorkflowJob[] {
+  const out: WorkflowJob[] = [];
+  for (const m of text.matchAll(WORKFLOW_JOB)) {
+    const at = (m.index as number) + m[0].length;
+    const job = jobAt(text, at, jobNames);
+    if (job === undefined) continue;
+    out.push({ workflow: workflowBefore(text, at - 3, m[1] as string, workflows), job });
+  }
+  return out;
+}
+
+const PARENTHESIS = /^ \([^()]*\)/;
+
+// Each job a text names after `<workflow> / ` followed by a parenthesis that names nothing the
+// record holds: `<job> (<anything>)`, where `<job>` is a check run name of the record, `<job>
+// (<anything>)` is not, and `<anything>` is not an event of CHECK_RUN_EVENTS. Such a text names a
+// leg or an event the record does not hold, so it names no run of the job (D.6 step 5). The job,
+// the longest if two are, once per place.
+export function unheldSuffixJobs(text: string, jobNames: readonly string[]): string[] {
+  const out: string[] = [];
+  for (const at of afterWorkflows(text)) {
+    if (jobAt(text, at, jobNames) !== undefined) continue;
+    const job = longest(
+      jobNames.filter((name) => {
+        const rest = text.slice(at + name.length);
+        return (
+          boundedAt(text, name, JOB_NAME_CHAR).includes(at) &&
+          PARENTHESIS.test(rest) &&
+          !EVENT_SUFFIX.test(rest)
+        );
+      }),
+    );
+    if (job !== undefined) out.push(job);
+  }
+  return out;
 }
 
 function shaTokens(texts: readonly string[]): string[] {
@@ -114,6 +251,46 @@ export function identifierMatches(
     items.filter(qualified).map((item) => item.fields[0]?.[1] as string),
   );
 
+  // A bare name held by two or more test cases, under different classnames, and named by the bare
+  // name only: if the text also names one or more of their classnames, apart from the name, the
+  // name then names the cases under those classnames only. If it names none, every case is named.
+  // A classname shorter than MIN_NAME_LENGTH as recorded ("io") never restricts: an ordinary word
+  // would name it.
+  const classnameOf = (item: RecordItem) => item.fields.find(([f]) => f === 'classname')?.[1];
+  const classnames = [
+    ...new Set(items.filter((item) => item.type === 'test').map(classnameOf)),
+  ].filter((c) => c !== undefined);
+  const bareNamed = new Map<string, RecordItem[]>();
+  for (const item of items) {
+    const name = item.fields[0]?.[1] as string;
+    if (
+      item.type !== 'test' ||
+      name.length < MIN_NAME_LENGTH ||
+      qualifiedNames.has(name) ||
+      !named(name, WORD)
+    )
+      continue;
+    bareNamed.set(name, [...(bareNamed.get(name) ?? []), item]);
+  }
+  const namedClassnames = new Map<string, Set<string>>();
+  for (const [name, cases] of bareNamed) {
+    if (cases.length < 2) continue;
+    const said = cases
+      .map(classnameOf)
+      .filter(
+        (c): c is string =>
+          c !== undefined &&
+          c.length >= MIN_NAME_LENGTH &&
+          texts.some((t) => classnameNamed(t, c, classnames)),
+      );
+    if (said.length > 0) namedClassnames.set(name, new Set(said));
+  }
+  const underNamedClassname = (item: RecordItem, name: string) => {
+    const said = namedClassnames.get(name);
+    const classname = classnameOf(item);
+    return said === undefined || (classname !== undefined && said.has(classname));
+  };
+
   const jobNames = items
     .filter((item) => item.type === 'check_run')
     .map((item) => item.fields[0]?.[1] as string);
@@ -144,7 +321,8 @@ export function identifierMatches(
           hit =
             value.length >= MIN_NAME_LENGTH &&
             named(value, WORD) &&
-            (!qualifiedNames.has(value) || qualified(item));
+            (!qualifiedNames.has(value) || qualified(item)) &&
+            underNamedClassname(item, value);
           break;
       }
       if (hit) {

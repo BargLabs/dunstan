@@ -46,7 +46,9 @@ publish".
    - a check run's `name`, or a test's `name` or `classname.name`, occurring whole and
      case-sensitively. Names shorter than 4 characters are skipped (`MIN_NAME_LENGTH`). A test's
      `classname.name`, once named, restricts its bare `name` to that test case: the same `name`
-     under another classname, or under none, is not an identifier match for that claim.
+     under another classname, or under none, is not an identifier match for that claim. A bare
+     `name` held by two or more test cases is restricted, too, to the cases whose classname the
+     text names apart from it ("A classname named apart from the name", below).
    - A job name is a whole name only where the text does not continue it: not with a hyphen
      (`build-docs` does not name `build`), not as part of a longer job name of the record named at
      the same place (`build docs` does not name `build`), and not with a matrix leg (`test
@@ -104,6 +106,39 @@ under another classname would otherwise join the aggregate. It could then turn a
 the right item exactly from `pass` into `fail`. Retrieval itself is unchanged: it ranks and records
 the same candidates as before, and only what the check combines differs.
 
+### A classname named apart from the name
+
+A report rarely writes a test's full identifier. It says "the queue retry test \"gives up after
+three attempts\"": the classname in prose, the name quoted. Where one bare name is held by two or
+more test cases under different classnames, the bare name is an identifier match under each of
+them, and the set closes to all of them. So `http.retry`'s failure decided a claim about
+`queue.retry`'s case. In Arm A's identifier stage (`identifierMatches`, `identifiers.ts`; DRAFT
+0.2.0, D.4):
+
+1. **When it applies.** A bare test `name`, of at least 4 characters, that the text names and that
+   two or more test cases hold, where no `classname.name` of that name is named (a full identifier
+   already restricts it to its case).
+2. **A classname named in prose.** A classname of one of those cases is named when the text holds
+   it whole, bounded as a test name is (no letter, digit or underscore directly before or after
+   it), and case-sensitively. It may be written as recorded (`queue.retry`) or with each `.`
+   replaced by one space (`queue retry`). Where a classname lies inside a longer classname of the
+   record that the text names at the same place (`retry` inside `queue retry`), the longer one is
+   named and the shorter is not, as for job names. Nothing looser names a classname: no stemming,
+   no case folding, no partial segment (`queue` does not name `queue.retry`), and no other
+   separator (`queue_retry` names nothing). A classname shorter than 4 characters as recorded
+   (`MIN_NAME_LENGTH`, as for a test or job name), such as `io` or `db`, is never named this way:
+   an ordinary word ("no io errors") would name it and narrow the set to the wrong case. Its full
+   identifier (`io.flushes the buffer`) still names its case.
+3. **Exactly the named ones.** If the text names one or more of those classnames, the bare name
+   names the cases under them only. "The queue retry and http retry tests" names both, and both are
+   read. A case with no classname is not named then.
+4. **None named.** If the text names none of them, every case with the name is an identifier match,
+   as before (spec D.10 asks whether such a claim should be `unverifiable` instead).
+
+A case left out is not an identifier match. Its BM25 score stays in the recorded list, marked as not
+combined beside the identifier match, as for a full identifier. No reason code is new: the check
+reads the cases the claim names, and decides as before.
+
 ### Ties that disagree are ambiguous
 
 A claim that names nothing exactly has no identifier match to close the set. If its best lexical
@@ -126,6 +161,94 @@ Without this rule a tied confusable decided the aggregate. "e2e shard 2 fails" h
 pass. "e2e shard 2 passes" failed for the same reason. A check that cannot tell the two runs apart
 says so. `file_changed`, `commit_present` and `reference_in_timeline` need the declared item among
 the candidates, so a tie cannot mislead them, and the rule does not apply to them.
+
+### A job named with its workflow
+
+GitHub names an Actions check run after its job, so two workflows that each have a job `test` give
+two check runs called `test`. GitHub shows each as `<workflow> / <job>`. A `check_succeeded` claim
+may name its job that way (`namedWorkflowRuns`, `reader-claims.ts`; `workflowJobs`,
+`identifiers.ts`; DRAFT 0.2.0, D.6):
+
+1. **The form, and nothing looser.** The claim's text holds a space, a slash and a space. The
+   workflow is the longest `workflowName` or `workflowPath` of the record that the text holds whole
+   directly before them, with no path character (a letter, a digit, `.`, `_`, `/` or `-`) directly
+   before it. So a name may hold spaces: "Continuous Integration / build" names the workflow
+   `Continuous Integration`, and "MyCI / build" does not name `CI`. If the record holds none there,
+   the workflow is the run of non-space characters directly before them, which then names no run.
+   The job is a check run name of the record that the text names whole directly after them, as
+   step 1 above matches a job name (the longest, if two are). No length minimum applies, since the
+   slash fixes where the name starts. Nothing else in the text names a workflow: "the test job in
+   Checks" names none.
+2. **With its event.** GitHub's checks list on a pull request shows a check as `<workflow> / <job>
+   (<event>)`, for example `CI / build (pull_request)`, and a claim copied from it carries the
+   event. Where the job is followed by a space and `(<event>)`, and `<event>` is exactly one of
+   `push`, `pull_request`, `pull_request_target` or `merge_group` (`CHECK_RUN_EVENTS`), the text
+   names the workflow and the job as `<workflow> / <job>` does, and the job is an identifier match
+   as if the event were not there. A matrix leg wins: if `<job> (<event>)` is itself a check run
+   name of the record, the text names that run, as before. Without a workflow, `test
+   (pull_request)` names no job.
+3. **A parenthesis the record does not hold.** Where the text names a workflow and then `<job>
+   (<anything>)`, `<job>` is a check run name of the record, `<job> (<anything>)` is not, and
+   `<anything>` is not one of the four events, the claim is `unverifiable`,
+   `no_matching_record_item` (`unheldSuffixJobs`). It names a leg or an event the record does not
+   hold, so it names no run: "checks.yml / test (workflow_dispatch) fails" is not about every
+   workflow's `test`.
+4. **Matched by path or name.** A check run in the record carries its workflow's `workflowPath`
+   (spec 0.1.4, section 6, "Workflow runs") and, since spec 0.1.5, its `workflowName`, the `name`
+   the workflow runs listing gives, which is what GitHub shows. The workflow in the claim matches a
+   run whose `workflowPath` or `workflowName` equals it, exactly: no case is folded and no file name
+   is guessed. `.github/workflows/checks.yml / test` and "Checks / test" both name the `test` runs
+   of a workflow `Checks` in that file. A workflow that sets no `name:` is shown, and listed, by its
+   path.
+5. **When the record can tell.** If every run of the job in `checkRuns.runs` carries a
+   `workflowPath`, the check combines, of the job's runs, only those of the named workflow. They are
+   the runs section 7.5 counts, the latest per workflow path and name (`countedCheckRuns`), so a
+   re-run of that workflow is read at its latest run. Runs of other jobs the claim names without a
+   workflow are combined as before. If no counted run of the job is of that workflow, the claim is
+   `unverifiable`, `workflow_not_in_record`; if one is and is not among the combined candidates,
+   `declared_item_not_among_candidates`.
+6. **One name, two workflows.** If the workflow is the name or the path of runs of the job under two
+   or more `workflowPath`s, the claim is `unverifiable`, `workflow_name_ambiguous`, and the check
+   reads none of its runs. Two workflow files may set one `name:`, and naming one of them by that
+   name names both. A path names one.
+7. **When it cannot.** If two or more runs of the job in `checkRuns.runs` (whether counted or not)
+   and any of them has no `workflowPath`, the claim is `unverifiable`, `workflow_not_in_record`, and
+   the check reads none of its runs. Such runs are a record written before the workflow was
+   recorded, or a run of no workflow beside one of a workflow. Then a re-run in one workflow and two
+   workflows' runs of one name look the same, and only the claim says which workflow it means. A
+   job held by one run with no workflow is read as before. Likewise, if the workflow is no
+   `workflowPath` of the job's runs and any of them has a `workflowPath` and no `workflowName` (a
+   record written before spec 0.1.5, or a listing that gave no name), the record cannot say whether
+   that run's workflow has the name, and the claim is `unverifiable`, `workflow_not_in_record`.
+8. **A claim that names no workflow is unchanged.** "The build job passes" still fails on a re-run
+   whose latest run failed.
+
+The step comes after the floor and before ties: a workflow named for a job leaves only that
+workflow's runs to tie. `ambiguous_candidates` does not fit the reason. That reason is a tie between
+scores, and a named workflow the record cannot place is not a tie. The `all_succeeded_mismatch` and
+`checks_incomplete` reasons are verdicts on runs that were read. So `workflow_not_in_record` is new,
+and the DRAFT schema's `readerReason` accepts it. A name held by two workflows (step 6) is not that
+either: the record holds both workflows, and it is the claim that names two. `workflow_not_in_record`
+would say the record lacks what it holds, and `ambiguous_candidates` would say two scores tie. So
+`workflow_name_ambiguous` is new too, and the DRAFT schema accepts it. A parenthesis the record does
+not hold (step 3) is `no_matching_record_item`, which fits exactly: no run of the record is what the
+claim names. The event form (step 2) needs no reason of its own: once the event is read, every
+outcome is one of steps 4 to 8.
+
+Before step 2, a claim copied with its event named no job and no workflow: `test (` was refused as
+a matrix leg the record does not hold. It then rested on BM25 alone. Against the two runs of
+`checks/display-name-event-suffix` both scored below the floor, and against the family's thirteen
+runs the two `test` runs tied above it and disagreed, so it was `unverifiable` either way. But the
+workflow it named was never read: where the job's runs scored at or above the floor and agreed,
+the check combined every workflow's runs of the job, though the claim named one.
+
+Before step 3, any event other than the four was read the same way, and so still is in a claim that
+names no workflow. "The test job, .github/workflows/checks.yml / test (workflow_dispatch), fails"
+named `test` bare, so both workflows' `test` runs were identifier matches, and it passed on
+nightly.yml's failure though checks.yml's `test` succeeded (`checks/path-unheld-suffix-job-named`).
+
+Before step 4, the record held no workflow's name, so "Checks / test", as GitHub shows a check, was
+always `unverifiable`, `workflow_not_in_record`: the rule was right and could not be used.
 
 ### The floor, and why 1
 
@@ -278,8 +401,16 @@ loader:
   the default branch, or no such issue (`fail`); the pull request still open, merged into another
   base, closed with no ClosedEvent yet, or close events not read (`unverifiable`).
 - `checks`: the right name on the wrong run (a re-run; one job name in two workflows); names that
-  differ only in case; names below `MIN_NAME_LENGTH`; a matrix job.
-- `tests`: test names one token apart; one `name` under two `classname`s.
+  differ only in case; names below `MIN_NAME_LENGTH`; a matrix job; a job named with its workflow,
+  against runs that carry no workflow, and against runs that carry their workflow's path; the same
+  with its event, as GitHub shows a check, and an event that is itself a leg's name; an event the
+  reader does not read; a workflow named by its `workflowName`, one that holds a space, one held by
+  two workflow paths, and one beside a run that carries a path and no name. A checks case may carry
+  its own `checkRuns` in place of the family's.
+- `tests`: test names one token apart; one `name` under two `classname`s, named by its full
+  identifier, by one classname in prose (as recorded, or with spaces), or by both; a classname
+  below `MIN_NAME_LENGTH` used as an ordinary word. A tests case may carry its own `items` in place
+  of the family's.
 - `lexical`: BM25 ties broken by record order where the right item comes later, because a token of
   one character is dropped; and the same ties under a claim that the right item failed, where it
   succeeded.
@@ -299,14 +430,14 @@ Arm B is not run: Dunstan ships no embedding provider.
 
 | Family | Cases | Known misses | Of which a wrong verdict |
 | --- | --- | --- | --- |
-| `checks` | 9 | 2 | 1 |
+| `checks` | 24 | 1 | 0 |
 | `closes` | 13 | 0 | 0 |
 | `lexical` | 8 | 1 | 1 |
 | `numbers` | 5 | 0 | 0 |
 | `paths` | 11 | 3 | 0 |
 | `shas` | 7 | 3 | 0 |
-| `tests` | 7 | 2 | 1 |
-| All | 60 | 11 | 3 |
+| `tests` | 10 | 0 | 0 |
+| All | 78 | 8 | 1 |
 
 When the set was first measured there were 35 known misses, 14 of them wrong verdicts. One of them
 was a `closes` claim that a cross-reference passed; that case has since been dropped, since its pass
@@ -346,13 +477,64 @@ that passes where it should not. `api-version-later` keeps its expectation of `p
 could name `api.v2`, but no token says so, and it is now `unverifiable` where it was a false `fail`.
 That left 11 misses, 3 of them wrong verdicts, none of them a `pass`.
 
-The latest run per name is not fixed. In `checks/same-name-two-workflows`, the record keeps one run
-of `test` where two workflows ran one each. A 0.1 check run carries `id`, `name`, `status` and
-`conclusion`, and no workflow, check suite or app. So that evidence is the same as a re-run of
-`build` in one workflow (`checks/rerun-latest-failed`), and a check that is a function of the
-evidence gives both the same verdict. Calling every name held by two runs ambiguous would make the
-re-run cases `unverifiable` too. Telling them apart needs the evidence to carry each run's check
-suite or workflow.
+The latest run per name was not fixed then. In `checks/same-name-two-workflows`, the record keeps
+one run of `test` where two workflows ran one each. Its runs carry `id`, `name`, `status` and
+`conclusion`, and no workflow, check suite or app, as a record written before spec 0.1.4's
+amendments does. So that evidence is the same as a re-run of `build` in one workflow
+(`checks/rerun-latest-failed`), and a check that is a function of the evidence gives both the same
+verdict. Calling every name held by two runs ambiguous would make the re-run cases `unverifiable`
+too.
+
+"A job named with its workflow" (above) tells them apart by the claim: "Checks / test passes" names
+its workflow, and the record cannot say which run is the Checks one, so it is `unverifiable`,
+`workflow_not_in_record`, where it was a false `fail`. "The build job passes" names none and still
+fails on the re-run. Four `checks` cases came with it: `rerun-workflow-named` ("CI / build passes"
+on the re-run: `unverifiable`); `same-name-two-workflows-recorded` and `-recorded-other`, whose runs
+carry their `workflowPath`, where `.github/workflows/checks.yml / test` passes on 201 and
+`.github/workflows/nightly.yml / test` fails on 205 without reading 201; and
+`same-name-two-workflows-display-name`, "Checks / test passes" against those runs: the record holds
+paths, not names, so it is `unverifiable`. Before the change, the three named by path or name gave
+`fail` from the run they were not about, and `-recorded-other` failed for the right verdict but read
+201 too. That left 10 misses, 2 of them wrong verdicts, none of them a `pass`.
+
+"A classname named apart from the name" (above) then fixed the classname in prose.
+`tests/same-name-classname-in-prose` ("The queue retry test ... passes") failed on `http.retry`'s
+case, and now passes on `queue.retry`'s alone; `tests/same-name-declared-failing` ("The http retry
+test ... fails") passed but read `queue.retry`'s case too, and now reads `http.retry`'s alone. Two
+`tests` cases came with it: `same-name-classname-dotted-in-prose` ("The queue.retry test ...
+passes", the classname as recorded but apart from the name), which failed on `http.retry`'s case
+before and passes now; and `same-name-two-classnames-in-prose` ("The queue retry and http retry
+tests ... pass"), which names both, reads both and fails on `http.retry`'s, before and after. That
+left 8 misses, 1 of them a wrong verdict, none of them a `pass`. The wrong verdict left is
+`lexical/api-version-later`, kept on purpose: its verdict is `unverifiable`, which fails closed,
+and making "version 2" name `v2` would be a guessed expansion.
+
+The event form ("A job named with its workflow", step 2) and the classname minimum then came with
+five cases, and left the counts at 8 misses, 1 of them a wrong verdict.
+`checks/display-name-event-suffix` ("Checks / test (pull_request) fails.") was `unverifiable`,
+`no_matching_record_item`, and is now `unverifiable`, `workflow_not_in_record`. `checks/path-event-suffix` and `-other` name
+`checks.yml` and `nightly.yml` with an event; they were `unverifiable`, `no_matching_record_item`,
+and now pass on 201 and fail on 205 alone. `checks/event-suffix-is-a-leg` ("CI / test (push)
+passes.", where `test (push)` is a run of the record) passes on that run, before and after.
+`tests/same-name-short-classname-as-word` ("The test ... passes, with no io errors.", under `io`,
+which passed, and `queue.retry`, which failed) was a false pass: the word "io" named the classname
+`io` and narrowed the set to its case. It now reads both cases and fails.
+
+The workflow's name in the evidence (spec 0.1.5; "A job named with its workflow", steps 1, 4 and
+6) and the parenthesis the record does not hold (step 3) then came with seven `checks` cases, and
+left the counts at 8 misses, 1 of them a wrong verdict. Each carries its own `checkRuns`.
+`workflow-name` ("Checks / test passes.") and `workflow-name-event-other` ("Nightly / test (push)
+passes.") name Checks and Nightly by name; they were `unverifiable`, `workflow_not_in_record`, and
+now pass on 201 and fail on 205 alone. `workflow-name-with-spaces` ("Continuous Integration / build
+passes.") was `unverifiable`, `workflow_not_in_record`, since "Integration" names nothing, and now
+passes on 210 alone. `workflow-name-two-paths` ("CI / test passes.", two files named CI) was
+`unverifiable`, `workflow_not_in_record`, and is now `unverifiable`, `workflow_name_ambiguous`.
+`workflow-name-one-unrecorded` ("Checks / test passes.", where nightly.yml's run carries no name) is
+`unverifiable`, `workflow_not_in_record`, before and after. `path-unheld-suffix`
+(".github/workflows/checks.yml / test (workflow_dispatch) fails.", beside four other jobs) was
+`unverifiable`, `ambiguous_candidates`, since both `test` runs tied above the floor and disagreed,
+and `path-unheld-suffix-job-named` (the same, with `test` also named bare) was a false pass on 205's
+failure. Both are now `unverifiable`, `no_matching_record_item`.
 
 In the other kinds the declared item has to be among the candidates, so a confusable read beside it
 changes no verdict, though it can change the observed value.
