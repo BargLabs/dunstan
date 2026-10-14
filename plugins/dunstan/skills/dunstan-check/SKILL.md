@@ -17,7 +17,7 @@ the block must say what you actually did.
 1. **Push your last commit.** The check reads the pull request as GitHub has it.
 2. **Write the `dunstan-handback` block** in your report, inside a fenced block with the info string
    `dunstan-handback`, in the exact shape below. To fill `headCommit` and `filesChanged` from local
-   git, you can run `npx -y dunstan@0.1.9 template --base <base branch>`, which reads only the local
+   git, you can run `npx -y dunstan@0.1.10 template --base <base branch>`, which reads only the local
    repository.
 
 ## The block
@@ -62,6 +62,10 @@ outside this list is allowed. Declare only what you claim.
   `"closes"` or `"cites"`. A commit can only be cited.
 - `tests`: a count is checked only against the JUnit file a workflow run uploaded, named in `record`.
   A count with no record to compare is `unverifiable`, so declare a test claim only with its record.
+- `checks` (`total`, `allSucceeded`, `noneFailed`): `allSucceeded` is `true` only if every check run
+  counted at the head concluded `success`, so a skipped or neutral run makes it `false`;
+  `noneFailed` is `true` if none concluded anything other than `success`, `skipped` or `neutral`
+  and at least one succeeded. Declare them only once CI has finished.
 - Timestamps are UTC, ending in `Z`.
 
 The full specification: https://github.com/BargLabs/dunstan/blob/main/spec/claim-format.md.

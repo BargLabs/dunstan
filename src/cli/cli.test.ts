@@ -102,6 +102,44 @@ describe('dunstan check', () => {
     expect(written.predicate.verdict).toBe('pass');
   });
 
+  // Spec section 3: among the named author's comments, the latest created_at, then the highest id,
+  // in whatever order the listing gives them. The locator names that comment by its id.
+  it('takes the latest created_at, then the highest id, among the named author comments', async () => {
+    const comment = (id: number, createdAt: string, body: string) => ({
+      id,
+      user: { login: 'agent-bot' },
+      created_at: createdAt,
+      body,
+    });
+    const comments = [
+      comment(12, '2026-10-04T10:00:00Z', 'earlier, with the highest id'),
+      comment(11, '2026-10-04T11:00:00Z', 'latest, and the higher id of the two'),
+      comment(10, '2026-10-04T11:00:00Z', 'latest, with a lower id'),
+      { id: 13, user: { login: 'someone-else' }, created_at: '2026-10-04T12:00:00Z', body: 'x' },
+    ];
+    for (const listed of [comments, [...comments].reverse()]) {
+      const out = record('tie.json');
+      await run(
+        [
+          'check',
+          '--repo',
+          REPO,
+          '--pr',
+          '7',
+          '--report-comment-author',
+          'agent-bot',
+          '--out',
+          out,
+        ],
+        { ...scenario(), comments: listed },
+      );
+      expect(JSON.parse(readFileSync(out, 'utf8')).predicate.report.source).toEqual({
+        kind: 'pr-comment',
+        locator: `GET /repos/${REPO}/issues/comments/11#body`,
+      });
+    }
+  });
+
   it('exits 2 for a report with no block, and reads nothing but the pull request', async () => {
     const report = record('report.md');
     writeFileSync(report, 'All done, tests pass.\n');
@@ -169,6 +207,46 @@ describe('dunstan check', () => {
     ]);
     expect(r.code).toBe(3);
     expect(r.err).toMatch(/nobody has no comment/);
+  });
+
+  // Spec section 3: the comment listing is bounded at 100 pages of 100, like every listing the
+  // reader pages. A listing that answers 100 full pages has not ended, so the named author's latest
+  // comment may lie beyond it: the report is unreadable, never a pick among the comments read.
+  const comments = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      id: i + 1,
+      user: { login: 'agent-bot' },
+      created_at: '2026-10-04T10:00:00Z',
+      body: `comment ${i + 1}`,
+    }));
+  const byComment = (out: string) => [
+    'check',
+    '--repo',
+    REPO,
+    '--pr',
+    '7',
+    '--report-comment-author',
+    'agent-bot',
+    '--out',
+    out,
+  ];
+
+  it('exits 3 and writes no record when the comment listing answers 100 full pages', async () => {
+    const out = record('bound.json');
+    const r = await run(byComment(out), { ...scenario(), comments: comments(10_001) });
+    expect(r.code).toBe(3);
+    expect(r.err).toMatch(`cannot list comments on ${REPO}#7 (more than 100 pages)`);
+    expect(existsSync(out)).toBe(false);
+    expect(r.requests.filter((q) => q.includes('/issues/7/comments'))).toHaveLength(100);
+  });
+
+  it('reads a comment listing that ends on a short page at page 100', async () => {
+    const out = record('short.json');
+    const r = await run(byComment(out), { ...scenario(), comments: comments(9_999) });
+    expect(r.code).toBe(2);
+    expect(JSON.parse(readFileSync(out, 'utf8')).predicate.report.source.locator).toBe(
+      `GET /repos/${REPO}/issues/comments/9999#body`,
+    );
   });
 });
 
@@ -341,7 +419,7 @@ describe('signing', () => {
     expect(ok.out).toMatch(/Good "dunstan-record" signature for checker@example.org/);
 
     // One changed byte breaks the signature even if the record still recomputes.
-    writeFileSync(out, bytes.replace('"spec":"0.1.5"', '"spec":"0.1.6"'));
+    writeFileSync(out, bytes.replace('"spec":"0.1.6"', '"spec":"0.1.7"'));
     const bad = await run(['verify', out, '--sig', `${out}.sig`, '--allowed-signers', allowed]);
     expect(bad.code).toBe(1);
     expect(bad.out).toMatch(/\/predicate\/assurance: signature/);

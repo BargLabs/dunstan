@@ -135,13 +135,17 @@ const FIGURES_LINE =
 // claim that names its job's workflow came to read that workflow's runs; and but for spec 0.1.5,
 // for which the 0.1 record schema's check runs gained the optional `workflowName`, requiring
 // `workflowPath`, and the DRAFT schema's reader claim reason `workflow_name_ambiguous`, for a
-// workflow named by a name two workflow paths hold. A change to any of them is a record change.
+// workflow named by a name two workflow paths hold; and but for the source `workflow_runs` the
+// DRAFT schema's reader claim reason gained, which a check_succeeded claim gives when the check runs
+// are unreadable because the workflow runs are; and but for spec 0.1.6, for which the block schema's
+// `checks` gained `noneFailed` and the 0.1 record schema's claim reason `none_failed_mismatch` and
+// `no_succeeded_check_runs`. A change to any of them is a record change.
 const SCHEMA_SHA256: Record<string, string> = {
   'handback-block-0.1.schema.json':
-    '331d142be28bf7c9deac7f76cad83731bf00679b952418004270c70344db46a7',
-  'record-0.1.schema.json': 'cacdfc1dacc0bff6c1098bad6ac49ad5842a4e482543bade3f685ae279d7f9d0',
+    '24388a8267afbc08f6355db16c7d0195e3b835227be3303490a70e45342397ba',
+  'record-0.1.schema.json': '25cf6f0fc4077f8871fb6788212d61fb5f0ad82e34f0a67e9359042ebf482b53',
   'record-0.2-draft.schema.json':
-    'fd7f3ee3af40ecae62b0a0c249d26dba5d3b3560b51fadbce40dda97acce0c02',
+    'd402adbccabe0674ca25b4b0bb60068be148330ad193e86cb222b60c60fc4848',
 };
 
 const evidence: Evidence = {

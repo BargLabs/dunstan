@@ -37,7 +37,7 @@ verify    offline: recomputes claims, verdict and digests from the record and co
 rerun     online: re-reads the sources for the recorded subject and block; writes a new record.
 template  local git: prints a dunstan-handback block for HEAD, its files against the merge base
           with --base (default: the remote's default branch). Tests only from a JUnit file and
-          the CI record named with it; references and mergedAt never (docs/agents.md).
+          the CI record named with it; references, checks and mergedAt never (docs/agents.md).
 suggest   offline: lists sentences in the report's prose (a file, or stdin) that look like claims
           its block does not declare, to declare or reword. Never a verdict (docs/agents.md).
 mcp       serves dunstan_check_handback and dunstan_suggest_declarations over stdio

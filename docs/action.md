@@ -71,7 +71,7 @@ what a branch requires.
 
 | Input | Default | Meaning |
 | --- | --- | --- |
-| `report-source` | none, required | `pr-body`, `comment:<author-login>` (that author's newest comment on the pull request) or `file:<path>` (a file in the workspace). The Action never guesses where a report is; with no value it concludes `failure`. |
+| `report-source` | none, required | `pr-body`, `comment:<author-login>` (that author's newest comment on the pull request: the login compared without regard to case, the latest `created_at`, then the highest comment id; the record names the comment by its id; a listing that reaches 100 pages of 100 without ending is unreadable, never a pick among the comments read, spec section 3) or `file:<path>` (a file in the workspace). The Action never guesses where a report is; with no value it concludes `failure`. |
 | `github-token` | `${{ github.token }}` | Needs `contents: read`, `pull-requests: read`, `issues: read` (to read an issue a block closes or cites), `deployments: read` (for `deployedAt`), `checks: write`, `actions: read` (to read a JUnit artifact a block names, and the workflow runs a `checks` claim is counted by). Nothing else. Without `issues: read` or `deployments: read` the claims that need them are `unverifiable`, never passed. |
 | `unverifiable-conclusion` | `failure` | The conclusion for an `unverifiable` verdict: `failure` or `neutral`. |
 | `sign-key-path`, `signer` | none | An SSH private key and the signer principal: the record is written as its JCS bytes with a detached signature, both uploaded. |
@@ -96,7 +96,7 @@ Action concludes `success` for `pass` and nothing else:
 | `fail` | `failure` | At least one claim is contradicted by the record. The table names the claim and the reason. |
 | `unverifiable` | `failure` (default) | The record cannot answer a claim (a source unreadable, a field unpopulated, checks still running, a `closes` issue not yet among an open pull request's closing references, a `closes` target still open after a merge into a branch other than the default), or there is no single valid block: `block_missing`, `block_ambiguous`, `block_invalid`. Not a pass. |
 | `unverifiable` | `neutral`, with `unverifiable-conclusion: neutral` | The same verdict, reported without blocking. A neutral required check lets the merge through, so this setting merges claims nobody could check. Choose it deliberately, for example while agents are being moved onto the block. |
-| none (`error`) | `failure` | No record: `report-source` missing or malformed, the report source unreadable (no comment by that author, no such file), the pull request unreadable, an event Dunstan cannot check, `file:` under `pull_request_target`, or a crash. The reason is in the summary. |
+| none (`error`) | `failure` | No record: `report-source` missing or malformed, the report source unreadable (no comment by that author, a comment listing past its bound, no such file), the pull request unreadable, an event Dunstan cannot check, `file:` under `pull_request_target`, or a crash. The reason is in the summary. |
 | any | `failure` | The record could not be uploaded as the artifact. A verdict whose record is not kept cannot be re-run. |
 | (no check run) | pending | The job did not run, or could not write the check run (a fork, below). A required `dunstan` check that never reports blocks the merge. |
 

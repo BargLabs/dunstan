@@ -39,12 +39,12 @@ import type { GitHubClient, Read } from './http.js';
 import { countJunit, JunitError } from './junit.js';
 import { readZipEntry, ZipError } from './zip.js';
 
-const PER_PAGE = 100;
+export const PER_PAGE = 100;
 // The pull request files API lists at most 3,000 files.
 export const FILES_API_LIMIT = 3000;
 // A bound on any one paginated listing, so a hostile or runaway answer cannot loop forever. A listing
 // that reaches it is unreadable, never silently short.
-const MAX_PAGES = 100;
+export const MAX_PAGES = 100;
 
 export class PullRequestUnreadable extends Error {
   constructor(message: string) {

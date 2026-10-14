@@ -1,6 +1,6 @@
 # The Dunstan claim format
 
-Version 0.1.4. Draft. Licensed under Apache-2.0 (`spec/LICENSE`).
+Version 0.1.6. Draft. Licensed under Apache-2.0 (`spec/LICENSE`).
 
 A coding agent that finishes a task writes a completion report. This specification defines a block
 the agent declares inside that report, the checks a checker runs on each declared field against the
@@ -49,8 +49,11 @@ Version 0.1 defines evidence for repositories hosted on GitHub.
 These hold for every part of this specification. An extension that breaks one is not a Dunstan
 extension.
 
-- **No model decides.** A verdict is a pure function of the block and the evidence. Nothing in a
-  checker scores, classifies or interprets prose.
+- **No model decides.** A verdict is a pure function of the block, the evidence, and the subject
+  repository the evidence was read for. The repository is the one input outside the block and the
+  evidence, because `#N` in a block names issue N of it (section 4); the record holds it as
+  `subject.repository` (section 9.3), so a record still carries every input. Nothing in a checker
+  scores, classifies or interprets prose.
 - **Fail closed.** A claim the record cannot answer is `unverifiable`, never `pass`. A report with no
   block, two blocks or an invalid block is `unverifiable`.
 - **Re-runnable.** A record carries everything needed to recompute its verdict offline, and the
@@ -105,6 +108,20 @@ A checker MUST NOT choose one of several blocks: two blocks are `ambiguous`, nev
 Which text is the report (a pull request body, one comment, a file, standard input, an API request)
 is decided by the invocation, not by this specification. The invocation names exactly one report.
 
+**A comment by its author.** An invocation may name the report as one comment by a named author,
+as the reference checker's `dunstan check --report-comment-author <login>` and its Action's
+`report-source: comment:<login>` do. The checker then lists the pull request's issue comments
+(`GET /repos/{owner}/{repo}/issues/{number}/comments`), keeps those whose author's `login` equals
+the login named, compared without regard to case, and takes the one with the latest `created_at`,
+then, among those with the same `created_at`, the highest `id`, in whatever order the listing gives
+them. The record's `report.source` is `kind` `pr-comment` with the locator
+`GET /repos/{owner}/{repo}/issues/comments/<id>#body`, naming that comment by its id, so a re-run
+never chooses again (section 12). An author with no comment, or a listing that cannot be read,
+gives no record. The reference checker reads the listing in pages of 100, to a bound of 100 pages, as
+it reads every listing; a listing whose 100th page is full has not ended, so it cannot be read, and
+the checker never takes a comment from among those it read. The comments are not evidence, and their
+reads are not sources.
+
 ## 4. The block
 
 The block is one JSON object. Its fields in version 0.1:
@@ -115,7 +132,7 @@ The block is one JSON object. Its fields in version 0.1:
 | `headCommit` | yes | The 40-character lowercase hexadecimal id of the commit the report describes. |
 | `filesChanged` | yes | Every repository-relative path the pull request changes. No duplicates. |
 | `tests` | no | Test runs: `[{command, count, failures?, record}]`, at least one. |
-| `checks` | no | `{total?, allSucceeded?}`, at least one member. |
+| `checks` | no | `{total?, allSucceeded?, noneFailed?}`, at least one member. `noneFailed` since 0.1.6. |
 | `references` | no | `[{issue, relation}]` or `[{commit, relation}]`, at least one. |
 | `mergedAt` | no | When the pull request was merged, RFC 3339 UTC. |
 | `deployedAt` | no | `{at, environment}`: a successful deployment to `environment` by `at`. |
@@ -149,6 +166,14 @@ repository. A commit is always in the subject repository.
 **What the block does not carry.** The subject (repository and pull request) is not in the block. It
 comes from the invocation (an Action's context, command-line flags, an MCP or API request) and is
 recorded in the record. A block that names its own repository is invalid.
+
+**Large pull requests.** `filesChanged` names every changed file, one path each; there is no
+shorter form. GitHub limits a pull request body, and a comment, to 65,536 characters, so a pull
+request that changes enough files (about 1,200 at about 50 characters a path) cannot carry a
+complete block in its body. A block that names only some of the changed files fails: each file it
+leaves out is its own `undeclared_file` row (section 7.3), by design, and nothing is hidden or
+summarised. Such a pull request should say in its body, outside the block, that its block is
+incomplete on purpose, so that a reader of the failing record knows why.
 
 ## 5. Reading the block
 
@@ -208,10 +233,41 @@ carries a `status`:
 A checker that cannot read the pull request MUST NOT write a record: a record's subject is always read,
 never taken from the block.
 
+**An absent section.** A checker writes every section the block needs (the table above), so a
+section is absent only from evidence written by hand or cut short. An absent section, or an absent
+entry of a section that is there, is no evidence: each claim that reads it is `unverifiable` with
+`evidence_field_unpopulated:<section>`, never `fail`, where `<section>` is the member name below.
+
+| Claim | Section it reads, and the entry |
+| --- | --- |
+| scope (section 7.3), every row | `files` |
+| `closes` | `closingReferences`; for a target not among them, its `references` entry, then its `closeEvents` target (row 6 of section 7.4), each by its own name |
+| `cites`, issue or commit | its `references` entry |
+| `tests[]` count and failures, `junit` record | its `testRecords` entry |
+| `checks.total`, `checks.allSucceeded`, `checks.noneFailed` | `checkRuns` |
+| `deployedAt` | the `deployments` entry for its environment |
+
+The head and `mergedAt` claims read `pullRequest`, which is never absent.
+
 **Not found.** An issue, pull request or commit is `exists: false` only when the repository holding it
-was read successfully and the item's own read answered not found (HTTP 404 or 410). GitHub answers not
-found for a repository the reader cannot see, so a not-found repository is `unreadable` with kind
-`repository`, never `exists: false`.
+was read successfully and the item's own read answered not found. Each existence read, and the
+answers it reads as not found:
+
+| Read | Endpoint | Not found | Any other failed answer |
+| --- | --- | --- | --- |
+| a repository, before the first issue read in it | `GET /repos/{owner}/{repo}` | never | `unreadable`, kind `repository` |
+| an issue or pull request | `GET /repos/{owner}/{repo}/issues/{number}` | HTTP 404 or 410 | `unreadable`, kind `issue` |
+| a commit, in the subject repository | `GET /repos/{owner}/{repo}/git/commits/{sha}` | HTTP 404 or 410 | `unreadable`, kind `commit` |
+
+GitHub answers not found for a repository the reader cannot see, so a not-found repository is
+`unreadable` with kind `repository`, never `exists: false`. The subject repository is read with the
+pull request and is not read again. A commit is read at the git-database endpoint, which answers
+404 for a commit the repository does not have; `GET /repos/{owner}/{repo}/commits/{sha}` answers
+422 for one, and a checker does not read it. No other status is not found: a 422, or any other
+failed answer, from any endpoint is `unreadable`, never `exists: false`. (A `junit` record's
+workflow-runs listing, section 7.5, that answers 404 on its first page names a workflow file the
+subject repository does not have: no run, so no candidate run and `record_not_found`, which is
+`unverifiable`.)
 
 **Resolved identity.** GitHub answers the read of an issue that was transferred to another
 repository with a redirect to the issue's new identity. A checker follows that redirect, and only
@@ -270,6 +326,12 @@ over the response body bytes as received. `etag` is the response's ETag, if any.
 when the read failed: `http_<status>`, `network` or `parse`. `readAt` is when the read completed. A
 paginated read is one entry per page; if any page is unreadable, the section is unreadable.
 
+`parse` also records a read that answered with a 2xx status and a body that is not the shape the
+read expects. GitHub answers a GraphQL error with HTTP 200 and an `errors` member. A checker records
+such a read with `error` `parse`, and what it reads (the closing references, the pull request's
+side of the close events, or one close target) is `unreadable` with the read's kind
+(`closing_references`, `pull_request_commits` or `issue`): never an answer, even beside `data`.
+
 **Determinism.** So that two checkers reading the same answers write the same evidence: `files.entries`
 are in code-unit order of `path`; `closingReferences.issues` in code-unit order; `checkRuns.runs` and
 `deployments[].deployments` in ascending `id`; `testRecords[].runs` in ascending `runId`;
@@ -300,8 +362,8 @@ Each declared field produces one or more claim rows:
 
 Rows appear in this order: head; scope rows for `filesChanged` in block order, then omission rows in
 code-unit order of path; reference rows in block order; count rows for each `tests[]` item in block
-order (`count`, then `failures`), then `checks.total`, then `checks.allSucceeded`; `mergedAt`; then
-`deployedAt`.
+order (`count`, then `failures`), then `checks.total`, then `checks.allSucceeded`, then
+`checks.noneFailed`; `mergedAt`; then `deployedAt`.
 
 A checker that is not given a found block produces no rows.
 
@@ -334,6 +396,13 @@ limit of 3,000 files. If the list is unreadable, the same rows are `unverifiable
 
 One row per `references[i]`, `reference:/references/<i>`. `#N` resolves to `owner/repo#N` in the
 subject repository.
+
+Two issue references name the same issue when their owners and their repository names are equal
+compared without regard to case, as GitHub's names are, and their numbers are equal exactly:
+`Example-Org/Example-Repo#1` among the closing references is `example-org/example-repo#1`, and
+neither is `#10`. Every comparison of an issue in this section is so: with the closing
+references, a `references` entry, `resolvedAs`, a `closeEvents` target and a ClosedEvent's pull
+request closer. A commit id is compared exactly.
 
 - **`closes`** names a target, an issue or a pull request, that the pull request P closes. It passes
   (row 1) if the target is among P's closing references as the API records them (GraphQL
@@ -405,7 +474,10 @@ Each passes if equal and fails with `count_mismatch` if not. With no candidate r
 `unverifiable` with `record_not_found`. With several candidate runs (for example one per triggering
 event) that agree on the number, that number is used; if they disagree, `unverifiable` with
 `record_ambiguous`. A checker MUST NOT pick one run. A file that is not well-formed JUnit XML makes
-the artifact read `unreadable`.
+the artifact read `unreadable`. So does an artifact the run uploaded that has expired (the listing
+marks it `expired`), and an artifact whose archive cannot be downloaded (GitHub answers 410 for an
+expired one): the rows are `unverifiable` with `source_unreadable:artifact`, never
+`record_not_found`, because the run did upload the record.
 
 For a record of any other kind the rows are `unverifiable` with `no_comparable_record_field`. A test
 count is never compared with a check-run total, or with anything other than the record it names.
@@ -444,6 +516,18 @@ earlier runs are its own. So a run of another workflow with the name of an exclu
   otherwise `unverifiable` with `checks_incomplete` if any run is not completed; otherwise `true`. It
   fails with `all_succeeded_mismatch` if the declared and observed values differ. With no check runs
   at all it is `unverifiable` with `no_check_runs`: a vacuous truth is not a pass.
+- `count:/checks/noneFailed` (since 0.1.6) compares `noneFailed` with an observed value over the
+  same counted runs. The conclusions that do not fail are a closed list: `success`, `skipped` and
+  `neutral`. The observed value is `false` if any completed run's conclusion is not in that list,
+  including `failure`, `cancelled`, `timed_out`, `action_required`, `stale`, `startup_failure`, no
+  conclusion, and any value this specification does not name. Otherwise it is `unverifiable` with
+  `checks_incomplete` if any run is not completed. Otherwise it is `unverifiable` with
+  `no_succeeded_check_runs` if no run concluded `success`: a head where every run was skipped or
+  neutral shows that nothing failed and that nothing ran, which is not a pass. Otherwise it is
+  `true`. It fails with `none_failed_mismatch` if the declared and observed values differ. With no
+  check runs at all it is `unverifiable` with `no_check_runs`. Where `allSucceeded` reads a skipped
+  or neutral run as not succeeded, `noneFailed` reads it as not failed; a completed run with any
+  other conclusion makes both `false`.
 
 ### 7.6 Time
 
@@ -456,7 +540,10 @@ Times are compared to the second: fractional seconds are discarded before compar
 - `time:/deployedAt` compares the declared `{at, environment}` with the deployments to `environment`.
   - **Candidates.** The deployments of the head commit, plus, for a merged pull request, every
     deployment created at or after the recorded merge time and at or before `at`. The evidence lists
-    every candidate, so two checkers reading the same answers list the same deployments.
+    every candidate, so two checkers reading the same answers list the same deployments. The head
+    commit here is the observed head, `pullRequest.headSha`, not the declared `headCommit` (the
+    check runs and test records are read at `headCommit`); where the two differ, the head row fails
+    with `head_mismatch` (section 7.2).
   - **Relation.** Each candidate carries `relation`: `head` (its commit is the head commit), `merge`
     (the merge commit), `descendant` (a commit that has the merge commit as an ancestor, read with
     the compare API), `unrelated` (compare answered and it is not a descendant), or `unknown` (the
@@ -482,6 +569,59 @@ Any evidence source that errors makes every claim depending on it `unverifiable`
 
 A failing row decides the verdict even beside unverifiable rows: a claim the record contradicts is a
 fail whatever else could not be read.
+
+### 8.1 A gate that requires claims (informative)
+
+This subsection is informative. It adds no requirement on a block, a checker or a record, and it
+changes no verdict.
+
+A record answers only for what its block declares. A block that declares only the required fields,
+`dunstan`, `headCommit` and `filesChanged` (section 4), can pass, though it says nothing about tests
+or check runs. Whether a pull request must also declare `tests` or `checks` is the consumer's
+policy, not the record's: a record holds no policy (section 2, "Evidence, not a gate"). The record
+keeps the block as `block.value` (section 9.4), so a gate can read from the record itself which
+claims were declared.
+
+A gate reads a record only once it holds one it can rely on:
+
+- **Trusted.** A record is unsigned by default (section 11), and offline verify (section 12) shows
+  only that a record agrees with the evidence it carries, not that the evidence was read from the
+  forge. A gate uses a record it wrote itself, with `dunstan check` or `dunstan rerun`, or one
+  signed by an issuer in its own allowed-signers file (section 11). A record the agent under check
+  could have written, such as a file in its own pull request, is not one.
+- **For the gated head.** `predicate.subject` names the repository, pull request and head the gate
+  gates. A record for another pull request, or for an earlier head of this one, says nothing about
+  this head.
+- **Current.** An online re-run writes a new record and leaves the old one (section 12), so one head
+  can hold an older `pass` and a later `fail`. A gate decides on a record read when it gates, not on
+  whether some `pass` record was ever written for the head.
+
+For example, a gate that writes its own record and requires a test claim and a `checks.noneFailed`
+claim:
+
+```sh
+dunstan check --repo "$REPO" --pr "$PR" --report-pr-body --out record.json
+jq -e --arg repo "$REPO" --argjson pr "$PR" --arg head "$HEAD_SHA" '
+  .predicate.subject.repository == $repo
+  and .predicate.subject.pullRequest == $pr
+  and .predicate.subject.headSha == $head
+  and .predicate.verdict == "pass"
+  and (.predicate.block.value.tests | length > 0)
+  and .predicate.block.value.checks.noneFailed == true' record.json
+```
+
+`$HEAD_SHA` is the head the gate gates, so a head that moves after the record is read is denied.
+Because the verdict is `pass`, every declared claim held, so the declared `noneFailed: true` is what
+the record shows.
+
+Such a gate follows the in-toto attestation framework's monotonic principle: a policy in which
+ignoring an attestation, or a field within one, never turns a deny into an allow. Stated that way,
+the gate is **deny unless a trusted, current `pass` record for the gated head exists** that declares
+what the policy requires. It denies on `fail`, on `unverifiable`, on a missing record, on a record
+for another pull request or head and on a record whose block lacks a required claim, which is
+section 2's "fail closed" in in-toto's terms. A gate that also keeps earlier records may deny on a
+later `fail` or `unverifiable` record for the same head; that adds denies and never an allow. How a
+record reads in in-toto's and other formats' terms: [`docs/interop.md`](../docs/interop.md).
 
 ## 9. The record
 
@@ -516,7 +656,7 @@ one ingests the other.
 | `checker` | `{name, version, digest: {sha256}}`; the digest is of the distributed checker artifact that ran. |
 | `report` | `{sha256, source: {kind, locator}}`, `kind` one of `pr-body`, `pr-comment`, `file`, `stdin`, `api`. |
 | `block` | `{status, sha256, value}`, plus `reason` and `count` or `errors` when not `found`. |
-| `subject` | `{repository, pullRequest, headSha, mergeSha}`, from the invocation and the pull request read. |
+| `subject` | `{repository, pullRequest, headSha, mergeSha}`, from the invocation and the pull request read. `repository` is `owner/repo` as the pull request read names its base repository (`base.repo.full_name`); the claims are computed with it (section 2). |
 | `evidence` | Section 6. |
 | `claims` | Section 7, in the order given there. |
 | `verdict` | Section 8. |
@@ -572,9 +712,10 @@ verdict is correct; re-running (section 12) checks the verdict.
 ## 12. Re-running a record
 
 **Offline verify** (`rerun.offline`) uses only the record. It MUST recompute the claims and the
-verdict from `block.value` and `evidence` with the recorded checker version, recompute the three
-digests, and check the subject digests. Every recomputed value MUST match the recorded one byte for
-byte; any difference fails verification and names the member that differs.
+verdict from `block.value`, `evidence` and `subject.repository` with the recorded checker
+version, recompute the three digests, and check the subject digests. Every recomputed value MUST
+match the recorded one byte for byte; any difference fails verification and names the member that
+differs.
 
 **Online re-run** (`rerun.online`) re-reads the sources for the same subject and the recorded block.
 It does not re-read the report: the recorded block is the claim. If the new evidence digest differs,
@@ -595,6 +736,18 @@ names carry the major and minor.
   a 0.1 checker refuses a `"0.2"` block.
 - A checker MUST refuse a block whose major version it does not implement, as `block_invalid` with
   `unsupported_version`. It never reads such a block as the nearest version it knows.
+
+**Decided for 1.0** (decided 2026-10-14; not made in 0.1). Version 1.0 will align the record with
+two in-toto conventions. The predicate type will name the major version only,
+`https://barglabs.ai/dunstan/record/v1`, and `spec` will carry the full version: in-toto's TypeURI
+reflects the major version and treats minor versions as monotonic, so a 1.1 record will keep the
+1.0 predicate type, where the rule above would give it a new one. The head commit's subject entry
+(section 9.1) will carry `git+https://github.com/<owner>/<repo>@<sha>` in `uri`, the resource
+descriptor's field for a global identifier, instead of in `name`, and may name the pull request in
+its `annotations`. Both are format changes for 1.0. A 0.1 record is unchanged: its predicate type
+stays `https://barglabs.ai/dunstan/record/v0.1` and its subject is as section 9.1 gives it. How a
+record reads in in-toto, SLSA and other formats' terms, with what does not carry over:
+[`docs/interop.md`](../docs/interop.md).
 
 ## 14. Security and privacy
 
@@ -651,8 +804,10 @@ against the schemas and check each record's block, report and claim and evidence
 | `not_reachable` | fail | The cited commit is not reachable from the head. |
 | `count_mismatch` | fail | A declared count differs from the record. |
 | `all_succeeded_mismatch` | fail | `allSucceeded` differs from the conclusions of the check runs counted, the latest per workflow path and name (section 7.5). |
+| `none_failed_mismatch` | fail | `noneFailed` differs from the conclusions of the check runs counted, read against the closed list `success`, `skipped`, `neutral` (section 7.5). |
 | `checks_incomplete` | unverifiable | A check run has not completed. |
 | `no_check_runs` | unverifiable | There are no check runs at the head. |
+| `no_succeeded_check_runs` | unverifiable | No check run counted at the head concluded `success`, and none failed: nothing failed, and nothing ran (`noneFailed`, section 7.5). |
 | `no_comparable_record_field` | unverifiable | The test record's kind has no comparable field in this version. |
 | `record_not_found` | unverifiable | No run carries the named test record. |
 | `record_ambiguous` | unverifiable | Candidate runs disagree on the number. |
@@ -664,6 +819,64 @@ against the schemas and check each record's block, report and claim and evidence
 
 ## 17. Changes
 
+- **0.1.6** (2026-10-14). A new claim, `checks.noneFailed`, checked by checker 0.1.10 (decided
+  2026-10-14). Under section 7.5 `allSucceeded` is `false` when any counted run concluded
+  `skipped` or `neutral`. That is right as written, but a pull request in a repository with
+  path-filtered or conditional jobs usually has skipped runs, so an agent could rarely declare
+  `allSucceeded: true` truthfully even when nothing failed. `noneFailed` is an exact claim beside
+  it: over the same counted runs, the latest per workflow path and name less the excluded ids, it
+  is `true` when every completed run concluded `success`, `skipped` or `neutral` (a closed list),
+  none is still running and at least one succeeded (section 7.5). Two reasons are added to section
+  16 and to the record schema's claim reasons: `none_failed_mismatch` (fail) and
+  `no_succeeded_check_runs` (unverifiable). Its row comes after `checks.allSucceeded` (section 7.1).
+  `handback-block-0.1.schema.json` gains `checks.noneFailed`, a boolean; `checks` still needs at
+  least one member, and the block version stays `"0.1"`.
+
+  Section 13 says a patch release does not change which blocks are valid. This one adds a member,
+  by the operator's decision of 2026-10-14: a block that declares `noneFailed` is
+  valid under 0.1.6 and `block_invalid` (`schema_violation`, `additionalProperties`) under 0.1.5.
+  Every block valid under 0.1.5 is valid under 0.1.6 and gets the same claims and verdict:
+  `allSucceeded`, `total` and every other 0.1 claim are unchanged, and so are the DRAFT 0.2.0
+  reader claims and advisories (the DRAFT `check_succeeded` kind still maps to `allSucceeded`).
+  The evidence is unchanged: no request, field or token permission is added.
+
+  **Records already written.** A 0.1.5 record is verified offline by checker 0.1.9, which it names
+  (section 12); checker 0.1.10 refuses it at `/predicate/checker`. Its block declares no
+  `noneFailed`, so recomputed under 0.1.10 its claims and verdict are the same. `dunstan rerun` of
+  it re-reads the sources as 0.1.10 reads them and writes a new record.
+
+  Example records: each carries spec 0.1.6 and checker 0.1.10. None declares `noneFailed`, so their
+  claims, verdicts and digests are unchanged. No acceptance case changes.
+
+  **Clarified, no behaviour change.** The text now states what checker 0.1.10 already does, each
+  pinned by a test. No verdict, reason, schema, record or example changes.
+  - Section 2: a verdict is a function of the block, the evidence and the subject repository,
+    which the record holds as `subject.repository`; sections 9.3 and 12 say so too.
+  - Section 3, "A comment by its author": the latest `created_at`, then the highest `id`, among the
+    named login's comments, compared without regard to case; the locator names the comment's id.
+  - Section 4, "Large pull requests": a block names every changed file, so one too large for a
+    65,536-character pull request body is incomplete and fails `undeclared_file`, by design.
+  - Section 6, "An absent section": an absent section or entry gives
+    `evidence_field_unpopulated:<section>`, for each claim kind that reads one.
+  - Section 6, "Not found": each existence read's endpoint; a commit is read at
+    `git/commits/{sha}`, only 404 or 410 is not found, and a 422 from any endpoint is unreadable.
+  - Section 6, "Sources": a GraphQL error, answered with HTTP 200, is recorded as `parse` and is
+    `unreadable`, never an answer.
+  - Section 7.4: owner and repository are compared without regard to case, the number exactly.
+  - Section 7.5: an expired artifact, or one whose archive cannot be downloaded, is `unreadable`,
+    never `record_not_found`.
+  - Section 7.6: the deployments of the head commit are read at `pullRequest.headSha`, not at the
+    declared `headCommit`.
+
+  **The comment listing fails closed at its bound.** Section 3, "A comment by its author": a listing
+  whose 100th page of 100 is full gives no record, where checker 0.1.9 and earlier took the latest
+  of the first 10,000 comments; this changes only a pull request with 10,000 comments or more.
+
+  **Informative text only, added 2026-10-14, before checker 0.1.10 was released:** section 8.1 (a
+  gate that requires claims, as in-toto's monotonic rule), section 13's paragraph on what is
+  decided for 1.0, and `docs/interop.md`. It adds no requirement and changes no block, verdict,
+  reason, schema or record, so the version stays 0.1.6: a 0.1.6 text with or without it gives every
+  block the same claims and verdict.
 - **0.1.5** (2026-10-14). Evidence only, recorded by checker 0.1.9. GitHub shows a check of a
   workflow as `<workflow name> / <job>`, and the record held each Actions run's workflow path and
   not that name, so a DRAFT reader claim copied from a pull request, "CI / build passes", could
@@ -1519,6 +1732,19 @@ nothing is at that path at the head.
    unchanged.
 
 ### D.12 Changes to this draft
+
+- **2026-10-14.** The DRAFT schema's reader claim reason accepts `source_unreadable:workflow_runs`.
+  Since spec 0.1.4 as amended 2026-10-13, `checkRuns` is `unreadable` with kind `workflow_runs`
+  when the workflow runs at the head cannot be read (section 6), and a `check_succeeded` claim on
+  such a record is `unverifiable`, `source_unreadable:workflow_runs` (D.6 step 2). The schema's list
+  of sources was written by hand and left that one out, so the record that held the claim failed
+  its own schema. The list is now checked against the code: a test reads a pull request with each
+  of the reads the checker makes failing in turn, and every reason each reader claim kind gives,
+  with each source an items section's type allows, must be one the schema accepts. No other source
+  was missing. Of those the schema accepts, `timeline` and `artifact` come only from an items
+  section (D.3), which no reader in the checker writes yet; `artifact` is also a test record's
+  source, which no reader claim reads. No check, reason code or verdict changes, and a draft record
+  that validated before this change validates as before. No 0.1 schema changes.
 
 - **2026-10-14.** Spec 0.1.5 (section 17): a workflow named by its name, and a parenthesis the
   record does not hold (D.6 step 5), with the new reason `workflow_name_ambiguous`. The evidence

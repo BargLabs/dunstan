@@ -3,7 +3,7 @@
 // the record keeps only its digest.
 
 import type { ReportSourceKind } from '../record/build.js';
-import type { PullRequestRead } from './github.js';
+import { MAX_PAGES, PER_PAGE, type PullRequestRead } from './github.js';
 import type { GitHubClient } from './http.js';
 
 export class ReportUnavailable extends Error {
@@ -32,6 +32,9 @@ export function reportFromPullRequestBody(repository: string, pr: PullRequestRea
 
 // The most recent issue comment on the pull request by `login` (latest created_at, then highest id).
 // The locator names the comment, so a re-run of the record never re-resolves which comment it was.
+// The listing has the evidence listings' bound. It does not page through readAllPages, which records
+// each page as a source and keeps no reason for a failure: the report is not evidence, and its error
+// says why it could not be read.
 export async function reportFromComment(
   client: GitHubClient,
   repository: string,
@@ -39,10 +42,16 @@ export async function reportFromComment(
   login: string,
 ): Promise<Report> {
   let latest: { id: number; createdAt: string; body: string } | undefined;
-  for (let page = 1; page <= 100; page++) {
+  for (let page = 1; ; page++) {
+    // A listing that reaches the bound has not ended, and the latest comment may lie beyond it.
+    if (page > MAX_PAGES) {
+      throw new ReportUnavailable(
+        `cannot list comments on ${repository}#${number} (more than ${MAX_PAGES} pages)`,
+      );
+    }
     const read = await client.read(
       'pull_request',
-      `/repos/${repository}/issues/${number}/comments?per_page=100&page=${page}`,
+      `/repos/${repository}/issues/${number}/comments?per_page=${PER_PAGE}&page=${page}`,
       { record: false },
     );
     if (!read.ok) {
@@ -66,7 +75,7 @@ export async function reportFromComment(
         latest = { id, createdAt, body: typeof item.body === 'string' ? item.body : '' };
       }
     }
-    if (read.json.length < 100) break;
+    if (read.json.length < PER_PAGE) break;
   }
   if (latest === undefined) {
     throw new ReportUnavailable(`${login} has no comment on ${repository}#${number}`);

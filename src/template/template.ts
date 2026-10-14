@@ -1,8 +1,9 @@
 // dunstan template: the mechanical fields of a handback block, filled from local git. `headCommit` is
 // HEAD, `filesChanged` is HEAD's diff against its merge base with the base branch, and `dunstan` is
 // the block version. `tests` is filled only from a JUnit file the caller names, with the CI record
-// its counts are checked against; `references` and `mergedAt` are never filled, because they are the
-// agent's own assertions and a pull request not yet merged has no merge time.
+// its counts are checked against; `references`, `checks` and `mergedAt` are never filled, because
+// they are the agent's own assertions, CI may not have finished, and a pull request not yet merged
+// has no merge time.
 //
 // Fail loud, never invent: when git cannot answer (no repository, a detached or unreadable HEAD, a
 // base that does not resolve, no merge base) this throws and no block is printed. Git runs through
@@ -186,6 +187,7 @@ export function templateBlock(options: TemplateOptions): Template {
   }
   notes.push(
     'references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.',
+    'checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.',
   );
   return { block, branch, base, mergeBase, notes };
 }

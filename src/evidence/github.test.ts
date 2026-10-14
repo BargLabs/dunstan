@@ -794,6 +794,132 @@ describe('readEvidence', () => {
     });
   });
 
+  // Spec section 6, "Not found": the commit read is the git-database endpoint, which answers 404
+  // for a commit the repository does not have (the commits endpoint answers 422). Only 404 or 410
+  // is not found; a 422 or any other failed answer is unreadable, and a repository is never absent.
+  it('reads a commit at the git-database endpoint, and counts only 404 or 410 as not found', async () => {
+    const { fake } = await read(fullScenario(), FULL_BLOCK);
+    expect(fake.requests).toContain(`GET /repos/${REPO}/git/commits/${CITED}`);
+    expect(fake.requests).not.toContain(`GET /repos/${REPO}/commits/${CITED}`);
+
+    const cites: Block = {
+      dunstan: '0.1',
+      headCommit: HEAD,
+      filesChanged: ['src/a.ts', 'src/b.ts'],
+      references: [
+        { issue: '#4', relation: 'cites' },
+        { commit: CITED, relation: 'cites' },
+        { issue: 'other-org/docs#9', relation: 'cites' },
+      ],
+    };
+    const rows = (evidence: Evidence) =>
+      runChecks(cites, evidence, REPO)
+        .filter((c) => c.check === 'reference')
+        .map((c) => [c.verdict, c.reason]);
+    for (const status of [404, 410]) {
+      const s = fullScenario();
+      s.issues = { [`${REPO}#4`]: status, 'other-org/docs#9': 200 };
+      s.commits = { [CITED]: status };
+      const { evidence } = await read(s, cites);
+      expect(evidence.references?.slice(0, 2), String(status)).toEqual([
+        { kind: 'issue', ref: `${REPO}#4`, status: 'ok', exists: false },
+        { kind: 'commit', ref: CITED, status: 'ok', exists: false, reachableFromHead: false },
+      ]);
+      expect(rows(evidence).slice(0, 2)).toEqual([
+        ['fail', 'not_found'],
+        ['fail', 'not_found'],
+      ]);
+    }
+    for (const status of [422, 403]) {
+      const s = fullScenario();
+      s.issues = { [`${REPO}#4`]: status, 'other-org/docs#9': 200 };
+      s.commits = { [CITED]: status };
+      const { evidence } = await read(s, cites);
+      expect(evidence.references?.slice(0, 2), String(status)).toEqual([
+        { kind: 'issue', ref: `${REPO}#4`, status: 'unreadable', source: 'issue' },
+        { kind: 'commit', ref: CITED, status: 'unreadable', source: 'commit' },
+      ]);
+      expect(rows(evidence).slice(0, 2)).toEqual([
+        ['unverifiable', 'source_unreadable:issue'],
+        ['unverifiable', 'source_unreadable:commit'],
+      ]);
+    }
+    for (const status of [404, 410, 422]) {
+      const s = fullScenario();
+      s.repositories = { 'other-org/docs': status };
+      const { evidence } = await read(s, cites);
+      expect(evidence.references?.[2], String(status)).toEqual({
+        kind: 'issue',
+        ref: 'other-org/docs#9',
+        status: 'unreadable',
+        source: 'repository',
+      });
+      expect(rows(evidence)[2]).toEqual(['unverifiable', 'source_unreadable:repository']);
+    }
+  });
+
+  // Spec section 6, "Sources": GitHub answers a GraphQL error with HTTP 200. The read is recorded
+  // as a parse error and its section is unreadable, never an answer, even beside the data.
+  it('records a GraphQL error answered with HTTP 200 as parse, and the read unreadable', async () => {
+    const s = fullScenario();
+    s.closing = [];
+    s.issues = { [`${REPO}#3`]: 200 };
+    const closes: Block = {
+      dunstan: '0.1',
+      headCommit: HEAD,
+      filesChanged: ['src/a.ts', 'src/b.ts'],
+      references: [{ issue: '#3', relation: 'closes' }],
+    };
+    const withGraphqlError = async (marker: string) => {
+      const fake = fakeGitHub(s);
+      const fetch: typeof globalThis.fetch = async (input, init) => {
+        const answer = await fake.fetch(input, init);
+        if (typeof init?.body !== 'string' || !init.body.includes(marker)) return answer;
+        const body = (await answer.json()) as Record<string, unknown>;
+        const errors = [{ type: 'FORBIDDEN', message: 'Resource not accessible' }];
+        return new Response(JSON.stringify({ ...body, errors }), { status: 200 });
+      };
+      const c = new GitHubClient({ token: 't', fetch, sleep: async () => {}, warn: () => {} });
+      const pr = await readPullRequest(c, REPO, 7);
+      return readEvidence(c, { repository: REPO, pullRequest: pr, block: closes });
+    };
+    const failedReads = (evidence: Evidence) =>
+      evidence.sources.filter((x) => x.error !== undefined).map((x) => [x.kind, x.error]);
+    const row = (evidence: Evidence) => runChecks(closes, evidence, REPO)[3];
+
+    const closing = await withGraphqlError('closingIssuesReferences');
+    expect(closing.closingReferences).toEqual({
+      status: 'unreadable',
+      source: 'closing_references',
+    });
+    expect(failedReads(closing)).toEqual([['closing_references', 'parse']]);
+    expect(row(closing)).toMatchObject({
+      verdict: 'unverifiable',
+      reason: 'source_unreadable:closing_references',
+    });
+
+    const base = await withGraphqlError('baseRefName');
+    expect(base.closeEvents?.pullRequest).toEqual({
+      status: 'unreadable',
+      source: 'pull_request_commits',
+    });
+    expect(failedReads(base)).toEqual([['pull_request_commits', 'parse']]);
+    expect(row(base)).toMatchObject({
+      verdict: 'unverifiable',
+      reason: 'source_unreadable:pull_request_commits',
+    });
+
+    const target = await withGraphqlError('issueOrPullRequest');
+    expect(target.closeEvents?.targets).toEqual([
+      { ref: `${REPO}#3`, status: 'unreadable', source: 'issue' },
+    ]);
+    expect(failedReads(target)).toEqual([['issue', 'parse']]);
+    expect(row(target)).toMatchObject({
+      verdict: 'unverifiable',
+      reason: 'source_unreadable:issue',
+    });
+  });
+
   it('records a failed compare as unreadable compare', async () => {
     const s = fullScenario();
     s.compare = { [`${CITED}...${HEAD}`]: 502, [`${MERGE}...${LATER}`]: 0 };
@@ -1163,6 +1289,28 @@ describe('readEvidence', () => {
       status: 'unreadable',
       source: 'artifact',
     });
+    // Spec section 7.5: its counts are unverifiable as unreadable, never record_not_found, since
+    // the run did upload the record. So are an archive whose download fails (an expired one
+    // answers 410).
+    const counts = (e: Evidence) =>
+      runChecks(FULL_BLOCK, e, REPO)
+        .filter((c) => c.id.startsWith('count:/tests/'))
+        .map((c) => [c.verdict, c.reason]);
+    const unreadableCounts = [
+      ['unverifiable', 'source_unreadable:artifact'],
+      ['unverifiable', 'source_unreadable:artifact'],
+    ];
+    expect(counts(evidence)).toEqual(unreadableCounts);
+    const gone = fullScenario();
+    gone.zips = {};
+    const download = await read(gone, FULL_BLOCK);
+    expect(download.evidence.testRecords?.[0]).toEqual({
+      record: JUNIT,
+      status: 'unreadable',
+      source: 'artifact',
+    });
+    expect(download.evidence.sources.find((x) => x.kind === 'artifact')?.error).toBe('http_410');
+    expect(counts(download.evidence)).toEqual(unreadableCounts);
   });
 
   it('records a malformed JUnit file as an unreadable artifact with a parse error', async () => {
@@ -1203,6 +1351,45 @@ describe('readEvidence', () => {
     expect(unknown.evidence.deployments?.[0]).toMatchObject({
       deployments: [{ id: 72, relation: 'unknown' }],
     });
+  });
+
+  // Spec section 7.6: the deployments of the head are those of the observed head,
+  // pullRequest.headSha, not of the declared headCommit, which then fails the head row.
+  it('reads the deployments of the observed head, not the declared headCommit', async () => {
+    const DECLARED = 'dec1a2ed00000000000000000000000000000001';
+    const success = [{ state: 'success', created_at: '2026-10-01T13:05:00Z' }];
+    const s: Scenario = {
+      pr: basePullRequest({ changed_files: 1 }),
+      files: [{ filename: 'src/a.ts', status: 'modified' }],
+      deployments: [
+        { id: 81, sha: HEAD, environment: 'preview', created_at: '2026-10-01T13:00:00Z' },
+        { id: 82, sha: DECLARED, environment: 'preview', created_at: '2026-10-01T13:00:00Z' },
+      ],
+      statuses: { 81: success, 82: success },
+    };
+    const block: Block = {
+      dunstan: '0.1',
+      headCommit: DECLARED,
+      filesChanged: ['src/a.ts'],
+      deployedAt: { at: '2026-10-01T14:00:00Z', environment: 'preview' },
+    };
+    const { evidence, fake } = await read(s, block);
+    expect(fake.requests).toContain(
+      `GET /repos/${REPO}/deployments?environment=preview&sha=${HEAD}&per_page=100&page=1`,
+    );
+    expect(fake.requests.some((r) => r.includes(DECLARED))).toBe(false);
+    expect(evidence.deployments).toEqual([
+      {
+        environment: 'preview',
+        status: 'ok',
+        deployments: [{ id: 81, sha: HEAD, relation: 'head', successAt: '2026-10-01T13:05:00Z' }],
+      },
+    ]);
+    expect(runChecks(block, evidence, REPO).map((c) => [c.id, c.verdict, c.reason])).toEqual([
+      ['head:/headCommit', 'fail', 'head_mismatch'],
+      ['scope:/filesChanged/0', 'pass', undefined],
+      ['time:/deployedAt', 'pass', undefined],
+    ]);
   });
 
   it('retries a rate-limited read with bounded backoff, then records it', async () => {

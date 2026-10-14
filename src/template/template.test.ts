@@ -104,6 +104,9 @@ const NOTE_TESTS =
   'dunstan: tests are not declared. To declare a run, add --tests-junit <JUnit XML file> with --tests-command, --tests-workflow, --tests-job, --tests-artifact and --tests-artifact-path naming the CI record its counts are checked against.\n';
 const NOTE_REFERENCES =
   'dunstan: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.\n';
+// Spec 0.1.6: the note names both boolean checks claims and how they differ on a skipped run.
+const NOTE_CHECKS =
+  'dunstan: checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.\n';
 const noteHead = (head: string, branch: string, base: string, mergeBase: string) =>
   `dunstan: this block describes the local HEAD ${head} on ${branch}, against ${base} (merge base ${mergeBase}). Pushing more commits makes it stale, and the gate then reports head_mismatch: run dunstan template again after your last push.\n`;
 
@@ -131,7 +134,10 @@ describe('dunstan template', () => {
       ].join('\n'),
     );
     expect(r.err).toBe(
-      noteHead(head, 'feature', 'origin/main', mergeBase) + NOTE_TESTS + NOTE_REFERENCES,
+      noteHead(head, 'feature', 'origin/main', mergeBase) +
+        NOTE_TESTS +
+        NOTE_REFERENCES +
+        NOTE_CHECKS,
     );
     // What it prints is a block the gate reads as found.
     expect(extractHandbackBlock(r.out).status).toBe('found');

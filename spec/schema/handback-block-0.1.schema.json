@@ -30,7 +30,11 @@
       "additionalProperties": false,
       "properties": {
         "total": { "type": "integer", "minimum": 0 },
-        "allSucceeded": { "type": "boolean" }
+        "allSucceeded": { "type": "boolean" },
+        "noneFailed": {
+          "description": "No counted check run concluded other than success, skipped or neutral, and at least one succeeded. Added in spec 0.1.6.",
+          "type": "boolean"
+        }
       }
     },
     "references": {

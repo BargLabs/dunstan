@@ -115,6 +115,85 @@ describe('runChecks', () => {
     ]);
   });
 
+  // Spec section 6, "An absent section": each claim kind names the section it reads, or the entry
+  // in it, that the evidence lacks. Absence is no evidence, so it is never a fail.
+  it('gives evidence_field_unpopulated:<section> for an absent section or entry, per claim kind', () => {
+    const junit = {
+      kind: 'junit',
+      workflow: '.github/workflows/ci.yml',
+      job: 'test',
+      artifact: 'junit-report',
+      path: 'junit.xml',
+    } as const;
+    const b = block({
+      tests: [{ command: 'pnpm test', count: 1, record: junit }],
+      checks: { total: 1, allSucceeded: true, noneFailed: true },
+      references: [
+        { issue: '#1', relation: 'closes' },
+        { issue: '#2', relation: 'cites' },
+        { commit: MERGE_SHA, relation: 'cites' },
+      ],
+      mergedAt: '2026-10-01T14:05:09Z',
+      deployedAt: { at: '2026-10-01T15:00:00Z', environment: 'prod' },
+    });
+    const notPassing = (e: Evidence) =>
+      runChecks(b, e, REPO)
+        .filter((c) => c.verdict !== 'pass')
+        .map((c) => [c.id, c.verdict, c.reason]);
+    const unpopulated = (id: string, section: string) => [
+      id,
+      'unverifiable',
+      `evidence_field_unpopulated:${section}`,
+    ];
+
+    // Only the pull request, which is never absent: head and mergedAt read it and pass.
+    const bare = evidence();
+    delete bare.files;
+    expect(notPassing(bare)).toEqual([
+      unpopulated('scope:/filesChanged/0', 'files'),
+      unpopulated('scope:undeclared', 'files'),
+      unpopulated('reference:/references/0', 'closingReferences'),
+      unpopulated('reference:/references/1', 'references'),
+      unpopulated('reference:/references/2', 'references'),
+      unpopulated('count:/tests/0/count', 'testRecords'),
+      unpopulated('count:/checks/total', 'checkRuns'),
+      unpopulated('count:/checks/allSucceeded', 'checkRuns'),
+      unpopulated('count:/checks/noneFailed', 'checkRuns'),
+      unpopulated('time:/deployedAt', 'deployments'),
+    ]);
+
+    // Each section there, without the entry the claim reads.
+    const entriesAbsent = evidence({
+      closingReferences: { status: 'ok', issues: [] },
+      references: [{ kind: 'issue', ref: `${REPO}#1`, status: 'ok', exists: true }],
+      closeEvents: closeEvents([]),
+      testRecords: [],
+      deployments: [],
+    });
+    expect(notPassing(entriesAbsent)).toEqual([
+      unpopulated('reference:/references/0', 'closeEvents'),
+      unpopulated('reference:/references/1', 'references'),
+      unpopulated('reference:/references/2', 'references'),
+      unpopulated('count:/tests/0/count', 'testRecords'),
+      unpopulated('count:/checks/total', 'checkRuns'),
+      unpopulated('count:/checks/allSucceeded', 'checkRuns'),
+      unpopulated('count:/checks/noneFailed', 'checkRuns'),
+      unpopulated('time:/deployedAt', 'deployments'),
+    ]);
+  });
+
+  // Spec section 2: a verdict is a function of the block, the evidence and the subject repository
+  // the evidence was read for, which the record holds as subject.repository. `#N` names issue N of
+  // that repository.
+  it('reads the subject repository: the same block and evidence give another row under another', () => {
+    const b = block({ references: [{ issue: '#1', relation: 'closes' }] });
+    const e = evidence({ closingReferences: { status: 'ok', issues: [`${REPO}#1`] } });
+    expect(row(runChecks(b, e, REPO), 'reference:/references/0')?.verdict).toBe('pass');
+    expect(row(runChecks(b, e, 'example-org/other-repo'), 'reference:/references/0')).toMatchObject(
+      { verdict: 'unverifiable', reason: 'evidence_field_unpopulated:references' },
+    );
+  });
+
   it('matches owner and repository case-insensitively, the issue number exactly', () => {
     const e = evidence({
       closingReferences: { status: 'ok', issues: ['Example-Org/Example-Repo#1'] },
@@ -135,6 +214,22 @@ describe('runChecks', () => {
     expect(row(claims, 'reference:/references/1')).toMatchObject({
       verdict: 'fail',
       reason: 'not_closing',
+    });
+    // A cites finds its entry by the same comparison (spec section 7.4).
+    const cites = runChecks(
+      block({
+        references: [
+          { issue: 'Example-Org/Example-Repo#2', relation: 'cites' },
+          { issue: '#20', relation: 'cites' },
+        ],
+      }),
+      evidence({ references: [{ kind: 'issue', ref: `${REPO}#2`, status: 'ok', exists: true }] }),
+      REPO,
+    );
+    expect(row(cites, 'reference:/references/0')?.verdict).toBe('pass');
+    expect(row(cites, 'reference:/references/1')).toMatchObject({
+      verdict: 'unverifiable',
+      reason: 'evidence_field_unpopulated:references',
     });
   });
 
@@ -693,6 +788,39 @@ describe('runChecks', () => {
       reason: 'declared_not_changed',
     });
   });
+
+  // Spec section 4, "Large pull requests": a block names every changed file. A complete block for
+  // this pull request is longer than GitHub's 65,536-character body, so a block in the body names
+  // only some files, and each file it leaves out is its own undeclared_file row: nothing is hidden.
+  it('fails a block naming a subset of the changed files undeclared_file, one row per file left out', () => {
+    const paths = Array.from(
+      { length: 1200 },
+      (_, i) =>
+        `packages/service-${String(i).padStart(4, '0')}/src/handlers/request-handler.test.ts`,
+    );
+    expect(JSON.stringify(block({ filesChanged: paths })).length).toBeGreaterThan(65536);
+    const subset = block({ filesChanged: paths.slice(0, 1000) });
+    expect(JSON.stringify(subset).length).toBeLessThan(65536);
+    const e = evidence({
+      files: {
+        status: 'ok',
+        complete: true,
+        entries: paths.map((path) => ({ path, status: 'modified' as const })),
+      },
+    });
+    e.pullRequest.changedFiles = paths.length;
+    const claims = runChecks(subset, e, REPO);
+    const omitted = claims.filter((c) => c.verdict !== 'pass');
+    expect(omitted.map((c) => c.observed)).toEqual(paths.slice(1000));
+    for (const c of omitted) {
+      expect(c).toMatchObject({
+        id: `scope:undeclared:${c.observed}`,
+        verdict: 'fail',
+        reason: 'undeclared_file',
+      });
+    }
+    expect(overallVerdict('found', claims)).toBe('fail');
+  });
 });
 
 describe('countedCheckRuns', () => {
@@ -961,6 +1089,184 @@ describe('checks per workflow path', () => {
       verdict: 'pass',
       observed: true,
     });
+  });
+});
+
+// Spec 0.1.6: `checks.noneFailed` is true when every completed counted run
+// concluded success, skipped or neutral and at least one succeeded. It reads the runs
+// `allSucceeded` reads, and `allSucceeded` still reads a skipped or neutral run as not succeeded.
+describe('checks.noneFailed', () => {
+  const CI = '.github/workflows/ci.yml';
+  let nextRunId = 100;
+  const run = (
+    id: number,
+    name: string,
+    conclusion: string | null,
+    at: { path?: string; runId?: number } = {},
+  ): CheckRun => ({
+    id,
+    name,
+    status: conclusion === null ? 'in_progress' : 'completed',
+    conclusion,
+    checkSuiteId: 70 + id,
+    appSlug: 'github-actions',
+    workflowPath: at.path ?? CI,
+    workflowRunId: at.runId ?? nextRunId++,
+    runAttempt: 1,
+  });
+  const noneFailedOf = (declared: boolean, runs: CheckRun[], excludedIds: number[] = []) =>
+    row(
+      runChecks(
+        block({ checks: { noneFailed: declared } }),
+        evidence({ checkRuns: { status: 'ok', commit: HEAD, excludedIds, runs } }),
+        REPO,
+      ),
+      'count:/checks/noneFailed',
+    );
+  const passes = (observed: boolean) => ({
+    id: 'count:/checks/noneFailed',
+    check: 'count',
+    field: '/checks/noneFailed',
+    declared: observed,
+    observed,
+    verdict: 'pass',
+  });
+
+  it('is true when every counted run succeeded', () => {
+    expect(noneFailedOf(true, [run(1, 'lint', 'success'), run(2, 'test', 'success')])).toEqual(
+      passes(true),
+    );
+  });
+
+  it('is true beside a skipped run, where allSucceeded is false', () => {
+    const runs = [run(1, 'test', 'success'), run(2, 'deploy', 'skipped')];
+    expect(noneFailedOf(true, runs)).toEqual(passes(true));
+    const claims = runChecks(
+      block({ checks: { allSucceeded: true, noneFailed: true } }),
+      evidence({ checkRuns: { status: 'ok', commit: HEAD, excludedIds: [], runs } }),
+      REPO,
+    );
+    expect(claims.filter((c) => c.check === 'count').map((c) => [c.id, c.verdict])).toEqual([
+      ['count:/checks/allSucceeded', 'fail'],
+      ['count:/checks/noneFailed', 'pass'],
+    ]);
+    expect(row(claims, 'count:/checks/allSucceeded')).toMatchObject({
+      observed: false,
+      reason: 'all_succeeded_mismatch',
+    });
+  });
+
+  it('is true beside a neutral run', () => {
+    expect(noneFailedOf(true, [run(1, 'test', 'success'), run(2, 'lint', 'neutral')])).toEqual(
+      passes(true),
+    );
+  });
+
+  for (const conclusion of [
+    'failure',
+    'cancelled',
+    'timed_out',
+    'action_required',
+    'stale',
+    'startup_failure',
+    'a_conclusion_no_spec_names',
+  ]) {
+    it(`is false beside a run that concluded ${conclusion}`, () => {
+      expect(noneFailedOf(true, [run(1, 'test', 'success'), run(2, 'e2e', conclusion)])).toEqual({
+        id: 'count:/checks/noneFailed',
+        check: 'count',
+        field: '/checks/noneFailed',
+        declared: true,
+        observed: false,
+        verdict: 'fail',
+        reason: 'none_failed_mismatch',
+      });
+      expect(noneFailedOf(false, [run(1, 'test', 'success'), run(2, 'e2e', conclusion)])).toEqual(
+        passes(false),
+      );
+    });
+  }
+
+  it('is false beside a failed run even while another is still running', () => {
+    const runs = [run(1, 'test', 'failure'), run(2, 'e2e', null)];
+    expect(noneFailedOf(false, runs)).toEqual(passes(false));
+  });
+
+  it('is unverifiable, checks_incomplete, while a counted run has not completed', () => {
+    expect(noneFailedOf(true, [run(1, 'test', 'success'), run(2, 'e2e', null)])).toMatchObject({
+      observed: null,
+      verdict: 'unverifiable',
+      reason: 'checks_incomplete',
+    });
+  });
+
+  it('is unverifiable, no_succeeded_check_runs, when every counted run was skipped', () => {
+    for (const declared of [true, false]) {
+      expect(
+        noneFailedOf(declared, [run(1, 'test', 'skipped'), run(2, 'e2e', 'skipped')]),
+      ).toMatchObject({
+        observed: null,
+        verdict: 'unverifiable',
+        reason: 'no_succeeded_check_runs',
+      });
+    }
+    expect(noneFailedOf(true, [run(1, 'test', 'neutral')])).toMatchObject({
+      verdict: 'unverifiable',
+      reason: 'no_succeeded_check_runs',
+    });
+  });
+
+  it('is unverifiable, no_check_runs, with no check runs at all', () => {
+    expect(noneFailedOf(true, [])).toMatchObject({
+      observed: null,
+      verdict: 'unverifiable',
+      reason: 'no_check_runs',
+    });
+  });
+
+  it('is unverifiable when the check runs could not be read', () => {
+    const claims = runChecks(
+      block({ checks: { noneFailed: true } }),
+      evidence({ checkRuns: { status: 'unreadable', source: 'check_runs' } }),
+      REPO,
+    );
+    expect(row(claims, 'count:/checks/noneFailed')).toMatchObject({
+      verdict: 'unverifiable',
+      reason: 'source_unreadable:check_runs',
+    });
+  });
+
+  it('reads only the latest run of a workflow path and name', () => {
+    const runs = [
+      run(1, 'test', 'failure', { runId: 100 }),
+      run(2, 'test', 'success', { runId: 200 }),
+    ];
+    expect(noneFailedOf(true, runs)).toEqual(passes(true));
+  });
+
+  it("does not count the checker's own excluded run", () => {
+    const DUNSTAN = '.github/workflows/dunstan.yml';
+    const runs = [
+      run(1, 'test', 'success'),
+      run(2, 'handback', 'failure', { path: DUNSTAN }),
+      run(3, 'handback', null, { path: DUNSTAN }),
+    ];
+    expect(noneFailedOf(true, runs, [3])).toEqual(passes(true));
+  });
+
+  it('comes after checks.allSucceeded, whatever the block member order', () => {
+    const claims = runChecks(
+      block({ checks: { noneFailed: true, allSucceeded: true, total: 1 } }),
+      evidence({
+        checkRuns: { status: 'ok', commit: HEAD, excludedIds: [], runs: [run(1, 't', 'success')] },
+      }),
+      REPO,
+    );
+    expect(claims.filter((c) => c.check === 'count').map((c) => c.id)).toEqual([
+      'count:/checks/total',
+      'count:/checks/allSucceeded',
+      'count:/checks/noneFailed',
+    ]);
   });
 });
 

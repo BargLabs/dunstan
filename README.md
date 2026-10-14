@@ -13,7 +13,9 @@ checks. It writes a record anyone can re-run on their own machine and get the sa
 
 The claim format, the block an agent declares and the record Dunstan writes, is an open
 specification: [`spec/claim-format.md`](spec/claim-format.md), with JSON Schemas in `spec/schema/`
-and examples in `spec/examples/`.
+and examples in `spec/examples/`. A record is an in-toto Statement. How it reads in in-toto, SLSA
+and PER terms, and what does not carry over: [`docs/interop.md`](docs/interop.md) (informative; no
+export exists).
 
 ## Use with Claude
 
@@ -27,7 +29,7 @@ report a pull request's handback before it says done ([`plugins/dunstan/`](plugi
 /plugin install dunstan@barglabs
 ```
 
-The plugin runs the MCP server with `npx -y dunstan@0.1.9 mcp`, the `dunstan` npm package at that
+The plugin runs the MCP server with `npx -y dunstan@0.1.10 mcp`, the `dunstan` npm package at that
 exact version: one self-contained file, no dependencies.
 
 **The token.** When you enable the plugin, Claude Code asks for an optional GitHub token and keeps it

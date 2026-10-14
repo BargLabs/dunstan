@@ -19,12 +19,24 @@ This plugin adds two MCP tools and one skill:
 
 ## What it runs, reads and sends
 
-The plugin starts the MCP server with `npx -y dunstan@0.1.9 mcp`, which downloads the `dunstan`
+The plugin starts the MCP server with `npx -y dunstan@0.1.10 mcp`, which downloads the `dunstan`
 package at that exact version from the npm registry. The package is one self-contained file with no
 dependencies. The server runs on your machine and reads GitHub's API directly from it: the pull
 request, its files, commits, check runs, workflow runs and artifacts, deployments, and the issues the
 block references. Every request is a read. Nothing is written to GitHub or the repository, and nothing
 is sent to Barg Labs.
+
+## Changes in 0.1.10
+
+A new claim, `checks.noneFailed` (spec 0.1.6). It is `true` when no check run counted at the head
+concluded anything other than `success`, `skipped` or `neutral`, and at least one succeeded. So a
+pull request with skipped conditional jobs can declare its checks truthfully, where
+`checks.allSucceeded` is `false` because a skipped run did not succeed. A run that failed, was
+cancelled or timed out makes it `false`. A run still in progress makes it `unverifiable`
+(`checks_incomplete`), and so does a head where no counted run succeeded
+(`no_succeeded_check_runs`). A wrong declaration fails with `none_failed_mismatch`. Nothing else
+changes: checked against the same handback and evidence, 0.1.9 and 0.1.10 give the same verdict and
+claims for every block 0.1.9 accepts.
 
 ## Changes in 0.1.9
 

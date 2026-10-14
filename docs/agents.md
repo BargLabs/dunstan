@@ -57,6 +57,7 @@ pasted or appended as it is. Notes go to standard error.
 | `filesChanged` | `git diff` of HEAD against its merge base with `--base`, which defaults to the remote's default branch (`origin/HEAD`). Rename detection is off, so a rename is listed by its old and its new path: the spec counts a renamed file as declared when either is (section 7.3), so both pass whichever way GitHub pairs the rename. |
 | `tests` | Only with `--tests-junit`: `count` and `failures` from that file's test cases, and `record` naming the CI run the gate compares them with. All five record flags are required with it. Otherwise left out, with a note on how to add it. |
 | `references`, `mergedAt` | Never. References are the agent's own assertions, and a pull request that is not merged has no merge time. |
+| `checks` | Never: CI may not have finished. Declare `total`, `allSucceeded` or `noneFailed` yourself. `allSucceeded` is true only if every counted check run concluded `success`, so a skipped or neutral run makes it false; `noneFailed` (spec 0.1.6) is true if none concluded other than `success`, `skipped` or `neutral` and at least one succeeded. |
 
 The block describes the local HEAD. Pushing more commits makes it stale, and the gate then reports
 `head_mismatch`, which is correct: run `dunstan template` again after the last push. Changes that are
@@ -84,6 +85,7 @@ $ dunstan template
 dunstan: this block describes the local HEAD 3f2a1b9c4d5e6f708192a3b4c5d6e7f8091a2b3c on feature, against origin/main (merge base 9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d). Pushing more commits makes it stale, and the gate then reports head_mismatch: run dunstan template again after your last push.
 dunstan: tests are not declared. To declare a run, add --tests-junit <JUnit XML file> with --tests-command, --tests-workflow, --tests-job, --tests-artifact and --tests-artifact-path naming the CI record its counts are checked against.
 dunstan: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.
+dunstan: checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.
 ~~~
 
 ## `dunstan suggest`

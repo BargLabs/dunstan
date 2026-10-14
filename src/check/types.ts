@@ -47,7 +47,7 @@ export interface Block {
   headCommit: string;
   filesChanged: string[];
   tests?: TestRun[];
-  checks?: { total?: number; allSucceeded?: boolean };
+  checks?: { total?: number; allSucceeded?: boolean; noneFailed?: boolean };
   references?: Reference[];
   mergedAt?: string;
   deployedAt?: { at: string; environment: string };

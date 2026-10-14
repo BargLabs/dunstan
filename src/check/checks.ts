@@ -396,6 +396,38 @@ export function countedCheckRuns(
     .sort((a, b) => a.id - b.id);
 }
 
+// The conclusions `checks.noneFailed` reads as not failed (spec 0.1.6, section 7.5): a closed list.
+// Any other conclusion of a completed run, including one the spec does not name, is a failure.
+export const NOT_FAILED_CONCLUSIONS: readonly string[] = ['success', 'skipped', 'neutral'];
+
+// A boolean claim over the counted runs: `failed` says whether a completed run's conclusion makes
+// the observed value false. Otherwise a run not completed leaves it unsettled, and `unsettled`, if
+// given, may name a reason the completed runs cannot settle it. A vacuous truth is not a pass.
+function booleanRow(
+  field: string,
+  declared: boolean,
+  reason: string | undefined,
+  runs: readonly CheckRun[],
+  failed: (conclusion: string | null) => boolean,
+  mismatch: string,
+  unsettled?: (runs: readonly CheckRun[]) => string | undefined,
+): Claim {
+  if (reason !== undefined) return unverifiable('count', field, declared, reason);
+  if (runs.length === 0) return unverifiable('count', field, declared, 'no_check_runs');
+  let observed: boolean;
+  if (runs.some((r) => r.status === 'completed' && failed(r.conclusion))) observed = false;
+  else if (runs.some((r) => r.status !== 'completed')) {
+    return unverifiable('count', field, declared, 'checks_incomplete');
+  } else {
+    const why = unsettled?.(runs);
+    if (why !== undefined) return unverifiable('count', field, declared, why);
+    observed = true;
+  }
+  return observed === declared
+    ? pass('count', field, declared, observed)
+    : fail('count', field, declared, observed, mismatch);
+}
+
 function checkChecks(block: Block, evidence: Evidence): Claim[] {
   const checks = block.checks;
   if (checks === undefined) return [];
@@ -419,27 +451,33 @@ function checkChecks(block: Block, evidence: Evidence): Claim[] {
   }
 
   if (checks.allSucceeded !== undefined) {
-    const field = '/checks/allSucceeded';
-    const declared = checks.allSucceeded;
-    if (reason !== undefined) {
-      rows.push(unverifiable('count', field, declared, reason));
-    } else if (runs.length === 0) {
-      // A vacuous truth is not a pass.
-      rows.push(unverifiable('count', field, declared, 'no_check_runs'));
-    } else {
-      let observed: boolean | undefined;
-      if (runs.some((r) => r.status === 'completed' && r.conclusion !== 'success'))
-        observed = false;
-      else if (runs.some((r) => r.status !== 'completed')) observed = undefined;
-      else observed = true;
-      if (observed === undefined) {
-        rows.push(unverifiable('count', field, declared, 'checks_incomplete'));
-      } else if (observed === declared) {
-        rows.push(pass('count', field, declared, observed));
-      } else {
-        rows.push(fail('count', field, declared, observed, 'all_succeeded_mismatch'));
-      }
-    }
+    rows.push(
+      booleanRow(
+        '/checks/allSucceeded',
+        checks.allSucceeded,
+        reason,
+        runs,
+        (conclusion) => conclusion !== 'success',
+        'all_succeeded_mismatch',
+      ),
+    );
+  }
+
+  if (checks.noneFailed !== undefined) {
+    // A head where every counted run was skipped or neutral shows that nothing failed and nothing
+    // ran: that is not a pass.
+    rows.push(
+      booleanRow(
+        '/checks/noneFailed',
+        checks.noneFailed,
+        reason,
+        runs,
+        (conclusion) => conclusion === null || !NOT_FAILED_CONCLUSIONS.includes(conclusion),
+        'none_failed_mismatch',
+        (completed) =>
+          completed.some((r) => r.conclusion === 'success') ? undefined : 'no_succeeded_check_runs',
+      ),
+    );
   }
   return rows;
 }

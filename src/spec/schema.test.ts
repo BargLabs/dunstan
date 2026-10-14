@@ -111,6 +111,29 @@ describe('the published schemas', () => {
     }
   });
 
+  it('accepts checks.noneFailed alone (spec 0.1.6), and still no other checks member', () => {
+    const withChecks = (checks: unknown) =>
+      validateBlock({
+        dunstan: '0.1',
+        headCommit: 'c0ffee12345678abcdef0123456789abcdef0123',
+        filesChanged: [],
+        checks,
+      });
+    expect(withChecks({ noneFailed: true })).toEqual([]);
+    expect(withChecks({ total: 2, allSucceeded: false, noneFailed: true })).toEqual([]);
+    expect(withChecks({ noneFailed: 'yes' }).length).toBeGreaterThan(0);
+    expect(withChecks({ noFailures: true }).length).toBeGreaterThan(0);
+    expect(withChecks({}).length).toBeGreaterThan(0);
+  });
+
+  it('allow the two reasons of checks.noneFailed (spec 0.1.6)', () => {
+    const defs = (readSchema(RECORD_SCHEMA_FILE) as { $defs: Record<string, { pattern: string }> })
+      .$defs;
+    const pattern = new RegExp((defs.claimReason as { pattern: string }).pattern);
+    expect(pattern.test('none_failed_mismatch')).toBe(true);
+    expect(pattern.test('no_succeeded_check_runs')).toBe(true);
+  });
+
   it('accepts a test record of any other kind with any shape', () => {
     expect(
       validateBlock({

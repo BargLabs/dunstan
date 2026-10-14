@@ -1046,6 +1046,22 @@ describe('a record with reader claims (DRAFT 0.2.0)', () => {
     expect(verifyRecord(record).problems).toEqual([]);
   });
 
+  it('validates and verifies offline a check claim whose check runs are unreadable because the workflow runs are', () => {
+    const unread = {
+      ...storage,
+      checkRuns: { status: 'unreadable', source: 'workflow_runs' },
+    } satisfies Evidence;
+    const typecheck = claim('The typecheck job passes', 'check_succeeded', true);
+    const record = JSON.parse(JSON.stringify(build([typecheck], unread))) as DunstanRecord;
+    expect(record.predicate.readerClaims?.[0]).toMatchObject({
+      verdict: 'unverifiable',
+      observed: null,
+      reason: 'source_unreadable:workflow_runs',
+    });
+    expect(validateDraftRecord(record)).toEqual([]);
+    expect(verifyRecord(record).problems).toEqual([]);
+  });
+
   it('validates and verifies offline a closing claim, and accepts each reason the closes check gives', () => {
     for (const evidence of [byOther, byThis, storage]) {
       const record = JSON.parse(JSON.stringify(build([fixes], evidence))) as DunstanRecord;

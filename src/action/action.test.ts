@@ -425,6 +425,23 @@ describe('the Action', () => {
     expect(none.output.endsWith('\nverdict=error\nrecord-path=\n')).toBe(true);
   });
 
+  it('fails closed when the comment listing answers 100 full pages', async () => {
+    const comments = Array.from({ length: 10_000 }, (_, i) => ({
+      id: i + 1,
+      user: { login: 'agent-bot' },
+      created_at: '2026-10-04T10:00:00Z',
+      body: block(['src/a.ts']),
+    }));
+    const h = harness({
+      pr: basePullRequest({ changed_files: 1 }),
+      files: [{ filename: 'src/a.ts', status: 'modified' }],
+      comments,
+    });
+    const r = await act(h, { 'report-source': 'comment:agent-bot' });
+    expect(r.outcome).toMatchObject({ conclusion: 'failure', verdict: 'error' });
+    expect(r.outcome.title).toBe(`error: cannot list comments on ${REPO}#7 (more than 100 pages)`);
+  });
+
   it('concludes failure, on the check run, when report-source is missing', async () => {
     const h = harness({ pr: basePullRequest() });
     const r = await act(h, {});
