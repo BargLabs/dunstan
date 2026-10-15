@@ -1,6 +1,7 @@
 // Reads one named file out of a ZIP archive (a GitHub Actions artifact download). Stored and deflated
 // entries only, no ZIP64; anything else is a parse error, which makes the artifact read unreadable.
-// The inflated size is capped so a hostile archive cannot exhaust memory.
+// The inflated size is capped (MAX_ENTRY_BYTES, or the caller's lower limit) so a hostile archive
+// cannot exhaust memory.
 
 import { inflateRawSync } from 'node:zlib';
 
@@ -31,8 +32,13 @@ function findEndOfCentralDirectory(bytes: Uint8Array): number {
   throw new ZipError('no end of central directory record');
 }
 
-// Returns the file's bytes, or null when the archive has no entry at `path`.
-export function readZipEntry(bytes: Uint8Array, path: string): Uint8Array | null {
+// Returns the file's bytes, or null when the archive has no entry at `path`. An entry larger than
+// `limit` is a ZipError, whatever size it declares; the hosted Worker passes a lower one.
+export function readZipEntry(
+  bytes: Uint8Array,
+  path: string,
+  limit = MAX_ENTRY_BYTES,
+): Uint8Array | null {
   if (bytes.length < 22) throw new ZipError('archive too short');
   const dv = view(bytes);
   const eocd = findEndOfCentralDirectory(bytes);
@@ -59,7 +65,7 @@ export function readZipEntry(bytes: Uint8Array, path: string): Uint8Array | null
     if (compressedSize === 0xffffffff || size === 0xffffffff || localOffset === 0xffffffff) {
       throw new ZipError('ZIP64 is not supported');
     }
-    if (size > MAX_ENTRY_BYTES) throw new ZipError(`entry larger than ${MAX_ENTRY_BYTES} bytes`);
+    if (size > limit) throw new ZipError(`entry larger than ${limit} bytes`);
     if (localOffset + 30 > bytes.length || dv.getUint32(localOffset, true) !== LOCAL) {
       throw new ZipError('bad local file header');
     }
@@ -74,7 +80,9 @@ export function readZipEntry(bytes: Uint8Array, path: string): Uint8Array | null
     if (method === 0) return data;
     if (method === 8) {
       try {
-        return new Uint8Array(inflateRawSync(data, { maxOutputLength: MAX_ENTRY_BYTES }));
+        // A view of the inflated bytes, not a copy of them.
+        const out = inflateRawSync(data, { maxOutputLength: limit });
+        return new Uint8Array(out.buffer, out.byteOffset, out.byteLength);
       } catch (e) {
         throw new ZipError(`cannot inflate ${path}: ${(e as Error).message}`);
       }

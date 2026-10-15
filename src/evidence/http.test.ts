@@ -124,6 +124,138 @@ describe('a body read against its budget', () => {
   });
 });
 
+// 10AI: the bytes of a body are read into one buffer, never held as chunks and then copied, so a
+// body near its budget peaks near the budget, not twice it. Every buffer the read makes is counted
+// through the client's allocator.
+describe('the buffer a body is read into', () => {
+  function counted() {
+    const sizes: number[] = [];
+    const buffers: Uint8Array[] = [];
+    const allocate = (size: number) => {
+      sizes.push(size);
+      const bytes = new Uint8Array(size);
+      buffers.push(bytes);
+      return bytes;
+    };
+    return { sizes, buffers, allocate };
+  }
+
+  function clientWith(response: () => Response, allocate: (size: number) => Uint8Array) {
+    return new GitHubClient({
+      token: 't',
+      fetch: (async () => response()) as typeof fetch,
+      sleep: async () => {},
+      warn: () => {},
+      allocate,
+    });
+  }
+
+  it('is allocated once, at the declared length, for a body read in many chunks', async () => {
+    const size = ARCHIVE_BUDGET - 4 * MiB;
+    const body = countingBody([size]);
+    const { sizes, buffers, allocate } = counted();
+    const client = clientWith(answer(body, 200, { 'content-length': String(size) }), allocate);
+    const read = await client.read('artifact', ZIP, { json: false });
+    expect(read.ok).toBe(true);
+    expect(read.body.length).toBe(size);
+    expect(sizes).toEqual([size]);
+    // Compared by identity: a failure would otherwise print the whole buffer.
+    expect(read.body.buffer === buffers[0]?.buffer).toBe(true);
+  });
+
+  it('grows one buffer geometrically, never past the budget, when no length is declared', async () => {
+    const size = ARCHIVE_BUDGET - 4 * MiB;
+    const body = countingBody([size]);
+    const { sizes, buffers, allocate } = counted();
+    const read = await clientWith(answer(body), allocate).read('artifact', ZIP, { json: false });
+    expect(read.ok).toBe(true);
+    expect(read.body.length).toBe(size);
+    expect(read.body.buffer === buffers.at(-1)?.buffer).toBe(true);
+    // It doubles, then takes the budget once doubling would pass half of it.
+    expect(sizes).toEqual([1, 2, 4, 8, 16, 32, 72].map((n) => n * MiB));
+    // A buffer and the one it grows into hold at most one and a half times the budget together.
+    for (let i = 1; i < sizes.length; i++) {
+      expect((sizes[i - 1] as number) + (sizes[i] as number)).toBeLessThanOrEqual(
+        1.5 * ARCHIVE_BUDGET,
+      );
+    }
+  });
+
+  it('grows past a declared length that lies low, and still cancels at the budget', async () => {
+    const short = countingBody([3 * MiB]);
+    const { sizes, allocate } = counted();
+    const read = await clientWith(
+      answer(short, 200, { 'content-length': String(MiB) }),
+      allocate,
+    ).read('artifact', ZIP, { json: false });
+    expect(read.body.length).toBe(3 * MiB);
+    expect(sizes).toEqual([MiB, 2 * MiB, 4 * MiB]);
+
+    const long = countingBody([ARCHIVE_BUDGET + 24 * MiB]);
+    const over = counted();
+    const refused = await clientWith(
+      answer(long, 200, { 'content-length': String(MiB) }),
+      over.allocate,
+    ).read('artifact', ZIP, { json: false });
+    expect(refused).toMatchObject({ ok: false, error: 'parse' });
+    expect(long.pulled).toBeLessThanOrEqual(ARCHIVE_BUDGET + MiB);
+    expect(long.cancelled).toBe(true);
+    expect(Math.max(...over.sizes)).toBeLessThanOrEqual(ARCHIVE_BUDGET);
+  });
+
+  it('returns a view of the bytes read when the body is shorter than declared', async () => {
+    const bytes = new TextEncoder().encode('[{"filename":"src/a.ts"}]');
+    const body = countingBody([bytes.subarray(0, 5), bytes.subarray(5)]);
+    const { sizes, allocate } = counted();
+    const client = clientWith(answer(body, 200, { 'content-length': '4096' }), allocate);
+    const read = await client.read('pull_request_files', FILES);
+    expect(read).toMatchObject({ ok: true, json: [{ filename: 'src/a.ts' }] });
+    expect(sizes).toEqual([4096]);
+    expect(client.sources.get(`GET ${FILES}`)?.sha256).toBe(sha256Hex(bytes));
+  });
+
+  it('records the same SHA-256 for a body under its budget however it is chunked or declared', async () => {
+    const bytes = new Uint8Array(3 * MiB + 17).map((_, i) => (i * 31) % 251);
+    const expected = sha256Hex(bytes);
+    for (const [parts, headers] of [
+      [[bytes], {}],
+      [[bytes.subarray(0, 1), bytes.subarray(1, 70_000), bytes.subarray(70_000)], {}],
+      [[bytes.subarray(0, MiB), bytes.subarray(MiB)], { 'content-length': String(bytes.length) }],
+      [[bytes.subarray(0, MiB), bytes.subarray(MiB)], { 'content-length': '100' }],
+    ] as [Uint8Array[], Record<string, string>][]) {
+      const { allocate } = counted();
+      const client = clientWith(answer(countingBody(parts), 200, headers), allocate);
+      await client.read('artifact', ZIP, { json: false });
+      expect(client.sources.get(`GET ${ZIP}`)?.sha256).toBe(expected);
+    }
+  });
+});
+
+describe('an artifact budget given to the client', () => {
+  it('reads an archive against it, and the entry limit with it', async () => {
+    const body = countingBody([24 * MiB]);
+    const client = new GitHubClient({
+      token: 't',
+      fetch: (async () => new Response(body.stream)) as typeof fetch,
+      sleep: async () => {},
+      warn: () => {},
+      maxArchiveBytes: 16 * MiB,
+      maxEntryBytes: 8 * MiB,
+    });
+    const read = await client.read('artifact', ZIP, { json: false });
+    expect([read.ok, read.status, read.ok ? null : read.error]).toEqual([false, 200, 'parse']);
+    expect(body.pulled).toBeLessThanOrEqual(17 * MiB);
+    expect(body.cancelled).toBe(true);
+    expect(client.maxEntryBytes).toBe(8 * MiB);
+  });
+
+  it('defaults to the archive budget and the entry limit', () => {
+    const client = new GitHubClient({ token: 't' });
+    expect(client.maxArchiveBytes).toBe(MAX_ARCHIVE_BYTES);
+    expect(client.maxEntryBytes).toBe(MAX_ENTRY_BYTES);
+  });
+});
+
 describe('an answer about to be retried', () => {
   it('is cancelled unread', async () => {
     const first = countingBody([BODY_BUDGET + 16 * MiB]);

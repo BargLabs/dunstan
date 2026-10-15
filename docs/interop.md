@@ -211,6 +211,7 @@ often describe the forge, not the checker. None is `NOT_APPLICABLE`, `APPLICABLE
 | `file_list_truncated` | `EVIDENCE_INCOMPLETE` |
 | `evidence_field_unpopulated:<field>` | `EVIDENCE_INCOMPLETE` |
 | `source_unreadable:<kind>` | `EVIDENCE_INCOMPLETE` |
+| `check_runs_not_at_head` | `EVIDENCE_INCOMPLETE` |
 | `closing_link_unsettled` | `UNRESOLVED` |
 | `closing_base_not_default` | `UNRESOLVED` |
 | `closing_event_unsettled` | `UNRESOLVED` |

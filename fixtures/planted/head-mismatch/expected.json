@@ -42,11 +42,13 @@
     },
     {
       "id": "count:/checks/total",
-      "verdict": "pass"
+      "verdict": "unverifiable",
+      "reason": "check_runs_not_at_head"
     },
     {
       "id": "count:/checks/allSucceeded",
-      "verdict": "pass"
+      "verdict": "unverifiable",
+      "reason": "check_runs_not_at_head"
     },
     {
       "id": "time:/mergedAt",

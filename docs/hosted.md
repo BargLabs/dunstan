@@ -37,6 +37,29 @@ entry is refused. Two redirects are followed, and no other: an artifact download
 storage, without the token; and an issue read's, which GitHub sends for an issue transferred to
 another repository, only to another issue on the API, written in full with no query.
 
+### Artifact size
+
+A JUnit artifact is downloaded whole, because a ZIP archive's directory is at its end, and its report
+is then inflated and counted. The Worker runs in an isolate with about 128 MB of memory, so it reads
+an artifact against lower budgets than `dunstan check` and the Action:
+
+| | Worker | `dunstan check`, the Action |
+| --- | --- | --- |
+| The archive | 24 MiB | 72 MiB |
+| The report inflated from it | 16 MiB | 64 MiB |
+
+While a report is counted the Worker holds the archive, the inflated report and the report as text
+(up to two bytes a character), and the inflate briefly holds its output twice: at most 24 + 16 + 32
+MiB, with 16 MiB more during the inflate, which leaves the Worker room for the rest of the request.
+The CLI's 64 MiB limit alone would be half the isolate. The report's limit is the one that matters
+(a report deflates well, so a small archive can inflate to it); the archive has 8 MiB beside the
+report for the directory and the small files an artifact carries with it, as the CLI's does.
+
+An archive or a report over the Worker's budget is read no further, the source is recorded as
+unreadable, and a test claim that needs it is `unverifiable`; the record says so, and `dunstan
+verify` recomputes the same verdict. `dunstan check` on the same pull request reads up to its own
+budgets. To stay under the Worker's, upload the report as an artifact of its own.
+
 ### Contents: read
 
 The App holds **Contents: read**, which GitHub grants as read access to code. GitHub requires it for

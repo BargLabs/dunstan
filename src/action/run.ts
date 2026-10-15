@@ -36,10 +36,10 @@ import {
 } from './check-run.js';
 import { readEvent } from './event.js';
 import { ActionError, type ActionInputs, input, parseInputs, type ReportSource } from './inputs.js';
-import { conclusionFor, type Outcome, renderSummary, titleFor } from './outcome.js';
+import { ARTIFACT_NAME, conclusionFor, type Outcome, renderSummary, titleFor } from './outcome.js';
 
+export { ARTIFACT_NAME };
 export const RECORD_FILE = 'dunstan-record.json';
-export const ARTIFACT_NAME = 'dunstan-record';
 
 export interface ActionIo {
   env: Record<string, string | undefined>;
@@ -132,7 +132,11 @@ export async function runAction(io: ActionIo): Promise<ActionResult> {
   let checkRunId: number | undefined;
   // This job's own check run: null until looked up, undefined when it cannot be told.
   let jobRun: number | undefined | null = null;
+  // False for a fork, whose token cannot write a check run by design. Otherwise the outcome is
+  // expected on a check run, and the step fails when none is written.
   let canWriteCheckRun = true;
+  // The check run could not be created, so it is not tried again.
+  let createFailed = false;
   let recordPath: string | undefined;
   let outcome: Outcome;
 
@@ -197,7 +201,7 @@ export async function runAction(io: ActionIo): Promise<ActionResult> {
         const own: number[] = [];
         if (checkRunId !== undefined) {
           own.push(checkRunId);
-        } else if (canWriteCheckRun) {
+        } else if (canWriteCheckRun && !createFailed) {
           const created = await createCheckRun(api, pr.repository, pr.evidence.headSha, {
             status: 'in_progress',
             ...(env.GITHUB_SERVER_URL && env.GITHUB_RUN_ID
@@ -210,9 +214,9 @@ export async function runAction(io: ActionIo): Promise<ActionResult> {
             checkRunId = created.id;
             own.push(created.id);
           } else {
-            canWriteCheckRun = false;
+            createFailed = true;
             notes.push(
-              `The \`${CHECK_NAME}\` check run could not be created (${created.error}): the token cannot write checks here (\`checks: write\` missing, or a read-only token). The result is in this job summary and the step's exit status only.`,
+              `The \`${CHECK_NAME}\` check run could not be created (${created.error}): the token cannot write checks here (\`checks: write\` missing, or a read-only token). The result is in this job summary only, and the step fails whatever the verdict.`,
             );
           }
         }
@@ -286,9 +290,12 @@ export async function runAction(io: ActionIo): Promise<ActionResult> {
     };
   }
 
-  // The check run carries the outcome; when it cannot be written, the job summary says so.
+  // The check run carries the outcome, and the job summary is the same summary. When the check run
+  // was expected and is not written, the job summary says why after it and the step fails: a pass
+  // nobody can see on the pull request is not reported as a success.
   const output = { title: outcome.title, summary: renderSummary(outcome) };
-  if (canWriteCheckRun) {
+  const unpublished: string[] = [];
+  if (canWriteCheckRun && !createFailed) {
     let written: CheckRunResult | undefined;
     if (client !== undefined && repository !== undefined) {
       written =
@@ -303,31 +310,42 @@ export async function runAction(io: ActionIo): Promise<ActionResult> {
             : undefined;
     }
     if (written === undefined) {
-      notes.push(
+      unpublished.push(
         `No \`${CHECK_NAME}\` check run was written: the pull request's head commit is not known. A required \`${CHECK_NAME}\` check stays pending.`,
       );
     } else if (!written.ok) {
-      notes.push(
-        `The \`${CHECK_NAME}\` check run could not be written (${written.error}). A required \`${CHECK_NAME}\` check stays pending or in progress.`,
+      unpublished.push(
+        `The \`${CHECK_NAME}\` check run could not be written (${written.error}). A required \`${CHECK_NAME}\` check stays pending or in progress, and the step fails whatever the verdict.`,
       );
     } else {
       io.log(`dunstan: check run ${CHECK_NAME} ${written.id}: ${outcome.conclusion}`);
     }
   }
+  // Expected and not written: the creation failed, or the completion did.
+  const notWritten = canWriteCheckRun && (createFailed || unpublished.length > 0);
+  notes.push(...unpublished);
 
-  const summary = renderSummary(outcome);
-  if (env.GITHUB_STEP_SUMMARY) appendFileSync(env.GITHUB_STEP_SUMMARY, `${summary}\n`);
+  if (env.GITHUB_STEP_SUMMARY) {
+    const after =
+      unpublished.length === 0
+        ? ''
+        : ['', '### Not published', '', ...unpublished.map((n) => `- ${n}`), ''].join('\n');
+    appendFileSync(env.GITHUB_STEP_SUMMARY, `${output.summary}\n${after}`);
+  }
   if (env.GITHUB_OUTPUT) {
     appendFileSync(
       env.GITHUB_OUTPUT,
       `verdict=${outcome.verdict}\nrecord-path=${recordPath ?? ''}\n`,
     );
   }
-  const line = `dunstan: ${outcome.conclusion}: ${outcome.title}`;
-  io.log(outcome.conclusion === 'failure' ? `::error title=dunstan::${escapeCommand(line)}` : line);
+  // Every note in the step log, so that one the summary left out for its size is still there.
+  for (const note of notes) io.log(`dunstan: note: ${note}`);
+  const exitCode = outcome.conclusion === 'failure' || notWritten ? 1 : 0;
+  const line = `dunstan: ${outcome.conclusion}: ${outcome.title}${notWritten ? ` (no \`${CHECK_NAME}\` check run was written)` : ''}`;
+  io.log(exitCode === 1 ? `::error title=dunstan::${escapeCommand(line)}` : line);
   return {
     outcome,
-    exitCode: outcome.conclusion === 'failure' ? 1 : 0,
+    exitCode,
     ...(recordPath === undefined ? {} : { recordPath }),
   };
 }

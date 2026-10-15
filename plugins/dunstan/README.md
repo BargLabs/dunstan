@@ -22,25 +22,55 @@ handback covers what the issue asked for: an accurate report of the wrong work p
 
 ## What it runs, reads and sends
 
-The plugin starts the MCP server with `npx -y dunstan@0.1.11 mcp`, which downloads the `dunstan`
+The plugin starts the MCP server with `npx -y dunstan@0.1.12 mcp`, which downloads the `dunstan`
 package at that exact version from the npm registry. The package is one self-contained file with no
 dependencies. The server runs on your machine and reads GitHub's API directly from it: the pull
 request, its files, commits, check runs, workflow runs and artifacts, deployments, and the issues the
 block references. Every request is a read. Nothing is written to GitHub or the repository, and nothing
 is sent to Barg Labs.
 
+## Changes in 0.1.12
+
+Two fixes from a correctness review of the checker (spec 0.1.8).
+
+- **A JUnit artifact from an earlier attempt.** GitHub lists a run's artifacts for the whole run
+  and its jobs at their latest attempt. A test count is now read from an artifact only if it was
+  created while the named job's latest attempt ran, between that job's start and its completion.
+  Otherwise, or while that job is still running, the count is `unverifiable`
+  (`source_unreadable:artifact`) and the artifact is not downloaded. In 0.1.11, after a full re-run
+  whose test job failed before uploading, an artifact from the first attempt, if GitHub still listed
+  it, could be counted as the latest attempt's. A job that "re-run failed jobs" did not re-run keeps
+  its earlier attempt, and its artifact is read as before.
+- **Check runs at another commit.** Check runs are read at the block's `headCommit`. When that is not
+  the pull request's head, every `checks` claim is now `unverifiable` (`check_runs_not_at_head`),
+  beside the head claim's `head_mismatch`. In 0.1.11 they were counted as if they were the head's.
+
+The verdict changes only for a test count whose artifact the job's latest attempt did not upload,
+which was a pass or a fail and is now `unverifiable`. A `checks` claim changes only where the head
+claim already fails, so the overall verdict stays `fail`. Every other claim is unchanged, and no
+token permission is added.
+
 ## Changes in 0.1.11
 
-A fix to how check runs are counted (spec 0.1.7). A run the checker excludes, such as the Dunstan
-Action's own `dunstan` run, now hides only earlier runs of its own identity: the same name and
-workflow path, or, for a run of no workflow, the same name and app, unless that app is
-`github-actions`, which every workflow in a repository creates runs as. In 0.1.10 it hid every
-earlier run of its name, so a failed job named `dunstan` in another workflow was not counted, and
-`checks.total`, `checks.allSucceeded` and `checks.noneFailed` could pass. That job is now counted,
-and the claims fail. A `checks` claim checked against the same evidence can therefore get a
-different verdict in 0.1.10 and 0.1.11, only when an excluded run shares its name with a run of
-another workflow or app, or with a `github-actions` run of no workflow. Every other claim is
-unchanged.
+Three fixes from a security review of the checker (spec 0.1.7).
+
+- **Check runs.** A run the checker excludes, such as the Dunstan Action's own `dunstan` run, now
+  hides only earlier runs of its own identity: the same name and workflow path, or, for a run of no
+  workflow, the same name and app, unless that app is `github-actions`, which every workflow in a
+  repository creates runs as. In 0.1.10 it hid every earlier run of its name, so a failed job named
+  `dunstan` in another workflow was not counted, and `checks.total`, `checks.allSucceeded` and
+  `checks.noneFailed` could pass. That job is now counted, and the claims fail.
+- **A pull request that moves while it is checked.** The pull request is read again after the
+  evidence. If its head, base, state or file count changed, the check runs once more from a fresh
+  read; if it moves again, no record is written and the check fails with `pull_request_moved`. A
+  record never pairs one head with evidence read at another.
+- **Response size.** Every answer from GitHub is read against a byte budget (72 MiB for an artifact
+  archive, 48 MiB for anything else) and cancelled past it, never held whole first. An answer over
+  its budget is recorded as unreadable, so a claim that needs it is `unverifiable`.
+
+Only a `checks` claim can get a different verdict from 0.1.10 against the same evidence, and only
+when an excluded run shares its name with a run of another workflow or app, or with a
+`github-actions` run of no workflow. Every other claim is unchanged.
 
 ## Changes in 0.1.10
 

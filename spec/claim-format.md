@@ -1,6 +1,6 @@
 # The Dunstan claim format
 
-Version 0.1.7. Draft. Licensed under Apache-2.0 (`spec/LICENSE`).
+Version 0.1.8. Draft. Licensed under Apache-2.0 (`spec/LICENSE`).
 
 A coding agent that finishes a task writes a completion report. This specification defines a block
 the agent declares inside that report, the checks a checker runs on each declared field against the
@@ -490,6 +490,24 @@ marks it `expired`), and an artifact whose archive cannot be downloaded (GitHub 
 expired one): the rows are `unverifiable` with `source_unreadable:artifact`, never
 `record_not_found`, because the run did upload the record.
 
+**The named job's latest attempt** (since 0.1.8). A checker reads a run's jobs at their latest
+attempt (`GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs?filter=latest`) and its artifacts by
+name (`GET /repos/{owner}/{repo}/actions/runs/{run_id}/artifacts?name=<artifact>`), and the artifact
+listing is the whole run's, not one attempt's. An artifact counts only if it was created within the
+latest attempt of a job named `job`: its `created_at` is at or after that job's `started_at` and at
+or before its `completed_at`, compared to the second (section 7.6), and the job's `run_attempt`,
+where the listing gives one, is no later than the run's `run_attempt` the runs listing gave. A JUnit
+artifact is uploaded by a step of the job, so every honest record is within that window, including
+a job that "re-run failed jobs" left at an earlier attempt: its latest attempt is the one that
+passed, and its artifact is that attempt's. Otherwise, and also where that job has not completed
+(`completed_at` is `null`), or a time the window needs is absent, the archive is never downloaded,
+and the artifact read is `unreadable`: the rows are `unverifiable` with `source_unreadable:artifact`,
+never `record_not_found`, because the run did upload a record. A time present in either listing that
+is not a UTC timestamp is unparseable, as any other shape error is, and makes the record `unreadable`
+with kind `workflow_runs`. The window is decided from the two listings the checker already reads,
+whose digests are in `sources`; the evidence records its outcome, as it records an expired
+artifact's, and holds no time of a job or an artifact.
+
 For a record of any other kind the rows are `unverifiable` with `no_comparable_record_field`. A test
 count is never compared with a check-run total, or with anything other than the record it names.
 
@@ -536,6 +554,15 @@ token, so that its runs have an identity: created with `GITHUB_TOKEN` outside a 
 suite, they have none, and the checker's own earlier runs in other suites are counted, which can
 fail a correct claim, never pass a wrong one.
 
+**At the head** (since 0.1.8). The check runs are read at `headCommit`, and `checkRuns.commit`
+records the commit they were read at. Where that is not the pull request's head
+(`pullRequest.headSha`), they are another commit's check runs and say nothing about the head: every
+`checks` row is `unverifiable` with `check_runs_not_at_head`, whatever the runs hold. A checker
+reads them at `headCommit`, so this is the case where the head row fails with `head_mismatch`
+(section 7.2); the rule is in the check, not the reader, so that offline verify applies it to every
+record, from both members it already holds. An unreadable or absent `checkRuns` keeps its own
+reason.
+
 - `count:/checks/total` compares `total` with the number of check runs counted so, each key once;
   `count_mismatch` if unequal.
 - `count:/checks/allSucceeded` compares `allSucceeded` with an observed value: `false` if any
@@ -570,7 +597,8 @@ Times are compared to the second: fractional seconds are discarded before compar
     every candidate, so two checkers reading the same answers list the same deployments. The head
     commit here is the observed head, `pullRequest.headSha`, not the declared `headCommit` (the
     check runs and test records are read at `headCommit`); where the two differ, the head row fails
-    with `head_mismatch` (section 7.2).
+    with `head_mismatch` (section 7.2), and every `checks` row is `unverifiable` with
+    `check_runs_not_at_head` (section 7.5, since 0.1.8).
   - **Relation.** Each candidate carries `relation`: `head` (its commit is the head commit), `merge`
     (the merge commit), `descendant` (a commit that has the merge commit as an ancestor, read with
     the compare API), `unrelated` (compare answered and it is not a descendant), or `unknown` (the
@@ -835,6 +863,7 @@ against the schemas and check each record's block, report and claim and evidence
 | `checks_incomplete` | unverifiable | A check run has not completed. |
 | `no_check_runs` | unverifiable | There are no check runs at the head. |
 | `no_succeeded_check_runs` | unverifiable | No check run counted at the head concluded `success`, and none failed: nothing failed, and nothing ran (`noneFailed`, section 7.5). |
+| `check_runs_not_at_head` | unverifiable | The check runs were read at a commit other than the pull request's head (`checkRuns.commit` is not `pullRequest.headSha`; section 7.5, since 0.1.8). |
 | `no_comparable_record_field` | unverifiable | The test record's kind has no comparable field in this version. |
 | `record_not_found` | unverifiable | No run carries the named test record. |
 | `record_ambiguous` | unverifiable | Candidate runs disagree on the number. |
@@ -845,6 +874,64 @@ against the schemas and check each record's block, report and claim and evidence
 | `source_unreadable:<kind>` | unverifiable | The source errored. |
 
 ## 17. Changes
+
+- **0.1.8** (2026-10-15). Two changes to section 7.5, checked by checker 0.1.12. Both are from
+  the open questions of the correctness review's supplement, read against checker 0.1.11 at commit
+  `147b854`.
+
+  **The named job's latest attempt.** Checker 0.1.11 read a run's jobs at their latest attempt and
+  required the record's job among them, then took the artifact of the record's name from the
+  run's artifact listing, which is the whole run's, with no check of which attempt uploaded it, and
+  recorded the counts with the run's latest `run_attempt`. In a full re-run whose second attempt
+  failed before its upload step, an artifact the first attempt uploaded, if the listing still gives
+  it, would be read as the second attempt's result: a test claim could pass on counts the latest
+  attempt never produced, which section 2 forbids. Whether GitHub's artifact listing keeps an
+  earlier attempt's artifact for a run re-run in full has not been observed; the rule holds either
+  way. An artifact now counts only if it was created within the latest attempt of a job named
+  `job`, from that job's `started_at` to its `completed_at`, by a job whose `run_attempt` is no
+  later than the run's; otherwise the record is `unreadable` with kind `artifact`, and the archive
+  is not downloaded (section 7.5, "The named job's latest attempt"). A job that "re-run failed
+  jobs" did not re-run keeps its earlier attempt as its latest, and its artifact is created inside
+  it, so it is read as before.
+
+  The window is read from the jobs and artifact listings the checker already reads: no request,
+  token permission or evidence field is added, and the evidence schema is unchanged. The evidence
+  does not record the times. The window decides whether the artifact is read at all, and an
+  artifact outside it has no counts to record; its outcome is recorded as `unreadable` with kind
+  `artifact`, as an expired artifact's is, the listings' digests are in `sources`, and offline
+  verify recomputes the claims from that section as it does for an expired artifact. Recording the
+  times would let verify recompute the window only for the artifacts that were read, which are
+  never the ones the rule refuses. An online re-run reads the listings again and applies the
+  window.
+
+  **Check runs at another commit.** The check runs are read at `headCommit`, and `checkRuns.commit`
+  records where. Where that is not `pullRequest.headSha`, checker 0.1.11 counted another commit's
+  runs for the head. The head row already failed with `head_mismatch`, so the overall verdict was
+  `fail`, but the `checks` rows could pass on that commit's runs. Every `checks` row is now
+  `unverifiable` with the new reason `check_runs_not_at_head`. The comparison is in the check, not
+  the evidence reader: the verdict is a function of the block and the evidence, both members are in
+  every record, and offline verify recomputes it, including for a record written before this
+  change or by hand. The reader reads at `headCommit` as section 6 says, and refusing there would
+  record a read that succeeded as unread. The record schema's claim reason gains
+  `check_runs_not_at_head`, and the DRAFT schema's advisory note gains
+  `unanswered:check_runs_not_at_head`, which an advisory `checks_succeeded` or `check_count` gives
+  on such a record. Test records are read at `headCommit` too, and their evidence names no commit,
+  so no check can compare one; where `headCommit` is not the head, the head row fails with
+  `head_mismatch`, as before.
+
+  **Records already written.** A 0.1.7 record is verified offline by checker 0.1.11, which it names
+  (section 12); checker 0.1.12 refuses it at `/predicate/checker`. Recomputed under 0.1.12, a record
+  whose `checkRuns.commit` is not `pullRequest.headSha` has every `checks` row `unverifiable` with
+  `check_runs_not_at_head`, and its verdict stays `fail` on `head_mismatch`; every other record
+  gets the same claims and verdict, since the evidence holds no times to apply the window to.
+  `dunstan rerun` of it re-reads the sources as 0.1.12 reads them and writes a new record.
+
+  Example records: each carries spec 0.1.8 and checker 0.1.12. Each reads its check runs at the
+  head, or could not read them, so their claims, verdicts and digests are unchanged. One acceptance
+  case changes its rows: `head-mismatch` reads its check runs at the declared commit, so its two
+  `checks` rows are `unverifiable` with `check_runs_not_at_head`, and its verdict stays `fail` on
+  `head_mismatch` (acceptance addendum of 2026-10-15). No fixture's evidence changes, and every
+  other case keeps its rows. A 0.1 block stays valid.
 
 - **0.1.7** (2026-10-15). Erratum to section 7.5, corrected in checker 0.1.11, and a second read
   of the pull request in section 6 ("One pull request" below). Found by the
@@ -1870,6 +1957,14 @@ nothing is at that path at the head.
    unchanged.
 
 ### D.12 Changes to this draft
+
+- **2026-10-15.** Spec 0.1.8 (section 17): check runs read at a commit other than the pull
+  request's head leave every `checks` row `unverifiable` with `check_runs_not_at_head`. An
+  advisory `checks_succeeded` or `check_count` is decided by that row (D.11.4), so on such a record
+  its note is `unanswered:check_runs_not_at_head`, which the DRAFT schema's advisory note now
+  accepts; it is never `differs`. Advisory comparison stays 0.4.0: its rules are unchanged, and the
+  note is the gate row's. The reader claims of D.6 read the counted check runs, not the `checks`
+  rows, and are unchanged.
 
 - **2026-10-14.** The DRAFT schema's reader claim reason accepts `source_unreadable:workflow_runs`.
   Since spec 0.1.4 as amended 2026-10-13, `checkRuns` is `unreadable` with kind `workflow_runs`

@@ -1,6 +1,6 @@
 // An archive's stored size and its selected entry's inflated size are limited separately: the
 // download is read against the archive budget (src/evidence/http.ts), and the entry is inflated to
-// at most MAX_ENTRY_BYTES whatever size the archive declares for it.
+// at most MAX_ENTRY_BYTES (or the caller's lower limit) whatever size the archive declares for it.
 
 import { describe, expect, it } from 'vitest';
 import { makeZip } from '../__tests__/fake-github.js';
@@ -35,5 +35,19 @@ describe('readZipEntry limits', () => {
   it('reads an entry of exactly the limit', () => {
     const zip = makeZip({ 'reports/junit.xml': 'a'.repeat(MAX_ENTRY_BYTES) });
     expect(readZipEntry(zip, 'reports/junit.xml')?.length).toBe(MAX_ENTRY_BYTES);
+  });
+
+  // 10AI: the hosted Worker passes a lower limit, which holds the same way.
+  it('holds a lower limit the caller gives, declared or inflated', () => {
+    const limit = 1024 * 1024;
+    const zip = makeZip({ 'reports/junit.xml': 'a'.repeat(limit + 1) });
+    expect(() => readZipEntry(zip, 'reports/junit.xml', limit)).toThrow(
+      `entry larger than ${limit} bytes`,
+    );
+    expect(() => readZipEntry(declaring(zip, 100), 'reports/junit.xml', limit)).toThrow(
+      /cannot inflate/,
+    );
+    const exact = makeZip({ 'reports/junit.xml': 'a'.repeat(limit) });
+    expect(readZipEntry(exact, 'reports/junit.xml', limit)?.length).toBe(limit);
   });
 });

@@ -1487,6 +1487,81 @@ describe('checks.noneFailed', () => {
   });
 });
 
+// Spec 0.1.8, section 7.5: check runs read at a commit other than the pull request's head say
+// nothing about the head, so every checks claim is unverifiable, whatever they hold.
+describe('check runs read at a commit other than the head', () => {
+  const ELSEWHERE = 'b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0';
+  const ran = (id: number, name: string, conclusion: string): CheckRun => ({
+    id,
+    name,
+    status: 'completed',
+    conclusion,
+  });
+  const ALL = { total: 2, allSucceeded: true, noneFailed: true };
+  const checksRows = (commit: string, runs: CheckRun[], headCommit = HEAD) =>
+    runChecks(
+      block({ headCommit, checks: ALL }),
+      evidence({ checkRuns: { status: 'ok', commit, excludedIds: [], runs } }),
+      REPO,
+    ).filter((c) => c.id.startsWith('count:/checks/'));
+  const unverifiableRow = (field: string, declared: unknown) => ({
+    id: `count:${field}`,
+    check: 'count',
+    field,
+    declared,
+    observed: null,
+    verdict: 'unverifiable',
+    reason: 'check_runs_not_at_head',
+  });
+
+  it('is unverifiable, check_runs_not_at_head, for every checks claim, true or false', () => {
+    const SUCCEEDED = [ran(1, 'lint', 'success'), ran(2, 'test', 'success')];
+    const FAILED = [ran(1, 'lint', 'success'), ran(2, 'test', 'failure'), ran(3, 'x', 'success')];
+    for (const runs of [SUCCEEDED, FAILED, []]) {
+      expect(checksRows(ELSEWHERE, runs, ELSEWHERE)).toEqual([
+        unverifiableRow('/checks/total', 2),
+        unverifiableRow('/checks/allSucceeded', true),
+        unverifiableRow('/checks/noneFailed', true),
+      ]);
+    }
+  });
+
+  it('compares the commit with the head as read, not with the declared headCommit', () => {
+    const runs = [ran(1, 'lint', 'success'), ran(2, 'test', 'success')];
+    // Read at the declared commit, which is not the head: the head row fails, and the checks rows
+    // are unverifiable.
+    const claims = runChecks(
+      block({ headCommit: ELSEWHERE, checks: ALL }),
+      evidence({ checkRuns: { status: 'ok', commit: ELSEWHERE, excludedIds: [], runs } }),
+      REPO,
+    );
+    expect(row(claims, 'head:/headCommit')).toMatchObject({
+      verdict: 'fail',
+      reason: 'head_mismatch',
+    });
+    expect(claims.filter((c) => c.id.startsWith('count:/checks/')).map((c) => c.reason)).toEqual([
+      'check_runs_not_at_head',
+      'check_runs_not_at_head',
+      'check_runs_not_at_head',
+    ]);
+    // Read at the head: counted as before.
+    expect(checksRows(HEAD, runs).map((c) => c.verdict)).toEqual(['pass', 'pass', 'pass']);
+  });
+
+  it('leaves an unreadable section its own reason', () => {
+    const claims = runChecks(
+      block({ checks: ALL }),
+      evidence({ checkRuns: { status: 'unreadable', source: 'check_runs' } }),
+      REPO,
+    );
+    expect(claims.filter((c) => c.id.startsWith('count:/checks/')).map((c) => c.reason)).toEqual([
+      'source_unreadable:check_runs',
+      'source_unreadable:check_runs',
+      'source_unreadable:check_runs',
+    ]);
+  });
+});
+
 describe('overallVerdict', () => {
   it('a fail decides; no rows, or a block that is not found, never passes', () => {
     expect(overallVerdict('found', [{ verdict: 'unverifiable' }, { verdict: 'fail' }])).toBe(

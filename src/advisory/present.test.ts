@@ -139,13 +139,15 @@ const FIGURES_LINE =
 // DRAFT schema's reader claim reason gained, which a check_succeeded claim gives when the check runs
 // are unreadable because the workflow runs are; and but for spec 0.1.6, for which the block schema's
 // `checks` gained `noneFailed` and the 0.1 record schema's claim reason `none_failed_mismatch` and
-// `no_succeeded_check_runs`. A change to any of them is a record change.
+// `no_succeeded_check_runs`; and but for spec 0.1.8, for which the 0.1 record schema's claim reason
+// gained `check_runs_not_at_head` and the DRAFT schema's advisory note
+// `unanswered:check_runs_not_at_head`. A change to any of them is a record change.
 const SCHEMA_SHA256: Record<string, string> = {
   'handback-block-0.1.schema.json':
     '24388a8267afbc08f6355db16c7d0195e3b835227be3303490a70e45342397ba',
-  'record-0.1.schema.json': '25cf6f0fc4077f8871fb6788212d61fb5f0ad82e34f0a67e9359042ebf482b53',
+  'record-0.1.schema.json': '3650764fd473f3f48c1b2cb373aa002ced9e39c05870fc5ba90d820745a0afce',
   'record-0.2-draft.schema.json':
-    'd402adbccabe0674ca25b4b0bb60068be148330ad193e86cb222b60c60fc4848',
+    '636078559ce3abf32fa509338bc957acb87b53fcc7ce2525b6376c5cec771c6d',
 };
 
 const evidence: Evidence = {

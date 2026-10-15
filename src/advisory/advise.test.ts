@@ -238,6 +238,29 @@ describe('compareAdvisory: the gate check for each kind', () => {
     );
   });
 
+  // Spec 0.1.8: the check runs of a block whose headCommit is not the head are read at that commit,
+  // so they answer no claim about the head.
+  it('checks_succeeded and check_count are unanswered on check runs read at another commit', () => {
+    const elsewhere: Evidence = {
+      ...evidence,
+      checkRuns: {
+        ...(evidence.checkRuns as Extract<Evidence['checkRuns'], { status: 'ok' }>),
+        commit: 'b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0',
+      },
+    };
+    for (const [kind, value] of [
+      ['checks_succeeded', true],
+      ['checks_succeeded', false],
+      ['check_count', 3],
+      ['check_count', 5],
+    ] as const) {
+      expect(note(kind, value, elsewhere)).toEqual({
+        observed: null,
+        note: 'unanswered:check_runs_not_at_head',
+      });
+    }
+  });
+
   it('merged_at is the 7.6 time check', () => {
     expect(note('merged_at', '2026-10-01T12:00:00Z').note).toBe('agrees');
     expect(note('merged_at', '2026-10-01T11:59:59Z').note).toBe('differs:premature');

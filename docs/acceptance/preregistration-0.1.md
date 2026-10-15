@@ -185,6 +185,21 @@ below requires. Counted per check suite and name, each would fail.
 | `checks-push-and-pull-request` (control) | A merged pull request (#165) whose block declares `total: 3` and `allSucceeded: true`. `ci.yml` ran on `push` (workflow run 7001, check suite 6001) and on `pull_request` (workflow run 7002, suite 6002), each running `lint`, `typecheck` and `test`, all `success`; the evidence records `workflowPath: ".github/workflows/ci.yml"` on all six check runs. Per check suite and name, `total` observed 6 | `pass`, every row; `count:/checks/total` passes with 3 |
 | `checks-reopened-same-workflow` (control) | A merged pull request (#166) whose block declares `total: 3` and `allSucceeded: true`. `ci.yml` ran when it was opened (workflow run 7001, suite 6001), where `test`, run 9003, concluded `failure` before it wrote its report, and again when it was reopened (workflow run 7003, suite 6003), where every job succeeded. Per check suite and name, run 9003 was read: `allSucceeded` observed `false` and `total` 6 | `pass`, every row; `count:/checks/allSucceeded` passes with `true` |
 
+Addendum, 2026-10-15, spec 0.1.8. No case is added. **One case's expected rows are edited**, the
+first edit of an expected value since this preregistration, against the rule under "Decision rule"
+below; it is reported in the pull request that makes it, for the operator to accept or refuse.
+Spec 0.1.8 (section 7.5, "At the head") makes every `checks` row `unverifiable` with
+`check_runs_not_at_head` when `checkRuns.commit` is not `pullRequest.headSha`. `head-mismatch`
+declares `headCommit` `b0b0…b0`, an earlier commit of the branch, and its evidence holds the check
+runs read there, as a checker reads them, so its rows `count:/checks/total` and
+`count:/checks/allSucceeded`, expected `pass` above as rows not named, are now expected
+`unverifiable` with `check_runs_not_at_head`. Its named row, `head:/headCommit` `head_mismatch`,
+and its verdict, `fail`, are unchanged, and its evidence is unchanged: setting `checkRuns.commit` to
+the head to keep the old rows would record a read no checker makes. No other case reads its check
+runs at another commit than the head, and every other case keeps its expected values. The
+section 7.5 window on a JUnit artifact's attempt changes no case: the evidence records no times
+(spec section 17, 0.1.8), so each case's `testRecords` section is read as before.
+
 ### Cross-machine (d)
 
 CI runs every fixture, planted and control, through `runChecks` and the record builder on

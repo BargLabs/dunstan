@@ -134,6 +134,20 @@ describe('the published schemas', () => {
     expect(pattern.test('no_succeeded_check_runs')).toBe(true);
   });
 
+  it('allow check_runs_not_at_head, in a claim and in an advisory note (spec 0.1.8)', () => {
+    const claimReason = new RegExp(
+      (readSchema(RECORD_SCHEMA_FILE) as { $defs: Record<string, { pattern: string }> }).$defs
+        .claimReason?.pattern as string,
+    );
+    expect(claimReason.test('check_runs_not_at_head')).toBe(true);
+    const note = new RegExp(
+      (readSchema(DRAFT_RECORD_SCHEMA_FILE) as { $defs: Record<string, { pattern: string }> }).$defs
+        .advisoryNote?.pattern as string,
+    );
+    expect(note.test('unanswered:check_runs_not_at_head')).toBe(true);
+    expect(note.test('differs:check_runs_not_at_head')).toBe(false);
+  });
+
   it('accepts a test record of any other kind with any shape', () => {
     expect(
       validateBlock({

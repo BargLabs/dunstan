@@ -155,8 +155,8 @@ figures.
 | `reference_closes` | `#N`, `owner/repo#N` | 7.4 `closes` | `agrees` (among the closing references, or closed by this pull request or one of its commits), `differs:not_closing` (merged or closed pull request), `differs:not_found`, `unanswered:closing_link_unsettled` (open pull request), `unanswered:closing_base_not_default` (merged elsewhere, target open), `unanswered:closing_event_unsettled` (target closed, no ClosedEvent yet), `unanswered:…` |
 | `commit` | 7 to 40 hex | 7.2 if the head starts with it, else 7.4 `cites` (40 hex only) | `agrees`, `differs:not_found`, `differs:not_reachable`, `unanswered:…` |
 | `head_commit` | 7 to 40 hex | 7.2 head | `agrees`, `differs:head_mismatch` |
-| `checks_succeeded` | boolean | 7.5 `allSucceeded` | `agrees`, `differs:all_succeeded_mismatch`, `unanswered:checks_incomplete`, `unanswered:no_check_runs` |
-| `check_count` | integer | 7.5 `total` | `agrees`, `differs:count_mismatch` |
+| `checks_succeeded` | boolean | 7.5 `allSucceeded` | `agrees`, `differs:all_succeeded_mismatch`, `unanswered:checks_incomplete`, `unanswered:no_check_runs`, `unanswered:check_runs_not_at_head` (check runs read at the block's `headCommit`, which is not the head; spec 0.1.8) |
+| `check_count` | integer | 7.5 `total` | `agrees`, `differs:count_mismatch`, `unanswered:check_runs_not_at_head` |
 | `tests_passed` | boolean | none | `unanswered:no_comparable_record_field` |
 | `test_count` | integer | 7.5 test count, with a record that is not JUnit | `unanswered:no_comparable_record_field` |
 | `merged_at` | UTC timestamp | 7.6 `mergedAt` | `agrees`, `differs:premature`, `differs:not_merged` |

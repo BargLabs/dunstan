@@ -106,6 +106,9 @@ function timestamp(value: unknown): string {
   }
   return text;
 }
+function timestampOrNull(value: unknown): string | null {
+  return value === null || value === undefined ? null : timestamp(value);
+}
 
 function second(t: string): string {
   return t.slice(0, 19);
@@ -925,6 +928,37 @@ interface WorkflowRun {
   name?: string;
 }
 
+// A job at its latest attempt, as the `filter=latest` jobs listing gives it: its attempt, absent
+// where the listing gives none, and when that attempt started and completed, null where it has not.
+interface ListedJob {
+  name: string;
+  attempt: number | null;
+  startedAt: string | null;
+  completedAt: string | null;
+}
+
+// Whether an artifact created at `createdAt` was uploaded within the latest attempt of a job named
+// the record's (spec 0.1.8, section 7.5): created at or after the job started and at or before it
+// completed, to the second, by a job whose attempt is no later than the run's as the runs listing
+// gave it. A job that has not completed, a time the listing does not give, or a job at a later
+// attempt (the run was re-run between the two reads) gives no window.
+function withinLatestAttempt(
+  jobs: readonly ListedJob[],
+  run: WorkflowRun,
+  createdAt: string | null,
+): boolean {
+  if (createdAt === null) return false;
+  const created = second(createdAt);
+  return jobs.some(
+    (job) =>
+      (job.attempt === null || job.attempt <= run.attempt) &&
+      job.startedAt !== null &&
+      job.completedAt !== null &&
+      second(job.startedAt) <= created &&
+      created <= second(job.completedAt),
+  );
+}
+
 async function readTestRecord(
   client: GitHubClient,
   repository: string,
@@ -958,10 +992,24 @@ async function readTestRecord(
       (page) =>
         `/repos/${repository}/actions/runs/${run.id}/jobs?filter=latest&per_page=${PER_PAGE}&page=${page}`,
       (json) => arr(obj(json).jobs),
-      (item) => str(obj(item).name),
+      (item): ListedJob => {
+        const j = obj(item);
+        let attempt: number | null = null;
+        if (j.run_attempt !== null && j.run_attempt !== undefined) {
+          attempt = int(j.run_attempt);
+          if (attempt < 1) throw new ShapeError();
+        }
+        return {
+          name: str(j.name),
+          attempt,
+          startedAt: timestampOrNull(j.started_at),
+          completedAt: timestampOrNull(j.completed_at),
+        };
+      },
     );
     if (jobs === null) return { record, ...unreadable('workflow_runs') };
-    if (!jobs.includes(record.job)) continue;
+    const named = jobs.filter((j) => j.name === record.job);
+    if (named.length === 0) continue;
 
     const artifacts = await readAllPages(
       client,
@@ -971,16 +1019,29 @@ async function readTestRecord(
       (json) => arr(obj(json).artifacts),
       (item) => {
         const a = obj(item);
-        return { id: int(a.id), name: str(a.name), expired: a.expired === true };
+        return {
+          id: int(a.id),
+          name: str(a.name),
+          expired: a.expired === true,
+          createdAt: timestampOrNull(a.created_at),
+        };
       },
     );
     if (artifacts === null) return { record, ...unreadable('workflow_runs') };
-    const named = artifacts.filter((a) => a.name === record.artifact).sort((a, b) => a.id - b.id);
-    if (named.length === 0) continue;
-    if (named.length > 1) return { record, ...unreadable('artifact') };
-    const artifact = named[0] as { id: number; expired: boolean };
+    const uploaded = artifacts
+      .filter((a) => a.name === record.artifact)
+      .sort((a, b) => a.id - b.id);
+    if (uploaded.length === 0) continue;
+    if (uploaded.length > 1) return { record, ...unreadable('artifact') };
+    const artifact = uploaded[0] as { id: number; expired: boolean; createdAt: string | null };
     // The run uploaded the record but it can no longer be downloaded: unreadable, not absent.
     if (artifact.expired) return { record, ...unreadable('artifact') };
+    // The artifacts are listed for the whole run, every attempt's, and the jobs at their latest
+    // attempt. An artifact the named job's latest attempt did not upload is never read as its
+    // result (spec 0.1.8): the run uploaded a record, so it is unreadable, not absent.
+    if (!withinLatestAttempt(named, run, artifact.createdAt)) {
+      return { record, ...unreadable('artifact') };
+    }
 
     const zipPath = `/repos/${repository}/actions/artifacts/${artifact.id}/zip`;
     const download = await client.read('artifact', zipPath, {
@@ -989,7 +1050,7 @@ async function readTestRecord(
     });
     if (!download.ok) return { record, ...unreadable('artifact') };
     try {
-      const file = readZipEntry(download.body, record.path);
+      const file = readZipEntry(download.body, record.path, client.maxEntryBytes);
       if (file === null) continue;
       const counts = countJunit(new TextDecoder('utf-8').decode(file));
       runs.push({ runId: run.id, runAttempt: run.attempt, ...counts });

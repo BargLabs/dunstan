@@ -1356,6 +1356,212 @@ describe('readEvidence', () => {
     expect(archive.cancelled).toBe(true);
   });
 
+  // 10AI: a client given a lower entry limit (the hosted Worker's) inflates no entry past it; an
+  // entry over it is an unreadable artifact, and one under it is counted as before.
+  it('inflates no entry past the entry limit the client was given', async () => {
+    const report = junitXml(['pass']);
+    const padded = report.replace('</testsuite>', `${' '.repeat(2 * MiB)}</testsuite>`);
+    const evidenceWith = async (xml: string) => {
+      const s = fullScenario();
+      s.zips = { 9001: makeZip({ 'reports/junit.xml': xml }) };
+      const fake = fakeGitHub(s);
+      const c = new GitHubClient({
+        token: 't',
+        fetch: fake.fetch,
+        sleep: async () => {},
+        warn: () => {},
+        maxEntryBytes: MiB,
+      });
+      const pr = await readPullRequest(c, REPO, 7);
+      return readEvidence(c, {
+        repository: REPO,
+        pullRequest: pr,
+        block: FULL_BLOCK,
+        excludedCheckRunIds: [],
+      });
+    };
+    const over = await evidenceWith(padded);
+    expect(over.testRecords?.[0]).toEqual({
+      record: JUNIT,
+      status: 'unreadable',
+      source: 'artifact',
+    });
+    expect(over.sources.find((x) => x.kind === 'artifact')?.error).toBe('parse');
+    const under = await evidenceWith(report);
+    expect(under.testRecords?.[0]).toMatchObject({ record: JUNIT, status: 'ok' });
+  });
+
+  // Spec 0.1.8, section 7.5: the jobs are read at their latest attempt and the artifacts from the
+  // whole run, so an artifact counts only if it was created within the named job's latest attempt.
+  describe("an artifact counts only from the named job's latest attempt", () => {
+    const counts = (e: Evidence) =>
+      runChecks(FULL_BLOCK, e, REPO)
+        .filter((c) => c.id.startsWith('count:/tests/'))
+        .map((c) => [c.verdict, c.reason]);
+    const UNREAD = [
+      ['unverifiable', 'source_unreadable:artifact'],
+      ['unverifiable', 'source_unreadable:artifact'],
+    ];
+    const ZIP = `GET /repos/${REPO}/actions/artifacts/9001/zip`;
+    // Run 501 is at attempt 2. Its `test` job's latest attempt, as the jobs listing gives it.
+    const attempt = (job: Record<string, unknown>, artifact: Record<string, unknown> = {}) => {
+      const s = fullScenario();
+      s.jobs = {
+        501: [
+          'lint',
+          {
+            name: 'test',
+            run_attempt: 2,
+            started_at: '2026-10-01T13:00:00Z',
+            completed_at: '2026-10-01T13:10:00Z',
+            ...job,
+          },
+        ],
+        502: ['test'],
+      };
+      s.artifacts = { 501: [{ id: 9001, name: 'junit-report', expired: false, ...artifact }] };
+      return s;
+    };
+
+    it("is unverifiable, never read, when the artifact was created before the job's latest attempt started", async () => {
+      // A full re-run: attempt 2's job failed before its upload step, and the run still lists
+      // attempt 1's artifact.
+      const { evidence, fake } = await read(
+        attempt({ conclusion: 'failure' }, { created_at: '2026-10-01T12:05:00Z' }),
+        FULL_BLOCK,
+      );
+      expect(evidence.testRecords?.[0]).toEqual({
+        record: JUNIT,
+        status: 'unreadable',
+        source: 'artifact',
+      });
+      expect(counts(evidence)).toEqual(UNREAD);
+      expect(fake.requests.some((r) => r.startsWith(ZIP))).toBe(false);
+      expect(evidenceSchemaErrors(evidence)).toEqual([]);
+    });
+
+    it('reads an artifact of a job that "re-run failed jobs" left at attempt 1', async () => {
+      // The run is at attempt 2; its `test` job passed in attempt 1 and was not re-run, so the
+      // jobs listing gives attempt 1, and the artifact was created inside that attempt.
+      const { evidence, fake } = await read(
+        attempt(
+          {
+            run_attempt: 1,
+            started_at: '2026-10-01T12:00:00Z',
+            completed_at: '2026-10-01T12:10:00Z',
+          },
+          { created_at: '2026-10-01T12:05:00Z' },
+        ),
+        FULL_BLOCK,
+      );
+      expect(evidence.testRecords?.[0]).toEqual({
+        record: JUNIT,
+        status: 'ok',
+        runs: [{ runId: 501, runAttempt: 2, executed: 4, failed: 2 }],
+      });
+      expect(fake.requests.some((r) => r.startsWith(ZIP))).toBe(true);
+    });
+
+    it("reads an artifact created inside the job's latest attempt, its first and last second included", async () => {
+      for (const created of [
+        '2026-10-01T13:05:00Z',
+        '2026-10-01T13:00:00Z',
+        '2026-10-01T13:10:00Z',
+        '2026-10-01T13:10:00.900Z',
+      ]) {
+        const { evidence } = await read(attempt({}, { created_at: created }), FULL_BLOCK);
+        expect(evidence.testRecords?.[0]).toEqual({
+          record: JUNIT,
+          status: 'ok',
+          runs: [{ runId: 501, runAttempt: 2, executed: 4, failed: 2 }],
+        });
+      }
+    });
+
+    it('is unverifiable when the artifact was created after the job completed', async () => {
+      const { evidence } = await read(
+        attempt({}, { created_at: '2026-10-01T13:10:01Z' }),
+        FULL_BLOCK,
+      );
+      expect(evidence.testRecords?.[0]).toEqual({
+        record: JUNIT,
+        status: 'unreadable',
+        source: 'artifact',
+      });
+    });
+
+    it('is unverifiable when the job has not completed, or the artifact names no creation time', async () => {
+      for (const s of [
+        attempt({ completed_at: null, status: 'in_progress' }),
+        attempt({ completed_at: undefined }),
+        attempt({ started_at: null }),
+        attempt({}, { created_at: undefined }),
+        attempt({}, { created_at: null }),
+      ]) {
+        const { evidence, fake } = await read(s, FULL_BLOCK);
+        expect(evidence.testRecords?.[0]).toEqual({
+          record: JUNIT,
+          status: 'unreadable',
+          source: 'artifact',
+        });
+        expect(fake.requests.some((r) => r.startsWith(ZIP))).toBe(false);
+      }
+    });
+
+    it("is unverifiable when the job's attempt is later than the run's the runs listing gave", async () => {
+      // The run was re-run between the two reads: its counts would be another attempt's.
+      const { evidence } = await read(
+        attempt({ run_attempt: 3 }, { created_at: '2026-10-01T13:05:00Z' }),
+        FULL_BLOCK,
+      );
+      expect(evidence.testRecords?.[0]).toEqual({
+        record: JUNIT,
+        status: 'unreadable',
+        source: 'artifact',
+      });
+    });
+
+    it("reads the window of the named job only, never another job's", async () => {
+      const s = attempt({}, { created_at: '2026-10-01T12:05:00Z' });
+      s.jobs = {
+        501: [
+          {
+            name: 'lint',
+            started_at: '2026-10-01T12:00:00Z',
+            completed_at: '2026-10-01T12:10:00Z',
+          },
+          {
+            name: 'test',
+            run_attempt: 2,
+            started_at: '2026-10-01T13:00:00Z',
+            completed_at: '2026-10-01T13:10:00Z',
+          },
+        ],
+      };
+      const { evidence } = await read(s, FULL_BLOCK);
+      expect(evidence.testRecords?.[0]).toEqual({
+        record: JUNIT,
+        status: 'unreadable',
+        source: 'artifact',
+      });
+    });
+
+    it('records the jobs or the artifacts unreadable when a time answers in another shape', async () => {
+      const job = await read(attempt({ started_at: '2026-10-01 13:00:00' }), FULL_BLOCK);
+      expect(job.evidence.testRecords?.[0]).toEqual({
+        record: JUNIT,
+        status: 'unreadable',
+        source: 'workflow_runs',
+      });
+      const artifact = await read(attempt({}, { created_at: 1759320300 }), FULL_BLOCK);
+      expect(artifact.evidence.testRecords?.[0]).toEqual({
+        record: JUNIT,
+        status: 'unreadable',
+        source: 'workflow_runs',
+      });
+    });
+  });
+
   it('treats a run without the job, the artifact or the file as no candidate', async () => {
     const s = fullScenario();
     s.zips = { 9001: makeZip({ 'other/junit.xml': junitXml(['pass']) }) };

@@ -459,6 +459,9 @@ function checkChecks(block: Block, evidence: Evidence): Claim[] {
   let reason: string | undefined;
   if (section === undefined) reason = absentSection('checkRuns');
   else if (section.status !== 'ok') reason = unreadReason(section);
+  // Check runs read at another commit than the pull request's head (spec 0.1.8): the reader reads
+  // them at the declared headCommit, so where that is not the head they say nothing about it.
+  else if (section.commit !== evidence.pullRequest.headSha) reason = 'check_runs_not_at_head';
 
   const runs =
     section !== undefined && section.status === 'ok'

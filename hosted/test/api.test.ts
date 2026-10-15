@@ -3,9 +3,11 @@
 // and no record (acceptance iii); retention 0 stores nothing.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { countingBody, MiB } from '../../src/__tests__/streams.js';
+import type { GitHubClient } from '../../src/evidence/http.js';
 import { githubReaders } from '../../src/pipeline/check-pull-request.js';
 import { verifyRecord } from '../../src/record/verify.js';
-import { canonicalize } from '../../src/spec/jcs.js';
+import { canonicalize, sha256Hex } from '../../src/spec/jcs.js';
 import { type JsonValue, parseStrictJson } from '../../src/spec/json.js';
 import { setRetentionSql } from '../scripts/set-retention.js';
 import { type Deps, handle } from '../src/app.js';
@@ -29,8 +31,11 @@ import {
   webhook,
 } from './support.js';
 
-const CHECKER = { name: 'dunstan', version: '0.1.11', digest: { sha256: 'a'.repeat(64) } };
+const CHECKER = { name: 'dunstan', version: '0.1.12', digest: { sha256: 'a'.repeat(64) } };
 const NOW = new Date('2026-10-04T12:00:00Z');
+// The Worker's artifact budgets (docs/hosted.md, "Artifact size").
+const WORKER_ARCHIVE_BUDGET = 24 * MiB;
+const WORKER_ENTRY_LIMIT = 16 * MiB;
 
 let emulated: Emulated;
 let key: string;
@@ -307,6 +312,54 @@ describe('POST /v0.1/check', () => {
     expect(JSON.stringify(body)).toContain('pull_request_moved');
     expect(await storedCount()).toBe(0);
   });
+
+  // 10AI: the Worker's isolate has about 128 MB, so its client reads an artifact archive against a
+  // budget below the CLI's (72 MiB) and inflates no entry past a limit below the CLI's (64 MiB). An
+  // archive over the Worker's budget is cancelled near it and recorded unreadable.
+  it("reads an artifact archive against the Worker's budget, below the CLI's", async () => {
+    const ZIP = `/repos/${REPO}/actions/artifacts/9/zip`;
+    const archive = countingBody([40 * MiB]);
+    const d = deps();
+    const network = d.network;
+    d.network = (async (input: string | URL | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url === `https://api.github.com${ZIP}`) {
+        return new Response(null, {
+          status: 302,
+          headers: { location: 'https://productionresultssa1.blob.core.windows.net/a?sig=x' },
+        });
+      }
+      if (url.startsWith('https://productionresultssa1.blob.core.windows.net/')) {
+        return new Response(archive.stream);
+      }
+      return network(input, init);
+    }) as typeof fetch;
+    let worker: GitHubClient | undefined;
+    const response = await handle(
+      checkRequest(key, { repository: REPO, pullRequest: PR, report: scenarioReport() }),
+      emulated.env,
+      {
+        ...d,
+        readers: (client) => {
+          worker = client;
+          return githubReaders(client);
+        },
+      },
+    );
+    expect(response.status).toBe(200);
+    const client = worker as GitHubClient;
+    const read = await client.read('artifact', ZIP, { json: false, locatorSuffix: '#r.xml' });
+    expect([read.ok, read.status, read.ok ? null : read.error]).toEqual([false, 200, 'parse']);
+    expect(archive.pulled).toBeLessThanOrEqual(WORKER_ARCHIVE_BUDGET + MiB);
+    expect(archive.cancelled).toBe(true);
+    expect(client.sources.get(`GET ${ZIP}#r.xml`)).toMatchObject({
+      kind: 'artifact',
+      sha256: sha256Hex(new Uint8Array()),
+      error: 'parse',
+    });
+    expect(client.maxArchiveBytes).toBe(WORKER_ARCHIVE_BUDGET);
+    expect(client.maxEntryBytes).toBe(WORKER_ENTRY_LIMIT);
+  });
 });
 
 describe('GET /v0.1/records/:id', () => {
@@ -363,6 +416,6 @@ describe('GET /v0.1/health', () => {
       emulated.env,
       deps(),
     );
-    expect(await response.json()).toEqual({ status: 'ok', checker: CHECKER, spec: '0.1.7' });
+    expect(await response.json()).toEqual({ status: 'ok', checker: CHECKER, spec: '0.1.8' });
   });
 });

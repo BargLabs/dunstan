@@ -98,10 +98,15 @@ Action concludes `success` for `pass` and nothing else:
 | `unverifiable` | `neutral`, with `unverifiable-conclusion: neutral` | The same verdict, reported without blocking. A neutral required check lets the merge through, so this setting merges claims nobody could check. Choose it deliberately, for example while agents are being moved onto the block. |
 | none (`error`) | `failure` | No record: `report-source` missing or malformed, the report source unreadable (no comment by that author, a comment listing past its bound, no such file), the pull request unreadable, the pull request moved while it was checked and again when checked once more (`pull_request_moved`, below), an event Dunstan cannot check, `file:` under `pull_request_target`, or a crash. The reason is in the summary. |
 | any | `failure` | The record could not be uploaded as the artifact. A verdict whose record is not kept cannot be re-run. |
-| (no check run) | pending | The job did not run, or could not write the check run (a fork, below). A required `dunstan` check that never reports blocks the merge. |
+| (no check run) | pending | The job did not run, or did not write the check run: a fork (below), or a check run GitHub refused to create or complete. A required `dunstan` check that never reports blocks the merge. |
 
-The step's exit status follows the conclusion: it fails for `failure` and succeeds for `success` and
-`neutral`.
+The step's exit status follows the conclusion, and whether the check run was written:
+
+| Check run | Exit status |
+| --- | --- |
+| Written | Fails for `failure`; succeeds for `success` and `neutral`. |
+| Not written: GitHub refused to create it or to complete it (for example `checks: write` missing, or a summary it rejects) | Fails, whatever the verdict. A `success` that no check run carries is not reported as a success to a step-only consumer such as `if: success()`. The job summary gives the summary the check run would have carried, then a "Not published" section with the reason. |
+| Not written by design: a fork pull request under `pull_request` (below) | Follows the conclusion, as when written. The fork's token cannot write check runs, so the job summary and the exit status are the result. |
 
 ## What it writes
 
@@ -112,7 +117,18 @@ The step's exit status follows the conclusion: it fails for `failure` and succee
 - The record, uploaded as the workflow artifact `dunstan-record` (`dunstan-record.json`, and
   `dunstan-record.json.sig` when signed). One Dunstan step per workflow run: a second upload under
   the same name fails.
-- The same table in the job summary.
+- The same summary in the job summary: the one the check run carries, rendered once.
+
+GitHub rejects a check-run summary past 65,535 characters, and a required check whose completion is
+rejected stays pending with no reason shown. So the whole summary is held to that limit, in this
+order: the head (conclusion, title, mapping, subject, report, block, verdict, digests, checker and
+the advisory row), the claims table, the possible disagreements (at most 20 rows), the unreadable
+sources, the re-run commands, the notes, and a closing line that points at the record. The closing
+line's room is held first, then the head's. Each section after the claims is kept up to 8,192
+characters, the claims take what is left, and the sections after them take any room the claims did
+not use, in order. A section that does not fit whole shows the lines that fit and counts the rest,
+for example "1980 more unreadable sources are in the record"; the record holds every claim, source
+and advisory, and the step log holds every note (`dunstan: note: ...`).
 
 It never comments on the pull request, labels it, reviews it or merges it.
 
@@ -170,6 +186,15 @@ job stays in its workflow run's check suite, as observed on 2026-10-13 (the spec
 "Re-runs, observed 2026-10-13"; `experiments/checks-probe-2026-10/results.json`, snapshot
 `afterRerun`): the re-run supersedes the failed first attempt, so a job that failed and then
 succeeded on a re-run counts as succeeded.
+
+The check runs are read at the block's `headCommit`. If that is not the pull request's head, the
+head claim fails with `head_mismatch`, and every `checks` claim is
+`unverifiable: check_runs_not_at_head` (spec 0.1.8, section 7.5): another commit's check runs say
+nothing about the head. A JUnit test count is read from an artifact only if the named job's latest
+attempt uploaded it, by its creation time against that attempt's start and completion (spec 0.1.8,
+section 7.5). After a full re-run whose test job failed before its upload step, the count is
+`unverifiable: source_unreadable:artifact`, never the first attempt's count. A job that "re-run
+failed jobs" did not re-run keeps the attempt that passed, and its artifact is read.
 
 A `closes` claim reads the closing references GitHub computes after a pull request is opened or its
 body is edited. Those list issues only, leave out an issue a commit message closed, and are not

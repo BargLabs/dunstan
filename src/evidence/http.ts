@@ -48,6 +48,12 @@ export interface ClientOptions {
   maxAttempts?: number;
   // The longest single wait for a rate-limit reset; a longer reset gives up at once.
   maxWaitMs?: number;
+  // The artifact archive's budget and the largest entry inflated from it: MAX_ARCHIVE_BYTES and
+  // MAX_ENTRY_BYTES unless given. The hosted Worker gives lower ones (docs/hosted.md).
+  maxArchiveBytes?: number;
+  maxEntryBytes?: number;
+  // Makes the buffer a body is read into; tests count what it is asked for.
+  allocate?: (size: number) => Uint8Array;
 }
 
 export interface ReadOptions {
@@ -67,6 +73,9 @@ const EMPTY = new Uint8Array();
 
 export class GitHubClient {
   readonly sources = new Map<string, Source>();
+  readonly maxArchiveBytes: number;
+  readonly maxEntryBytes: number;
+  readonly #allocate: (size: number) => Uint8Array;
   readonly #token: string | undefined;
   readonly #baseUrl: string;
   readonly #fetch: typeof fetch;
@@ -85,6 +94,9 @@ export class GitHubClient {
     this.#warn = options.warn ?? ((message) => process.stderr.write(`dunstan: ${message}\n`));
     this.#maxAttempts = options.maxAttempts ?? 4;
     this.#maxWaitMs = options.maxWaitMs ?? 60_000;
+    this.maxArchiveBytes = options.maxArchiveBytes ?? MAX_ARCHIVE_BYTES;
+    this.maxEntryBytes = options.maxEntryBytes ?? MAX_ENTRY_BYTES;
+    this.#allocate = options.allocate ?? ((size) => new Uint8Array(size));
   }
 
   get hasToken(): boolean {
@@ -111,7 +123,7 @@ export class GitHubClient {
   async read(kind: SourceKind | 'path', path: string, options: ReadOptions = {}): Promise<Read> {
     const method = options.method ?? 'GET';
     const locator = options.locator ?? `${method} ${path}${options.locatorSuffix ?? ''}`;
-    const budget = kind === 'artifact' ? MAX_ARCHIVE_BYTES : MAX_BODY_BYTES;
+    const budget = kind === 'artifact' ? this.maxArchiveBytes : MAX_BODY_BYTES;
     const result = await this.#fetchWithRetry(method, path, options.requestBody, locator, budget);
     let read: Read;
     if (result.kind === 'network') {
@@ -214,7 +226,7 @@ export class GitHubClient {
             : `${attempt} attempts`;
         this.#warn(`${locator}: giving up with HTTP ${status} (${why}); recorded as unreadable`);
       }
-      const bytes = await readWithin(response, budget);
+      const bytes = await readWithin(response, budget, this.#allocate);
       if (bytes === null) {
         this.#warn(
           `${locator}: answer over ${budget} bytes, not read in full; recorded as unreadable`,
@@ -229,35 +241,53 @@ async function cancel(body: ReadableStream<Uint8Array> | null): Promise<void> {
   await body?.cancel().catch(() => {});
 }
 
+// The first buffer for a body that declares no length.
+const FIRST_CAPACITY = 64 * 1024;
+
 // The body's bytes, or null when it holds more than `budget`: refused before a byte is pulled when
 // its content-length says so, else cancelled as soon as the bytes pulled pass the budget. A
 // content-length that lies low changes nothing, since the bytes are counted as they arrive.
-async function readWithin(response: Response, budget: number): Promise<Uint8Array | null> {
+//
+// The bytes go into one buffer as they arrive, never held as chunks and then copied, so a body near
+// its budget peaks near the budget, not twice it: a buffer of the declared length when there is one,
+// else (or once the body runs past it, as a compressed answer's decoded bytes do) one that doubles,
+// and then takes the budget, never more. The bytes read are a view of it; their SHA-256 is the same
+// however they arrived.
+async function readWithin(
+  response: Response,
+  budget: number,
+  allocate: (size: number) => Uint8Array,
+): Promise<Uint8Array | null> {
   const length = response.headers.get('content-length');
-  if (length !== null && /^[0-9]+$/.test(length) && Number(length) > budget) {
+  const declared = length !== null && /^[0-9]+$/.test(length) ? Number(length) : null;
+  if (declared !== null && declared > budget) {
     await cancel(response.body);
     return null;
   }
   if (response.body === null) return EMPTY;
   const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
+  let bytes: Uint8Array = EMPTY;
   let size = 0;
   for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) {
-    size += chunk.value.length;
-    if (size > budget) {
+    const needed = size + chunk.value.length;
+    if (needed > budget) {
       await reader.cancel().catch(() => {});
       return null;
     }
-    chunks.push(chunk.value);
+    if (needed > bytes.length) {
+      let capacity = Math.max(needed, 2 * bytes.length, FIRST_CAPACITY);
+      // Once a buffer would pass half the budget, the next is the budget itself, so a buffer and
+      // the one it grows into never hold more than one and a half times the budget together.
+      if (2 * capacity > budget) capacity = budget;
+      if (bytes === EMPTY && declared !== null && declared >= needed) capacity = declared;
+      const grown = allocate(capacity);
+      grown.set(bytes.subarray(0, size));
+      bytes = grown;
+    }
+    bytes.set(chunk.value, size);
+    size = needed;
   }
-  if (chunks.length === 1) return chunks[0] as Uint8Array;
-  const bytes = new Uint8Array(size);
-  let at = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, at);
-    at += chunk.length;
-  }
-  return bytes;
+  return size === bytes.length ? bytes : bytes.subarray(0, size);
 }
 
 function backoffMs(attempt: number): number {

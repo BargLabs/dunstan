@@ -46,7 +46,11 @@ export interface Scenario {
   workflowRuns?: Record<string, unknown>[];
   // An HTTP status for the listing of every workflow run at a head (spec 0.1.4, amended 2026-10-13).
   workflowRunsStatus?: number;
-  jobs?: Record<number, string[]>;
+  // A run's jobs at their latest attempt: a name, which answers a job of attempt 1 that ran from
+  // JOB_STARTED to JOB_COMPLETED, or the job as GitHub sends it, over those defaults.
+  jobs?: Record<number, (string | Record<string, unknown>)[]>;
+  // A run's artifacts. One without `created_at` is answered as created at ARTIFACT_CREATED, inside
+  // the default job's window; give `created_at: undefined` for an artifact that has none.
   artifacts?: Record<number, Record<string, unknown>[]>;
   zips?: Record<number, Uint8Array>;
   deployments?: Record<string, unknown>[];
@@ -59,6 +63,11 @@ export interface Scenario {
   // path (without query) -> sequence of statuses to answer before the real answer.
   flaky?: Record<string, number[]>;
 }
+
+// The default job's window and its artifact's creation (spec 0.1.8, section 7.5).
+export const JOB_STARTED = '2026-10-01T12:00:00Z';
+export const JOB_COMPLETED = '2026-10-01T12:10:00Z';
+export const ARTIFACT_CREATED = '2026-10-01T12:05:00Z';
 
 export function basePullRequest(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
@@ -291,7 +300,13 @@ export function fakeGitHub(scenario: Scenario): FakeGitHub {
       [
         /^\/repos\/[^/]+\/[^/]+\/actions\/runs\/([0-9]+)\/jobs$/,
         (m) => {
-          const jobs = (scenario.jobs?.[n(m)] ?? []).map((name, i) => ({ id: i + 1, name }));
+          const jobs = (scenario.jobs?.[n(m)] ?? []).map((job, i) => ({
+            id: i + 1,
+            run_attempt: 1,
+            started_at: JOB_STARTED,
+            completed_at: JOB_COMPLETED,
+            ...(typeof job === 'string' ? { name: job } : job),
+          }));
           return json(200, { total_count: jobs.length, jobs: page(jobs, url) });
         },
       ],
@@ -299,9 +314,9 @@ export function fakeGitHub(scenario: Scenario): FakeGitHub {
         /^\/repos\/[^/]+\/[^/]+\/actions\/runs\/([0-9]+)\/artifacts$/,
         (m) => {
           const name = url.searchParams.get('name');
-          const artifacts = (scenario.artifacts?.[n(m)] ?? []).filter(
-            (a) => name === null || a.name === name,
-          );
+          const artifacts = (scenario.artifacts?.[n(m)] ?? [])
+            .filter((a) => name === null || a.name === name)
+            .map((a) => ({ created_at: ARTIFACT_CREATED, ...a }));
           return json(200, { total_count: artifacts.length, artifacts: page(artifacts, url) });
         },
       ],

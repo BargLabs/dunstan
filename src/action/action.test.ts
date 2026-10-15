@@ -141,8 +141,13 @@ interface Harness {
 }
 
 // The fake GitHub plus the writes the Action makes: check runs (created runs appear in the commit's
-// check-run listing, so the exclusion is exercised) and the run attempt's jobs.
-function harness(scenario: Scenario, checkRunsStatus = 201): Harness & { fetch: typeof fetch } {
+// check-run listing, so the exclusion is exercised) and the run attempt's jobs. `checkRunsStatus`
+// answers each creation and `completeStatus` each completion.
+function harness(
+  scenario: Scenario,
+  checkRunsStatus = 201,
+  completeStatus = 200,
+): Harness & { fetch: typeof fetch } {
   const fake = fakeGitHub(scenario);
   const h: Harness = { scenario, requests: fake.requests, bodies: [], uploads: [], logs: [] };
   let nextId = 5000;
@@ -153,7 +158,9 @@ function harness(scenario: Scenario, checkRunsStatus = 201): Harness & { fetch: 
       h.requests.push(`POST ${url.pathname}`);
       const body = JSON.parse(String(init?.body));
       h.bodies.push(body);
-      if (checkRunsStatus >= 400) return new Response('{"message":"x"}', { status: 403 });
+      if (checkRunsStatus >= 400) {
+        return new Response('{"message":"x"}', { status: checkRunsStatus });
+      }
       const id = nextId++;
       scenario.checkRuns = [
         ...(scenario.checkRuns ?? []),
@@ -164,6 +171,9 @@ function harness(scenario: Scenario, checkRunsStatus = 201): Harness & { fetch: 
     if (/^\/repos\/[^/]+\/[^/]+\/check-runs\/[0-9]+$/.test(url.pathname) && method === 'PATCH') {
       h.requests.push(`PATCH ${url.pathname}`);
       h.bodies.push(JSON.parse(String(init?.body)));
+      if (completeStatus >= 400) {
+        return new Response('{"message":"x"}', { status: completeStatus });
+      }
       return Response.json({ id: Number(url.pathname.split('/').at(-1)) });
     }
     if (url.pathname === `/repos/${REPO}/actions/runs/77/attempts/1/jobs`) {
@@ -565,12 +575,58 @@ describe('the Action', () => {
     expect(r.summary).toContain('This pull request comes from a fork');
   });
 
-  it('when the token cannot create check runs, says so and still exits by the verdict', async () => {
+  it('on a fork pull request that passes, exits 0 with no check run, as it cannot write one by design', async () => {
+    const h = harness({
+      pr: basePullRequest({ changed_files: 1, body: block(['src/a.ts']) }),
+      files: [{ filename: 'src/a.ts', status: 'modified' }],
+    });
+    const r = await act(h, { 'report-source': 'pr-body' }, { payload: prPayload(true) });
+    expect(h.requests.filter((q) => q.includes('check-runs'))).toEqual([]);
+    expect(r.outcome).toMatchObject({ verdict: 'pass', conclusion: 'success' });
+    expect(r.exitCode).toBe(0);
+  });
+
+  it('when the token cannot create check runs, says so and fails the step whatever the verdict', async () => {
     const h = harness({ pr: basePullRequest({ body: 'no block' }) }, 403);
     const r = await act(h, { 'report-source': 'pr-body', 'unverifiable-conclusion': 'neutral' });
-    expect(r.exitCode).toBe(0);
+    expect(r.outcome.conclusion).toBe('neutral');
+    expect(r.exitCode).toBe(1);
     expect(r.summary).toContain('could not be created (http_403)');
     expect(h.requests.filter((q) => q.startsWith('PATCH'))).toEqual([]);
+  });
+
+  const passing = () => ({
+    pr: basePullRequest({ changed_files: 1, body: block(['src/a.ts']) }),
+    files: [{ filename: 'src/a.ts', status: 'modified' }],
+  });
+
+  it('a pass whose check run cannot be created (422) is not published, and the step fails', async () => {
+    const h = harness(passing(), 422);
+    const r = await act(h, { 'report-source': 'pr-body' });
+    expect(r.outcome).toMatchObject({ verdict: 'pass', conclusion: 'success' });
+    expect(r.exitCode).toBe(1);
+    expect(r.summary).toContain('could not be created (http_422)');
+    expect(h.logs.at(-1)).toMatch(/^::error title=dunstan::/);
+  });
+
+  it('a pass whose check run cannot be completed (422) is not published, and the step fails', async () => {
+    const h = harness(passing(), 201, 422);
+    const r = await act(h, { 'report-source': 'pr-body' });
+    expect(r.outcome).toMatchObject({ verdict: 'pass', conclusion: 'success' });
+    expect(r.exitCode).toBe(1);
+    expect(r.summary).toContain('could not be written (http_422)');
+    expect(h.logs.at(-1)).toMatch(/^::error title=dunstan::/);
+    // The job summary is the summary the completion sent, then why it was not published.
+    const sent = (h.bodies.at(-1) as { output: { summary: string } }).output.summary;
+    expect(r.summary.startsWith(`${sent}\n`)).toBe(true);
+  });
+
+  it('the job summary is the summary the check run carries', async () => {
+    const h = harness(passing());
+    const r = await act(h, { 'report-source': 'pr-body' });
+    expect(r.exitCode).toBe(0);
+    const sent = (h.bodies.at(-1) as { output: { summary: string } }).output.summary;
+    expect(r.summary).toBe(`${sent}\n`);
   });
 
   it('concludes failure when the record cannot be uploaded, whatever the verdict', async () => {
@@ -611,8 +667,11 @@ describe('the repository files that carry blocks', () => {
 });
 
 describe('summary', () => {
-  it('stays under the check-run summary limit, leaving rows to the record', () => {
-    const claims = Array.from({ length: 3000 }, (_, i) => ({
+  const LIMIT = 65_535;
+  const POINTER =
+    'Every claim, source and advisory is in the record, the `dunstan-record` artifact of this run.';
+  const claimsOf = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
       id: `scope:/filesChanged/${i}`,
       check: 'scope' as const,
       field: `/filesChanged/${i}`,
@@ -620,26 +679,117 @@ describe('summary', () => {
       observed: `src/${'x'.repeat(40)}/${i}.ts`,
       verdict: 'pass' as const,
     }));
-    const record = {
-      predicate: {
-        subject: { repository: REPO, pullRequest: 7, headSha: HEAD },
-        report: { sha256: '0', source: { kind: 'pr-body', locator: 'x' } },
-        block: { status: 'found', sha256: '0' },
-        verdict: 'pass',
-        digests: { claims: '0', evidence: '0' },
-        checker: { name: 'dunstan', version: '0.1.0', digest: { sha256: '0' } },
-        evidence: { sources: [] },
-        claims,
-      },
-    };
-    const text = renderSummary({
+  const unreadableOf = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      kind: 'issue',
+      locator: `example-org/example-repo#${i + 1}`,
+      error: 'http_404',
+    }));
+  const advisoryOf = (n: number) => ({
+    extractor: { version: '0.1.3' },
+    comparison: { version: '0.4.0' },
+    precision: null,
+    differsAccuracy: null,
+    pathsAtHead: [],
+    advisories: Array.from({ length: n }, (_, i) => ({
+      kind: 'file_changed',
+      value: `src/${'y'.repeat(300)}/${i}.ts`,
+      observed: null,
+      clause: `I changed src/${'y'.repeat(300)}/${i}.ts.`,
+      note: 'differs:declared_not_changed',
+    })),
+  });
+  const summaryOf = (o: {
+    claims?: number;
+    unreadable?: number;
+    advisories?: number;
+    notes?: number;
+  }) =>
+    renderSummary({
       conclusion: 'success',
       verdict: 'pass',
       title: 'pass',
-      record: record as never,
-      notes: [],
+      record: {
+        predicate: {
+          subject: { repository: REPO, pullRequest: 7, headSha: HEAD },
+          report: { sha256: '0', source: { kind: 'pr-body', locator: 'x' } },
+          block: { status: 'found', sha256: '0' },
+          verdict: 'pass',
+          digests: { claims: '0', evidence: '0' },
+          checker: { name: 'dunstan', version: '0.1.0', digest: { sha256: '0' } },
+          evidence: { sources: unreadableOf(o.unreadable ?? 0) },
+          claims: claimsOf(o.claims ?? 0),
+          ...(o.advisories === undefined ? {} : { advisory: advisoryOf(o.advisories) }),
+        },
+      } as never,
+      rerun: ['gh run download 77', 'dunstan verify dunstan-record.json', 'dunstan check'],
+      notes: Array.from(
+        { length: o.notes ?? 0 },
+        (_, i) => `Note ${i}: the token answered http_403 for this read. ${'z'.repeat(80)}`,
+      ),
     });
-    expect(text.length).toBeLessThanOrEqual(65_535);
-    expect(text).toMatch(/[0-9]+ more rows are in the record/);
+  const countIn = (text: string, pattern: RegExp) => Number(pattern.exec(text)?.[1] ?? 0);
+
+  it('stays under the check-run summary limit, leaving rows to the record', () => {
+    const text = summaryOf({ claims: 3000 });
+    expect(text.length).toBeLessThanOrEqual(LIMIT);
+    expect(text).toMatch(/[0-9]+ more claims are in the record/);
+    expect(text.endsWith(POINTER)).toBe(true);
+  });
+
+  it('with no claim and 2,000 unreadable sources, stays under the limit and counts the sources left out', () => {
+    const text = summaryOf({ unreadable: 2000 });
+    expect(text.length).toBeLessThanOrEqual(LIMIT);
+    const omitted = countIn(text, /([0-9]+) more unreadable sources are in the record/);
+    const shown = text.split('\n').filter((l) => l.startsWith('- issue ')).length;
+    expect(omitted).toBeGreaterThan(0);
+    expect(shown + omitted).toBe(2000);
+    expect(text.endsWith(POINTER)).toBe(true);
+  });
+
+  it('with 2,000 notes, stays under the limit and counts the notes left out', () => {
+    const text = summaryOf({ notes: 2000 });
+    expect(text.length).toBeLessThanOrEqual(LIMIT);
+    const omitted = countIn(text, /([0-9]+) more notes are in the step log/);
+    const shown = text.split('\n').filter((l) => l.startsWith('- Note ')).length;
+    expect(omitted).toBeGreaterThan(0);
+    expect(shown + omitted).toBe(2000);
+    expect(text.endsWith(POINTER)).toBe(true);
+  });
+
+  it('with every section long, gives each one room, and at the limit still ends with the record pointer', () => {
+    const text = summaryOf({ claims: 3000, unreadable: 2000, advisories: 2000, notes: 2000 });
+    expect(text.length).toBeLessThanOrEqual(LIMIT);
+    expect(text.length).toBeGreaterThan(LIMIT - 1000);
+    for (const heading of [
+      '### Claims',
+      '### Advisories (DRAFT, not part of the verdict)',
+      '### Unreadable sources',
+      '### Re-run',
+      '### Notes',
+    ]) {
+      expect(text).toContain(heading);
+    }
+    expect(text).toMatch(/[0-9]+ more claims are in the record/);
+    expect(text).toMatch(/[0-9]+ more possible disagreements are in the record/);
+    expect(text).toMatch(/[0-9]+ more unreadable sources are in the record/);
+    expect(text).toMatch(/[0-9]+ more notes are in the step log/);
+    expect(text.split('\n').filter((l) => l.startsWith('- Note ')).length).toBeGreaterThan(0);
+    expect(text.split('\n').filter((l) => l.startsWith('- issue ')).length).toBeGreaterThan(0);
+    expect(text.endsWith(POINTER)).toBe(true);
+  });
+
+  it('with no record, a long error and 2,000 notes, stays under the limit', () => {
+    const text = renderSummary({
+      conclusion: 'failure',
+      verdict: 'error',
+      title: 'error: x',
+      error: 'e'.repeat(100_000),
+      notes: Array.from({ length: 2000 }, (_, i) => `Note ${i}: ${'z'.repeat(80)}`),
+    });
+    expect(text.length).toBeLessThanOrEqual(LIMIT);
+    expect(text).toContain('No record was written: eee');
+    expect(text).toMatch(/[0-9]+ more notes are in the step log/);
+    expect(text).not.toContain(POINTER);
   });
 });

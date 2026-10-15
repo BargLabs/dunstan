@@ -50,6 +50,16 @@ import {
 import { GuardedTransport, RouteRefused } from './transport.js';
 
 export const MAX_REQUEST_BYTES = 1024 * 1024;
+
+// The Worker's artifact budgets (docs/hosted.md, "Artifact size"). An isolate has about 128 MB, and
+// the CLI's budgets (a 72 MiB archive, a 64 MiB entry) would not fit in it: while a report is
+// counted, the archive, the inflated entry and the entry decoded as text (up to two bytes a
+// character) are all held, and the inflate briefly holds its output twice. At 24 MiB and 16 MiB
+// that is at most 24 + 16 + 32 = 72 MiB, with 16 MiB more during the inflate, which leaves the
+// Worker its own memory. The entry limit is the one that matters: a report deflates well, so a
+// small archive can inflate to the limit. The archive keeps the CLI's 8 MiB beside its entry.
+export const WORKER_ENTRY_BYTES = 16 * 1024 * 1024;
+export const WORKER_ARCHIVE_BYTES = WORKER_ENTRY_BYTES + 8 * 1024 * 1024;
 // The repository shape `dunstan check --repo` accepts, less the names `.` and `..`, which GitHub
 // never gives a repository and a URL would resolve as a path step.
 const REPOSITORY = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})\/(?!\.\.?$)[A-Za-z0-9._-]{1,100}$/;
@@ -203,6 +213,8 @@ async function runCheck(
     now: deps.now,
     sleep: transport.sleep,
     warn: () => {},
+    maxArchiveBytes: WORKER_ARCHIVE_BYTES,
+    maxEntryBytes: WORKER_ENTRY_BYTES,
   });
   const readers = deps.readers?.(client) ?? githubReaders(client);
   const signing = parseOpenSshPrivateKey(env.RECORD_SIGNING_KEY);
