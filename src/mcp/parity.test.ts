@@ -38,7 +38,12 @@ vi.mock('../evidence/github.js', async (original) => ({
   ...(await original<typeof import('../evidence/github.js')>()),
   readPullRequest: async (_client: unknown, repository: string, number: number) => {
     stub.asked.push({ repository, number });
-    return { evidence: stub.evidence?.pullRequest, repository: FIXTURE_REPOSITORY, body: null };
+    return {
+      evidence: stub.evidence?.pullRequest,
+      repository: FIXTURE_REPOSITORY,
+      baseRef: 'main',
+      body: null,
+    };
   },
   readEvidence: async (_client: unknown, input: ReadEvidenceInput) => {
     stub.asked.push(input);
@@ -148,8 +153,9 @@ describe('MCP parity with dunstan check, reader stubbed', () => {
       expectParity(cli, mcp, ['/predicate/report/source/kind', '/predicate/report/source/locator']);
       // Same report bytes, same digest.
       expect(mcp.predicate.report.sha256).toBe(cli.predicate.report.sha256);
-      // Both asked the reader the same questions.
-      expect(cliAsked).toHaveLength(2);
+      // Both asked the reader the same questions: the pull request, the evidence, and the pull
+      // request again.
+      expect(cliAsked).toHaveLength(3);
       expect(stub.asked.map(canon)).toEqual(cliAsked.map(canon));
       // And both agree with the preregistered fixture result.
       expect(mcp.predicate.verdict).toBe(c.expected.verdict);

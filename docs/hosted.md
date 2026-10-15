@@ -47,8 +47,9 @@ and, for an advisory, whether a path is a file, a directory or nothing there.
 Dunstan never requests file contents. The allowlist refuses, before the request is made, every blob,
 tree, `contents/`, readme, archive, tarball, zipball and raw-content route, any media type other than
 `application/vnd.github+json` (so a pull request cannot be read as its diff), and any GraphQL query
-other than the two fixed queries: closing references, and the object's type at a path, whose
-expression must be a full commit id and a repository path. `hosted/test/transport.test.ts` proves
+other than the four fixed queries: closing references, a target's close events, the pull request's
+base and commits, and the object's type at a path, whose expression must be a full commit id and a
+repository path. `hosted/test/transport.test.ts` proves
 each of those is refused, and that the allowlist is the only path from the hosted code to the
 network; `hosted/test/privacy.test.ts` proves that nothing of the path query's answer but the type
 reaches a record.
@@ -136,8 +137,9 @@ byte for byte. `id` and `expiresAt` are `null` when your retention is 0.
 
 Errors are HTTP errors, `{"error": {"code", "message"}}`, and never carry a verdict or a record:
 `400` a malformed request, `401` no valid key, `403` the installation cannot be used, `404` a
-repository or pull request the installation cannot read, `413` a body over 1 MiB, `502` GitHub did
-not answer, `500` anything else.
+repository or pull request the installation cannot read, `409` a pull request that moved while it
+was checked and again when checked once more (`pull_request_moved`, spec section 6), `413` a body
+over 1 MiB, `502` GitHub did not answer, `500` anything else.
 
 ### `GET /v0.1/records/:id`
 

@@ -14,7 +14,11 @@
 // over them. Any failure is an HTTP error with no verdict and no record.
 
 import { renderRecord } from '../../src/cli/output.js';
-import { type PullRequestRead, PullRequestUnreadable } from '../../src/evidence/github.js';
+import {
+  PullRequestMoved,
+  type PullRequestRead,
+  PullRequestUnreadable,
+} from '../../src/evidence/github.js';
 import { GitHubClient } from '../../src/evidence/http.js';
 import type { Report } from '../../src/evidence/report.js';
 import {
@@ -228,6 +232,8 @@ async function runCheck(
           : `the installation cannot read ${repository}#${number}`,
       );
     }
+    // Moved while it was checked, and again when checked once more: no record, never a verdict.
+    if (e instanceof PullRequestMoved) throw new HttpError(409, 'pull_request_moved', e.message);
     if (e instanceof RouteRefused) throw refused(transport);
     throw e;
   }

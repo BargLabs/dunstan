@@ -10,7 +10,7 @@
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { PullRequestUnreadable } from '../evidence/github.js';
+import { PullRequestMoved, PullRequestUnreadable } from '../evidence/github.js';
 import { DEFAULT_API, GitHubClient } from '../evidence/http.js';
 import {
   type Report,
@@ -111,6 +111,7 @@ function describeError(e: unknown): { message: string; internal: boolean } {
   if (
     e instanceof ActionError ||
     e instanceof PullRequestUnreadable ||
+    e instanceof PullRequestMoved ||
     e instanceof ReportUnavailable
   ) {
     return { message: e.message, internal: false };
@@ -129,6 +130,8 @@ export async function runAction(io: ActionIo): Promise<ActionResult> {
   let repository: string | undefined;
   let headSha: string | undefined;
   let checkRunId: number | undefined;
+  // This job's own check run: null until looked up, undefined when it cannot be told.
+  let jobRun: number | undefined | null = null;
   let canWriteCheckRun = true;
   let recordPath: string | undefined;
   let outcome: Outcome;
@@ -172,11 +175,29 @@ export async function runAction(io: ActionIo): Promise<ActionResult> {
       readers: io.readers?.(api) ?? githubReaders(api),
       repository: event.repository,
       number: event.number,
+      // Called again when the pull request moved while it was read and the check runs once more.
+      // The check of the new head is the new head's: a check run on a head the pull request left is
+      // completed now, as failure, never with another head's result.
       afterPullRequest: async (pr) => {
         repository = pr.repository;
-        headSha = pr.evidence.headSha;
+        const head = pr.evidence.headSha;
+        if (checkRunId !== undefined && headSha !== head) {
+          const left = await completeCheckRun(api, pr.repository, checkRunId, 'failure', {
+            title: `not checked: the pull request moved to ${head} while it was checked`,
+            summary: `The pull request's head moved from \`${headSha}\` to \`${head}\` while Dunstan read it. Dunstan checked \`${head}\`, and its \`${CHECK_NAME}\` check run is on that commit. This commit was not checked.`,
+          });
+          if (!left.ok) {
+            notes.push(
+              `The \`${CHECK_NAME}\` check run on \`${headSha}\`, which the pull request left while it was checked, could not be completed (${left.error}); it stays in progress.`,
+            );
+          }
+          checkRunId = undefined;
+        }
+        headSha = head;
         const own: number[] = [];
-        if (canWriteCheckRun) {
+        if (checkRunId !== undefined) {
+          own.push(checkRunId);
+        } else if (canWriteCheckRun) {
           const created = await createCheckRun(api, pr.repository, pr.evidence.headSha, {
             status: 'in_progress',
             ...(env.GITHUB_SERVER_URL && env.GITHUB_RUN_ID
@@ -195,14 +216,15 @@ export async function runAction(io: ActionIo): Promise<ActionResult> {
             );
           }
         }
-        const job = await ownJobCheckRun(api, pr.repository, env);
-        if (job === undefined) {
-          notes.push(
-            "This job's own check run could not be identified, so it was not excluded: a `checks` claim counts it, in progress.",
-          );
-        } else {
-          own.push(job);
+        if (jobRun === null) {
+          jobRun = await ownJobCheckRun(api, pr.repository, env);
+          if (jobRun === undefined) {
+            notes.push(
+              "This job's own check run could not be identified, so it was not excluded: a `checks` claim counts it, in progress.",
+            );
+          }
         }
+        if (jobRun !== undefined) own.push(jobRun);
         return own;
       },
       report: (pr) => readReport(inputs.reportSource, pr, api),

@@ -27,6 +27,7 @@ function stubbedReaders(c: FixtureCase): EvidenceReaders {
     pullRequest: async () => ({
       evidence: structuredClone(c.evidence.pullRequest),
       repository: FIXTURE_REPOSITORY,
+      baseRef: 'main',
       body: c.report.toString('utf8'),
     }),
     evidence: async () => structuredClone(c.evidence),

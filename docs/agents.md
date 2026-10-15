@@ -39,6 +39,9 @@ With the MCP server registered ([`docs/mcp.md`](mcp.md)), step 3 is the tool
 `dunstan_suggest_declarations` with the report, and a final call to `dunstan_check_handback` checks
 the block against the pull request before the agent says done.
 
+A handback is checked only for what its block declares, so declare the claims the issue's
+acceptance criteria rest on.
+
 ## `dunstan template`
 
 ```sh

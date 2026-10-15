@@ -5,8 +5,9 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
-import { readEvidence, readPullRequest } from '../evidence/github.js';
+import { readEvidence } from '../evidence/github.js';
 import { GitHubClient } from '../evidence/http.js';
+import { atOnePullRequest, githubReaders } from '../pipeline/check-pull-request.js';
 import {
   buildRecord,
   type DunstanRecord,
@@ -70,16 +71,24 @@ export async function rerun(args: string[], io: CliIo): Promise<number> {
     ...(io.fetch === undefined ? {} : { fetch: io.fetch }),
     warn: (message) => io.err(`dunstan: ${message}\n`),
   });
-  const pr = await readPullRequest(client, old.subject.repository, old.subject.pullRequest);
   // The run the original checker executed in is still its own run; it stays excluded.
   const oldExcluded =
     old.evidence.checkRuns?.status === 'ok' ? old.evidence.checkRuns.excludedIds : [];
-  const evidence = await readEvidence(client, {
-    repository: old.subject.repository,
-    pullRequest: pr,
-    block: old.block.status === 'found' ? old.block.value : null,
-    excludedCheckRunIds: [...oldExcluded, ...parseCheckRunIds(values['exclude-check-run'])],
-  });
+  const excluded = [...oldExcluded, ...parseCheckRunIds(values['exclude-check-run'])];
+  // Read at one pull request, as `dunstan check` reads: once more if it moved, never across a move.
+  const evidence = await atOnePullRequest(
+    githubReaders(client),
+    old.subject.repository,
+    old.subject.pullRequest,
+    undefined,
+    (pr) =>
+      readEvidence(client, {
+        repository: old.subject.repository,
+        pullRequest: pr,
+        block: old.block.status === 'found' ? old.block.value : null,
+        excludedCheckRunIds: excluded,
+      }),
+  );
   const record = buildRecord({
     checker: checkerIdentity(io.artifact),
     report: old.report,

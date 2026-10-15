@@ -8028,7 +8028,7 @@ import { join } from "node:path";
 import { createHash } from "node:crypto";
 
 // src/spec/constants.ts
-var SPEC_VERSION = "0.1.6";
+var SPEC_VERSION = "0.1.7";
 var BLOCK_VERSION = "0.1";
 var SUPPORTED_BLOCK_VERSIONS = [BLOCK_VERSION];
 var BLOCK_INFO_STRING = "dunstan-handback";
@@ -8587,17 +8587,32 @@ function later(a, b) {
   if ((a.runAttempt ?? 0) !== (b.runAttempt ?? 0)) return (a.runAttempt ?? 0) > (b.runAttempt ?? 0);
   return a.id > b.id;
 }
+function identity(run) {
+  if (run.workflowPath !== void 0)
+    return JSON.stringify(["workflow", run.workflowPath, run.name]);
+  if (run.appSlug === "github-actions") return void 0;
+  if (run.appSlug !== void 0) return JSON.stringify(["app", run.appSlug, run.name]);
+  if (run.checkSuiteId === void 0) return JSON.stringify(["name", run.name]);
+  return void 0;
+}
 function countedCheckRuns(runs, excludedIds) {
   const excluded = new Set(excludedIds);
   const checker = /* @__PURE__ */ new Map();
   const latest = /* @__PURE__ */ new Map();
   for (const run of runs) {
-    if (excluded.has(run.id)) checker.set(run.name, Math.max(checker.get(run.name) ?? 0, run.id));
+    const id = identity(run);
+    if (excluded.has(run.id) && id !== void 0) {
+      checker.set(id, Math.max(checker.get(id) ?? 0, run.id));
+    }
     const key = checkKey(run);
     const seen = latest.get(key);
     if (seen === void 0 || later(run, seen)) latest.set(key, run);
   }
-  return [...latest.values()].filter((run) => !excluded.has(run.id) && run.id > (checker.get(run.name) ?? 0)).sort((a, b) => a.id - b.id);
+  const superseded = (run) => {
+    const id = identity(run);
+    return id !== void 0 && run.id < (checker.get(id) ?? 0);
+  };
+  return [...latest.values()].filter((run) => !excluded.has(run.id) && !superseded(run)).sort((a, b) => a.id - b.id);
 }
 var NOT_FAILED_CONCLUSIONS = ["success", "skipped", "neutral"];
 function booleanRow(field, declared, reason, runs, failed, mismatch, unsettled) {
@@ -8919,6 +8934,14 @@ var PullRequestUnreadable = class extends Error {
     this.name = "PullRequestUnreadable";
   }
 };
+var PullRequestMoved = class extends Error {
+  constructor(repository, number, moves) {
+    super(
+      `pull request ${repository}#${number} moved while it was checked, and again when it was checked once more (${moves.join(", ")}); no record is written (pull_request_moved)`
+    );
+    this.name = "PullRequestMoved";
+  }
+};
 var ShapeError = class extends Error {
 };
 function obj(value) {
@@ -8957,8 +8980,12 @@ function timestamp(value) {
 function second(t) {
   return t.slice(0, 19);
 }
-async function readPullRequest(client, repository, number) {
-  const read = await client.read("pull_request", `/repos/${repository}/pulls/${number}`);
+async function readPullRequest(client, repository, number, options = {}) {
+  const read = await client.read(
+    "pull_request",
+    `/repos/${repository}/pulls/${number}`,
+    options.record === false ? { record: false } : {}
+  );
   if (!read.ok) {
     throw new PullRequestUnreadable(
       `cannot read pull request ${repository}#${number} (${read.error}); no record is written`
@@ -8970,6 +8997,7 @@ async function readPullRequest(client, repository, number) {
     const state = str(pr.state);
     if (state !== "open" && state !== "closed") throw new ShapeError();
     const base = obj(obj(pr.base).repo);
+    const baseRef = str(obj(pr.base).ref);
     return {
       evidence: {
         status: "ok",
@@ -8983,6 +9011,7 @@ async function readPullRequest(client, repository, number) {
         changedFiles: int(pr.changed_files)
       },
       repository: str(base.full_name),
+      baseRef,
       body: strOrNull(pr.body)
     };
   } catch (e) {
@@ -8993,6 +9022,20 @@ async function readPullRequest(client, repository, number) {
     }
     throw e;
   }
+}
+function pullRequestMoves(first, again) {
+  const state = (pr) => pr.evidence.merged ? "merged" : pr.evidence.state;
+  const pairs = [
+    ["head", first.evidence.headSha, again.evidence.headSha],
+    ["base", first.baseRef, again.baseRef],
+    ["state", state(first), state(again)],
+    ["repository", first.repository, again.repository],
+    ["mergedAt", first.evidence.mergedAt, again.evidence.mergedAt],
+    ["mergeSha", first.evidence.mergeSha, again.evidence.mergeSha],
+    ["changedFiles", first.evidence.changedFiles, again.evidence.changedFiles],
+    ["number", first.evidence.number, again.evidence.number]
+  ];
+  return pairs.filter(([, a, b]) => a !== b).map(([name, a, b]) => `${name} ${a} -> ${b}`);
 }
 async function readAllPages(client, kind, pathFor, itemsOf, map, options = {}) {
   const out = [];
@@ -9713,7 +9756,7 @@ async function readEvidence(client, input2) {
 // src/record/checker.ts
 import { readFileSync } from "node:fs";
 var CHECKER_NAME = "dunstan";
-var CHECKER_VERSION = "0.1.10";
+var CHECKER_VERSION = "0.1.11";
 function checkerIdentity(artifact) {
   return {
     name: CHECKER_NAME,
@@ -9724,6 +9767,8 @@ function checkerIdentity(artifact) {
 
 // src/evidence/http.ts
 var DEFAULT_API = "https://api.github.com";
+var MAX_ARCHIVE_BYTES = MAX_ENTRY_BYTES + 8 * 1024 * 1024;
+var MAX_BODY_BYTES = 48 * 1024 * 1024;
 var EMPTY = new Uint8Array();
 var GitHubClient = class {
   sources = /* @__PURE__ */ new Map();
@@ -9760,10 +9805,19 @@ var GitHubClient = class {
   async read(kind, path, options = {}) {
     const method = options.method ?? "GET";
     const locator = options.locator ?? `${method} ${path}${options.locatorSuffix ?? ""}`;
-    const result2 = await this.#fetchWithRetry(method, path, options.requestBody, locator);
+    const budget = kind === "artifact" ? MAX_ARCHIVE_BYTES : MAX_BODY_BYTES;
+    const result2 = await this.#fetchWithRetry(method, path, options.requestBody, locator, budget);
     let read;
     if (result2.kind === "network") {
       read = { ok: false, status: null, error: "network", body: EMPTY };
+    } else if (result2.body === null) {
+      const failed = result2.status < 200 || result2.status > 299;
+      read = {
+        ok: false,
+        status: result2.status,
+        error: failed ? `http_${result2.status}` : "parse",
+        body: EMPTY
+      };
     } else if (result2.status < 200 || result2.status > 299) {
       read = {
         ok: false,
@@ -9800,7 +9854,7 @@ var GitHubClient = class {
     const source = this.sources.get(locator);
     if (source !== void 0) source.error = "parse";
   }
-  async #fetchWithRetry(method, path, body, locator) {
+  async #fetchWithRetry(method, path, body, locator, budget) {
     const headers = {
       accept: "application/vnd.github+json",
       "x-github-api-version": "2022-11-28",
@@ -9825,10 +9879,10 @@ var GitHubClient = class {
         this.#warn(`${locator}: network error after ${attempt} attempts (${e.message})`);
         return { kind: "network" };
       }
-      const bytes = new Uint8Array(await response.arrayBuffer());
       const status = response.status;
       const wait = retryWaitMs(response, status, this.#now(), attempt);
       if (wait !== void 0 && attempt < this.#maxAttempts && wait <= this.#maxWaitMs) {
+        await cancel(response.body);
         await this.#sleep(wait);
         continue;
       }
@@ -9836,10 +9890,48 @@ var GitHubClient = class {
         const why = wait > this.#maxWaitMs ? `rate limited for ${Math.ceil(wait / 1e3)}s` : `${attempt} attempts`;
         this.#warn(`${locator}: giving up with HTTP ${status} (${why}); recorded as unreadable`);
       }
+      const bytes = await readWithin(response, budget);
+      if (bytes === null) {
+        this.#warn(
+          `${locator}: answer over ${budget} bytes, not read in full; recorded as unreadable`
+        );
+      }
       return { kind: "response", status, body: bytes, etag: response.headers.get("etag") };
     }
   }
 };
+async function cancel(body) {
+  await body?.cancel().catch(() => {
+  });
+}
+async function readWithin(response, budget) {
+  const length = response.headers.get("content-length");
+  if (length !== null && /^[0-9]+$/.test(length) && Number(length) > budget) {
+    await cancel(response.body);
+    return null;
+  }
+  if (response.body === null) return EMPTY;
+  const reader = response.body.getReader();
+  const chunks = [];
+  let size = 0;
+  for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) {
+    size += chunk.value.length;
+    if (size > budget) {
+      await reader.cancel().catch(() => {
+      });
+      return null;
+    }
+    chunks.push(chunk.value);
+  }
+  if (chunks.length === 1) return chunks[0];
+  const bytes = new Uint8Array(size);
+  let at = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, at);
+    at += chunk.length;
+  }
+  return bytes;
+}
 function backoffMs(attempt) {
   return Math.min(1e3 * 2 ** (attempt - 1), 8e3);
 }
@@ -12935,13 +13027,34 @@ function extractHandbackBlock(reportText) {
 // src/pipeline/check-pull-request.ts
 function githubReaders(client) {
   return {
-    pullRequest: (repository, number) => readPullRequest(client, repository, number),
+    pullRequest: (repository, number, options) => readPullRequest(client, repository, number, options),
     evidence: (input2) => readEvidence(client, input2),
-    pathObjects: (input2) => readPathObjects(client, input2)
+    pathObjects: (input2) => readPathObjects(client, input2),
+    restart: () => client.sources.clear()
   };
 }
+async function atOnePullRequest(readers, repository, number, first, collect) {
+  let pr = first ?? await readers.pullRequest(repository, number);
+  for (let run = 1; ; run++) {
+    const collected = await collect(pr);
+    const again = await readers.pullRequest(repository, number, { record: false });
+    const moves = pullRequestMoves(pr, again);
+    if (moves.length === 0) return collected;
+    if (run === 2) throw new PullRequestMoved(repository, number, moves);
+    readers.restart?.();
+    pr = await readers.pullRequest(repository, number);
+  }
+}
 async function checkPullRequest(input2) {
-  const pr = input2.pullRequest ?? await input2.readers.pullRequest(input2.repository, input2.number);
+  return atOnePullRequest(
+    input2.readers,
+    input2.repository,
+    input2.number,
+    input2.pullRequest,
+    (pr) => checkAt(input2, pr)
+  );
+}
+async function checkAt(input2, pr) {
   const repository = pr.repository;
   const ownRuns = await input2.afterPullRequest?.(pr) ?? [];
   const report = await input2.report(pr);
@@ -13511,7 +13624,7 @@ function rerunLines(env, record) {
   ];
 }
 function describeError(e) {
-  if (e instanceof ActionError || e instanceof PullRequestUnreadable || e instanceof ReportUnavailable) {
+  if (e instanceof ActionError || e instanceof PullRequestUnreadable || e instanceof PullRequestMoved || e instanceof ReportUnavailable) {
     return { message: e.message, internal: false };
   }
   return { message: `internal error: ${e.message ?? String(e)}`, internal: true };
@@ -13526,6 +13639,7 @@ async function runAction(io) {
   let repository;
   let headSha;
   let checkRunId;
+  let jobRun = null;
   let canWriteCheckRun = true;
   let recordPath;
   let outcome;
@@ -13563,11 +13677,29 @@ async function runAction(io) {
       readers: io.readers?.(api) ?? githubReaders(api),
       repository: event.repository,
       number: event.number,
+      // Called again when the pull request moved while it was read and the check runs once more.
+      // The check of the new head is the new head's: a check run on a head the pull request left is
+      // completed now, as failure, never with another head's result.
       afterPullRequest: async (pr) => {
         repository = pr.repository;
-        headSha = pr.evidence.headSha;
+        const head = pr.evidence.headSha;
+        if (checkRunId !== void 0 && headSha !== head) {
+          const left = await completeCheckRun(api, pr.repository, checkRunId, "failure", {
+            title: `not checked: the pull request moved to ${head} while it was checked`,
+            summary: `The pull request's head moved from \`${headSha}\` to \`${head}\` while Dunstan read it. Dunstan checked \`${head}\`, and its \`${CHECK_NAME}\` check run is on that commit. This commit was not checked.`
+          });
+          if (!left.ok) {
+            notes.push(
+              `The \`${CHECK_NAME}\` check run on \`${headSha}\`, which the pull request left while it was checked, could not be completed (${left.error}); it stays in progress.`
+            );
+          }
+          checkRunId = void 0;
+        }
+        headSha = head;
         const own = [];
-        if (canWriteCheckRun) {
+        if (checkRunId !== void 0) {
+          own.push(checkRunId);
+        } else if (canWriteCheckRun) {
           const created = await createCheckRun(api, pr.repository, pr.evidence.headSha, {
             status: "in_progress",
             ...env.GITHUB_SERVER_URL && env.GITHUB_RUN_ID ? {
@@ -13584,14 +13716,15 @@ async function runAction(io) {
             );
           }
         }
-        const job = await ownJobCheckRun(api, pr.repository, env);
-        if (job === void 0) {
-          notes.push(
-            "This job's own check run could not be identified, so it was not excluded: a `checks` claim counts it, in progress."
-          );
-        } else {
-          own.push(job);
+        if (jobRun === null) {
+          jobRun = await ownJobCheckRun(api, pr.repository, env);
+          if (jobRun === void 0) {
+            notes.push(
+              "This job's own check run could not be identified, so it was not excluded: a `checks` claim counts it, in progress."
+            );
+          }
         }
+        if (jobRun !== void 0) own.push(jobRun);
         return own;
       },
       report: (pr) => readReport(inputs.reportSource, pr, api),

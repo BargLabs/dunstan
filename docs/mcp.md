@@ -24,7 +24,7 @@ self-contained file with no dependencies, so nothing is built and nothing else i
 /plugin install dunstan@barglabs
 ```
 
-The plugin starts the server with `npx -y dunstan@0.1.10 mcp` and adds the `dunstan-check` skill. When
+The plugin starts the server with `npx -y dunstan@0.1.11 mcp` and adds the `dunstan-check` skill. When
 you enable it, Claude Code asks for an optional GitHub token (below). It stores the value in your
 system's secure credential store and passes it to the server as `GITHUB_TOKEN`. Leave it empty to read
 public repositories anonymously (a `closes` reference then needs the token; see below). The plugin
@@ -41,7 +41,7 @@ environment setting:
   "mcpServers": {
     "dunstan": {
       "command": "npx",
-      "args": ["-y", "dunstan@0.1.10", "mcp"],
+      "args": ["-y", "dunstan@0.1.11", "mcp"],
       "env": { "GITHUB_TOKEN": "<a fine-grained, read-only token>" }
     }
   }
@@ -141,8 +141,9 @@ It returns three text items:
    offline once it is saved to a file.
 
 Errors come back as tool errors (`isError: true`), never as a verdict: an input error, a pull
-request that cannot be read, a record that cannot be written. An error is not `pass`, and it is not
-`fail`. Nothing was checked.
+request that cannot be read, a pull request that moved while it was checked and again when checked
+once more (`pull_request_moved`, spec section 6), a record that cannot be written. An error is not
+`pass`, and it is not `fail`. Nothing was checked.
 
 ### `dunstan_suggest_declarations`
 

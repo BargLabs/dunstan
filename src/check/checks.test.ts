@@ -844,7 +844,27 @@ describe('countedCheckRuns', () => {
     expect(countedCheckRuns(runs, []).map((r) => r.id)).toEqual([4, 5, 6]);
   });
 
-  it("an excluded run supersedes its name's earlier runs in every suite, and no later run", () => {
+  // Spec 0.1.7: runs of no workflow path are the same check only when both name the same app, and
+  // that app is not `github-actions`, which every workflow in the repository creates runs as.
+  it("an excluded run supersedes its name's earlier runs of its app in every suite, and no later run", () => {
+    const runsOf = (appSlug: string) => {
+      const at = (checkSuiteId: number) => ({ checkSuiteId, appSlug });
+      return [
+        { id: 1, name: 'handback', status: 'completed', conclusion: 'failure', ...at(70) },
+        { id: 2, name: 'dunstan', status: 'completed', conclusion: 'failure', ...at(71) },
+        { id: 3, name: 'test', status: 'completed', conclusion: 'success', ...at(72) },
+        { id: 7, name: 'handback', status: 'in_progress', conclusion: null, ...at(80) },
+        { id: 8, name: 'dunstan', status: 'in_progress', conclusion: null, ...at(71) },
+        { id: 9, name: 'handback', status: 'completed', conclusion: 'success', ...at(90) },
+      ];
+    };
+    expect(countedCheckRuns(runsOf('example-checker'), [7, 8]).map((r) => r.id)).toEqual([3, 9]);
+    // 10AF2: by `github-actions`, run 1 has no identity and is counted; run 2 shares run 8's suite
+    // and name, so it is the same check and is superseded as before.
+    expect(countedCheckRuns(runsOf('github-actions'), [7, 8]).map((r) => r.id)).toEqual([1, 3, 9]);
+  });
+
+  it('an excluded run in another suite supersedes no run whose app the record does not hold', () => {
     const runs = [
       { id: 1, name: 'handback', status: 'completed', conclusion: 'failure', checkSuiteId: 70 },
       { id: 2, name: 'dunstan', status: 'completed', conclusion: 'failure', checkSuiteId: 71 },
@@ -853,7 +873,9 @@ describe('countedCheckRuns', () => {
       { id: 8, name: 'dunstan', status: 'in_progress', conclusion: null, checkSuiteId: 71 },
       { id: 9, name: 'handback', status: 'completed', conclusion: 'success', checkSuiteId: 90 },
     ];
-    expect(countedCheckRuns(runs, [7, 8]).map((r) => r.id)).toEqual([3, 9]);
+    // Run 2 shares run 8's suite and name, so it is the same check and is superseded as before;
+    // run 1 is in another suite and names no app, so nothing says it is the checker's.
+    expect(countedCheckRuns(runs, [7, 8]).map((r) => r.id)).toEqual([1, 3, 9]);
   });
 });
 
@@ -897,9 +919,13 @@ describe('checks over check suites', () => {
     expect(row(claims, 'count:/checks/total')).toMatchObject({ verdict: 'pass', observed: 1 });
   });
 
-  it("the checker's own earlier runs, each in its workflow run's suite, are not counted", () => {
+  it("the checker's own earlier run in another suite, with no workflow path, is counted: a false fail, never a pass", () => {
     // Run 1 of the checker's workflow (suite 70) failed on a bad block; the body was edited and run 2
-    // (suite 80) is the checker now, which excludes its job's run and its `dunstan` run.
+    // (suite 80) is the checker now, which excludes its job's run and its `dunstan` run. The record
+    // holds no workflow paths and the runs are by `github-actions`, which identifies no checker
+    // (10AF2), so run 2's earlier `handback` is counted. Run 3 shares run 5's suite and name: one
+    // check, whose latest run is excluded. With workflow paths, the earlier run is superseded (the
+    // 10AF block below).
     const runs = [
       { ...run(1, 'success', 60), name: 'lint' },
       { ...run(2, 'failure', 70), name: 'handback' },
@@ -912,11 +938,17 @@ describe('checks over check suites', () => {
       evidence({ checkRuns: { status: 'ok', commit: HEAD, excludedIds: [4, 5], runs } }),
       REPO,
     );
+    expect(countedCheckRuns(runs, [4, 5]).map((r) => r.id)).toEqual([1, 2]);
     expect(row(claims, 'count:/checks/allSucceeded')).toMatchObject({
-      verdict: 'pass',
-      observed: true,
+      verdict: 'fail',
+      observed: false,
+      reason: 'all_succeeded_mismatch',
     });
-    expect(row(claims, 'count:/checks/total')).toMatchObject({ verdict: 'pass', observed: 1 });
+    expect(row(claims, 'count:/checks/total')).toMatchObject({
+      verdict: 'fail',
+      observed: 2,
+      reason: 'count_mismatch',
+    });
   });
 
   it('a record with check suites and no workflow paths is counted per suite and name', () => {
@@ -1085,6 +1117,191 @@ describe('checks per workflow path', () => {
       [3],
     );
     expect(row(claims, 'count:/checks/total')).toMatchObject({ verdict: 'pass', observed: 1 });
+    expect(row(claims, 'count:/checks/allSucceeded')).toMatchObject({
+      verdict: 'pass',
+      observed: true,
+    });
+  });
+});
+
+// Spec 0.1.7 (10AF): an excluded run supersedes only earlier runs of its own identity, its name and
+// its workflow path, or for a run of no workflow its app. In 0.1.6 it superseded every earlier run of
+// its name, so a failed job named `dunstan` in another workflow was dropped and a checks claim passed.
+describe('an excluded run supersedes only its own identity', () => {
+  const CI = '.github/workflows/ci.yml';
+  const SECURITY = '.github/workflows/security.yml';
+  const DUNSTAN = '.github/workflows/dunstan.yml';
+  const run = (
+    id: number,
+    name: string,
+    conclusion: string | null,
+    at: { suite: number; path?: string; runId?: number; app?: string },
+  ): CheckRun => ({
+    id,
+    name,
+    status: conclusion === null ? 'in_progress' : 'completed',
+    conclusion,
+    checkSuiteId: at.suite,
+    appSlug: at.app ?? 'github-actions',
+    ...(at.path === undefined
+      ? {}
+      : { workflowPath: at.path, workflowRunId: at.runId ?? at.suite, runAttempt: 1 }),
+  });
+  const claimsOf = (
+    checks: { total?: number; allSucceeded?: boolean; noneFailed?: boolean },
+    runs: CheckRun[],
+    excludedIds: number[],
+  ) =>
+    runChecks(
+      block({ checks }),
+      evidence({ checkRuns: { status: 'ok', commit: HEAD, excludedIds, runs } }),
+      REPO,
+    );
+
+  it("the review's reproduction: a failed `dunstan` job in another workflow stays counted", () => {
+    const runs = [
+      run(10, 'dunstan', 'failure', { suite: 70, path: SECURITY, runId: 100 }),
+      run(20, 'dunstan', null, { suite: 80, path: DUNSTAN, runId: 200 }),
+      run(30, 'test', 'success', { suite: 90, path: CI, runId: 300 }),
+    ];
+    expect(countedCheckRuns(runs, [20]).map((r) => r.id)).toEqual([10, 30]);
+    const claims = claimsOf({ total: 1, allSucceeded: true, noneFailed: true }, runs, [20]);
+    expect(row(claims, 'count:/checks/total')).toMatchObject({
+      verdict: 'fail',
+      observed: 2,
+      reason: 'count_mismatch',
+    });
+    expect(row(claims, 'count:/checks/allSucceeded')).toMatchObject({
+      verdict: 'fail',
+      observed: false,
+      reason: 'all_succeeded_mismatch',
+    });
+    expect(row(claims, 'count:/checks/noneFailed')).toMatchObject({
+      verdict: 'fail',
+      observed: false,
+      reason: 'none_failed_mismatch',
+    });
+  });
+
+  it('an excluded run of no workflow, its app named, does not hide a job of its name', () => {
+    // The Action run with an app's token: its `dunstan` run is in that app's suite, of no workflow.
+    const runs = [
+      run(10, 'dunstan', 'failure', { suite: 70, path: SECURITY, runId: 100 }),
+      run(20, 'dunstan', null, { suite: 80, app: 'example-checker' }),
+      run(30, 'test', 'success', { suite: 90, path: CI, runId: 300 }),
+    ];
+    expect(countedCheckRuns(runs, [20]).map((r) => r.id)).toEqual([10, 30]);
+  });
+
+  it("the Action's own earlier runs on a re-run are still superseded", () => {
+    // Run 1 of the checker's workflow failed on a bad block; the body was edited and run 2 is the
+    // checker now, which excludes its job's run (40) and its `dunstan` run (50).
+    const first = { suite: 70, path: DUNSTAN, runId: 100 };
+    const second = { suite: 80, path: DUNSTAN, runId: 200 };
+    const runs = [
+      run(10, 'handback', 'failure', first),
+      run(11, 'dunstan', 'failure', first),
+      run(30, 'test', 'success', { suite: 90, path: CI, runId: 300 }),
+      run(40, 'handback', null, second),
+      run(50, 'dunstan', null, second),
+    ];
+    expect(countedCheckRuns(runs, [40, 50]).map((r) => r.id)).toEqual([30]);
+    // The same, with the checker's runs created by an app, in that app's suites of no workflow.
+    const byApp = [
+      run(11, 'dunstan', 'failure', { suite: 71, app: 'example-checker' }),
+      run(30, 'test', 'success', { suite: 90, path: CI, runId: 300 }),
+      run(50, 'dunstan', null, { suite: 81, app: 'example-checker' }),
+    ];
+    expect(countedCheckRuns(byApp, [50]).map((r) => r.id)).toEqual([30]);
+  });
+
+  it('a run of no workflow is never the same check as a run of a workflow, either way', () => {
+    const runs = [
+      run(10, 'dunstan', 'failure', { suite: 70, app: 'github-actions' }),
+      run(11, 'lint', 'failure', { suite: 71, path: CI, runId: 101 }),
+      run(20, 'dunstan', null, { suite: 80, path: DUNSTAN, runId: 200 }),
+      run(21, 'lint', null, { suite: 81, app: 'github-actions' }),
+      run(30, 'test', 'success', { suite: 90, path: CI, runId: 300 }),
+    ];
+    expect(countedCheckRuns(runs, [20, 21]).map((r) => r.id)).toEqual([10, 11, 30]);
+  });
+
+  it("a run of another app's suite, or one whose app the record does not hold, is not superseded", () => {
+    const runs = [
+      run(10, 'dunstan', 'failure', { suite: 70, app: 'another-app' }),
+      { id: 11, name: 'dunstan', status: 'completed', conclusion: 'failure', checkSuiteId: 71 },
+      run(20, 'dunstan', null, { suite: 80, app: 'github-actions' }),
+      run(30, 'test', 'success', { suite: 90, path: CI, runId: 300 }),
+    ];
+    expect(countedCheckRuns(runs, [20]).map((r) => r.id)).toEqual([10, 11, 30]);
+    const claims = claimsOf({ allSucceeded: true }, runs, [20]);
+    expect(row(claims, 'count:/checks/allSucceeded')).toMatchObject({
+      verdict: 'fail',
+      reason: 'all_succeeded_mismatch',
+    });
+  });
+
+  it('a record without check suites supersedes by name alone, as before', () => {
+    const runs: CheckRun[] = [
+      { id: 10, name: 'dunstan', status: 'completed', conclusion: 'failure' },
+      { id: 20, name: 'dunstan', status: 'in_progress', conclusion: null },
+      { id: 30, name: 'test', status: 'completed', conclusion: 'success' },
+    ];
+    expect(countedCheckRuns(runs, [20]).map((r) => r.id)).toEqual([30]);
+  });
+
+  // 10AF2: every workflow in a repository creates runs as `github-actions`, so that app identifies
+  // no checker. A failed `dunstan` run created through the API with a workflow's GITHUB_TOKEN, or an
+  // Actions job whose suite the workflow runs listing missed, had the Action's own identity and a
+  // lower id, and was hidden.
+  it('a `github-actions` run of no workflow has no identity, and is not superseded', () => {
+    const runs = [
+      run(10, 'dunstan', 'failure', { suite: 70, app: 'github-actions' }),
+      run(20, 'dunstan', null, { suite: 80, app: 'github-actions' }),
+      run(30, 'test', 'success', { suite: 90, path: CI, runId: 300 }),
+    ];
+    expect(countedCheckRuns(runs, [20]).map((r) => r.id)).toEqual([10, 30]);
+    const claims = claimsOf({ total: 1, allSucceeded: true, noneFailed: true }, runs, [20]);
+    expect(row(claims, 'count:/checks/total')).toMatchObject({
+      verdict: 'fail',
+      observed: 2,
+      reason: 'count_mismatch',
+    });
+    expect(row(claims, 'count:/checks/allSucceeded')).toMatchObject({
+      verdict: 'fail',
+      observed: false,
+      reason: 'all_succeeded_mismatch',
+    });
+    expect(row(claims, 'count:/checks/noneFailed')).toMatchObject({
+      verdict: 'fail',
+      observed: false,
+      reason: 'none_failed_mismatch',
+    });
+  });
+
+  it('a `github-actions` pair of no workflow in one suite is still one check, its latest run', () => {
+    const runs = [
+      run(10, 'dunstan', 'failure', { suite: 70, app: 'github-actions' }),
+      run(20, 'dunstan', null, { suite: 70, app: 'github-actions' }),
+      run(30, 'test', 'success', { suite: 90, path: CI, runId: 300 }),
+    ];
+    expect(countedCheckRuns(runs, [20]).map((r) => r.id)).toEqual([30]);
+    const claims = claimsOf({ total: 1, allSucceeded: true }, runs, [20]);
+    expect(row(claims, 'count:/checks/total')).toMatchObject({ verdict: 'pass', observed: 1 });
+    expect(row(claims, 'count:/checks/allSucceeded')).toMatchObject({
+      verdict: 'pass',
+      observed: true,
+    });
+  });
+
+  it('a run of no workflow by any other app is still superseded by its app', () => {
+    const runs = [
+      run(10, 'dunstan', 'failure', { suite: 70, app: 'example-checker' }),
+      run(20, 'dunstan', null, { suite: 80, app: 'example-checker' }),
+      run(30, 'test', 'success', { suite: 90, path: CI, runId: 300 }),
+    ];
+    expect(countedCheckRuns(runs, [20]).map((r) => r.id)).toEqual([30]);
+    const claims = claimsOf({ allSucceeded: true }, runs, [20]);
     expect(row(claims, 'count:/checks/allSucceeded')).toMatchObject({
       verdict: 'pass',
       observed: true,

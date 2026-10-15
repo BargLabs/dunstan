@@ -371,13 +371,29 @@ function later(a: CheckRun, b: CheckRun): boolean {
   return a.id > b.id;
 }
 
+// Whose run an excluded run's earlier runs are (spec 0.1.7, section 7.5): a run with a workflow path
+// is its workflow's, by path and name; a run of no workflow is its app's, by app and name; a run of a
+// record that recorded no suites is its name's alone, as it was then. Undefined when the record
+// cannot tell: a run with a check suite and neither a workflow path nor an app, or a run of no
+// workflow by `github-actions`, which every workflow in the repository creates runs as, so that it
+// identifies no checker.
+function identity(run: CheckRun): string | undefined {
+  if (run.workflowPath !== undefined)
+    return JSON.stringify(['workflow', run.workflowPath, run.name]);
+  if (run.appSlug === 'github-actions') return undefined;
+  if (run.appSlug !== undefined) return JSON.stringify(['app', run.appSlug, run.name]);
+  if (run.checkSuiteId === undefined) return JSON.stringify(['name', run.name]);
+  return undefined;
+}
+
 // The check runs at the head: the latest run per workflow and name, less any the checker excluded.
 // GitHub names an Actions check run after its job, and each run of a workflow is a check suite of
 // its own: two workflows' `test` jobs are two checks and neither hides the other, and one workflow
 // run twice on the head (on push and pull_request, or after a reopen) is one check per job, its
 // latest workflow run's. A run of no workflow is keyed by its check suite, and a run of a record
-// that recorded no suites by its name alone, as each was then. An excluded run also supersedes
-// every earlier run of its name, in any suite: those are the checker's own earlier runs.
+// that recorded no suites by its name alone, as each was then. An excluded run also supersedes the
+// earlier runs of its own identity, in any suite: those are the checker's own earlier runs. It never
+// supersedes a run of its name in another workflow, or one whose identity the record cannot tell.
 export function countedCheckRuns(
   runs: readonly CheckRun[],
   excludedIds: readonly number[],
@@ -386,13 +402,20 @@ export function countedCheckRuns(
   const checker = new Map<string, number>();
   const latest = new Map<string, CheckRun>();
   for (const run of runs) {
-    if (excluded.has(run.id)) checker.set(run.name, Math.max(checker.get(run.name) ?? 0, run.id));
+    const id = identity(run);
+    if (excluded.has(run.id) && id !== undefined) {
+      checker.set(id, Math.max(checker.get(id) ?? 0, run.id));
+    }
     const key = checkKey(run);
     const seen = latest.get(key);
     if (seen === undefined || later(run, seen)) latest.set(key, run);
   }
+  const superseded = (run: CheckRun) => {
+    const id = identity(run);
+    return id !== undefined && run.id < (checker.get(id) ?? 0);
+  };
   return [...latest.values()]
-    .filter((run) => !excluded.has(run.id) && run.id > (checker.get(run.name) ?? 0))
+    .filter((run) => !excluded.has(run.id) && !superseded(run))
     .sort((a, b) => a.id - b.id);
 }
 

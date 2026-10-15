@@ -2,12 +2,34 @@
 // source entry (spec section 6): kind, locator, SHA-256 of the response body as received, ETag, read
 // time and, for a failed read, the error. Rate limits and server errors get a bounded backoff; when
 // the bound is reached the read is recorded as failed and a warning is printed, never a guess.
+//
+// Every body is read against a byte budget, never whole before its size is known: one over it is
+// cancelled as soon as the bytes pulled pass the budget (or before a byte is pulled, when its
+// content-length already does) and recorded as unreadable, with the SHA-256 of no bytes.
 
 import type { Source, SourceKind } from '../check/types.js';
 import { CHECKER_VERSION } from '../record/checker.js';
 import { sha256Hex } from '../spec/jcs.js';
+import { MAX_ENTRY_BYTES } from './zip.js';
 
 export const DEFAULT_API = 'https://api.github.com';
+
+// An artifact archive is read whole, because its central directory is at its end, so its budget is
+// the archive's size, not its entry's. The selected entry may be up to MAX_ENTRY_BYTES (64 MiB)
+// stored; deflate adds 5 bytes per 64 KiB block it cannot compress (about 5 KiB on 64 MiB), its
+// local header at most 30 + 2 x 65,535 bytes, and the central directory's end record at most
+// 22 + 65,535. The other 8 MiB is for the central directory and the small files an artifact
+// carries beside its report. An archive that carries more is unreadable: upload the report as an
+// artifact of its own.
+export const MAX_ARCHIVE_BYTES = MAX_ENTRY_BYTES + 8 * 1024 * 1024;
+
+// Every other answer. The largest the checker reads is a page of 100 issue comments (the report's
+// listing): GitHub caps a comment body at 65,536 characters, which JSON writes in at most 6 bytes
+// each (a `\u00XX` escape), so 100 bodies are at most 39,321,600 bytes (37.5 MiB), with each
+// comment's few kilobytes of other members beside them. A page of 100 changed files, check runs,
+// jobs, workflow runs or deployments carries no free text of that size. A files page and the
+// compare answer can carry patches; one past this budget is unreadable, never guessed.
+export const MAX_BODY_BYTES = 48 * 1024 * 1024;
 
 export type ReadError = `http_${number}` | 'network' | 'parse';
 
@@ -89,10 +111,20 @@ export class GitHubClient {
   async read(kind: SourceKind | 'path', path: string, options: ReadOptions = {}): Promise<Read> {
     const method = options.method ?? 'GET';
     const locator = options.locator ?? `${method} ${path}${options.locatorSuffix ?? ''}`;
-    const result = await this.#fetchWithRetry(method, path, options.requestBody, locator);
+    const budget = kind === 'artifact' ? MAX_ARCHIVE_BYTES : MAX_BODY_BYTES;
+    const result = await this.#fetchWithRetry(method, path, options.requestBody, locator, budget);
     let read: Read;
     if (result.kind === 'network') {
       read = { ok: false, status: null, error: 'network', body: EMPTY };
+    } else if (result.body === null) {
+      // Over budget: a failed answer keeps its status; a 2xx answer is one the read cannot take.
+      const failed = result.status < 200 || result.status > 299;
+      read = {
+        ok: false,
+        status: result.status,
+        error: failed ? `http_${result.status}` : 'parse',
+        body: EMPTY,
+      };
     } else if (result.status < 200 || result.status > 299) {
       read = {
         ok: false,
@@ -136,8 +168,10 @@ export class GitHubClient {
     path: string,
     body: string | undefined,
     locator: string,
+    budget: number,
   ): Promise<
-    | { kind: 'response'; status: number; body: Uint8Array; etag: string | null }
+    // `body` is null for a body over the budget, which is never read in full.
+    | { kind: 'response'; status: number; body: Uint8Array | null; etag: string | null }
     | { kind: 'network' }
   > {
     const headers: Record<string, string> = {
@@ -165,10 +199,11 @@ export class GitHubClient {
         this.#warn(`${locator}: network error after ${attempt} attempts (${(e as Error).message})`);
         return { kind: 'network' };
       }
-      const bytes = new Uint8Array(await response.arrayBuffer());
       const status = response.status;
       const wait = retryWaitMs(response, status, this.#now(), attempt);
       if (wait !== undefined && attempt < this.#maxAttempts && wait <= this.#maxWaitMs) {
+        // The answer is discarded, so its body is never read.
+        await cancel(response.body);
         await this.#sleep(wait);
         continue;
       }
@@ -179,9 +214,50 @@ export class GitHubClient {
             : `${attempt} attempts`;
         this.#warn(`${locator}: giving up with HTTP ${status} (${why}); recorded as unreadable`);
       }
+      const bytes = await readWithin(response, budget);
+      if (bytes === null) {
+        this.#warn(
+          `${locator}: answer over ${budget} bytes, not read in full; recorded as unreadable`,
+        );
+      }
       return { kind: 'response', status, body: bytes, etag: response.headers.get('etag') };
     }
   }
+}
+
+async function cancel(body: ReadableStream<Uint8Array> | null): Promise<void> {
+  await body?.cancel().catch(() => {});
+}
+
+// The body's bytes, or null when it holds more than `budget`: refused before a byte is pulled when
+// its content-length says so, else cancelled as soon as the bytes pulled pass the budget. A
+// content-length that lies low changes nothing, since the bytes are counted as they arrive.
+async function readWithin(response: Response, budget: number): Promise<Uint8Array | null> {
+  const length = response.headers.get('content-length');
+  if (length !== null && /^[0-9]+$/.test(length) && Number(length) > budget) {
+    await cancel(response.body);
+    return null;
+  }
+  if (response.body === null) return EMPTY;
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (let chunk = await reader.read(); !chunk.done; chunk = await reader.read()) {
+    size += chunk.value.length;
+    if (size > budget) {
+      await reader.cancel().catch(() => {});
+      return null;
+    }
+    chunks.push(chunk.value);
+  }
+  if (chunks.length === 1) return chunks[0] as Uint8Array;
+  const bytes = new Uint8Array(size);
+  let at = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, at);
+    at += chunk.length;
+  }
+  return bytes;
 }
 
 function backoffMs(attempt: number): number {

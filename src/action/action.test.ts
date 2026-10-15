@@ -399,6 +399,81 @@ describe('the Action', () => {
     );
   });
 
+  // A pull request that moves while it is checked: the n-th read of it answers states[n], the last
+  // once they run out.
+  function moving(scenario: Scenario, states: Record<string, unknown>[]) {
+    const h = harness(scenario);
+    let reads = 0;
+    const fetchFn = async (input: string | URL | Request, init?: RequestInit) => {
+      const path = new URL(String(input)).pathname;
+      if (path === `/repos/${REPO}/pulls/7` && (init?.method ?? 'GET') === 'GET') {
+        scenario.pr = { ...scenario.pr, ...states[Math.min(reads++, states.length - 1)] };
+      }
+      return h.fetch(input, init);
+    };
+    return { ...h, fetch: fetchFn as typeof fetch };
+  }
+  const PUSHED = 'b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0';
+
+  it('concludes failure with no record when the pull request moves on both runs (pull_request_moved)', async () => {
+    const h = moving(
+      {
+        pr: basePullRequest({ changed_files: 1, body: block(['src/a.ts']) }),
+        files: [{ filename: 'src/a.ts', status: 'modified' }],
+      },
+      [
+        { head: { sha: HEAD } },
+        { head: { sha: PUSHED } },
+        { head: { sha: PUSHED } },
+        { head: { sha: 'c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0' } },
+      ],
+    );
+    const r = await act(h, { 'report-source': 'pr-body' });
+    expect(r.outcome).toMatchObject({ conclusion: 'failure', verdict: 'error' });
+    expect(r.outcome.title).toMatch(/^error: pull request .* moved .*pull_request_moved/);
+    expect(r.recordPath).toBeUndefined();
+    expect(h.uploads).toEqual([]);
+    expect(r.exitCode).toBe(1);
+    expect(r.output).toBe('verdict=error\nrecord-path=\n');
+    // No check run the Action wrote concludes success.
+    expect(h.bodies.some((b) => b.conclusion === 'success')).toBe(false);
+    expect(h.bodies.at(-1)).toMatchObject({ status: 'completed', conclusion: 'failure' });
+    expectOnlyCheckRunWrites(h.requests);
+  });
+
+  it('a push while it is checked: the check of the new head is on the new head, and the first head never concludes success', async () => {
+    // The agent pushed and updated its block; the new head passes, the first head was not checked.
+    const h = moving(
+      {
+        pr: basePullRequest({ changed_files: 1, body: block(['src/a.ts']) }),
+        files: [{ filename: 'src/a.ts', status: 'modified' }],
+      },
+      [
+        { head: { sha: HEAD } },
+        { head: { sha: PUSHED }, body: block(['src/a.ts']).replace(HEAD, PUSHED) },
+      ],
+    );
+    const r = await act(h, { 'report-source': 'pr-body' });
+    const record = JSON.parse(readFileSync(r.recordPath as string, 'utf8')) as DunstanRecord;
+    expect(record.predicate.subject.headSha).toBe(PUSHED);
+    expect(r.outcome).toMatchObject({ conclusion: 'success', verdict: 'pass' });
+    const created = h.bodies.filter((b) => b.name === 'dunstan');
+    expect(created.map((b) => [b.head_sha, b.status])).toEqual([
+      [HEAD, 'in_progress'],
+      [PUSHED, 'in_progress'],
+    ]);
+    // The run on the first head is completed, and not as success; the run on the new head is.
+    const completed = h.requests.filter((q) => q.startsWith('PATCH '));
+    expect(completed).toEqual([
+      `PATCH /repos/${REPO}/check-runs/5000`,
+      `PATCH /repos/${REPO}/check-runs/5001`,
+    ]);
+    const patches = h.bodies.filter((b) => b.status === 'completed');
+    expect(patches[0]?.conclusion).not.toBe('success');
+    expect(patches[1]).toMatchObject({ conclusion: 'success' });
+    expectOnlyCheckRunWrites(h.requests);
+  });
+
   it('reads the named author newest comment, and fails closed when there is none', async () => {
     const h = harness({
       pr: basePullRequest({ changed_files: 1 }),

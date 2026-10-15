@@ -1,6 +1,6 @@
 # The Dunstan claim format
 
-Version 0.1.6. Draft. Licensed under Apache-2.0 (`spec/LICENSE`).
+Version 0.1.7. Draft. Licensed under Apache-2.0 (`spec/LICENSE`).
 
 A coding agent that finishes a task writes a completion report. This specification defines a block
 the agent declares inside that report, the checks a checker runs on each declared field against the
@@ -232,6 +232,17 @@ carries a `status`:
 
 A checker that cannot read the pull request MUST NOT write a record: a record's subject is always read,
 never taken from the block.
+
+**One pull request** (since 0.1.7). Some reads name the pull request by its number: its files, its
+closing references and, in `closeEvents`, its base and its commits. They answer at whatever head the
+pull request has when they run. The other reads name a commit the first read or the block gives.
+So a checker MUST NOT write a record from evidence read while the pull request moved. Once it has
+read the evidence, it reads the pull request again; that read is not a source. If the head, the
+base branch, the state (open, closed or merged), or any other member `pullRequest` holds differs
+from the first read, the checker discards everything it read and checks once more from a fresh
+read. If the pull request moves again, it writes no record (`pull_request_moved`), as for a pull
+request it cannot read. A pull request that moves and moves back between the two reads (a push and
+a force-push back) is not seen, and a section read in between may hold the state it passed through.
 
 **An absent section.** A checker writes every section the block needs (the table above), so a
 section is absent only from evidence written by hand or cut short. An absent section, or an absent
@@ -504,10 +515,26 @@ The latest run of a key is the one with the highest `workflowRunId`, then the hi
 runs of no workflow the highest `id` is the latest. Two runs of different kinds of key, such as a
 run with a `workflowPath` and a run of the same name with neither member, never supersede each
 other: both are counted, which can fail `allSucceeded`, never pass it. An excluded run also
-supersedes every run of its name with a lower `id`, whatever its key: a checker run again on the
-same head (after the pull request body is edited) runs in a new run of its workflow, and its
-earlier runs are its own. So a run of another workflow with the name of an excluded run and a lower
-`id` is not counted either; a checker's own runs should have names no other check uses.
+supersedes every run of its own identity with a lower `id`, whatever its key: a checker run again on
+the same head (after the pull request body is edited) runs in a new run of its workflow, and its
+earlier runs are its own. A run's identity is its `name` and, for a run with a `workflowPath`, that
+path; for a run without one, its `appSlug`, unless that app is `github-actions`; for a run with
+neither a `workflowPath` nor a `checkSuiteId` (a record written before suites were recorded),
+nothing more. Two kinds of run have no identity the record can show: a run with a `checkSuiteId`
+and neither a `workflowPath` nor an `appSlug`, and a run with no `workflowPath` whose `appSlug` is
+`github-actions`. Every workflow in a repository creates check runs as `github-actions`, both its
+jobs' runs and any it creates through the API with its `GITHUB_TOKEN`, and a job whose check suite
+the workflow runs listing did not return has no `workflowPath`; so that app names no checker. A run
+without an identity supersedes nothing, and no excluded run supersedes it, except as the latest run
+of its key. So an excluded run hides an earlier run of its name only when the two have one key, or
+one identity: one workflow, one app other than `github-actions`, or, in a record that recorded no
+check suites, the name alone. Any other run of its name is counted, which can fail `allSucceeded`,
+never pass it. A check run a checker creates through the API joins a check suite GitHub chooses and
+has that suite's key and identity; a checker's own runs should have names no other check uses. A
+checker that creates check runs through the API should create them with its own GitHub App's
+token, so that its runs have an identity: created with `GITHUB_TOKEN` outside a workflow run's
+suite, they have none, and the checker's own earlier runs in other suites are counted, which can
+fail a correct claim, never pass a wrong one.
 
 - `count:/checks/total` compares `total` with the number of check runs counted so, each key once;
   `count_mismatch` if unequal.
@@ -819,6 +846,116 @@ against the schemas and check each record's block, report and claim and evidence
 
 ## 17. Changes
 
+- **0.1.7** (2026-10-15). Erratum to section 7.5, corrected in checker 0.1.11, and a second read
+  of the pull request in section 6 ("One pull request" below). Found by the
+  security review of commit `411180d` (finding 2). Since the 0.1.4 amendment of 2026-10-12 ("Checks
+  per check suite" below), an excluded run superseded every run of its name with a lower `id`, in
+  any suite. A failed job named `dunstan` in `.github/workflows/security.yml` (`id` 10), the
+  Action's own excluded `dunstan` run (`id` 20) and a successful `test` (`id` 30) were counted as
+  `test` alone: `checks.total: 1`, `checks.allSucceeded: true` and `checks.noneFailed: true` all
+  passed. A contributor who named a failing job `dunstan`, or the name of the Action's own job,
+  hid it from every `checks` claim the Action checked. That pass rested on a run the check had set
+  aside, not on evidence that every check succeeded, which section 2 forbids: a false pass in the
+  0.1 gate. Branch protection, which reads the check runs itself, was not affected.
+
+  An excluded run now supersedes only the earlier runs of its own identity (section 7.5): its name
+  and its `workflowPath`; for a run without one, its name and its `appSlug`, unless that app is
+  `github-actions`; for a run of a record that recorded no check suites, its name alone, as before.
+  A run with a `checkSuiteId` and neither a `workflowPath` nor an `appSlug` has no identity the
+  record can show, and neither has a run with no `workflowPath` whose `appSlug` is `github-actions`;
+  such a run supersedes nothing, and no excluded run supersedes it except as the latest run of its
+  key. So the security workflow's failed `dunstan` job is counted, and `allSucceeded` fails with
+  `all_succeeded_mismatch`. The key, the order of runs within a key, the excluded ids and every
+  other 0.1 rule are unchanged.
+
+  **`github-actions` is not an identity.** Every workflow in a repository creates check runs as
+  `github-actions`. An app with its own credentials is identified by its slug, because only its
+  token can create a run as it; `github-actions` identifies no checker. As first written, 0.1.7 gave
+  a run of no workflow by `github-actions` the identity of that app and its name, and two cases
+  passed a wrong `checks` claim. A workflow with `checks: write` that created a failed `dunstan`
+  run through the API with its `GITHUB_TOKEN`, outside a workflow run's suite, had the identity of
+  the Action's own `dunstan` run and a lower `id`, and was superseded. An Actions job named
+  `dunstan` whose check suite the workflow runs listing did not return had no `workflowPath`, the
+  same identity, and was superseded too. Corrected before release, still spec 0.1.7 and checker
+  0.1.11: a run of no workflow by `github-actions` has no identity. So an excluded run hides an
+  earlier run of its name only when the two have one key, or one identity: one workflow, one app
+  other than `github-actions`, or the name alone in a record that recorded no check suites. Every
+  other run of its name is counted, which can fail `allSucceeded`, never pass it.
+
+  **The Action's own runs.** The Action excludes its job's check run and the `dunstan` check run it
+  creates through the API (`POST /repos/{owner}/{repo}/check-runs`; `docs/action.md`). Its job's run is a job of its workflow, so it carries that
+  workflow's `workflowPath`, and the job's runs from an earlier run on the head (before the body was
+  edited) or an earlier attempt carry the same path and name: they are superseded, as before. The
+  `dunstan` run carries the `appSlug` of the token that created it and joins a check suite GitHub
+  chooses. With an app's own token that is the app's suite, of no workflow, so the app's earlier
+  `dunstan` runs share its identity and are superseded. With the workflow's `GITHUB_TOKEN` the app
+  is `github-actions`, and the suite may be a workflow run's, whose `workflowPath` the run then
+  carries; if it is not, the run has no identity. Which suite GitHub chooses has not been observed:
+  the probe of 2026-10-13 created no check run. Three known limits follow.
+  - If an earlier `dunstan` run and the excluded one joined the suites of two different workflows,
+    the earlier one is counted. That can fail a correct claim (`count_mismatch`,
+    `all_succeeded_mismatch`), never pass a wrong one.
+  - If the Action's `dunstan` run is created with `GITHUB_TOKEN` outside a workflow run's suite, it
+    has no identity, and its earlier runs in other suites are counted. That can fail a correct
+    claim, never pass a wrong one. A checker that creates check runs through the API should create
+    them with its own GitHub App's token (`docs/action.md`).
+  - If GitHub puts the Action's `dunstan` run in the suite of a workflow run that has a job named
+    `dunstan`, the two have one key (section 7.5, item 1), the later is the latest, and that job is
+    not counted. This is the key's rule, which 0.1.7 does not change. A checker's own runs should
+    still have names no other check uses.
+
+  The section 7.5 erratum leaves the evidence unchanged: it adds no request, field or token
+  permission, and both schemas are unchanged. A 0.1 block stays valid.
+
+  **Records already written.** A 0.1.6 record is verified offline by checker 0.1.10, which it names
+  (section 12); checker 0.1.11 refuses it at `/predicate/checker`. Recomputed under 0.1.11, a record
+  in which an excluded run shares its name with an earlier run of another identity, or of none (such
+  as a run of no workflow by `github-actions`), in another key counts that run; every other record
+  gets the same claims and verdict. `dunstan rerun` of it re-reads the sources as
+  0.1.11 reads them and writes a new record.
+
+  Example records: each carries spec 0.1.7 and checker 0.1.11. None excludes a run, so their
+  claims, verdicts and digests are unchanged. No acceptance case changes: only
+  `descendant-deploy-excluded-run` excludes a run, and its record holds no check suites, so it is
+  counted by name as before. The DRAFT 0.2.0 reader claims read the same counted runs, and no
+  retrieval challenge case changes.
+
+  **One pull request (section 6).** Found by the same review (finding 3). Checker 0.1.10 and
+  earlier read the pull request once, then read the files, the closing references and the pull
+  request's commits by its number. A push between the first read and those reads, leaving the
+  number of changed files the same, gave a record that named the first head and held the second
+  head's files: the scope claims were checked against files the record did not attribute to them,
+  and `complete`, which compares the listing with `changedFiles`, could not tell. Checker 0.1.11
+  reads the pull request again after the evidence. If anything it compares moved, it discards what
+  it read and checks once more from a fresh read; the record it then writes is of the second pull
+  request, every section read at it. If the pull request moves again, it writes no record and
+  reports `pull_request_moved`, as for a pull request it cannot read: `dunstan check` and
+  `dunstan rerun` exit 3, the Action concludes `failure` with no record, the MCP tool returns a
+  tool error and the hosted API answers `409`. A check run the Action created on a head the pull
+  request left is completed as `failure`, never with another head's result (`docs/action.md`).
+
+  This adds one request to every check, the pull request read again, which is not a source entry,
+  and one more full read when the pull request moved. No field, reason or token permission is added,
+  and both schemas are unchanged. A pull request that holds still while it is checked gets the
+  record checker 0.1.10 would have written from the same answers, byte for byte. A record already
+  written is not affected: offline verification reads only the record.
+
+  **An answer over its budget is unreadable.** Found by the same review (finding 1). Checker 0.1.10
+  and earlier read every response body whole before anything looked at its size, so an artifact
+  archive of any size was held in memory before the 64 MiB limit on its selected entry applied. A
+  pull request whose workflow uploaded a large artifact could exhaust the memory of the runner or
+  the hosted Worker. Checker 0.1.11 reads each body against a byte budget: 72 MiB for an artifact
+  archive (the entry limit and room for the archive's headers, central directory and small files
+  beside the report) and 48 MiB for every other response (clear of the largest the checker reads,
+  a page of 100 comments). A body over its budget is cancelled as soon as the bytes read pass it,
+  or before a byte is read when its `content-length` already does, and is unreadable: its source
+  records `parse` (`http_<status>` for an answer that is not 2xx) and the SHA-256 of no bytes, and
+  what the read answers is `unreadable` with the read's kind, so an artifact's count rows are
+  `unverifiable` with `source_unreadable:artifact`. An archive that holds more than its report and
+  a few small files past the budget is unreadable; upload the report as an artifact of its own.
+  An answer about to be retried is cancelled unread. No field, reason or token permission is
+  added, and both schemas are unchanged. Every answer under its budget is read and recorded as
+  before, byte for byte.
 - **0.1.6** (2026-10-14). A new claim, `checks.noneFailed`, checked by checker 0.1.10 (decided
   2026-10-14). Under section 7.5 `allSucceeded` is `false` when any counted run concluded
   `skipped` or `neutral`. That is right as written, but a pull request in a repository with
@@ -1013,7 +1150,8 @@ against the schemas and check each record's block, report and claim and evidence
   checker's own earlier runs on the same head (its job's run and its `dunstan` run from before the
   pull request body was edited), which the latest, excluded, run of each name used to supersede. An
   excluded run therefore supersedes every run of its name with a lower `id`, in any suite, as it did
-  before this amendment; a record without check suites counts the same either way.
+  before this amendment; a record without check suites counts the same either way. (Since 0.1.7
+  an excluded run supersedes only the earlier runs of its own identity; see 0.1.7 above.)
   `appSlug` is recorded, and no check reads it. Both members are inside the evidence, so
   `digests.evidence` covers them and offline verify reproduces the verdict. `record-0.1.schema.json`
   gains the two optional members on a check run; a record without them stays valid. Section 14 adds
@@ -1067,7 +1205,7 @@ against the schemas and check each record's block, report and claim and evidence
   is not among the workflow runs listed is never merged with another workflow's run of its name. A
   record with neither member counts by name alone, as before. The excluded-run rule of the
   amendment above stands: an excluded run supersedes every run of its name with a lower `id`,
-  whatever its key.
+  whatever its key. (Since 0.1.7, every run of its own identity; see 0.1.7 above.)
 
   The three members are inside the evidence, so `digests.evidence` covers them and offline verify
   reproduces the verdict. `record-0.1.schema.json` gains them as optional members of a check run,

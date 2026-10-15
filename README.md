@@ -29,7 +29,7 @@ report a pull request's handback before it says done ([`plugins/dunstan/`](plugi
 /plugin install dunstan@barglabs
 ```
 
-The plugin runs the MCP server with `npx -y dunstan@0.1.10 mcp`, the `dunstan` npm package at that
+The plugin runs the MCP server with `npx -y dunstan@0.1.11 mcp`, the `dunstan` npm package at that
 exact version: one self-contained file, no dependencies.
 
 **The token.** When you enable the plugin, Claude Code asks for an optional GitHub token and keeps it
@@ -76,7 +76,9 @@ dist/dunstan.mjs verify record.json   # offline: recompute claims, verdict and d
 dist/dunstan.mjs rerun record.json    # online: re-read the sources, report evidence_changed
 ```
 
-Exit codes: 0 pass, 1 fail, 2 unverifiable, 3 usage or internal error (`verify`: 0 verified, 1 not).
+Exit codes: 0 pass, 1 fail, 2 unverifiable, 3 no record: a usage error, a pull request that cannot
+be read or that moved while it was checked and again when checked once more (`pull_request_moved`),
+or an internal error (`verify`: 0 verified, 1 not).
 `--sign-key <path> --signer <principal>` writes the record as its JCS bytes with a detached SSH
 signature; `verify --sig <file> --allowed-signers <file>` checks it.
 
@@ -86,6 +88,13 @@ agent calls with its block before it says done, beside `dunstan_suggest_declarat
 
 `checker.digest` in a record is the SHA-256 of `dist/dunstan.mjs`, the single-file bundle that ran:
 the checker code, its dependencies and both schemas from `spec/schema/`, inlined at build time.
+
+## What Dunstan does not check
+
+Dunstan checks the claims a handback declares against the record. It does not check that the
+handback covers what the issue asked for: an accurate report of the wrong work passes.
+
+What to declare: [`docs/agents.md`](docs/agents.md#the-instruction-block).
 
 ## Declare before done
 

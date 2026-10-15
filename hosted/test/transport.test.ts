@@ -6,12 +6,14 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { buildSync } from 'esbuild';
 import { describe, expect, it } from 'vitest';
+import { countingBody, MiB } from '../../src/__tests__/streams.js';
 import {
   CLOSE_BASE_QUERY,
   CLOSE_EVENTS_QUERY,
   CLOSING_QUERY,
   PATH_QUERY,
 } from '../../src/evidence/github.js';
+import { GitHubClient } from '../../src/evidence/http.js';
 import {
   checkRoute,
   GuardedTransport,
@@ -305,6 +307,34 @@ describe('the route allowlist', () => {
         headers: { accept: MEDIA_TYPE },
       }),
     ).rejects.toThrow(/not Actions artifact storage/);
+  });
+
+  // Security review of 411180d, finding 1. The transport hands the evidence reader the storage
+  // answer unread, and the reader's client reads it against the archive budget: an oversized archive
+  // is cancelled near the budget in the Worker too, never held whole.
+  it('leaves an artifact download to the client, which cancels an oversized archive', async () => {
+    const archive = countingBody([96 * MiB]);
+    const network = (async (input: string | URL | Request) =>
+      String(input).startsWith(API)
+        ? new Response(null, {
+            status: 302,
+            headers: { location: 'https://productionresultssa1.blob.core.windows.net/a?sig=x' },
+          })
+        : new Response(archive.stream)) as typeof fetch;
+    const transport = new GuardedTransport(network, async () => {});
+    const client = new GitHubClient({
+      token: 'ghs_x',
+      fetch: transport.fetch,
+      sleep: transport.sleep,
+      warn: () => {},
+    });
+    const read = await client.read('artifact', `/repos/${REPO}/actions/artifacts/9/zip`, {
+      json: false,
+    });
+    expect(read).toMatchObject({ ok: false, status: 200, error: 'parse' });
+    expect(archive.pulled).toBeLessThanOrEqual(73 * MiB);
+    expect(archive.cancelled).toBe(true);
+    expect(transport.refused).toEqual([]);
   });
 
   // Spec 0.1.3: GitHub answers the read of an issue transferred to another repository with a 301 to

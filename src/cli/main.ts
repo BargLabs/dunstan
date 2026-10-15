@@ -2,7 +2,7 @@
 // `verify` exits 0 when the record verifies and 1 when it does not. `template` exits 0 when it prints
 // a block and 3 when git cannot answer; `suggest` exits 0 unless the report cannot be read.
 
-import { PullRequestUnreadable } from '../evidence/github.js';
+import { PullRequestMoved, PullRequestUnreadable } from '../evidence/github.js';
 import { ReportUnavailable } from '../evidence/report.js';
 import { CHECKER_VERSION } from '../record/checker.js';
 import { TemplateError } from '../template/template.js';
@@ -79,6 +79,7 @@ export async function main(argv: string[], io: CliIo): Promise<number> {
       io.err(`dunstan: ${(e as Error).message}\n\n${USAGE}`);
     } else if (
       e instanceof PullRequestUnreadable ||
+      e instanceof PullRequestMoved ||
       e instanceof ReportUnavailable ||
       e instanceof TemplateError
     ) {

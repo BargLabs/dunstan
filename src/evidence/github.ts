@@ -53,6 +53,17 @@ export class PullRequestUnreadable extends Error {
   }
 }
 
+// The pull request moved while it was read, and again when the check ran once more from a fresh
+// read: no record is written, as for a pull request that cannot be read (spec section 6).
+export class PullRequestMoved extends Error {
+  constructor(repository: string, number: number, moves: readonly string[]) {
+    super(
+      `pull request ${repository}#${number} moved while it was checked, and again when it was checked once more (${moves.join(', ')}); no record is written (pull_request_moved)`,
+    );
+    this.name = 'PullRequestMoved';
+  }
+}
+
 // A body that is not the shape the API documents. The section becomes unreadable (parse).
 class ShapeError extends Error {}
 
@@ -106,15 +117,24 @@ export interface PullRequestRead {
   evidence: PullRequestEvidence;
   // The repository's canonical owner/name as GitHub spells it.
   repository: string;
+  // The branch the pull request merges into. Not evidence: it tells a read again from the first.
+  baseRef: string;
   body: string | null;
 }
 
+// `record: false` reads the pull request again without a source entry: the record holds the read
+// its evidence came from.
 export async function readPullRequest(
   client: GitHubClient,
   repository: string,
   number: number,
+  options: { record?: boolean } = {},
 ): Promise<PullRequestRead> {
-  const read = await client.read('pull_request', `/repos/${repository}/pulls/${number}`);
+  const read = await client.read(
+    'pull_request',
+    `/repos/${repository}/pulls/${number}`,
+    options.record === false ? { record: false } : {},
+  );
   if (!read.ok) {
     throw new PullRequestUnreadable(
       `cannot read pull request ${repository}#${number} (${read.error}); no record is written`,
@@ -126,6 +146,7 @@ export async function readPullRequest(
     const state = str(pr.state);
     if (state !== 'open' && state !== 'closed') throw new ShapeError();
     const base = obj(obj(pr.base).repo);
+    const baseRef = str(obj(pr.base).ref);
     return {
       evidence: {
         status: 'ok',
@@ -140,6 +161,7 @@ export async function readPullRequest(
         changedFiles: int(pr.changed_files),
       },
       repository: str(base.full_name),
+      baseRef,
       body: strOrNull(pr.body),
     };
   } catch (e) {
@@ -150,6 +172,24 @@ export async function readPullRequest(
     }
     throw e;
   }
+}
+
+// What moved between two reads of one pull request: its head, its base branch, its state (open,
+// closed or merged), its repository's name, or any other member of the record's `pullRequest`
+// section. Empty when nothing did. The body is not compared: the report was read from the first.
+export function pullRequestMoves(first: PullRequestRead, again: PullRequestRead): string[] {
+  const state = (pr: PullRequestRead) => (pr.evidence.merged ? 'merged' : pr.evidence.state);
+  const pairs: [string, unknown, unknown][] = [
+    ['head', first.evidence.headSha, again.evidence.headSha],
+    ['base', first.baseRef, again.baseRef],
+    ['state', state(first), state(again)],
+    ['repository', first.repository, again.repository],
+    ['mergedAt', first.evidence.mergedAt, again.evidence.mergedAt],
+    ['mergeSha', first.evidence.mergeSha, again.evidence.mergeSha],
+    ['changedFiles', first.evidence.changedFiles, again.evidence.changedFiles],
+    ['number', first.evidence.number, again.evidence.number],
+  ];
+  return pairs.filter(([, a, b]) => a !== b).map(([name, a, b]) => `${name} ${a} -> ${b}`);
 }
 
 // ---------------------------------------------------------------- paginated REST listings

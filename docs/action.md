@@ -72,7 +72,7 @@ what a branch requires.
 | Input | Default | Meaning |
 | --- | --- | --- |
 | `report-source` | none, required | `pr-body`, `comment:<author-login>` (that author's newest comment on the pull request: the login compared without regard to case, the latest `created_at`, then the highest comment id; the record names the comment by its id; a listing that reaches 100 pages of 100 without ending is unreadable, never a pick among the comments read, spec section 3) or `file:<path>` (a file in the workspace). The Action never guesses where a report is; with no value it concludes `failure`. |
-| `github-token` | `${{ github.token }}` | Needs `contents: read`, `pull-requests: read`, `issues: read` (to read an issue a block closes or cites), `deployments: read` (for `deployedAt`), `checks: write`, `actions: read` (to read a JUnit artifact a block names, and the workflow runs a `checks` claim is counted by). Nothing else. Without `issues: read` or `deployments: read` the claims that need them are `unverifiable`, never passed. |
+| `github-token` | `${{ github.token }}` | Needs `contents: read`, `pull-requests: read`, `issues: read` (to read an issue a block closes or cites), `deployments: read` (for `deployedAt`), `checks: write`, `actions: read` (to read a JUnit artifact a block names, and the workflow runs a `checks` claim is counted by). Nothing else. Without `issues: read` or `deployments: read` the claims that need them are `unverifiable`, never passed. The `dunstan` check run is created with this token, so it is the token's app's run. Prefer your own GitHub App's installation token: every workflow in the repository creates runs as `github-actions`, which identifies no checker (spec 0.1.7, section 7.5), so with `${{ github.token }}` a `dunstan` run outside a workflow run's suite hides none of its earlier runs, and an earlier one in another suite is counted, which can fail a correct `checks` claim, never pass a wrong one. |
 | `unverifiable-conclusion` | `failure` | The conclusion for an `unverifiable` verdict: `failure` or `neutral`. |
 | `sign-key-path`, `signer` | none | An SSH private key and the signer principal: the record is written as its JCS bytes with a detached signature, both uploaded. |
 | `advisory` | `false` | `true` also reads the report's prose for asserted claims and records each one, compared with the evidence, as an advisory (DRAFT 0.2.0, [`docs/advisory.md`](advisory.md)). Advisories never change the verdict, the conclusion or the title. The summary gains one row counting them, and a section listing each `differs` note as a "possible disagreement, unverified" ([`docs/advisory.md`](advisory.md), "How a `differs` note is shown"). |
@@ -96,7 +96,7 @@ Action concludes `success` for `pass` and nothing else:
 | `fail` | `failure` | At least one claim is contradicted by the record. The table names the claim and the reason. |
 | `unverifiable` | `failure` (default) | The record cannot answer a claim (a source unreadable, a field unpopulated, checks still running, a `closes` issue not yet among an open pull request's closing references, a `closes` target still open after a merge into a branch other than the default), or there is no single valid block: `block_missing`, `block_ambiguous`, `block_invalid`. Not a pass. |
 | `unverifiable` | `neutral`, with `unverifiable-conclusion: neutral` | The same verdict, reported without blocking. A neutral required check lets the merge through, so this setting merges claims nobody could check. Choose it deliberately, for example while agents are being moved onto the block. |
-| none (`error`) | `failure` | No record: `report-source` missing or malformed, the report source unreadable (no comment by that author, a comment listing past its bound, no such file), the pull request unreadable, an event Dunstan cannot check, `file:` under `pull_request_target`, or a crash. The reason is in the summary. |
+| none (`error`) | `failure` | No record: `report-source` missing or malformed, the report source unreadable (no comment by that author, a comment listing past its bound, no such file), the pull request unreadable, the pull request moved while it was checked and again when checked once more (`pull_request_moved`, below), an event Dunstan cannot check, `file:` under `pull_request_target`, or a crash. The reason is in the summary. |
 | any | `failure` | The record could not be uploaded as the artifact. A verdict whose record is not kept cannot be re-run. |
 | (no check run) | pending | The job did not run, or could not write the check run (a fork, below). A required `dunstan` check that never reports blocks the merge. |
 
@@ -118,13 +118,33 @@ It never comments on the pull request, labels it, reviews it or merges it.
 
 The check run is created in progress before any evidence is read, and the Action excludes it and its
 own job's check run from the counted check runs (a `checks` claim never counts the checker). An
-excluded run also hides every earlier run of its name, in any workflow run, so the `dunstan` and job
+excluded run also hides the earlier runs of its own identity (spec 0.1.7, section 7.5): its name and
+workflow path, or for a run of no workflow its name and app, unless that app is `github-actions`,
+which every workflow in the repository creates runs as and so identifies no checker. So the job's
 check runs of an earlier Dunstan run on the same commit (before the body was edited, say) are not
-counted either. Give the Dunstan job a name no other check uses: an earlier run of another
-workflow's job of that name would be hidden the same way. A
+counted either, and nor are earlier `dunstan` runs of the same workflow path, or of the same app when
+the token is your own app's. A job of another workflow with the name of an excluded run is counted,
+and so is a `github-actions` run of no workflow. GitHub, not the Action, chooses the check suite the
+`dunstan` run joins, and with the workflow's `GITHUB_TOKEN` that may be a workflow run's. If an
+earlier `dunstan` run joined another workflow's suite, or none, it is counted, which can fail a
+correct `checks` claim. If the
+`dunstan` run joins the suite of a workflow run with a job named `dunstan`, that job is one check
+with it and is not counted. So give the Dunstan job a name no other check uses, and name no other job
+`dunstan`. A
 `checks` claim is checked against the check runs at the moment the Action runs: if CI is still
 running, `checks.allSucceeded` is `unverifiable: checks_incomplete`. Re-run the Dunstan job once CI
 has finished.
+
+**A push while it runs.** The files, the closing references and the pull request's commits are read
+by the pull request's number, at whatever head it has when they are read. So the Action reads the
+pull request again once it has read the evidence (spec 0.1.7, section 6). If the head, the base
+branch, the state or any other member of the record's `pullRequest` moved, it checks once more from
+a fresh read. The
+`dunstan` check run it created on the head the pull request left is completed as `failure`, titled
+`not checked: the pull request moved to <sha> while it was checked`. A new `dunstan` check run on the
+new head carries the new head's result. If the pull request moves again, no record is written: the
+conclusion is `failure`, the verdict output `error`, and the summary says `pull_request_moved`. The
+push itself starts a new workflow run, which checks the new head.
 
 The counted check runs are the latest run per workflow and job name (spec section 7.5). GitHub names
 an Actions check run after its job, not its workflow, and each run of a workflow is a check suite of

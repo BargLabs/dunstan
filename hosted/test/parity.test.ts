@@ -32,13 +32,14 @@ import {
 } from './support.js';
 
 const cases = [...loadCases('controls'), ...loadCases('planted')];
-const CHECKER = { name: 'dunstan', version: '0.1.10', digest: { sha256: '0'.repeat(64) } };
+const CHECKER = { name: 'dunstan', version: '0.1.11', digest: { sha256: '0'.repeat(64) } };
 
 function stubbedReaders(c: FixtureCase): EvidenceReaders {
   return {
     pullRequest: async () => ({
       evidence: structuredClone(c.evidence.pullRequest),
       repository: FIXTURE_REPOSITORY,
+      baseRef: 'main',
       body: null,
     }),
     evidence: async () => structuredClone(c.evidence),

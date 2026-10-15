@@ -10,6 +10,9 @@ export const MERGE = 'feedface00000000000000000000000000000001';
 
 export interface Scenario {
   pr: Record<string, unknown>;
+  // A pull request that moves while it is read (a push, a new base, a close): the n-th read of it
+  // answers `pr` with prMoves[n] over it, the last once they run out.
+  prMoves?: Record<string, unknown>[];
   files?: Record<string, unknown>[];
   closing?: string[] | null;
   issues?: Record<string, number>;
@@ -66,7 +69,7 @@ export function basePullRequest(overrides: Record<string, unknown> = {}): Record
     merge_commit_sha: 'aaaabbbbccccddddeeeeffff0000111122223333',
     changed_files: 2,
     head: { sha: HEAD },
-    base: { repo: { full_name: REPO } },
+    base: { ref: 'main', repo: { full_name: REPO } },
     body: 'no block here',
     ...overrides,
   };
@@ -96,6 +99,7 @@ export function fakeGitHub(scenario: Scenario): FakeGitHub {
   const requests: string[] = [];
   const graphql: string[] = [];
   const flaky = structuredClone(scenario.flaky ?? {});
+  let prReads = 0;
   const fake = async (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
     const url = new URL(
       typeof input === 'string' ? input : input instanceof URL ? input.href : input.url,
@@ -196,7 +200,11 @@ export function fakeGitHub(scenario: Scenario): FakeGitHub {
         data: { repository: { pullRequest: { closingIssuesReferences: connection } } },
       });
     }
-    if (path === `${base}/pulls/${scenario.pr.number}`) return json(200, scenario.pr);
+    if (path === `${base}/pulls/${scenario.pr.number}`) {
+      const moves = scenario.prMoves ?? [];
+      const move = moves[Math.min(prReads++, moves.length - 1)];
+      return json(200, move === undefined ? scenario.pr : { ...scenario.pr, ...move });
+    }
     if (path === `${base}/pulls/${scenario.pr.number}/files`) {
       return json(200, page(scenario.files ?? [], url));
     }

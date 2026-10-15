@@ -29,7 +29,7 @@ import {
   webhook,
 } from './support.js';
 
-const CHECKER = { name: 'dunstan', version: '0.1.10', digest: { sha256: 'a'.repeat(64) } };
+const CHECKER = { name: 'dunstan', version: '0.1.11', digest: { sha256: 'a'.repeat(64) } };
 const NOW = new Date('2026-10-04T12:00:00Z');
 
 let emulated: Emulated;
@@ -279,6 +279,34 @@ describe('POST /v0.1/check', () => {
     expect(await response.json()).not.toHaveProperty('verdict');
     expect(await storedCount()).toBe(0);
   });
+
+  it('stores nothing and returns no verdict when the pull request moves on both runs', async () => {
+    const response = await handle(
+      checkRequest(key, { repository: REPO, pullRequest: PR, report: scenarioReport() }),
+      emulated.env,
+      {
+        ...deps(),
+        readers: (client) => {
+          const real = githubReaders(client);
+          let reads = 0;
+          return {
+            ...real,
+            // Every read answers another head.
+            pullRequest: async (repository, number, options) => {
+              const pr = await real.pullRequest(repository, number, options);
+              const head = String(++reads % 10).repeat(40);
+              return { ...pr, evidence: { ...pr.evidence, headSha: head } };
+            },
+          };
+        },
+      },
+    );
+    expect(response.status).toBe(409);
+    const body = (await response.json()) as Record<string, unknown>;
+    expect(body).not.toHaveProperty('verdict');
+    expect(JSON.stringify(body)).toContain('pull_request_moved');
+    expect(await storedCount()).toBe(0);
+  });
 });
 
 describe('GET /v0.1/records/:id', () => {
@@ -335,6 +363,6 @@ describe('GET /v0.1/health', () => {
       emulated.env,
       deps(),
     );
-    expect(await response.json()).toEqual({ status: 'ok', checker: CHECKER, spec: '0.1.6' });
+    expect(await response.json()).toEqual({ status: 'ok', checker: CHECKER, spec: '0.1.7' });
   });
 });

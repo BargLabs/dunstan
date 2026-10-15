@@ -13,6 +13,8 @@ import {
 import { canonicalize } from '../spec/jcs.js';
 import { main } from './main.js';
 
+const PUSHED = 'b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0';
+
 function scenario(): Scenario {
   return {
     pr: basePullRequest({
@@ -140,7 +142,7 @@ describe('dunstan check', () => {
     }
   });
 
-  it('exits 2 for a report with no block, and reads nothing but the pull request', async () => {
+  it('exits 2 for a report with no block, and reads nothing but the pull request, twice', async () => {
     const report = record('report.md');
     writeFileSync(report, 'All done, tests pass.\n');
     const r = await run([
@@ -156,7 +158,8 @@ describe('dunstan check', () => {
     ]);
     expect(r.code).toBe(2);
     expect(r.out).toMatch(/block: missing \(block_missing\)/);
-    expect(r.requests).toEqual([`GET /repos/${REPO}/pulls/7`]);
+    // Read, then read again once the evidence (none here) is read: it did not move.
+    expect(r.requests).toEqual([`GET /repos/${REPO}/pulls/7`, `GET /repos/${REPO}/pulls/7`]);
   });
 
   it('reads standard input for --report-file -', async () => {
@@ -191,6 +194,40 @@ describe('dunstan check', () => {
     expect(r.code).toBe(3);
     expect(r.err).toMatch(/no record is written/);
     expect(existsSync(out)).toBe(false);
+  });
+
+  // Moved between the first read and the read after the evidence, and again on the second run.
+  it('exits 3 and writes no record when the pull request moves on both runs (pull_request_moved)', async () => {
+    const s = scenario();
+    const heads = [HEAD, PUSHED, PUSHED, 'c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0'];
+    let reads = 0;
+    const fake = fakeGitHub(s);
+    const fetchFn = (async (input: string | URL | Request, init?: RequestInit) => {
+      if (new URL(String(input)).pathname === `/repos/${REPO}/pulls/7`) {
+        s.pr = { ...s.pr, head: { sha: heads[Math.min(reads++, heads.length - 1)] } };
+      }
+      return fake.fetch(input, init);
+    }) as typeof fetch;
+    const out = record('moved.json');
+    let err = '';
+    const code = await main(
+      ['check', '--repo', REPO, '--pr', '7', '--report-pr-body', '--out', out],
+      {
+        out: () => {},
+        err: (t) => {
+          err += t;
+        },
+        env: { GITHUB_TOKEN: 'test-token' },
+        artifact: import.meta.url,
+        fetch: fetchFn,
+        readStdin: () => new Uint8Array(),
+      },
+    );
+    expect(code).toBe(3);
+    expect(err).toMatch(/^dunstan: pull request .* moved .*pull_request_moved/);
+    expect(err).not.toMatch(/internal error/);
+    expect(existsSync(out)).toBe(false);
+    expect(fake.requests.filter((q) => q === `GET /repos/${REPO}/pulls/7`)).toHaveLength(4);
   });
 
   it('exits 3 when the named author has no comment', async () => {
@@ -312,6 +349,39 @@ describe('dunstan rerun', () => {
     expect(r.requests.some((q) => q.includes('/comments'))).toBe(false);
   });
 
+  // The re-run reads at one pull request too: once more if it moved, and no record if it moved again.
+  it('writes no new record when the pull request moves on both runs (pull_request_moved)', async () => {
+    const out = record('held.json');
+    await run(['check', '--repo', REPO, '--pr', '7', '--report-pr-body', '--out', out]);
+    const head = (sha: string) => ({ head: { sha } });
+    const r = await run(['rerun', out], {
+      ...scenario(),
+      prMoves: [
+        head(HEAD),
+        head(PUSHED),
+        head(PUSHED),
+        head('c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0'),
+      ],
+    });
+    expect(r.code).toBe(3);
+    expect(r.err).toMatch(/^dunstan: pull request .* moved .*pull_request_moved/);
+    expect(existsSync(record('held.rerun.json'))).toBe(false);
+  });
+
+  it('re-runs once more from a fresh read when the pull request moved once', async () => {
+    const out = record('once.json');
+    await run(['check', '--repo', REPO, '--pr', '7', '--report-pr-body', '--out', out]);
+    const r = await run(['rerun', out], {
+      ...scenario(),
+      prMoves: [{ head: { sha: HEAD } }, { head: { sha: PUSHED } }],
+    });
+    expect(r.code).toBe(1);
+    const fresh = JSON.parse(readFileSync(record('once.rerun.json'), 'utf8'));
+    expect(fresh.predicate.subject.headSha).toBe(PUSHED);
+    expect(r.out).toContain('/evidence/pullRequest/headSha');
+    expect(r.requests.filter((q) => q === `GET /repos/${REPO}/pulls/7`)).toHaveLength(4);
+  });
+
   it('reports unchanged evidence when nothing a claim reads moved', async () => {
     const out = record('same.json');
     await run(['check', '--repo', REPO, '--pr', '7', '--report-pr-body', '--out', out]);
@@ -419,7 +489,7 @@ describe('signing', () => {
     expect(ok.out).toMatch(/Good "dunstan-record" signature for checker@example.org/);
 
     // One changed byte breaks the signature even if the record still recomputes.
-    writeFileSync(out, bytes.replace('"spec":"0.1.6"', '"spec":"0.1.7"'));
+    writeFileSync(out, bytes.replace('"spec":"0.1.7"', '"spec":"0.1.8"'));
     const bad = await run(['verify', out, '--sig', `${out}.sig`, '--allowed-signers', allowed]);
     expect(bad.code).toBe(1);
     expect(bad.out).toMatch(/\/predicate\/assurance: signature/);

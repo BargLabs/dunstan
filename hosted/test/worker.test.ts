@@ -144,8 +144,8 @@ describe('the built Worker on the Workers runtime', () => {
     expect(status).toBe(200);
     expect(body).toEqual({
       status: 'ok',
-      checker: { name: 'dunstan', version: '0.1.10', digest: { sha256: built.digest } },
-      spec: '0.1.6',
+      checker: { name: 'dunstan', version: '0.1.11', digest: { sha256: built.digest } },
+      spec: '0.1.7',
     });
   });
 
@@ -196,6 +196,8 @@ describe('the built Worker on the Workers runtime', () => {
     expect(outbound.map((r) => `${r.method} ${new URL(r.url).pathname}`).sort()).toEqual([
       'GET /repos/example-org/example-repo/compare/7638417db6d59f3c431d3e1f261cc637155684cd...6dcb09b5b57875f334f61aebed695e2e4193db5e',
       'GET /repos/example-org/example-repo/git/commits/7638417db6d59f3c431d3e1f261cc637155684cd',
+      // Read, then read again after the evidence (spec section 6).
+      'GET /repos/example-org/example-repo/pulls/1347',
       'GET /repos/example-org/example-repo/pulls/1347',
       'GET /repos/example-org/example-repo/pulls/1347/files',
       'POST /app/installations/1/access_tokens',

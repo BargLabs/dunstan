@@ -17,14 +17,30 @@ This plugin adds two MCP tools and one skill:
 - The `dunstan-check` skill tells Claude to declare, suggest, check and report the verdict exactly as
   returned. `unverifiable` means the record could not settle a claim, not that the claim is false.
 
+Dunstan checks the claims a handback declares against the record. It does not check that the
+handback covers what the issue asked for: an accurate report of the wrong work passes.
+
 ## What it runs, reads and sends
 
-The plugin starts the MCP server with `npx -y dunstan@0.1.10 mcp`, which downloads the `dunstan`
+The plugin starts the MCP server with `npx -y dunstan@0.1.11 mcp`, which downloads the `dunstan`
 package at that exact version from the npm registry. The package is one self-contained file with no
 dependencies. The server runs on your machine and reads GitHub's API directly from it: the pull
 request, its files, commits, check runs, workflow runs and artifacts, deployments, and the issues the
 block references. Every request is a read. Nothing is written to GitHub or the repository, and nothing
 is sent to Barg Labs.
+
+## Changes in 0.1.11
+
+A fix to how check runs are counted (spec 0.1.7). A run the checker excludes, such as the Dunstan
+Action's own `dunstan` run, now hides only earlier runs of its own identity: the same name and
+workflow path, or, for a run of no workflow, the same name and app, unless that app is
+`github-actions`, which every workflow in a repository creates runs as. In 0.1.10 it hid every
+earlier run of its name, so a failed job named `dunstan` in another workflow was not counted, and
+`checks.total`, `checks.allSucceeded` and `checks.noneFailed` could pass. That job is now counted,
+and the claims fail. A `checks` claim checked against the same evidence can therefore get a
+different verdict in 0.1.10 and 0.1.11, only when an excluded run shares its name with a run of
+another workflow or app, or with a `github-actions` run of no workflow. Every other claim is
+unchanged.
 
 ## Changes in 0.1.10
 

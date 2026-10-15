@@ -125,11 +125,36 @@ describe('dunstan_check_handback', () => {
     },
   );
 
-  it('gives unverifiable for a report with no block, and reads only the pull request', async () => {
+  it('gives unverifiable for a report with no block, and reads only the pull request, and again at the end', async () => {
     const { call, requests } = await connect();
     const { text } = await call({ repository: REPO, pullRequest: 7, report: 'All done.' });
     expect(text[0]).toMatch(/^verdict: unverifiable\n/);
-    expect(requests).toEqual([`GET /repos/${REPO}/pulls/7`]);
+    expect(requests).toEqual([`GET /repos/${REPO}/pulls/7`, `GET /repos/${REPO}/pulls/7`]);
+  });
+
+  it('is an error, not a verdict, when the pull request moves on both runs (pull_request_moved)', async () => {
+    const head = (sha: string) => ({ head: { sha } });
+    const pushed = 'b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0b0';
+    const { call } = await connect({
+      ...scenario(),
+      prMoves: [
+        head(HEAD),
+        head(pushed),
+        head(pushed),
+        head('c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0'),
+      ],
+    });
+    const outPath = join(dir, 'moved.json');
+    const { result, text } = await call({
+      repository: REPO,
+      pullRequest: 7,
+      report: REPORT,
+      outPath,
+    });
+    expect(result.isError).toBe(true);
+    expect(text[0]).toMatch(/^dunstan: pull request .* moved .*pull_request_moved\)\n/);
+    expect(text[0]).toContain('This is an error, not a verdict: nothing was checked.');
+    expect(existsSync(outPath)).toBe(false);
   });
 
   it.each([

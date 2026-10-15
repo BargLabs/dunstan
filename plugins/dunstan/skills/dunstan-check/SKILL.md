@@ -17,7 +17,7 @@ the block must say what you actually did.
 1. **Push your last commit.** The check reads the pull request as GitHub has it.
 2. **Write the `dunstan-handback` block** in your report, inside a fenced block with the info string
    `dunstan-handback`, in the exact shape below. To fill `headCommit` and `filesChanged` from local
-   git, you can run `npx -y dunstan@0.1.10 template --base <base branch>`, which reads only the local
+   git, you can run `npx -y dunstan@0.1.11 template --base <base branch>`, which reads only the local
    repository.
 
 ## The block

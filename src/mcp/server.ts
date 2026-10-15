@@ -20,7 +20,7 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { defaultRecordFile, REPOSITORY } from '../cli/check.js';
 import { renderRecord } from '../cli/output.js';
-import { PullRequestUnreadable, readPullRequest } from '../evidence/github.js';
+import { PullRequestMoved, PullRequestUnreadable, readPullRequest } from '../evidence/github.js';
 import { GitHubClient } from '../evidence/http.js';
 import type { Report } from '../evidence/report.js';
 import { checkPullRequest, githubReaders } from '../pipeline/check-pull-request.js';
@@ -165,6 +165,7 @@ function toolError(error: unknown): CallToolResult {
   const known =
     error instanceof InputError ||
     error instanceof PullRequestUnreadable ||
+    error instanceof PullRequestMoved ||
     error instanceof CanonicalizationError ||
     typeof (error as NodeJS.ErrnoException).code === 'string';
   const message = (error as Error).message ?? String(error);

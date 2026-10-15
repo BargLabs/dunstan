@@ -1333,9 +1333,9 @@ describe('dunstan check --advisory', () => {
     expect(r.verified).toBe(0);
   });
 
-  it('with no block and nothing to read, reads only the pull request', async () => {
+  it('with no block and nothing to read, reads only the pull request, and again at the end', async () => {
     const r = await check('All done.', ['--advisory']);
-    expect(r.requests).toEqual([`GET /repos/${REPO}/pulls/7`]);
+    expect(r.requests).toEqual([`GET /repos/${REPO}/pulls/7`, `GET /repos/${REPO}/pulls/7`]);
     expect(r.record.predicate.advisory?.advisories).toEqual([]);
   });
 

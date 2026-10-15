@@ -9,6 +9,7 @@ import {
   REPO,
   type Scenario,
 } from '../__tests__/fake-github.js';
+import { countingBody, MiB, oversizedArchive } from '../__tests__/streams.js';
 import { runChecks } from '../check/index.js';
 import type { Block, CheckRun, Evidence } from '../check/types.js';
 import { validateRecord } from '../spec/schema.js';
@@ -1323,6 +1324,36 @@ describe('readEvidence', () => {
       source: 'artifact',
     });
     expect(evidence.sources.find((x) => x.kind === 'artifact')?.error).toBe('parse');
+  });
+
+  // Security review of 411180d, finding 1: an archive is read against its budget, so one far larger
+  // whose selected entry is small is cancelled near the budget, never held whole, and is unreadable.
+  it('cancels an oversized artifact archive near its budget and records it unreadable', async () => {
+    const s = fullScenario();
+    const archive = countingBody(
+      oversizedArchive('reports/junit.xml', junitXml(['pass']), 96 * MiB),
+    );
+    const fake = fakeGitHub(s);
+    const fetch = (async (input: string | URL | Request, init?: RequestInit) =>
+      String(input).endsWith('/actions/artifacts/9001/zip')
+        ? new Response(archive.stream)
+        : fake.fetch(input, init)) as typeof globalThis.fetch;
+    const c = new GitHubClient({ token: 't', fetch, sleep: async () => {}, warn: () => {} });
+    const pr = await readPullRequest(c, REPO, 7);
+    const evidence = await readEvidence(c, {
+      repository: REPO,
+      pullRequest: pr,
+      block: FULL_BLOCK,
+      excludedCheckRunIds: [],
+    });
+    expect(evidence.testRecords?.[0]).toEqual({
+      record: JUNIT,
+      status: 'unreadable',
+      source: 'artifact',
+    });
+    expect(evidence.sources.find((x) => x.kind === 'artifact')?.error).toBe('parse');
+    expect(archive.pulled).toBeLessThanOrEqual(73 * MiB);
+    expect(archive.cancelled).toBe(true);
   });
 
   it('treats a run without the job, the artifact or the file as no candidate', async () => {
