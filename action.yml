@@ -1,7 +1,10 @@
-name: Dunstan
-description: >-
-  Checks a coding agent's declared handback block against the pull request's own record and reports
-  the verdict as a `dunstan` check run, the job summary and the workflow artifact `dunstan-record`.
+# GitHub Marketplace: the name must not match an existing GitHub user or organisation (a user
+# `dunstan` exists), and the description must be under 125 characters.
+# In full: checks a coding agent's declared handback block against the pull request's own record and
+# reports the verdict as a `dunstan` check run, the job summary and the workflow artifact
+# `dunstan-record`.
+name: Dunstan Handback Check
+description: "Checks a coding agent's handback report against the pull request's own record and reports the verdict as a check run."
 author: Barg Labs
 
 inputs:

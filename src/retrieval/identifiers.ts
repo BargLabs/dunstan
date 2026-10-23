@@ -243,10 +243,18 @@ export function identifierMatches(
   const named = (value: string, inside: RegExp) =>
     texts.some((t) => t === value || occursBounded(t, value, inside));
 
-  // A test case named by its full identifier, classname.name: its bare name then names that case
-  // only, and not the same name under another classname (or under none).
-  const qualified = (item: RecordItem) =>
-    item.type === 'test' && item.id !== item.fields[0]?.[1] && named(item.id, WORD);
+  // A test case named by its full identifier, classname.name, as it reads (the item's id is the
+  // pair, items.ts): its bare name then names that case only, and not the same name under another
+  // classname (or under none).
+  const classnameOf = (item: RecordItem) => item.fields.find(([f]) => f === 'classname')?.[1];
+  const qualified = (item: RecordItem) => {
+    const classname = classnameOf(item);
+    return (
+      item.type === 'test' &&
+      classname !== undefined &&
+      named(`${classname}.${item.fields[0]?.[1]}`, WORD)
+    );
+  };
   const qualifiedNames = new Set(
     items.filter(qualified).map((item) => item.fields[0]?.[1] as string),
   );
@@ -256,7 +264,6 @@ export function identifierMatches(
   // name then names the cases under those classnames only. If it names none, every case is named.
   // A classname shorter than MIN_NAME_LENGTH as recorded ("io") never restricts: an ordinary word
   // would name it.
-  const classnameOf = (item: RecordItem) => item.fields.find(([f]) => f === 'classname')?.[1];
   const classnames = [
     ...new Set(items.filter((item) => item.type === 'test').map(classnameOf)),
   ].filter((c) => c !== undefined);

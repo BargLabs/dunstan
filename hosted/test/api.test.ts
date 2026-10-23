@@ -31,7 +31,7 @@ import {
   webhook,
 } from './support.js';
 
-const CHECKER = { name: 'dunstan', version: '0.1.12', digest: { sha256: 'a'.repeat(64) } };
+const CHECKER = { name: 'dunstan', version: '0.1.13', digest: { sha256: 'a'.repeat(64) } };
 const NOW = new Date('2026-10-04T12:00:00Z');
 // The Worker's artifact budgets (docs/hosted.md, "Artifact size").
 const WORKER_ARCHIVE_BUDGET = 24 * MiB;

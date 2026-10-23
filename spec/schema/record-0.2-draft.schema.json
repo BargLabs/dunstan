@@ -484,7 +484,7 @@
     },
     "readerReason": {
       "type": "string",
-      "pattern": "^(?:no_matching_record_item|declared_item_not_among_candidates|candidate_not_in_evidence|ambiguous_candidates|workflow_not_in_record|workflow_name_ambiguous|no_comparable_record_field|file_list_truncated|checks_incomplete|all_succeeded_mismatch|test_not_executed|test_outcome_mismatch|not_closing|not_found|closing_link_unsettled|closing_base_not_default|closing_event_unsettled|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request_files|check_runs|workflow_runs|pull_request_commits|closing_references|repository|issue|timeline|artifact))$"
+      "pattern": "^(?:no_matching_record_item|declared_item_not_among_candidates|candidate_not_in_evidence|duplicate_record_item|ambiguous_candidates|workflow_not_in_record|workflow_name_ambiguous|no_comparable_record_field|file_list_truncated|checks_incomplete|all_succeeded_mismatch|test_not_executed|test_outcome_mismatch|not_closing|not_found|closing_link_unsettled|closing_base_not_default|closing_event_unsettled|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request_files|check_runs|workflow_runs|pull_request_commits|closing_references|repository|issue|timeline|artifact))$"
     }
   }
 }

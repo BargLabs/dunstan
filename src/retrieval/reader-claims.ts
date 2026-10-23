@@ -106,11 +106,20 @@ function sectionReason(type: ItemType, evidence: Evidence): string | undefined {
   }
 }
 
-// The evidence entry each candidate names, by type and id. A candidate the evidence does not hold
-// is undefined: a record that names an item it did not read cannot rest a verdict on it.
-function lookup(type: ItemType, evidence: Evidence): Map<string, JsonValue> {
+// The evidence entry each candidate names, by type and id, and the ids two or more entries hold. A
+// candidate the evidence does not hold is undefined: a record that names an item it did not read
+// cannot rest a verdict on it. An id held twice keeps its first entry and is marked a duplicate,
+// never overwritten: the record cannot tell which entry a candidate with it names.
+function lookup(
+  type: ItemType,
+  evidence: Evidence,
+): { entries: Map<string, JsonValue>; duplicates: Set<string> } {
   const entries = new Map<string, JsonValue>();
-  const put = (id: string, value: object) => entries.set(id, value as JsonValue);
+  const duplicates = new Set<string>();
+  const put = (id: string, value: object) => {
+    if (entries.has(id)) duplicates.add(id);
+    else entries.set(id, value as JsonValue);
+  };
   const items = evidence.items;
   if (type === 'file' && evidence.files?.status === 'ok') {
     for (const f of evidence.files.entries) put(f.path, f);
@@ -124,7 +133,7 @@ function lookup(type: ItemType, evidence: Evidence): Map<string, JsonValue> {
   } else if (type === 'test' && items?.tests.status === 'ok') {
     for (const t of items.tests.entries) put(testId(t), t);
   }
-  return entries;
+  return { entries, duplicates };
 }
 
 const ISSUE_REF = /^(?:[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9._-]{1,100})?#[1-9][0-9]{0,9}$/;
@@ -269,7 +278,7 @@ export function checkReaderClaim(
   const missing = sectionReason(type, evidence);
   if (missing !== undefined) return unverifiable(missing);
 
-  const entries = lookup(type, evidence);
+  const { entries, duplicates } = lookup(type, evidence);
   const typed = claim.candidates.filter((c) => c.type === type);
   if (typed.some((c) => entries.get(c.id) === undefined)) {
     return unverifiable('candidate_not_in_evidence');
@@ -282,6 +291,9 @@ export function checkReaderClaim(
     // The floor is stated beside the candidates, in the claim's retrieval member.
     return unverifiable(truncated ? 'file_list_truncated' : 'no_matching_record_item');
   }
+  // Two entries with one identity: two test cases of one classname and name. Reading either would
+  // let the other's outcome go unread. A filled candidate is never combined, so it never counts.
+  if (relevant.some((c) => duplicates.has(c.id))) return unverifiable('duplicate_record_item');
   if (type === 'check_run') {
     const scoped = namedWorkflowRuns(claim.text, relevant, evidence);
     if (!Array.isArray(scoped)) return unverifiable(scoped.reason);

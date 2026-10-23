@@ -8,9 +8,12 @@ import type { RecordItem } from './types.js';
 
 export type ItemSnapshot = Pick<Evidence, 'files' | 'checkRuns' | 'items'>;
 
-// A test case's identifier: classname.name, or the name alone when the case has no classname.
-export function testId(test: TestItem): string {
-  return test.classname === undefined ? test.name : `${test.classname}.${test.name}`;
+// A test case's identifier: the JSON array [classname, name], with null for a case with no
+// classname. It is injective, where classname.name is not: (queue, retry.case) and (queue.retry,
+// case) read alike, and so do (queue, retry) and a case with no classname named queue.retry. A text
+// still names a case by its classname.name (identifiers.ts), read from the item's fields.
+export function testId(test: Pick<TestItem, 'classname' | 'name'>): string {
+  return JSON.stringify([test.classname ?? null, test.name]);
 }
 
 export function recordItems(evidence: ItemSnapshot): RecordItem[] {

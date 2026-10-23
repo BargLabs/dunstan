@@ -570,10 +570,10 @@ exports[`the retrieval challenge set > closes/other-repo-closed-by-this-pull-râ€
 exports[`the retrieval challenge set > lexical/api-version-later: Arm A and the check, as they stand 1`] = `
 {
   "candidates": [
-    "api.v1.lists users 3.381665 (not combined)",
-    "api.v2.lists users 3.381665 (not combined)",
-    "upload.accepts a 0 byte file 0",
-    "upload.accepts a 1 byte file 0",
+    "["api.v1","lists users"] 3.381665 (not combined)",
+    "["api.v2","lists users"] 3.381665 (not combined)",
+    "["upload","accepts a 0 byte file"] 0",
+    "["upload","accepts a 1 byte file"] 0",
   ],
   "observed": null,
   "reason": "ambiguous_candidates",
@@ -584,10 +584,10 @@ exports[`the retrieval challenge set > lexical/api-version-later: Arm A and the 
 exports[`the retrieval challenge set > lexical/byte-size-later: Arm A and the check, as they stand 1`] = `
 {
   "candidates": [
-    "upload.accepts a 0 byte file 2.254444 (not combined)",
-    "upload.accepts a 1 byte file 2.254444 (not combined)",
-    "api.v1.lists users 0",
-    "api.v2.lists users 0",
+    "["upload","accepts a 0 byte file"] 2.254444 (not combined)",
+    "["upload","accepts a 1 byte file"] 2.254444 (not combined)",
+    "["api.v1","lists users"] 0",
+    "["api.v2","lists users"] 0",
   ],
   "observed": null,
   "reason": "ambiguous_candidates",
@@ -598,10 +598,10 @@ exports[`the retrieval challenge set > lexical/byte-size-later: Arm A and the ch
 exports[`the retrieval challenge set > lexical/byte-size-later-said-to-fail: Arm A and the check, as they stand 1`] = `
 {
   "candidates": [
-    "upload.accepts a 0 byte file 2.254444 (not combined)",
-    "upload.accepts a 1 byte file 2.254444 (not combined)",
-    "api.v1.lists users 0",
-    "api.v2.lists users 0",
+    "["upload","accepts a 0 byte file"] 2.254444 (not combined)",
+    "["upload","accepts a 1 byte file"] 2.254444 (not combined)",
+    "["api.v1","lists users"] 0",
+    "["api.v2","lists users"] 0",
   ],
   "observed": null,
   "reason": "ambiguous_candidates",
@@ -1025,14 +1025,50 @@ exports[`the retrieval challenge set > shas/timeline-only-shared-prefix: Arm A a
 }
 `;
 
+exports[`the retrieval challenge set > tests/classname-against-no-classname: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "["queue","retry"] = name",
+    "[null,"queue.retry"] = name",
+  ],
+  "observed": false,
+  "reason": "test_outcome_mismatch",
+  "verdict": "fail",
+}
+`;
+
+exports[`the retrieval challenge set > tests/dot-moved-across-classname: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "["queue","retry.flushes"] = name",
+    "["queue.retry","flushes"] = name",
+  ],
+  "observed": false,
+  "reason": "test_outcome_mismatch",
+  "verdict": "fail",
+}
+`;
+
+exports[`the retrieval challenge set > tests/one-case-recorded-twice: Arm A and the check, as they stand 1`] = `
+{
+  "candidates": [
+    "["queue.retry","flushes"] = name",
+    "["queue.retry","flushes"] = name",
+  ],
+  "observed": null,
+  "reason": "duplicate_record_item",
+  "verdict": "unverifiable",
+}
+`;
+
 exports[`the retrieval challenge set > tests/one-token-apart-failed: Arm A and the check, as they stand 1`] = `
 {
   "candidates": [
-    "cache.store.evicts the newest entry = name",
-    "cache.store.evicts the oldest entry 2.13878 (not combined)",
-    "http.retry.gives up after three attempts 0",
-    "queue.retry.gives up after three attempts 0",
-    "parse.number.reads a number 0",
+    "["cache.store","evicts the newest entry"] = name",
+    "["cache.store","evicts the oldest entry"] 2.13878 (not combined)",
+    "["http.retry","gives up after three attempts"] 0",
+    "["queue.retry","gives up after three attempts"] 0",
+    "["parse.number","reads a number"] 0",
   ],
   "observed": false,
   "reason": "test_outcome_mismatch",
@@ -1043,11 +1079,11 @@ exports[`the retrieval challenge set > tests/one-token-apart-failed: Arm A and t
 exports[`the retrieval challenge set > tests/one-token-apart-passed: Arm A and the check, as they stand 1`] = `
 {
   "candidates": [
-    "cache.store.evicts the oldest entry = name",
-    "cache.store.evicts the newest entry 2.13878 (not combined)",
-    "http.retry.gives up after three attempts 0",
-    "queue.retry.gives up after three attempts 0",
-    "parse.number.reads a number 0",
+    "["cache.store","evicts the oldest entry"] = name",
+    "["cache.store","evicts the newest entry"] 2.13878 (not combined)",
+    "["http.retry","gives up after three attempts"] 0",
+    "["queue.retry","gives up after three attempts"] 0",
+    "["parse.number","reads a number"] 0",
   ],
   "observed": true,
   "reason": null,
@@ -1058,11 +1094,11 @@ exports[`the retrieval challenge set > tests/one-token-apart-passed: Arm A and t
 exports[`the retrieval challenge set > tests/one-token-longer: Arm A and the check, as they stand 1`] = `
 {
   "candidates": [
-    "parse.number.reads a negative number = name",
-    "parse.number.reads a number 2.692261 (not combined)",
-    "cache.store.evicts the oldest entry 0",
-    "cache.store.evicts the newest entry 0",
-    "http.retry.gives up after three attempts 0",
+    "["parse.number","reads a negative number"] = name",
+    "["parse.number","reads a number"] 2.692261 (not combined)",
+    "["cache.store","evicts the oldest entry"] 0",
+    "["cache.store","evicts the newest entry"] 0",
+    "["http.retry","gives up after three attempts"] 0",
   ],
   "observed": false,
   "reason": "test_outcome_mismatch",
@@ -1073,11 +1109,11 @@ exports[`the retrieval challenge set > tests/one-token-longer: Arm A and the che
 exports[`the retrieval challenge set > tests/one-token-shorter: Arm A and the check, as they stand 1`] = `
 {
   "candidates": [
-    "parse.number.reads a number = name",
-    "parse.number.reads a negative number 2.522264 (not combined)",
-    "cache.store.evicts the oldest entry 0",
-    "cache.store.evicts the newest entry 0",
-    "http.retry.gives up after three attempts 0",
+    "["parse.number","reads a number"] = name",
+    "["parse.number","reads a negative number"] 2.522264 (not combined)",
+    "["cache.store","evicts the oldest entry"] 0",
+    "["cache.store","evicts the newest entry"] 0",
+    "["http.retry","gives up after three attempts"] 0",
   ],
   "observed": true,
   "reason": null,
@@ -1088,11 +1124,11 @@ exports[`the retrieval challenge set > tests/one-token-shorter: Arm A and the ch
 exports[`the retrieval challenge set > tests/same-name-classname-dotted-in-proâ€¦: Arm A and the check, as they stand 1`] = `
 {
   "candidates": [
-    "queue.retry.gives up after three attempts = name",
-    "http.retry.gives up after three attempts 5.557648 (not combined)",
-    "cache.store.evicts the oldest entry 0",
-    "cache.store.evicts the newest entry 0",
-    "parse.number.reads a number 0",
+    "["queue.retry","gives up after three attempts"] = name",
+    "["http.retry","gives up after three attempts"] 5.557648 (not combined)",
+    "["cache.store","evicts the oldest entry"] 0",
+    "["cache.store","evicts the newest entry"] 0",
+    "["parse.number","reads a number"] 0",
   ],
   "observed": true,
   "reason": null,
@@ -1103,11 +1139,11 @@ exports[`the retrieval challenge set > tests/same-name-classname-dotted-in-proâ€
 exports[`the retrieval challenge set > tests/same-name-classname-in-prose: Arm A and the check, as they stand 1`] = `
 {
   "candidates": [
-    "queue.retry.gives up after three attempts = name",
-    "http.retry.gives up after three attempts 5.557648 (not combined)",
-    "cache.store.evicts the oldest entry 0",
-    "cache.store.evicts the newest entry 0",
-    "parse.number.reads a number 0",
+    "["queue.retry","gives up after three attempts"] = name",
+    "["http.retry","gives up after three attempts"] 5.557648 (not combined)",
+    "["cache.store","evicts the oldest entry"] 0",
+    "["cache.store","evicts the newest entry"] 0",
+    "["parse.number","reads a number"] 0",
   ],
   "observed": true,
   "reason": null,
@@ -1118,11 +1154,11 @@ exports[`the retrieval challenge set > tests/same-name-classname-in-prose: Arm A
 exports[`the retrieval challenge set > tests/same-name-classname-qualified: Arm A and the check, as they stand 1`] = `
 {
   "candidates": [
-    "queue.retry.gives up after three attempts = name",
-    "http.retry.gives up after three attempts 5.557648 (not combined)",
-    "cache.store.evicts the oldest entry 0",
-    "cache.store.evicts the newest entry 0",
-    "parse.number.reads a number 0",
+    "["queue.retry","gives up after three attempts"] = name",
+    "["http.retry","gives up after three attempts"] 5.557648 (not combined)",
+    "["cache.store","evicts the oldest entry"] 0",
+    "["cache.store","evicts the newest entry"] 0",
+    "["parse.number","reads a number"] 0",
   ],
   "observed": true,
   "reason": null,
@@ -1133,11 +1169,11 @@ exports[`the retrieval challenge set > tests/same-name-classname-qualified: Arm 
 exports[`the retrieval challenge set > tests/same-name-declared-failing: Arm A and the check, as they stand 1`] = `
 {
   "candidates": [
-    "http.retry.gives up after three attempts = name",
-    "queue.retry.gives up after three attempts 5.557648 (not combined)",
-    "cache.store.evicts the oldest entry 0",
-    "cache.store.evicts the newest entry 0",
-    "parse.number.reads a number 0",
+    "["http.retry","gives up after three attempts"] = name",
+    "["queue.retry","gives up after three attempts"] 5.557648 (not combined)",
+    "["cache.store","evicts the oldest entry"] 0",
+    "["cache.store","evicts the newest entry"] 0",
+    "["parse.number","reads a number"] 0",
   ],
   "observed": false,
   "reason": null,
@@ -1148,8 +1184,8 @@ exports[`the retrieval challenge set > tests/same-name-declared-failing: Arm A a
 exports[`the retrieval challenge set > tests/same-name-short-classname-as-word: Arm A and the check, as they stand 1`] = `
 {
   "candidates": [
-    "io.flushes the buffer = name",
-    "queue.retry.flushes the buffer = name",
+    "["io","flushes the buffer"] = name",
+    "["queue.retry","flushes the buffer"] = name",
   ],
   "observed": false,
   "reason": "test_outcome_mismatch",
@@ -1160,11 +1196,11 @@ exports[`the retrieval challenge set > tests/same-name-short-classname-as-word: 
 exports[`the retrieval challenge set > tests/same-name-two-classnames-in-prose: Arm A and the check, as they stand 1`] = `
 {
   "candidates": [
-    "http.retry.gives up after three attempts = name",
-    "queue.retry.gives up after three attempts = name",
-    "cache.store.evicts the oldest entry 0",
-    "cache.store.evicts the newest entry 0",
-    "parse.number.reads a number 0",
+    "["http.retry","gives up after three attempts"] = name",
+    "["queue.retry","gives up after three attempts"] = name",
+    "["cache.store","evicts the oldest entry"] 0",
+    "["cache.store","evicts the newest entry"] 0",
+    "["parse.number","reads a number"] 0",
   ],
   "observed": false,
   "reason": "test_outcome_mismatch",

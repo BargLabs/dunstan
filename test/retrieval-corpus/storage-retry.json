@@ -122,14 +122,14 @@
       "text": "The test for giving up after five attempts passes.",
       "kind": "test_passed",
       "declaredValue": true,
-      "expected": [{ "type": "test", "id": "storage.retry.gives up after five attempts" }]
+      "expected": [{ "type": "test", "id": "[\"storage.retry\",\"gives up after five attempts\"]" }]
     },
     {
       "id": "upload-test",
       "text": "The upload test passes now.",
       "kind": "test_passed",
       "declaredValue": true,
-      "expected": [{ "type": "test", "id": "storage.blobStore.uploads a blob" }]
+      "expected": [{ "type": "test", "id": "[\"storage.blobStore\",\"uploads a blob\"]" }]
     },
     {
       "id": "rename-commit",

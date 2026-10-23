@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { caseEvidence, REPO } from '../__tests__/retrieval-fixtures.js';
 import { checkReferences, closesBlock } from '../check/checks.js';
-import type { CheckRun, CloseEvent, Evidence } from '../check/types.js';
+import type { CheckRun, CloseEvent, Evidence, TestItem } from '../check/types.js';
 import { main } from '../cli/main.js';
 import { buildRecord, type DunstanRecord, recordBlock, serializeRecord } from '../record/build.js';
 import { CHECKER_NAME, CHECKER_VERSION } from '../record/checker.js';
@@ -13,7 +13,7 @@ import { DRAFT_PREDICATE_TYPE, DRAFT_SPEC_VERSION, PREDICATE_TYPE } from '../spe
 import { extractHandbackBlock } from '../spec/extract.js';
 import { validateDraftRecord, validateRecord } from '../spec/schema.js';
 import { CHECK_RUN_EVENTS, unheldSuffixJobs, workflowJobs } from './identifiers.js';
-import { recordItems } from './items.js';
+import { recordItems, testId } from './items.js';
 import {
   checkReaderClaim,
   READER_CLAIM_K,
@@ -203,6 +203,8 @@ describe('reader claims', () => {
     });
     const run = candidate('check_run');
     const test = candidate('test');
+    const blobStore = (name: string) => testId({ classname: 'storage.blobStore', name });
+    const retry = (name: string) => testId({ classname: 'storage.retry', name });
     const check = (
       kind: string,
       candidates: ReturnType<typeof run>[],
@@ -234,8 +236,8 @@ describe('reader claims', () => {
     });
 
     it('reads neither of two tied test cases that disagree', () => {
-      const failed = 'storage.blobStore.uploads a blob';
-      const passed = 'storage.retry.gives up after five attempts';
+      const failed = blobStore('uploads a blob');
+      const passed = retry('gives up after five attempts');
       for (const declared of [true, false]) {
         expect(check('test_passed', [test(failed, 2), test(passed, 2)], declared)).toEqual(
           ambiguous,
@@ -249,8 +251,8 @@ describe('reader claims', () => {
         verdict: 'pass',
       });
       const passed = [
-        'storage.retry.gives up after five attempts',
-        'storage.retry.waits longer after each failure',
+        retry('gives up after five attempts'),
+        retry('waits longer after each failure'),
       ];
       expect(
         check(
@@ -296,10 +298,7 @@ describe('reader claims', () => {
           },
         },
       } as typeof storage;
-      const ids = [
-        'storage.retry.gives up after five attempts',
-        'storage.retry.waits longer after each failure',
-      ];
+      const ids = [retry('gives up after five attempts'), retry('waits longer after each failure')];
       expect(
         check(
           'test_passed',
@@ -349,6 +348,95 @@ describe('reader claims', () => {
       verdict: 'unverifiable',
       reason: 'candidate_not_in_evidence',
     });
+  });
+});
+
+// A test case's identity is its (classname, name) pair, never the string classname.name: two cases
+// whose classname.name read alike are two items, and two entries with one identity are a duplicate
+// the check refuses to read, never one that overwrites the other.
+describe("a test case's identity (DRAFT 0.2.0)", () => {
+  const withTests = (entries: TestItem[]): Evidence => {
+    if (storage.items === undefined) throw new Error('fixture');
+    return { ...storage, items: { ...storage.items, tests: { status: 'ok', entries } } };
+  };
+  // In each, the claim is about the first case, which failed; the second, which passed, would
+  // have taken its identifier.
+  const collisions: [string, string, TestItem[]][] = [
+    [
+      'a dot moved between classname and name',
+      'The queue.retry.case test passes',
+      [
+        { classname: 'queue', name: 'retry.case', outcome: 'failed' },
+        { classname: 'queue.retry', name: 'case', outcome: 'passed' },
+      ],
+    ],
+    [
+      'a classname and name against a name alone',
+      'The queue.retry test passes',
+      [
+        { classname: 'queue', name: 'retry', outcome: 'failed' },
+        { name: 'queue.retry', outcome: 'passed' },
+      ],
+    ],
+  ];
+
+  for (const [what, text, entries] of collisions) {
+    it(`never passes a failed test on the passed one whose classname.name reads alike: ${what}`, () => {
+      const c = read(claim(text, 'test_passed', true), withTests(entries));
+      expect(c).toMatchObject({
+        verdict: 'fail',
+        reason: 'test_outcome_mismatch',
+        observed: false,
+      });
+      expect(new Set(c.candidates.map((x) => x.id)).size).toBe(entries.length);
+    });
+  }
+
+  it('is duplicate_record_item where two entries share a classname and a name', () => {
+    const entries: TestItem[] = [
+      { classname: 'queue.retry', name: 'gives up', outcome: 'failed' },
+      { classname: 'queue.retry', name: 'gives up', outcome: 'passed' },
+    ];
+    for (const declared of [true, false]) {
+      const c = read(
+        claim('The queue.retry.gives up test passes', 'test_passed', declared),
+        withTests(entries),
+      );
+      expect(c).toMatchObject({
+        verdict: 'unverifiable',
+        reason: 'duplicate_record_item',
+        observed: null,
+      });
+    }
+    // Recomputed from a recorded candidate that names the shared identity, the same.
+    const id = recordItems(withTests(entries)).find((i) => i.type === 'test')?.id as string;
+    expect(
+      checkReaderClaim(
+        {
+          text: 'It passes',
+          kind: 'test_passed',
+          declaredValue: true,
+          candidates: [{ type: 'test', id, score: null, matchedField: 'id' }],
+          retrieval: { floor: BM25_FLOOR },
+        },
+        withTests(entries),
+        REPO,
+      ),
+    ).toEqual({ observed: null, verdict: 'unverifiable', reason: 'duplicate_record_item' });
+  });
+
+  it('reads a duplicate only where the check combines it: a filled one decides nothing', () => {
+    const entries: TestItem[] = [
+      { classname: 'parse.number', name: 'reads a number', outcome: 'passed' },
+      { classname: 'queue.retry', name: 'gives up', outcome: 'failed' },
+      { classname: 'queue.retry', name: 'gives up', outcome: 'passed' },
+    ];
+    const c = read(
+      claim('The parse.number.reads a number test passes', 'test_passed', true),
+      withTests(entries),
+    );
+    expect(c.candidates.length).toBe(3);
+    expect(c).toMatchObject({ verdict: 'pass', observed: true });
   });
 });
 
@@ -1041,6 +1129,32 @@ describe('a record with reader claims (DRAFT 0.2.0)', () => {
     expect(record.predicate.readerClaims?.[0]).toMatchObject({
       verdict: 'unverifiable',
       reason: 'workflow_name_ambiguous',
+    });
+    expect(validateDraftRecord(record)).toEqual([]);
+    expect(verifyRecord(record).problems).toEqual([]);
+  });
+
+  it('validates and verifies offline a test claim whose test case the record holds twice', () => {
+    if (storage.items === undefined) throw new Error('fixture');
+    const twice = {
+      ...storage,
+      items: {
+        ...storage.items,
+        tests: {
+          status: 'ok',
+          entries: [
+            { classname: 'queue.retry', name: 'gives up', outcome: 'failed' },
+            { classname: 'queue.retry', name: 'gives up', outcome: 'passed' },
+          ],
+        },
+      },
+    } satisfies Evidence;
+    const gives = claim('The queue.retry.gives up test passes', 'test_passed', true);
+    const record = JSON.parse(JSON.stringify(build([gives], twice))) as DunstanRecord;
+    expect(record.predicate.readerClaims?.[0]).toMatchObject({
+      verdict: 'unverifiable',
+      observed: null,
+      reason: 'duplicate_record_item',
     });
     expect(validateDraftRecord(record)).toEqual([]);
     expect(verifyRecord(record).problems).toEqual([]);

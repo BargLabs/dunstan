@@ -85,7 +85,7 @@
       "kind": "test_passed",
       "declaredValue": true,
       "expectCandidates": [],
-      "forbidCandidates": ["upload.accepts a 0 byte file"],
+      "forbidCandidates": ["[\"upload\",\"accepts a 0 byte file\"]"],
       "expectCheck": { "verdict": "unverifiable", "reason": "ambiguous_candidates" }
     },
     {
@@ -95,7 +95,7 @@
       "kind": "test_passed",
       "declaredValue": false,
       "expectCandidates": [],
-      "forbidCandidates": ["upload.accepts a 0 byte file"],
+      "forbidCandidates": ["[\"upload\",\"accepts a 0 byte file\"]"],
       "expectCheck": { "verdict": "unverifiable", "reason": "ambiguous_candidates" }
     },
     {
@@ -104,8 +104,8 @@
       "text": "API version 2 can list users.",
       "kind": "test_passed",
       "declaredValue": true,
-      "expectCandidates": ["api.v2.lists users"],
-      "forbidCandidates": ["api.v1.lists users"],
+      "expectCandidates": ["[\"api.v2\",\"lists users\"]"],
+      "forbidCandidates": ["[\"api.v1\",\"lists users\"]"],
       "expectCheck": { "verdict": "pass", "observed": true }
     }
   ]

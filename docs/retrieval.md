@@ -25,7 +25,13 @@ record order:
 | `timeline_event` | `evidence.items.timeline` (draft) | the event id | `event`, `ref` (an issue or commit), `detail` |
 | `check_run` | `evidence.checkRuns` (0.1): the latest run per workflow path and name, less excluded runs | the run id | `name` |
 | `file` | `evidence.files` (0.1) | the path | `path`, `previousPath` |
-| `test` | `evidence.items.tests` (draft), from one JUnit record | `classname.name` | `name`, `classname` |
+| `test` | `evidence.items.tests` (draft), from one JUnit record | the JSON array `["<classname>","<name>"]`, `null` for no classname | `name`, `classname` |
+
+A test case's identifier is its `(classname, name)` pair, written as a JSON array, because
+`classname.name` is not one-to-one: `(queue, retry.case)` and `(queue.retry, case)` both read
+`queue.retry.case`, and so do `(queue, retry)` and a case with no classname named `queue.retry`. A
+text still names a test case by its `classname.name` as it reads (identifier matching, below), and
+the fields it is matched on are unchanged; only the identifier a candidate records is the pair.
 
 No file contents, ever. Commit headlines, timeline event types and test case names are metadata, but
 0.1 records do not carry them. The DRAFT section lists them under "What a record would newly
@@ -161,6 +167,22 @@ Without this rule a tied confusable decided the aggregate. "e2e shard 2 fails" h
 pass. "e2e shard 2 passes" failed for the same reason. A check that cannot tell the two runs apart
 says so. `file_changed`, `commit_present` and `reference_in_timeline` need the declared item among
 the candidates, so a tie cannot mislead them, and the rule does not apply to them.
+
+### One identity, two entries
+
+The check finds each candidate's evidence entry by its type and identifier (`lookup`,
+`reader-claims.ts`; DRAFT 0.2.0, D.6 step 4). Two entries can share one identifier: a JUnit record
+that lists one classname and name twice, say once failed and once passed. The second entry is never
+stored over the first. The identifier is marked a duplicate, and a claim whose combined candidates
+include it is `unverifiable` with `duplicate_record_item`: the record cannot tell which entry the
+claim is about, and reading either would leave the other's outcome unread. A filled candidate is
+never combined, so a duplicate among the fills changes nothing.
+
+Before this, `test` items were identified by `classname.name`, and the entry read for an identifier
+was the last one listed under it. A claim about a failed test whose `classname.name` read the same as
+a passed one's was decided by the passed one: a false `pass`. With the pair as the identifier, the
+first two collisions above are two items, each read for its own outcome; only a genuine duplicate is
+refused.
 
 ### A job named with its workflow
 
@@ -308,7 +330,8 @@ candidate below the floor; it verifies as before.
   candidates and the evidence, and never retrieves again. So the verdict reproduces even where a
   fresh retrieval would rank differently. A test makes retrieval throw during verification. A
   recorded candidate the evidence does not hold makes the claim `unverifiable`
-  (`candidate_not_in_evidence`).
+  (`candidate_not_in_evidence`), and so does a combined candidate the evidence holds twice
+  (`duplicate_record_item`, "One identity, two entries").
 - Reader claims do not enter the record's `verdict` in this draft. They have their own digest,
   `digests.readerClaims`.
 
@@ -409,8 +432,9 @@ loader:
   its own `checkRuns` in place of the family's.
 - `tests`: test names one token apart; one `name` under two `classname`s, named by its full
   identifier, by one classname in prose (as recorded, or with spaces), or by both; a classname
-  below `MIN_NAME_LENGTH` used as an ordinary word. A tests case may carry its own `items` in place
-  of the family's.
+  below `MIN_NAME_LENGTH` used as an ordinary word; two cases whose `classname.name` reads the same
+  (a dot moved between classname and name, or a classname against none), and one case listed
+  twice. A tests case may carry its own `items` in place of the family's.
 - `lexical`: BM25 ties broken by record order where the right item comes later, because a token of
   one character is dropped; and the same ties under a claim that the right item failed, where it
   succeeded.
@@ -436,8 +460,8 @@ Arm B is not run: Dunstan ships no embedding provider.
 | `numbers` | 5 | 0 | 0 |
 | `paths` | 11 | 3 | 0 |
 | `shas` | 7 | 3 | 0 |
-| `tests` | 10 | 0 | 0 |
-| All | 78 | 8 | 1 |
+| `tests` | 13 | 0 | 0 |
+| All | 81 | 8 | 1 |
 
 When the set was first measured there were 35 known misses, 14 of them wrong verdicts. One of them
 was a `closes` claim that a cross-reference passed; that case has since been dropped, since its pass
@@ -535,6 +559,18 @@ passes on 210 alone. `workflow-name-two-paths` ("CI / test passes.", two files n
 `unverifiable`, `ambiguous_candidates`, since both `test` runs tied above the floor and disagreed,
 and `path-unheld-suffix-job-named` (the same, with `test` also named bare) was a false pass on 205's
 failure. Both are now `unverifiable`, `no_matching_record_item`.
+
+A test case's identity as its `(classname, name)` pair ("Items" and "One identity, two entries",
+above) then came with three `tests` cases, and left the counts at 8 misses, 1 of them a wrong
+verdict. Each carries its own `items`, and in each the claim's case failed. In
+`dot-moved-across-classname` ("The queue.retry.flushes test passes.", over `(queue, retry.flushes)`
+and `(queue.retry, flushes)`, which passed) and `classname-against-no-classname` ("The queue.retry
+test passes.", over `(queue, retry)` and a case with no classname named `queue.retry`, which passed),
+the text names both cases, and each now fails on the failed one. `one-case-recorded-twice` lists
+`(queue.retry, flushes)` failed and then passed, and is now `unverifiable`, `duplicate_record_item`.
+Before the change all three were false passes, decided by the passed entry that shared the
+identifier. Every other case reads and decides as before; its snapshot shows each test candidate's
+identifier as the pair, where it showed `classname.name`.
 
 In the other kinds the declared item has to be among the candidates, so a confusable read beside it
 changes no verdict, though it can change the observed value.

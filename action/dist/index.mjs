@@ -9790,7 +9790,7 @@ async function readEvidence(client, input2) {
 // src/record/checker.ts
 import { readFileSync } from "node:fs";
 var CHECKER_NAME = "dunstan";
-var CHECKER_VERSION = "0.1.12";
+var CHECKER_VERSION = "0.1.13";
 function checkerIdentity(artifact) {
   return {
     name: CHECKER_NAME,
@@ -11662,11 +11662,14 @@ function identifierMatches(claim, items, repository) {
   const shas = shaTokens(texts);
   const issues = issueRefs(texts, repository);
   const named = (value, inside) => texts.some((t) => t === value || occursBounded(t, value, inside));
-  const qualified = (item) => item.type === "test" && item.id !== item.fields[0]?.[1] && named(item.id, WORD);
+  const classnameOf = (item) => item.fields.find(([f]) => f === "classname")?.[1];
+  const qualified = (item) => {
+    const classname = classnameOf(item);
+    return item.type === "test" && classname !== void 0 && named(`${classname}.${item.fields[0]?.[1]}`, WORD);
+  };
   const qualifiedNames = new Set(
     items.filter(qualified).map((item) => item.fields[0]?.[1])
   );
-  const classnameOf = (item) => item.fields.find(([f]) => f === "classname")?.[1];
   const classnames = [
     ...new Set(items.filter((item) => item.type === "test").map(classnameOf))
   ].filter((c) => c !== void 0);
@@ -11727,7 +11730,7 @@ function identifierMatches(claim, items, repository) {
 
 // src/retrieval/items.ts
 function testId(test) {
-  return test.classname === void 0 ? test.name : `${test.classname}.${test.name}`;
+  return JSON.stringify([test.classname ?? null, test.name]);
 }
 function recordItems(evidence) {
   const items = [];
@@ -11975,7 +11978,11 @@ function sectionReason(type, evidence) {
 }
 function lookup(type, evidence) {
   const entries = /* @__PURE__ */ new Map();
-  const put = (id, value) => entries.set(id, value);
+  const duplicates = /* @__PURE__ */ new Set();
+  const put = (id, value) => {
+    if (entries.has(id)) duplicates.add(id);
+    else entries.set(id, value);
+  };
   const items = evidence.items;
   if (type === "file" && evidence.files?.status === "ok") {
     for (const f of evidence.files.entries) put(f.path, f);
@@ -11989,7 +11996,7 @@ function lookup(type, evidence) {
   } else if (type === "test" && items?.tests.status === "ok") {
     for (const t of items.tests.entries) put(testId(t), t);
   }
-  return entries;
+  return { entries, duplicates };
 }
 var ISSUE_REF2 = /^(?:[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9._-]{1,100})?#[1-9][0-9]{0,9}$/;
 function combinedCandidates(typed, floor) {
@@ -12073,7 +12080,7 @@ function checkReaderClaim(claim, evidence, repository) {
   }
   const missing = sectionReason(type, evidence);
   if (missing !== void 0) return unverifiable2(missing);
-  const entries = lookup(type, evidence);
+  const { entries, duplicates } = lookup(type, evidence);
   const typed = claim.candidates.filter((c) => c.type === type);
   if (typed.some((c) => entries.get(c.id) === void 0)) {
     return unverifiable2("candidate_not_in_evidence");
@@ -12083,6 +12090,7 @@ function checkReaderClaim(claim, evidence, repository) {
   if (relevant.length === 0) {
     return unverifiable2(truncated ? "file_list_truncated" : "no_matching_record_item");
   }
+  if (relevant.some((c) => duplicates.has(c.id))) return unverifiable2("duplicate_record_item");
   if (type === "check_run") {
     const scoped = namedWorkflowRuns(claim.text, relevant, evidence);
     if (!Array.isArray(scoped)) return unverifiable2(scoped.reason);
@@ -12912,7 +12920,7 @@ var FILES = { "handback-block-0.1.schema.json": `{
     },
     "readerReason": {
       "type": "string",
-      "pattern": "^(?:no_matching_record_item|declared_item_not_among_candidates|candidate_not_in_evidence|ambiguous_candidates|workflow_not_in_record|workflow_name_ambiguous|no_comparable_record_field|file_list_truncated|checks_incomplete|all_succeeded_mismatch|test_not_executed|test_outcome_mismatch|not_closing|not_found|closing_link_unsettled|closing_base_not_default|closing_event_unsettled|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request_files|check_runs|workflow_runs|pull_request_commits|closing_references|repository|issue|timeline|artifact))$"
+      "pattern": "^(?:no_matching_record_item|declared_item_not_among_candidates|candidate_not_in_evidence|duplicate_record_item|ambiguous_candidates|workflow_not_in_record|workflow_name_ambiguous|no_comparable_record_field|file_list_truncated|checks_incomplete|all_succeeded_mismatch|test_not_executed|test_outcome_mismatch|not_closing|not_found|closing_link_unsettled|closing_base_not_default|closing_event_unsettled|evidence_field_unpopulated:[A-Za-z0-9_.]+|source_unreadable:(?:pull_request_files|check_runs|workflow_runs|pull_request_commits|closing_references|repository|issue|timeline|artifact))$"
     }
   }
 }

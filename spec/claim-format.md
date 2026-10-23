@@ -1408,11 +1408,15 @@ order** is fixed:
 | 2 | `timeline_event` | `items.timeline.entries`, in the API's order | `id` | `event`, `ref`, `detail` |
 | 3 | `check_run` | `checkRuns.runs`, counted as in section 7.5 (the latest per workflow path and name) | the run `id` as a string | `name` |
 | 4 | `file` | `files.entries` | `path` | `path`, `previousPath` |
-| 5 | `test` | `items.tests.entries`, code-unit order of `id` | `classname.name`, or `name` | `name`, `classname` |
+| 5 | `test` | `items.tests.entries`, code-unit order of `classname.name` (or `name`) | the JCS bytes (section 10) of `[classname, name]`, with `null` for no `classname`: `["queue.retry","gives up"]` | `name`, `classname` |
 
 `items.commits`, `items.timeline` and `items.tests` each carry a read status as in section 6. The
 new source kinds are `pull_request_commits` and `timeline`; a test case list is read from an
-`artifact`. A commit's `headline` is the first line of its message. A timeline event's `ref` is the
+`artifact`. A test's `id` is its `(classname, name)` pair, not `classname.name`, which two pairs can
+share (`(queue, retry.case)` and `(queue.retry, case)`; `(queue, retry)` and a case with no
+`classname` named `queue.retry`). A text still names a test by `name` or `classname.name` (D.4). Two
+entries of one type with one `id` are a **duplicate** (D.6 step 4). A commit's `headline` is the
+first line of its message. A timeline event's `ref` is the
 `owner/repo#N` or commit SHA it points to, and `detail` is one short metadata value (a label name,
 a review state). A test case's `outcome` is `passed`, `failed` or `skipped`, as in section 7.5.
 
@@ -1521,6 +1525,11 @@ A filled candidate (D.4) is never combined. In order:
 4. **No candidate of that type at or above the floor: `unverifiable`, `no_matching_record_item`,
    with the floor stated in `retrieval.floor`. Never `pass`, whatever was filled.** For
    `file_changed` with an incomplete file list, the reason is `file_list_truncated`.
+
+   **A duplicate.** Otherwise, if a combined candidate's `id` is held by two or more entries of the
+   evidence for its type (D.3): `unverifiable`, `duplicate_record_item`. The record cannot tell
+   which entry the candidate is, and neither entry is read in place of the other. A filled
+   candidate is never combined, so a duplicate among the fills changes nothing.
 5. **A job named with its workflow.** For `check_succeeded` only. A claim **names a job with its
    workflow** where its `text` holds `<workflow> / <job>`: a space, a solidus and a space (U+0020
    U+002F U+0020); directly before them, `<workflow>`, the longest `workflowName` or `workflowPath`
@@ -1595,7 +1604,7 @@ names it, a bare cross-reference included. A claim that the pull request closes 
 where the record mentions it, recorded, and never what decides it.
 
 New reason codes: `no_matching_record_item`, `declared_item_not_among_candidates`,
-`candidate_not_in_evidence`, `ambiguous_candidates`, `workflow_not_in_record`,
+`candidate_not_in_evidence`, `duplicate_record_item`, `ambiguous_candidates`, `workflow_not_in_record`,
 `workflow_name_ambiguous`, `test_not_executed`, `test_outcome_mismatch`.
 A `reference_closes` claim gives the 7.4 reasons of section 16: `not_closing`, `not_found`,
 `closing_link_unsettled`, `closing_base_not_default`, `closing_event_unsettled`, and the unread
@@ -1957,6 +1966,24 @@ nothing is at that path at the head.
    unchanged.
 
 ### D.12 Changes to this draft
+
+- **2026-10-15.** A test's identity is its `(classname, name)` pair (D.3), and a duplicate is
+  `unverifiable` (D.6 step 4), with the new reason `duplicate_record_item`. A test item's `id` was
+  `classname.name`, or `name` alone, so `(queue, retry.case)` and `(queue.retry, case)` shared one,
+  as did `(queue, retry)` and a case with no `classname` named `queue.retry`, and two entries of one
+  `classname` and `name` shared one too. The check found the entry for a candidate by its `id`, and
+  the last entry listed under it won: a `test_passed` claim about a failed test was decided by the
+  passed one that shared its `id`, a false `pass`, and offline verification recomputed the same.
+  The `id` is now the JCS bytes of `[classname, name]`, `null` for no `classname`, so the first two
+  are two items, each decided by its own outcome. An `id` two entries hold is marked a duplicate,
+  never overwritten, and a claim whose combined candidates include it is `unverifiable`,
+  `duplicate_record_item`. No reason fitted: `ambiguous_candidates` is a tie between scores, and
+  `candidate_not_in_evidence` says the record lacks what it holds twice. The DRAFT schema's reader
+  claim reason accepts the new one. Retrieval reads a test's `name` and `classname` as before, and a
+  text names a test by `classname.name` as before. A draft record written before this change whose
+  claim has a `test` candidate recorded by `classname.name` no longer recomputes from the evidence
+  (step 3, `candidate_not_in_evidence`); no reader in the checker fills `items.tests` yet. No 0.1
+  claim, verdict, digest or schema changes.
 
 - **2026-10-15.** Spec 0.1.8 (section 17): check runs read at a commit other than the pull
   request's head leave every `checks` row `unverifiable` with `check_runs_not_at_head`. An

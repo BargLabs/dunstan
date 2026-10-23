@@ -107,6 +107,43 @@ describe('record items', () => {
     expect(items).toEqual([{ type: 'check_run', id: '2', fields: [['name', 'test']] }]);
   });
 
+  it('identifies a test case by its (classname, name) pair, so no two pairs share an id, and keeps its fields as they read', () => {
+    const tests = [
+      { classname: 'queue', name: 'retry.case' },
+      { classname: 'queue.retry', name: 'case' },
+      { classname: 'queue', name: 'retry' },
+      { name: 'queue.retry' },
+    ];
+    const items = recordItems({
+      items: {
+        commits: { status: 'ok', entries: [] },
+        timeline: { status: 'ok', entries: [] },
+        tests: { status: 'ok', entries: tests.map((t) => ({ ...t, outcome: 'passed' as const })) },
+      },
+    });
+    expect(items.map((i) => i.id)).toEqual([
+      '["queue","retry.case"]',
+      '["queue.retry","case"]',
+      '["queue","retry"]',
+      '[null,"queue.retry"]',
+    ]);
+    expect(items.map((i) => i.fields)).toEqual([
+      [
+        ['name', 'retry.case'],
+        ['classname', 'queue'],
+      ],
+      [
+        ['name', 'case'],
+        ['classname', 'queue.retry'],
+      ],
+      [
+        ['name', 'retry'],
+        ['classname', 'queue'],
+      ],
+      [['name', 'queue.retry']],
+    ]);
+  });
+
   it('skips a section that was not read', () => {
     const items = recordItems(corpusCase('ci-matrix').evidence);
     expect(items.some((i) => i.type === 'test')).toBe(false);

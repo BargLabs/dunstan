@@ -141,13 +141,15 @@ const FIGURES_LINE =
 // `checks` gained `noneFailed` and the 0.1 record schema's claim reason `none_failed_mismatch` and
 // `no_succeeded_check_runs`; and but for spec 0.1.8, for which the 0.1 record schema's claim reason
 // gained `check_runs_not_at_head` and the DRAFT schema's advisory note
-// `unanswered:check_runs_not_at_head`. A change to any of them is a record change.
+// `unanswered:check_runs_not_at_head`; and but for the DRAFT schema's reader claim reason
+// `duplicate_record_item`, for a test case two entries of the evidence share. A change to any of
+// them is a record change.
 const SCHEMA_SHA256: Record<string, string> = {
   'handback-block-0.1.schema.json':
     '24388a8267afbc08f6355db16c7d0195e3b835227be3303490a70e45342397ba',
   'record-0.1.schema.json': '3650764fd473f3f48c1b2cb373aa002ced9e39c05870fc5ba90d820745a0afce',
   'record-0.2-draft.schema.json':
-    '636078559ce3abf32fa509338bc957acb87b53fcc7ce2525b6376c5cec771c6d',
+    'b79f69b2d490379ef02fc3d22362677306b9fa0cc956e829d1022926d22ceff2',
 };
 
 const evidence: Evidence = {
