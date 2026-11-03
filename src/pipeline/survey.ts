@@ -1,5 +1,6 @@
 // The survey's reads (DRAFT, docs/survey.md): the closed pull requests listing, newest first, page
-// by page up to the listings' bound, and for each selected pull request exactly the check
+// by page up to the listings' bound, read again from page 1 when a page repeats an earlier item (at
+// most LISTING_READS reads), and for each selected pull request exactly the check
 // `dunstan check` runs (checkPullRequest), each with a client of its own so no source of one pull
 // request enters another's record. Every read is a GET, except the fixed GraphQL queries the check
 // already makes. No selected pull request is dropped: one the check cannot write a record for gets
@@ -17,9 +18,11 @@ import type { CheckerIdentity } from '../record/build.js';
 import { sha256Hex } from '../spec/jcs.js';
 import type { NoRecordReason, SurveyEntry } from '../survey/aggregate.js';
 import {
+  type AbandonedRead,
   appendListed,
   buildSurveyRecord,
   LISTING_PER_PAGE,
+  LISTING_READS,
   type ListedPullRequest,
   type Listing,
   type ListingEnd,
@@ -90,18 +93,41 @@ function listedOf(item: unknown): ListedPullRequest | null {
   };
 }
 
-// A pull request a page lists again (Listing) is recorded once, at its first occurrence, and counted
-// in that page's duplicates, so it is selected, checked and counted once.
+// The listing, read from page 1 up to LISTING_READS times. A page that lists a pull request an
+// earlier page of its read listed shows the listing moved during the read, most likely because a
+// pull request closed and was left out (ListingPage): that read is abandoned at that page and a new
+// one starts from page 1, where the pull request that closed is now listed. The last read allowed is
+// never abandoned: a pull request it lists again is recorded once, at its first occurrence, and
+// counted in that page's duplicates, so it is selected, checked and counted once. A read that ends
+// before any page repeats is the one used.
 export async function readListing(
   client: GitHubClient,
   parameters: SurveyParameters,
   now: () => Date,
   pageBound: number,
 ): Promise<Listing> {
+  const abandoned: AbandonedRead[] = [];
+  for (;;) {
+    const last = abandoned.length === LISTING_READS - 1;
+    const read = await readOnce(client, parameters, now, pageBound, !last);
+    if ('end' in read) return { ...read, abandoned };
+    abandoned.push(read);
+  }
+}
+
+// One read of the listing from page 1, by the stop rules (listingStop) and the page bound; when
+// `abandonOnRepeat`, it ends at the first page that repeats an earlier item, as an abandoned read.
+async function readOnce(
+  client: GitHubClient,
+  parameters: SurveyParameters,
+  now: () => Date,
+  pageBound: number,
+  abandonOnRepeat: boolean,
+): Promise<Omit<Listing, 'abandoned'> | AbandonedRead> {
   const pages: ListingPage[] = [];
   const pullRequests: ListedPullRequest[] = [];
   const seen = new Set<number>();
-  const done = (end: ListingEnd): Listing => ({
+  const done = (end: ListingEnd): Omit<Listing, 'abandoned'> => ({
     pageBound,
     pages,
     pullRequests,
@@ -130,6 +156,7 @@ export async function readListing(
       }
     }
     pages.push(entry);
+    if (abandonOnRepeat && entry.duplicates > 0) return { pages };
     const end = listingStop(parameters, pages, pullRequests);
     if (end !== null) return done(end);
   }

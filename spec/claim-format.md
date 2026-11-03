@@ -2308,12 +2308,20 @@ can move between two page reads. A pull request created after the last item alre
 closes between two reads shifts the later items back: the next page repeats a pull request an
 earlier page listed, and the pull request that closed is not listed. A pull request that reopens
 between two reads, inside the range already read, shifts the later items forward: the next page
-skips one, with no repeat. Each number is kept once, at its first occurrence, in listing order, and
-the stop rules and the selection apply to that deduplicated list. Every page is recorded
-with its request, the SHA-256 of its body, its read time, its count, how many of its items repeated
-an earlier one (`duplicates`) and, if it failed, its error. The listing records the sum of the
-pages' duplicates. Every listed pull request is recorded once, with its number, creation time,
-author and whether it merged.
+skips one, with no repeat. A read is one pass over the listing from page 1 by these rules. A page
+that repeats an earlier item of its read abandons that read: no further page of it is read, and a
+new read starts from page 1, where the pull request that closed is now listed. The listing is read
+at most 3 times (`LISTING_READS`); the third read is never abandoned and keeps its repeats. A read
+that ends before any page repeats is the one used, and the selection is from the last read; an
+abandoned read contributes nothing to it. When the read used repeated nothing, no pull request that
+closed during it was left out by a shift, unless one also reopened during it: a close and a reopen
+in the range already read cancel, so no page repeats and the pull request that closed is not
+listed. One that reopened during it can also have been skipped without a sign. Each number is kept once, at its first occurrence, in listing order, and the stop
+rules and the selection apply to that deduplicated list. Every page is recorded with its request,
+the SHA-256 of its body, its read time, its count, how many of its items repeated an earlier one of
+its read (`duplicates`) and, if it failed, its error. The listing records the sum of the read used's
+pages' duplicates, and each abandoned read's pages (`abandoned`). Every pull request the read used
+listed is recorded once, with its number, creation time, author and whether it merged.
 
 ### S.3 Entries
 
@@ -2362,7 +2370,10 @@ counting `local_run_not_in_record` as not record-checkable.
 A survey record has `format` `"dunstan-survey-0.1-draft"` and validates against
 `spec/schema/survey-0.1-draft.schema.json`. It holds the checker identity, the selection (its
 parameters, its reader, the listing and the selected numbers), the entries, the aggregate, and the
-commands to verify it offline and to run it again. The reader, `selection.reader`, is
+commands to verify it offline and to run it again. `selection.listing.abandoned` holds one item per
+abandoned read (S.2), in order, each `{"pages": [...]}` with pages of the shape the listing's pages
+have, the last of them the page that repeated; it holds no pull request list, has at most 2 items,
+and is `[]` when the first read was used. The reader, `selection.reader`, is
 `{"authenticated": <boolean>}`: whether the survey read GitHub with a token. The token itself is
 never recorded. Without one GitHub serves no artifact and answers no GraphQL query, so every tests
 claim naming a `junit` record and every `closes` claim is unverifiable, and the summary says so in
@@ -2376,16 +2387,20 @@ A verifier works offline. It validates the survey record against its schema and 
 embedded record as section 12 does. It checks that each embedded record is of its entry's pull
 request and was written by the survey's checker. It checks that the listing holds no number twice,
 that its duplicates are the sum of its pages', that the pages' items are the listed pull requests
-plus the duplicates, and that the listing was read exactly as far as S.2 stops it. It recomputes
-the selection, the aggregate and the digest, and reports each member that differs. The survey
-record verifies only when all of them match.
+plus the duplicates, and that the listing was read exactly as far as S.2 stops it. It checks the
+reread rule: at most 2 abandoned reads; in each, pages numbered 1, 2, … without a gap, no page
+before the last with duplicates or an error, and a last page with duplicates above 0 and at most its
+items; 2 abandoned reads when the read used has duplicates; and every page of a read no later than
+the next read's first page. An abandoned read holds no pull request list, so the verifier cannot
+recompute its stop rules. It recomputes the selection, the aggregate and the digest, and reports
+each member that differs. The survey record verifies only when all of them match.
 
 What a verified survey record proves is its internal consistency: the selection, the entries, the
 aggregate and the digest follow from what it records, and every embedded record verifies. A survey
 record is unsigned and holds only the digests of the listing's bodies, so verifying it does not
 prove that the recorded listing is what GitHub returned, nor that an entry with no record was
 unreadable for its recorded reason. A writer could leave a pull request out and still produce a
-record that verifies. An honest run can also miss a pull request that closed or reopened between
-two page reads (S.2): `duplicates` counts only the closes that caused a repeat, and `0` does not
-prove the listing held still. To trust a survey's completeness, run it again online
+record that verifies. An honest run can also miss a pull request that reopened between two page
+reads, or, when all 3 reads repeated, one that closed during the last (S.2): `duplicates` counts
+only the closes that caused a repeat, and `0` does not prove the listing held still. To trust a survey's completeness, run it again online
 (`rerun.online`).

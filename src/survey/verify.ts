@@ -1,11 +1,12 @@
 // Offline verification of a survey record (DRAFT, docs/survey.md): every embedded record verifies
 // as `dunstan verify` verifies a record; the listing holds each number once and its duplicate count
 // recomputes from its pages; the selection recomputes from the recorded listing and parameters; the
-// listing was read exactly as far as its stated end; the aggregate recomputes from the entries and
-// the recorded reader, remedy lines included; and the digest recomputes. Uses only the record; no
-// network. A survey record is unsigned and holds only digests of the listing's bodies, so this
-// proves the record consistent with itself, not that its listing is what GitHub returned or that a
-// no-record entry was unreadable: rerunning it online is what checks those.
+// listing was read exactly as far as its stated end; its abandoned reads follow the reread rule; the
+// aggregate recomputes from the entries and the recorded reader, remedy lines included; and the
+// digest recomputes. Uses only the record; no network. A survey record is unsigned and holds only
+// digests of the listing's bodies, so this proves the record consistent with itself, not that its
+// listing is what GitHub returned or that a no-record entry was unreadable: rerunning it online is
+// what checks those.
 
 import { CHECKER_NAME, CHECKER_VERSION } from '../record/checker.js';
 import { verifyRecord } from '../record/verify.js';
@@ -14,6 +15,8 @@ import { escapePointerToken, type JsonValue } from '../spec/json.js';
 import { validateSurveyRecord } from '../spec/schema.js';
 import { aggregate } from './aggregate.js';
 import {
+  LISTING_READS,
+  type Listing,
   type ListingEnd,
   listingStop,
   type SurveyRecord,
@@ -61,6 +64,78 @@ function at(value: unknown, pointer: string, base: string): unknown {
     v = v !== null && typeof v === 'object' ? (v as Record<string, unknown>)[key] : undefined;
   }
   return v;
+}
+
+// The reread rule (readListing), from the record alone; the schema's maxItems holds the abandoned
+// reads to LISTING_READS - 1 (survey.test.ts checks the two agree). Each ran from page 1 without a
+// gap and ended at its first page that repeated an earlier item; the read used repeated nothing
+// unless no read remained; and the reads are in time order, every page of one read no later than
+// the next read's first page. An abandoned read holds no pull request list, so its stop rules
+// cannot be recomputed: a page before its last that should have ended it is not detected here.
+function abandonedProblems(listing: Listing, repeated: number): SurveyProblem[] {
+  const problems: SurveyProblem[] = [];
+  const base = '/selection/listing/abandoned';
+  const { abandoned } = listing;
+  abandoned.forEach((read, r) => {
+    if (read.pages.length > listing.pageBound) {
+      problems.push({
+        member: `${base}/${r}/pages`,
+        message: `${read.pages.length} pages read, past the bound of ${listing.pageBound}`,
+      });
+    }
+    read.pages.forEach((page, i) => {
+      const at = `${base}/${r}/pages/${i}`;
+      if (page.page !== i + 1) {
+        problems.push({
+          member: `${at}/page`,
+          message: `recorded ${page.page}; a read runs from page 1 without a gap, so this is page ${i + 1}`,
+        });
+      }
+      if (i < read.pages.length - 1) {
+        if (page.duplicates !== 0) {
+          problems.push({
+            member: `${at}/duplicates`,
+            message: `recorded ${page.duplicates}; a read is abandoned at its first page that repeats an earlier item, so no page before its last repeats one`,
+          });
+        }
+        if (page.error !== undefined) {
+          problems.push({
+            member: `${at}/error`,
+            message: `recorded ${text(page.error)}; a page that could not be read ends its read, so only a last page has an error`,
+          });
+        }
+      } else if (page.duplicates === 0 || page.duplicates > page.items) {
+        problems.push({
+          member: `${at}/duplicates`,
+          message:
+            page.duplicates === 0
+              ? 'recorded 0; an abandoned read ends at a page that repeats an earlier item'
+              : `recorded ${page.duplicates}, more than the page's ${page.items} items`,
+        });
+      }
+    });
+  });
+  if (repeated > 0 && abandoned.length !== LISTING_READS - 1) {
+    problems.push({
+      member: base,
+      message: `${abandoned.length} reads abandoned, but the read used repeated ${repeated} items: a read that repeats is abandoned unless it is the last of ${LISTING_READS} reads, so ${LISTING_READS - 1} reads were abandoned before it`,
+    });
+  }
+  const reads = [...abandoned.map((read) => read.pages), listing.pages];
+  reads.slice(1).forEach((later, r) => {
+    const first = later[0];
+    if (first === undefined) return;
+    const next = Date.parse(first.readAt);
+    (reads[r] ?? []).forEach((page, i) => {
+      if (Date.parse(page.readAt) > next) {
+        problems.push({
+          member: `${base}/${r}/pages/${i}/readAt`,
+          message: `recorded ${text(page.readAt)}, after the next read's first page (${text(first.readAt)})`,
+        });
+      }
+    });
+  });
+  return problems;
 }
 
 export function verifySurveyRecord(value: unknown): SurveyVerifyResult {
@@ -158,6 +233,7 @@ export function verifySurveyRecord(value: unknown): SurveyVerifyResult {
       message: `${listing.pages.length} pages read, past the bound of ${listing.pageBound}`,
     });
   }
+  problems.push(...abandonedProblems(listing, repeated));
 
   const selected = selectPullRequests(parameters, listing.pullRequests);
   differ('/selection/selected', selection.selected, selected);

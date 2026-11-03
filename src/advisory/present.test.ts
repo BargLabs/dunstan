@@ -147,7 +147,9 @@ const FIGURES_LINE =
 // schema's claim reason `local_run_not_in_record`. A change to any of them is a record change. The
 // DRAFT survey schema is new beside them and changes none of them; it gained `selection.reader`,
 // then the listing's and its pages' `duplicates` and `uniqueItems` on the listed pull requests, the
-// selected numbers and the entries.
+// selected numbers and the entries, then the listing's required `abandoned` reads (at most two, each
+// a list of pages of the shape the listing's pages share, now `$defs/listingPage`), recorded when a
+// page that repeats an earlier item starts the listing's read again from page 1.
 const SCHEMA_SHA256: Record<string, string> = {
   'handback-block-0.1.schema.json':
     'f61ddacb345dc9d0529fec2d0e4d2742b9bc6c7f3b7887795f097a9671eab8ff',
@@ -155,7 +157,7 @@ const SCHEMA_SHA256: Record<string, string> = {
   'record-0.2-draft.schema.json':
     'b79f69b2d490379ef02fc3d22362677306b9fa0cc956e829d1022926d22ceff2',
   'survey-0.1-draft.schema.json':
-    'b7a04ca0986e50078caae7fe988d9f6f83076f758ae62e580bec95b2a1d0cfcc',
+    '2958cf69b1cf0919c3d8b48e7f13f7583d222f8bb6733d5bda08161b4c2709b0',
 };
 
 const evidence: Evidence = {

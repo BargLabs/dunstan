@@ -20,6 +20,9 @@ export const SURVEY_FORMAT = 'dunstan-survey-0.1-draft';
 
 // The pulls listing's page size, and the default and largest --last.
 export const LISTING_PER_PAGE = 100;
+// How many times, at most, the listing is read from its first page (readListing): a page that
+// repeats an earlier item abandons its read for a new one, except in the last read allowed.
+export const LISTING_READS = 3;
 export const DEFAULT_LAST = 30;
 export const MAX_LAST = 200;
 
@@ -51,7 +54,9 @@ export interface ListedPullRequest {
 // read that closes meanwhile shifts every later item back by one: the item at the boundary is
 // listed again on the next page, and the pull request that closed is not listed. A pull request
 // that reopens meanwhile, inside the range already read, shifts the later items forward: the next
-// page skips one, with no repeat to show it. Each listed number is kept once (appendListed).
+// page skips one, with no repeat to show it. Each listed number is kept once (appendListed). A repeat
+// abandons the read and the listing is read again from page 1 (Listing.abandoned), so the pull
+// request that closed is listed in its place; the last read allowed keeps its repeats.
 export interface ListingPage {
   page: number;
   locator: string;
@@ -74,13 +79,22 @@ export type ListingEnd =
 
 // `pullRequests` holds each listed number once, at its first occurrence, in listing order;
 // `duplicates` is how many listed items repeated an earlier one, the sum of the pages' duplicates,
-// so the pages' items are `pullRequests.length + duplicates`.
+// so the pages' items are `pullRequests.length + duplicates`. Everything but `abandoned` is of the
+// read used, the last one; `abandoned` holds the pages of each read before it, in order, each ended
+// at its first page that repeated an earlier item, and contributes nothing to the selection.
 export interface Listing {
   pageBound: number;
   pages: ListingPage[];
+  abandoned: AbandonedRead[];
   pullRequests: ListedPullRequest[];
   duplicates: number;
   end: ListingEnd;
+}
+
+// A read of the listing abandoned at a page that repeated an earlier item: its pages, the last of
+// them the one that repeated. Only digests and counts, as for the read used; no pull request list.
+export interface AbandonedRead {
+  pages: ListingPage[];
 }
 
 // Appends a page's items to the listed pull requests, keeping the first occurrence of each number,

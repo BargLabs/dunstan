@@ -189,11 +189,21 @@ export function renderSurveySummary(record: SurveyRecord): string {
     '',
     `The listing was read for ${plural(listing.pages.length, 'page', 'pages')} and no further because ${listing.end === 'page_bound' ? `it reached the bound of ${listing.pageBound} pages` : END_TEXT[listing.end]}.`,
   );
+  const abandoned = listing.abandoned.length;
   if (listing.duplicates > 0) {
     const one = listing.duplicates === 1;
+    const reread =
+      abandoned === 0
+        ? ''
+        : ` It was read ${abandoned + 1} times, from the first page each time, and moved during every read.`;
     lines.push(
       '',
-      `The listing named ${plural(listing.duplicates, 'pull request', 'pull requests')} again on a later page, so it changed while it was read: most likely ${plural(listing.duplicates, 'pull request', 'pull requests')} closed meanwhile and ${one ? 'was' : 'were'} not listed, and the selection may be missing ${one ? 'it' : 'them'}. Each repeated pull request is listed, selected and counted once: the pages held ${listing.pullRequests.length + listing.duplicates} items for ${listing.pullRequests.length} pull requests.`,
+      `The listing named ${plural(listing.duplicates, 'pull request', 'pull requests')} again on a later page, so it changed while it was read: most likely ${plural(listing.duplicates, 'pull request', 'pull requests')} closed meanwhile and ${one ? 'was' : 'were'} not listed, and the selection may be missing ${one ? 'it' : 'them'}. Each repeated pull request is listed, selected and counted once: the pages held ${listing.pullRequests.length + listing.duplicates} items for ${listing.pullRequests.length} pull requests.${reread}`,
+    );
+  } else if (abandoned > 0) {
+    lines.push(
+      '',
+      `The listing moved while it was read: ${plural(abandoned, 'read was', 'reads were')} abandoned at a repeated pull request and the listing was read again from the first page. The read used repeated no pull request.`,
     );
   }
   if (selected.length < parameters.last) {

@@ -1,6 +1,6 @@
 # Settleability survey: example-org/example-repo
 
-DRAFT (dunstan-survey-0.1-draft). dunstan 0.1.14, survey mapping 0.2. Read-only.
+DRAFT (dunstan-survey-0.1-draft). dunstan 0.1.15, survey mapping 0.2. Read-only.
 
 Selection: the 13 most recently created closed pull requests, opened by agent-bot. Report: the pull request body. Advisory reader: on.
 

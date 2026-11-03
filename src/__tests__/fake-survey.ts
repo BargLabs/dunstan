@@ -32,6 +32,11 @@ export interface SurveyWorld {
   // many pull requests closed between its read and the one before: it repeats the previous page's
   // last items.
   listingShift?: Record<number, number>;
+  // Pull requests that are open, and so not listed, until the listing has answered this many page
+  // requests, and closed from then on. Each page is computed from the pull requests closed at the
+  // time of its request, so one that closes between two page reads moves the listing as GitHub's
+  // does.
+  closesAfterListingRequests?: Record<number, number>;
 }
 
 export interface FakeSurvey {
@@ -48,6 +53,7 @@ function json(status: number, body: unknown, headers: Record<string, string> = {
 
 export function fakeSurvey(world: SurveyWorld): FakeSurvey {
   const requests: string[] = [];
+  let listingRequests = 0;
   const owners = world.pullRequests.map((p) => ({
     fixture: p,
     fake: p.scenario === undefined ? undefined : fakeGitHub(p.scenario),
@@ -76,12 +82,16 @@ export function fakeSurvey(world: SurveyWorld): FakeSurvey {
     requests.push(`${method} ${path}${url.search}`);
 
     if (path === `${base}/pulls`) {
+      const answered = listingRequests++;
       const pageNumber = Number(url.searchParams.get('page') ?? '1');
       const status = world.listingStatus?.[pageNumber];
       if (status !== undefined) return json(status, { message: 'error' });
       const perPage = Number(url.searchParams.get('per_page') ?? '30');
       const start = (pageNumber - 1) * perPage - (world.listingShift?.[pageNumber] ?? 0);
-      const listed = [...world.pullRequests]
+      const closed = (p: ListedFixture) =>
+        answered >= (world.closesAfterListingRequests?.[p.number] ?? 0);
+      const listed = world.pullRequests
+        .filter(closed)
         .sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0))
         .slice(start, start + perPage)
         .map((p) => ({

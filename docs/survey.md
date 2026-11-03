@@ -60,12 +60,22 @@ would give."
    request that closed is not listed. (One older than the last item read that closes meanwhile
    lands on a later page, causes no repeat, and is read.) A pull request that reopens between two
    reads, inside the range already read, shifts the later items forward, and the next page skips
-   one, with no repeat to show it. Each pull request number is kept once, at its first occurrence,
-   in listing order; each page records how many of its items repeated an earlier one
-   (`duplicates`), and the listing records their sum. The selection, the stop rules and the counts
-   all use the deduplicated list, so no pull request is checked or counted twice, and the summary
-   says how many were repeated when any were. Keeping each number once stops the double count; it
-   does not recover the pull requests the move left out.
+   one, with no repeat to show it. A page that repeats an earlier item of its read therefore ends
+   that read: it is abandoned at that page, and the listing is read again from page 1, where the
+   pull request that closed is now listed. The listing is read at most 3 times. The third read is
+   never abandoned: it reads to its end by the stop rules and keeps its repeats. The selection is
+   from the last read; the record keeps each abandoned read's pages (`listing.abandoned`), which
+   contribute nothing to it. Each pull request number is kept once, at its first occurrence, in
+   listing order; each page records how many of its items repeated an earlier one of its read
+   (`duplicates`), and the listing records the sum for the read used. The selection, the stop rules
+   and the counts all use the deduplicated list, so no pull request is checked or counted twice.
+   When the read used repeated nothing, no pull request that closed during it was left out by a
+   shift, unless one also reopened during it: a close and a reopen in the range already read shift
+   the listing back and forward by one each and cancel, so no page repeats and the pull request
+   that closed is still not listed. One that reopened during it can also have been skipped without
+   a sign, so `duplicates: 0` still does not prove the listing held still. When all 3 reads repeated, the
+   last one's repeats are counted once and the summary says how many there were: keeping each
+   number once stops the double count; it does not recover the pull requests the move left out.
 2. For each selected pull request, exactly what `dunstan check` reads, through the same pipeline
    (`src/pipeline/check-pull-request.ts`), each with a client of its own.
 
@@ -146,7 +156,10 @@ Markdown. Its first lines give the selection and the reader. Then, in order:
    "possible disagreement, unverified";
 5. the pull request counts: listed, selected, with a valid block, `block_missing`,
    `block_invalid`, `block_ambiguous`, and no record by reason, then how far the listing was read
-   and, when a page repeated a pull request, how many were repeated.
+   and, when a page repeated a pull request, how many were repeated. When a read was abandoned and
+   the read used repeated nothing, it says the listing moved and was read again from the first
+   page; when the read used repeated too, it adds that the listing was read 3 times and moved
+   during every read.
 
 The fixture the tests pin (`src/survey/testdata/fixture-summary.md`) is a worked example.
 
@@ -158,7 +171,9 @@ The fixture the tests pin (`src/survey/testdata/fixture-summary.md`) is a worked
 - the selection: the parameters, the reader (`{"authenticated": <boolean>}`), every listing page
   (request, SHA-256 of its body, read time, count, how many of its items repeated an earlier one,
   error), every listed pull request once (number, creation time, author, merged), the number of
-  repeated items, why the listing ended, and the selected numbers;
+  repeated items, why the listing ended, the abandoned reads (`abandoned`: one item per read
+  abandoned at a repeat, in order, each `{"pages": [...]}` with pages of the same shape and no pull
+  request list; at most two, `[]` when the first read was used), and the selected numbers;
 - one entry per selected pull request, with the record `check` wrote for it, as written, or the
   reason there is none;
 - the aggregate;
@@ -177,6 +192,11 @@ It holds no file contents and no report text beyond what its embedded records al
   of its pages', that its pages' items are exactly the listed pull requests plus the duplicates,
   and that the listing was read exactly as far as its stated end: no page before the last would
   have stopped it;
+- checks the reread rule: at most two abandoned reads; in each, pages numbered 1, 2, … without a
+  gap, no page before the last with a repeat or an error, and a last page whose repeats are more
+  than 0 and no more than its items; two abandoned reads whenever the read used repeated (it would
+  have been abandoned had a read remained); and the reads in time order, every page of one read no
+  later than the next read's first page;
 - recomputes the selection from the listing and the parameters, and checks that the entries are
   exactly the selected pull requests, in order, none twice;
 - recomputes the aggregate, its remedy lines worded for the recorded reader, the rerun commands
@@ -199,9 +219,15 @@ It does **not** prove:
   The reason is recorded, not re-read;
 - how many of a page's items repeated an earlier one on that page in particular. Verify checks the
   pages' duplicates against their items and the listed total, not against bodies it does not hold;
-- that the listing missed no pull request. An honest run can miss one that closed or reopened
-  between two page reads (step 1 of "What it reads"). `duplicates` counts only the closes that
-  caused a repeat, and `0` does not prove the listing held still.
+- that an abandoned read was read exactly as far as it should have been. It records no pull
+  request list, so verify cannot recompute its stop rules: it checks the reread rule, not that no
+  page before the last should have ended the read;
+- that the listing missed no pull request. A repeat starts a new read, so when the read used
+  repeated nothing, no pull request that closed during it was left out by a shift, unless one also
+  reopened during it, which can cancel the repeat. An honest run
+  can still skip one that reopened between two page reads, with no sign, and when all 3 reads
+  repeated, the last can miss one that closed during it (step 1 of "What it reads"). `duplicates`
+  counts only the closes that caused a repeat, and `0` does not prove the listing held still.
 
 To trust a survey's completeness, run it again online, with the command in `rerun.online`. The
 repository will have moved on since, so the second run reads the listing as GitHub returns it then,

@@ -16,7 +16,12 @@ import { remedyForReason } from '../remedy/remedies.js';
 import { parseStrictJson } from '../spec/json.js';
 import { rate } from './aggregate.js';
 import { claimType, column, mappingDigest, SURVEY_MAPPING_VERSION } from './mapping.js';
-import { type SurveyParameters, type SurveyRecord, selectPullRequests } from './record.js';
+import {
+  LISTING_READS,
+  type SurveyParameters,
+  type SurveyRecord,
+  selectPullRequests,
+} from './record.js';
 import { ANONYMOUS, renderSurveySummary } from './summary.js';
 import { verifySurveyRecord } from './verify.js';
 
@@ -397,8 +402,9 @@ describe('the listing', () => {
   });
 
   it('checks and counts once a pull request a later page lists again', async () => {
-    // 101 pull requests; page 2 starts one item early, as it does after a pull request closed
-    // between the two reads, so it repeats page 1's last item, #2, the only one AGENT opened.
+    // 101 pull requests; page 2 starts one item early in every read, as it does after a pull
+    // request closed between the two reads, so it repeats page 1's last item, #2, the only one
+    // AGENT opened. The first two reads are abandoned there; the third keeps the repeat.
     const world = others(101);
     const two = world.pullRequests[99];
     if (two === undefined) throw new Error('no #2');
@@ -406,6 +412,17 @@ describe('the listing', () => {
     world.listingShift = { 2: 1 };
     const { record, requests } = await collect(world);
     const { listing } = record.selection;
+    expect(listing.abandoned.map((r) => r.pages.map((p) => [p.items, p.duplicates]))).toEqual([
+      [
+        [100, 0],
+        [2, 1],
+      ],
+      [
+        [100, 0],
+        [2, 1],
+      ],
+    ]);
+    expect(requests.filter((r) => r.startsWith(`GET /repos/${REPO}/pulls?`))).toHaveLength(6);
     expect(listing.pages.map((p) => [p.items, p.duplicates])).toEqual([
       [100, 0],
       [2, 1],
@@ -424,6 +441,203 @@ describe('the listing', () => {
     expect(renderSurveySummary(record)).toContain(
       'The listing named 1 pull request again on a later page, so it changed while it was read: most likely 1 pull request closed meanwhile and was not listed, and the selection may be missing it. Each repeated pull request is listed, selected and counted once: the pages held 102 items for 101 pull requests.',
     );
+  });
+
+  it('reads the listing again from page 1 when a page repeats, and lists the pull request that closed', async () => {
+    // 101 closed pull requests, and #102, created after all of them and opened by AGENT, which
+    // closes once the listing has answered its first page request. The first read's page 2 repeats
+    // #2 and leaves #102 out; the second read lists #102 on page 1 and repeats nothing.
+    const world = others(101);
+    world.pullRequests.unshift({
+      number: 102,
+      createdAt: '2026-10-02T00:00:00Z',
+      author: AGENT,
+      merged: true,
+    });
+    world.closesAfterListingRequests = { 102: 1 };
+    const { record, requests } = await collect(world);
+    const { listing } = record.selection;
+    expect(listing.abandoned).toHaveLength(1);
+    expect(listing.abandoned[0]?.pages.map((p) => [p.page, p.items, p.duplicates])).toEqual([
+      [1, 100, 0],
+      [2, 2, 1],
+    ]);
+    expect(listing.pages.map((p) => [p.page, p.items, p.duplicates])).toEqual([
+      [1, 100, 0],
+      [2, 2, 0],
+    ]);
+    expect(listing.duplicates).toBe(0);
+    expect(listing.end).toBe('listing_ended');
+    expect(listing.pullRequests).toHaveLength(102);
+    expect(listing.pullRequests[0]?.number).toBe(102);
+    expect(record.selection.selected).toEqual([102]);
+    expect(record.entries.map((e) => e.pullRequest)).toEqual([102]);
+    expect(requests.filter((r) => r.startsWith(`GET /repos/${REPO}/pulls?`))).toEqual([
+      `GET /repos/${REPO}/pulls?state=closed&sort=created&direction=desc&per_page=100&page=1`,
+      `GET /repos/${REPO}/pulls?state=closed&sort=created&direction=desc&per_page=100&page=2`,
+      `GET /repos/${REPO}/pulls?state=closed&sort=created&direction=desc&per_page=100&page=1`,
+      `GET /repos/${REPO}/pulls?state=closed&sort=created&direction=desc&per_page=100&page=2`,
+    ]);
+    expect(verifySurveyRecord(record).problems).toEqual([]);
+    const summary = renderSurveySummary(record);
+    expect(summary).toContain(
+      'The listing moved while it was read: 1 read was abandoned at a repeated pull request and the listing was read again from the first page. The read used repeated no pull request.',
+    );
+    expect(summary).not.toContain('again on a later page');
+  });
+
+  it('keeps the third read’s repeat when the listing moves during every read', async () => {
+    // #102, #103 and #104 close after the listing has answered 1, 3 and 5 page requests: during
+    // each read's page 2.
+    const world = others(101);
+    world.pullRequests.unshift(
+      ...[104, 103, 102].map((number) => ({
+        number,
+        createdAt: `2026-10-02T00:00:0${number - 100}Z`,
+        author: AGENT,
+        merged: false,
+      })),
+    );
+    world.closesAfterListingRequests = { 102: 1, 103: 3, 104: 5 };
+    const { record, requests } = await collect(world);
+    const { listing } = record.selection;
+    expect(listing.abandoned.map((r) => r.pages.map((p) => [p.items, p.duplicates]))).toEqual([
+      [
+        [100, 0],
+        [2, 1],
+      ],
+      [
+        [100, 0],
+        [3, 1],
+      ],
+    ]);
+    expect(listing.pages.map((p) => [p.items, p.duplicates])).toEqual([
+      [100, 0],
+      [4, 1],
+    ]);
+    expect(listing.duplicates).toBe(1);
+    expect(listing.pullRequests.map((p) => p.number)).not.toContain(104);
+    expect(record.selection.selected).toEqual([103, 102]);
+    expect(requests.filter((r) => r.startsWith(`GET /repos/${REPO}/pulls?`))).toHaveLength(6);
+    expect(verifySurveyRecord(record).problems).toEqual([]);
+    expect(renderSurveySummary(record)).toContain(
+      'The listing named 1 pull request again on a later page, so it changed while it was read: most likely 1 pull request closed meanwhile and was not listed, and the selection may be missing it. Each repeated pull request is listed, selected and counted once: the pages held 104 items for 103 pull requests. It was read 3 times, from the first page each time, and moved during every read.',
+    );
+  });
+
+  it('says how many the read used repeated when it repeated more than one', async () => {
+    // As above, but #104 and #105 both close during the third read's page 2, so it repeats two.
+    const world = others(101);
+    world.pullRequests.unshift(
+      ...[105, 104, 103, 102].map((number) => ({
+        number,
+        createdAt: `2026-10-02T00:00:0${number - 100}Z`,
+        author: AGENT,
+        merged: false,
+      })),
+    );
+    world.closesAfterListingRequests = { 102: 1, 103: 3, 104: 5, 105: 5 };
+    const { record } = await collect(world);
+    const { listing } = record.selection;
+    expect(listing.abandoned).toHaveLength(2);
+    expect(listing.pages.map((p) => [p.items, p.duplicates])).toEqual([
+      [100, 0],
+      [5, 2],
+    ]);
+    expect(verifySurveyRecord(record).problems).toEqual([]);
+    expect(renderSurveySummary(record)).toContain(
+      'The listing named 2 pull requests again on a later page, so it changed while it was read: most likely 2 pull requests closed meanwhile and were not listed, and the selection may be missing them. Each repeated pull request is listed, selected and counted once: the pages held 105 items for 103 pull requests. It was read 3 times, from the first page each time, and moved during every read.',
+    );
+  });
+
+  it('reads the listing once when nothing moves', async () => {
+    const run = await fixtureRun();
+    expect(run.record.selection.listing.abandoned).toEqual([]);
+    expect(run.requests.filter((r) => r.startsWith(`GET /repos/${REPO}/pulls?`))).toHaveLength(1);
+    expect(run.markdown).not.toContain('The listing moved while it was read');
+  });
+
+  describe('verify on a tampered reread', () => {
+    async function recovered() {
+      const world = others(101);
+      world.pullRequests.unshift({
+        number: 102,
+        createdAt: '2026-10-02T00:00:00Z',
+        author: AGENT,
+        merged: true,
+      });
+      world.closesAfterListingRequests = { 102: 1 };
+      return (await collect(world)).record;
+    }
+    async function neverStill() {
+      const world = { ...others(101), listingShift: { 2: 1 } };
+      return (await collect(world)).record;
+    }
+    const membersOf = (record: SurveyRecord) =>
+      verifySurveyRecord(record).problems.map((p) => p.member);
+
+    it('names an abandoned read whose last page repeated nothing', async () => {
+      const record = await recovered();
+      const page = record.selection.listing.abandoned[0]?.pages[1];
+      if (page === undefined) throw new Error('no abandoned page');
+      page.duplicates = 0;
+      expect(membersOf(record)).toContain('/selection/listing/abandoned/0/pages/1/duplicates');
+    });
+
+    it('names an abandoned read that repeated before its last page', async () => {
+      const record = await recovered();
+      const page = record.selection.listing.abandoned[0]?.pages[0];
+      if (page === undefined) throw new Error('no abandoned page');
+      page.duplicates = 1;
+      expect(membersOf(record)).toContain('/selection/listing/abandoned/0/pages/0/duplicates');
+    });
+
+    it('refuses three abandoned reads', async () => {
+      const record = await neverStill();
+      const { abandoned } = record.selection.listing;
+      abandoned.push(structuredClone(abandoned[0] as (typeof abandoned)[number]));
+      const problems = verifySurveyRecord(record).problems;
+      expect(problems.map((p) => p.member)).toContain('/selection/listing/abandoned');
+      expect(problems[0]?.message).toMatch(/schema_violation \(maxItems\)/);
+    });
+
+    it('holds the abandoned reads to the reread bound in the schema', () => {
+      // The schema alone refuses a record past the bound, so its maxItems and LISTING_READS must
+      // agree: changing either without the other fails here.
+      const schema = JSON.parse(
+        readFileSync(
+          new URL('../../spec/schema/survey-0.1-draft.schema.json', import.meta.url),
+          'utf8',
+        ),
+      );
+      expect(schema.$defs.listing.properties.abandoned.maxItems).toBe(LISTING_READS - 1);
+    });
+
+    it('names a used read that repeated with only one read abandoned before it', async () => {
+      const record = await neverStill();
+      record.selection.listing.abandoned.pop();
+      const problems = verifySurveyRecord(record).problems;
+      expect(problems.map((p) => p.member)).toContain('/selection/listing/abandoned');
+      expect(problems.map((p) => p.message).join('\n')).toContain(
+        '1 reads abandoned, but the read used repeated 1 items',
+      );
+    });
+
+    it('names an abandoned page read after the used read’s first page', async () => {
+      const record = await recovered();
+      const page = record.selection.listing.abandoned[0]?.pages[1];
+      if (page === undefined) throw new Error('no abandoned page');
+      page.readAt = new Date(NOW.getTime() + 1000).toISOString();
+      expect(membersOf(record)).toContain('/selection/listing/abandoned/0/pages/1/readAt');
+    });
+
+    it('names an abandoned read with a gap in its pages', async () => {
+      const record = await recovered();
+      const page = record.selection.listing.abandoned[0]?.pages[1];
+      if (page === undefined) throw new Error('no abandoned page');
+      page.page = 3;
+      expect(membersOf(record)).toContain('/selection/listing/abandoned/0/pages/1/page');
+    });
   });
 
   it('selects a number a listing repeats once', () => {
