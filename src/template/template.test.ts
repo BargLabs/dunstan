@@ -100,8 +100,9 @@ async function run(cwd: string, ...args: string[]) {
 const fenceOf = (block: object) =>
   `\`\`\`dunstan-handback\n${JSON.stringify(block, null, 2)}\n\`\`\`\n`;
 
+// Checker 0.1.14: the note names --tests-ci, which reads CI's counts, before the two local ways.
 const NOTE_TESTS =
-  'dunstan: tests are not declared. To declare a run, add --tests-junit <JUnit XML file> with --tests-command, --tests-workflow, --tests-job, --tests-artifact and --tests-artifact-path naming the CI record its counts are checked against.\n';
+  "dunstan: tests are not declared. To declare CI's counts, run dunstan template again with --tests-ci --tests-command <cmd> --tests-workflow <path> --tests-job <name> once CI has finished on your last push; it reads the JUnit record CI published (docs/ci-test-records.md). For a run made only locally, --tests-local <JUnit XML file> --tests-command <cmd> declares it as one. --tests-junit <file> with --tests-command, --tests-workflow, --tests-job, --tests-artifact and --tests-artifact-path declares a local file's counts against a CI record.\n";
 const NOTE_REFERENCES =
   'dunstan: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.\n';
 // Spec 0.1.6: the note names both boolean checks claims and how they differ on a skipped run.
@@ -242,7 +243,7 @@ describe('dunstan template', () => {
       }),
     );
     expect(r.err).toContain(
-      `dunstan: tests: 2 executed and 1 failed in ${junit}. The gate checks these counts against reports/junit.xml in the artifact junit-report of job test in .github/workflows/ci.yml at the head commit, not against the local file.\n`,
+      `dunstan: tests: 2 executed and 1 failed in ${junit}. The gate checks these counts against reports/junit.xml in the artifact junit-report of job test in .github/workflows/ci.yml at the head commit, not against the local file: these local counts will be compared with CI's, and fail with count_mismatch where CI's run counted otherwise. dunstan template --tests-ci declares CI's counts instead.\n`,
     );
     expect(r.err).not.toContain(NOTE_TESTS);
   });
@@ -252,7 +253,10 @@ describe('dunstan template', () => {
       ['--tests-junit', 'junit.xml', '--tests-job', 'test'],
       'dunstan: --tests-junit needs the CI record its counts are checked against: --tests-command, --tests-workflow, --tests-artifact, --tests-artifact-path\n',
     ],
-    [['--tests-job', 'test'], 'dunstan: --tests-job goes with --tests-junit <JUnit XML file>\n'],
+    [
+      ['--tests-job', 'test'],
+      'dunstan: --tests-job goes with --tests-ci, --tests-local or --tests-junit\n',
+    ],
   ])('refuses an incomplete test record %j as a usage error', async (args, message) => {
     const r = await run(repository(), ...args);
     expect(r.code).toBe(3);

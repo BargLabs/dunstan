@@ -31,6 +31,7 @@ import {
   serializeRecord,
 } from '../record/build.js';
 import { CHECKER_NAME, CHECKER_VERSION, checkerIdentity } from '../record/checker.js';
+import type { RemedyContext } from '../remedy/remedies.js';
 import { readBlockContent } from '../spec/extract.js';
 import { CanonicalizationError, canonicalize } from '../spec/jcs.js';
 import type { JsonValue } from '../spec/json.js';
@@ -132,7 +133,7 @@ export async function checkHandback(
   });
   const serialized = serializeRecord(record);
   if (outPath !== undefined) writeFileSync(outPath, serialized, { flag: 'wx' });
-  return handbackResult(record, outPath, notes);
+  return handbackResult(record, outPath, notes, { hasToken: client.hasToken });
 }
 
 // The tool's response for a record: the verdict lines and the claims table for the agent to read,
@@ -142,6 +143,7 @@ export function handbackResult(
   record: DunstanRecord,
   outPath: string | undefined,
   notes: readonly string[],
+  context: RemedyContext,
 ): CallToolResult {
   const verdict = record.predicate.verdict;
   const head = [`verdict: ${verdict}`];
@@ -155,7 +157,7 @@ export function handbackResult(
   return {
     content: [
       { type: 'text', text: `${head.join('\n')}\n` },
-      { type: 'text', text: renderRecord(record) },
+      { type: 'text', text: renderRecord(record, context) },
       { type: 'text', text: serializeRecord(record) },
     ],
   };

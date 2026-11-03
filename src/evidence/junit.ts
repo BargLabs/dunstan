@@ -18,6 +18,27 @@ export interface JunitCounts {
   failed: number;
 }
 
+// Where the root element is in the text, in UTF-16 offsets: `start` at its `<`, `end` past its last
+// `>`, and its content between `contentStart` and `contentEnd` (equal for an empty or self-closing
+// root). `dunstan junit-merge` copies by these offsets (src/junit/merge.ts); the counts are read here
+// once.
+export interface JunitRoot {
+  name: 'testsuites' | 'testsuite';
+  start: number;
+  end: number;
+  contentStart: number;
+  contentEnd: number;
+}
+
+export interface JunitScan extends JunitCounts {
+  root: JunitRoot;
+}
+
+export function countJunit(xml: string): JunitCounts {
+  const { executed, failed } = scanJunit(xml);
+  return { executed, failed };
+}
+
 const NAME = /[A-Za-z_:][-A-Za-z0-9_:.]*/y;
 const ENTITY = /&(?:lt|gt|amp|quot|apos|#[0-9]+|#x[0-9A-Fa-f]+);/y;
 
@@ -26,12 +47,16 @@ interface Frame {
   testcase?: { skipped: boolean; failed: boolean };
 }
 
-export function countJunit(xml: string): JunitCounts {
+// The one JUnit reader: counts and the root's offsets, or a JunitError.
+export function scanJunit(xml: string): JunitScan {
   let pos = xml.startsWith('﻿') ? 1 : 0;
   const stack: Frame[] = [];
   let roots = 0;
   let executed = 0;
   let failed = 0;
+  // The tag being read starts here; the root's offsets are taken from it.
+  let tagStart = 0;
+  let root: JunitRoot | undefined;
 
   const fail = (message: string): never => {
     throw new JunitError(`${message} at offset ${pos}`);
@@ -64,6 +89,13 @@ export function countJunit(xml: string): JunitCounts {
       roots++;
       if (roots > 1) fail('more than one root element');
       if (name !== 'testsuites' && name !== 'testsuite') fail(`root element is <${name}>`);
+      root = {
+        name: name as JunitRoot['name'],
+        start: tagStart,
+        end: pos,
+        contentStart: pos,
+        contentEnd: pos,
+      };
     }
     const parent = stack.at(-1);
     if (parent?.testcase !== undefined) {
@@ -83,6 +115,11 @@ export function countJunit(xml: string): JunitCounts {
       executed++;
       if (testcase.failed) failed++;
     }
+    // The root closed: a self-closing root keeps its empty content; an end tag ends it.
+    if (stack.length === 0 && root !== undefined && root.end < pos) {
+      root.contentEnd = tagStart;
+      root.end = pos;
+    }
   };
 
   while (pos < xml.length) {
@@ -94,6 +131,7 @@ export function countJunit(xml: string): JunitCounts {
     if (text.includes(']]>')) fail("']]>' in text");
     pos = textEnd;
     if (lt === -1) break;
+    tagStart = pos;
 
     if (xml.startsWith('<!--', pos)) {
       const end = xml.indexOf('-->', pos + 4);
@@ -155,6 +193,6 @@ export function countJunit(xml: string): JunitCounts {
     }
   }
   if (stack.length > 0) fail(`unclosed <${stack.at(-1)?.name}>`);
-  if (roots === 0) fail('no root element');
-  return { executed, failed };
+  if (roots === 0 || root === undefined) return fail('no root element');
+  return { executed, failed, root };
 }

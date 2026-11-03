@@ -113,7 +113,10 @@ The step's exit status follows the conclusion, and whether the check run was wri
 - A check run named `dunstan` on the pull request's head commit. Its title is the verdict and the
   reasons (for example `unverifiable: block_missing`); its summary is the claims table (claim,
   declared, observed, verdict, reason), the subject, the report's digest, the block status, the
-  digests, and the commands to re-run the record.
+  digests, and the commands to re-run the record. Under each `tests` row that is `unverifiable`
+  with `record_not_found`, `no_comparable_record_field`, `local_run_not_in_record` or
+  `source_unreadable:artifact`, a `↳ remedy` row says what to do (publishing a test record:
+  [`docs/ci-test-records.md`](ci-test-records.md)). The record holds no remedy.
 - The record, uploaded as the workflow artifact `dunstan-record` (`dunstan-record.json`, and
   `dunstan-record.json.sig` when signed). One Dunstan step per workflow run: a second upload under
   the same name fails.

@@ -959,11 +959,22 @@ function withinLatestAttempt(
   );
 }
 
-async function readTestRecord(
+// What `dunstan template --tests-ci` notices beside the evidence, to say why no count settled: a run
+// of the named workflow at the head the listing gives as not completed. Never evidence, never read
+// by a check: the evidence is the same whether or not it is asked for.
+export interface TestRecordObserved {
+  runsNotCompleted: number;
+}
+
+// The evidence for one `junit` record (spec section 7.5), as `check` reads it. `dunstan template
+// --tests-ci` reads its counts with this same reader, so the counts it declares are the ones the
+// gate reads.
+export async function readTestRecord(
   client: GitHubClient,
   repository: string,
   record: JunitRecord,
   headCommit: string,
+  observed?: TestRecordObserved,
 ): Promise<TestRecordEvidence> {
   const workflowFile = record.workflow.split('/').at(-1) as string;
   const runsPath = (page: number) =>
@@ -973,14 +984,26 @@ async function readTestRecord(
     'workflow_runs',
     runsPath,
     (json) => arr(obj(json).workflow_runs),
-    (item): WorkflowRun => {
+    (item): WorkflowRun & { completed: boolean } => {
       const r = obj(item);
-      return { id: int(r.id), attempt: int(r.run_attempt), path: str(r.path) };
+      return {
+        id: int(r.id),
+        attempt: int(r.run_attempt),
+        path: str(r.path),
+        // Read only for `observed`, and never a shape error: a status that is not a string is not
+        // `completed`.
+        completed: r.status === 'completed',
+      };
     },
     // No workflow with that file name: there is no run, so no candidate run.
     { notFoundIsEmpty: true },
   );
   if (listed === null) return { record, ...unreadable('workflow_runs') };
+  if (observed !== undefined) {
+    observed.runsNotCompleted = listed.filter(
+      (r) => r.path.replace(/@.*$/, '') === record.workflow && !r.completed,
+    ).length;
+  }
 
   const runs: TestRecordRun[] = [];
   // The listing gives each run at its latest attempt. A run of another workflow file with the same

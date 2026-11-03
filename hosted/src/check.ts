@@ -281,7 +281,8 @@ export async function handleCheck(request: Request, env: Env, deps: Deps): Promi
   }
   return json({
     verdict: record.predicate.verdict,
-    claimsTable: renderRecord(record),
+    // Every read is made with the installation's token.
+    claimsTable: renderRecord(record, { hasToken: true }),
     record: bytes,
     signature,
     rerun: rerunOf(recordFileName(parsed.repository, parsed.pullRequest)),

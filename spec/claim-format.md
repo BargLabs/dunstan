@@ -1,6 +1,6 @@
 # The Dunstan claim format
 
-Version 0.1.8. Draft. Licensed under Apache-2.0 (`spec/LICENSE`).
+Version 0.1.9. Draft. Licensed under Apache-2.0 (`spec/LICENSE`).
 
 A coding agent that finishes a task writes a completion report. This specification defines a block
 the agent declares inside that report, the checks a checker runs on each declared field against the
@@ -28,7 +28,8 @@ verdict.
 17. [Changes](#17-changes)
 
 Not part of 0.1.4: [DRAFT 0.2.0: reader claims and retrieval](#draft-020-reader-claims-and-retrieval),
-with [advisories from prose](#d11-advisories-from-prose), for the operator to check.
+with [advisories from prose](#d11-advisories-from-prose), for the operator to check. Also not part
+of 0.1, and informative: [DRAFT survey 0.1: the settleability report](#draft-survey-01-the-settleability-report).
 
 ## 1. Conventions
 
@@ -146,7 +147,8 @@ sensitive, with no Unicode normalisation.
 
 **`tests[]`.** `command` is the command the agent ran, recorded and not checked. `count` is the number
 of test cases executed. `failures`, if present, is the number that failed or errored. `record` names
-the machine-readable test record the numbers are compared with. Version 0.1 defines one kind:
+the machine-readable test record the numbers are compared with. Version 0.1 defines two kinds. The
+first names a record a CI run published:
 
 ```json
 { "kind": "junit", "workflow": ".github/workflows/ci.yml", "job": "test",
@@ -155,9 +157,21 @@ the machine-readable test record the numbers are compared with. Version 0.1 defi
 
 `workflow` is the workflow file's path from the repository root, `job` the job's name as the run
 records it, `artifact` the name of an artifact the run uploaded, and `path` the JUnit XML file's path
-inside that artifact. A `junit` record MUST have exactly these members. A record of any other `kind`
-is legal, with any other members, and its claims are `unverifiable` with
-`no_comparable_record_field` (section 7.4).
+inside that artifact. A `junit` record MUST have exactly these members.
+
+The second (since 0.1.9) declares counts from a run that left no record in CI, such as a run on the
+agent's own machine:
+
+```json
+{ "kind": "local" }
+```
+
+A `local` record MUST have exactly that member. Its claims are `unverifiable` with
+`local_run_not_in_record` (section 7.5): the repository's record holds nothing to compare them
+with, and the block says so rather than naming a record that does not exist.
+
+A record of any other `kind` is legal, with any other members, and its claims are `unverifiable`
+with `no_comparable_record_field` (section 7.5).
 
 **`references[]`.** `{issue: "#N" | "owner/repo#N", relation: "closes" | "cites"}`, or
 `{commit: "<40 hex>", relation: "cites"}`. `#N` names issue or pull request N in the subject
@@ -508,8 +522,10 @@ with kind `workflow_runs`. The window is decided from the two listings the check
 whose digests are in `sources`; the evidence records its outcome, as it records an expired
 artifact's, and holds no time of a job or an artifact.
 
-For a record of any other kind the rows are `unverifiable` with `no_comparable_record_field`. A test
-count is never compared with a check-run total, or with anything other than the record it names.
+For a `local` record (since 0.1.9) the rows are `unverifiable` with `local_run_not_in_record`, and
+nothing is read for it: no CI run holds its counts. For a record of any other kind the rows are
+`unverifiable` with `no_comparable_record_field`. A test count is never compared with a check-run
+total, or with anything other than the record it names.
 
 **Checks.** The check runs are those the API lists for `headCommit`, the latest run per key, less
 any the checker excluded: a checker running inside a check run MUST exclude that run and list its
@@ -814,6 +830,11 @@ record reads in in-toto, SLSA and other formats' terms, with what does not carry
 - The block is untrusted input. Its paths are validated as repository-relative and are compared as
   strings, never opened.
 - A JUnit file is read for element counts only.
+- (Informative, since 0.1.9.) A `junit` record's file is produced by the pull request's own CI run,
+  and on `pull_request` GitHub runs the workflow file as the pull request has it. So a pull request
+  that changes the named workflow, or the configuration of the reporter that writes the file,
+  produces its own evidence. This version changes no verdict for that case; a rule for it is left
+  to a later version.
 - Nothing in a record is a probability or a judgment, so nothing in it can be tuned by rewording a
   report.
 
@@ -826,8 +847,9 @@ against the schemas and check each record's block, report and claim and evidence
 
 - `spec/examples/blocks/valid/`: `minimal.json` (the three required fields), `full.json` (every
   field), `rename.json` (the pull request renames `src/storage/blobs.ts` to
-  `src/storage/blob-store.ts`; the block declares the new path, which is enough), and
-  `non-junit-test-record.json` (a `tap` test record, whose count is unverifiable).
+  `src/storage/blob-store.ts`; the block declares the new path, which is enough),
+  `non-junit-test-record.json` (a `tap` test record, whose count is unverifiable) and
+  `local-test-record.json` (a `local` test record, since 0.1.9).
 - `spec/examples/blocks/invalid/`: each file is named `<code>.<slug>.json`, or
   `schema_violation.<keyword>.<slug>.json`, for the error it must produce.
 - `spec/examples/reports/`: each file is named `<status>.<slug>.md` for the status extraction must
@@ -837,8 +859,9 @@ against the schemas and check each record's block, report and claim and evidence
   which fail, beside a `closes` of an existing issue missing from an open pull request's closing
   references, which is `unverifiable` with `closing_link_unsettled`: a `fail` decides even beside an
   `unverifiable` row; its evidence holds the issue's close events, open with none, which the open
-  pull request leaves unsettled), `unverifiable.json` (a non-JUnit test record and unreadable check runs) and
-  `block_missing.json`.
+  pull request leaves unsettled), `unverifiable.json` (a non-JUnit test record and unreadable check runs),
+  `unverifiable.local-test-run.json` (a `local` test record, both rows `unverifiable` with
+  `local_run_not_in_record`; since 0.1.9) and `block_missing.json`.
 
 ## 16. Reason codes
 
@@ -865,6 +888,7 @@ against the schemas and check each record's block, report and claim and evidence
 | `no_succeeded_check_runs` | unverifiable | No check run counted at the head concluded `success`, and none failed: nothing failed, and nothing ran (`noneFailed`, section 7.5). |
 | `check_runs_not_at_head` | unverifiable | The check runs were read at a commit other than the pull request's head (`checkRuns.commit` is not `pullRequest.headSha`; section 7.5, since 0.1.8). |
 | `no_comparable_record_field` | unverifiable | The test record's kind has no comparable field in this version. |
+| `local_run_not_in_record` | unverifiable | The test record is `local`: the counts are from a run that left no record in CI (section 7.5, since 0.1.9). |
 | `record_not_found` | unverifiable | No run carries the named test record. |
 | `record_ambiguous` | unverifiable | Candidate runs disagree on the number. |
 | `not_merged` | fail | The pull request is not merged. |
@@ -874,6 +898,52 @@ against the schemas and check each record's block, report and claim and evidence
 | `source_unreadable:<kind>` | unverifiable | The source errored. |
 
 ## 17. Changes
+
+- **0.1.9** (2026-11-02). A test record kind for a local run, checked by checker 0.1.14. Most
+  claims about tests in completion reports cannot be checked from a repository's record: the run
+  was local, or the repository's CI publishes no test counts. Section 7.5 settles a `tests[]` claim
+  only against a JUnit file a named workflow run uploaded, so an agent that ran its tests only on
+  its own machine could name no record honestly: a `junit` record would name one that does not
+  exist, and gave `record_not_found`, which reads as a record that went missing; any other kind gave
+  `no_comparable_record_field`, which reads as a record this version cannot compare.
+
+  **A `local` record.** `{"kind": "local"}`, with exactly that member, declares counts from a run
+  that left no record in CI (section 4). Its rows are `unverifiable` with the new reason
+  `local_run_not_in_record` (sections 7.5 and 16), and nothing is read for it. Every other kind
+  that is not `junit` stays `no_comparable_record_field`. `handback-block-0.1.schema.json` gains
+  `localRecord`, applied when `kind` is `local`; `record-0.1.schema.json`'s claim reason gains
+  `local_run_not_in_record`. The DRAFT schema refers to the 0.1 claim reason and holds no copy of
+  it, and no advisory or reader claim gives the new reason (an advisory `test_count` names the
+  record kind `report-prose`), so it is unchanged. The evidence is unchanged: no request, field or
+  token permission is added. The block version stays `"0.1"`.
+
+  Section 13 says a patch release does not change which blocks are valid. This one does, as the
+  operator decided on 2026-11-02: a block whose test record is `{"kind": "local"}` with any other
+  member was valid under 0.1.8, as every kind that is not `junit` was, and is `block_invalid`
+  (`schema_violation`, `additionalProperties`) under 0.1.9; and a block whose test record is
+  exactly `{"kind": "local"}` keeps its verdict, `unverifiable`, with the reason
+  `local_run_not_in_record` in place of `no_comparable_record_field`. Every other block is valid as
+  before and gets the same claims and verdict.
+
+  **Informative.** Section 14 gains a bullet: a `junit` record is produced by the pull request's
+  own CI run, from the workflow file as the pull request has it, so a pull request that changes the
+  named workflow or its reporter's configuration produces its own evidence. No verdict changes; a
+  rule for that case is left to a later version. In the informative DRAFT survey section, survey
+  mapping 0.2 counts `local_run_not_in_record` as not record-checkable (S.4), and the survey record
+  names whether it read with a token, `selection.reader` (S.5).
+
+  **Records already written.** A 0.1.8 record is verified offline by the checker it names
+  (section 12); checker 0.1.14 refuses it at `/predicate/checker`. Recomputed under 0.1.14, a
+  record whose block declares a `local` test record with exactly its kind has those rows
+  `unverifiable` with `local_run_not_in_record`, and every other record gets the same claims and
+  verdict. `dunstan rerun` of it re-reads the sources and writes a new record.
+
+  Example records: each carries spec 0.1.9 and checker 0.1.14. None declares a `local` record, so
+  their claims, verdicts and digests are unchanged. `unverifiable.local-test-run.json` is added
+  with its report, `found.local-test-run.md`, and the example blocks gain
+  `valid/local-test-record.json` and
+  `invalid/schema_violation.additionalProperties.local-record-extra-member.json`. No acceptance
+  fixture changes, and every case keeps its rows.
 
 - **0.1.8** (2026-10-15). Two changes to section 7.5, checked by checker 0.1.12. Both are from
   the open questions of the correctness review's supplement, read against checker 0.1.11 at commit
@@ -2210,3 +2280,112 @@ nothing is at that path at the head.
   after an analogue phrase, no longer binds to a verb outside the bracket or before the phrase
   (D.11.3, item 4; `docs/advisory.md`, "Asides and analogues"). The grammar digest changes, so no
   precision measured on 0.1.0 applies to 0.1.1. Sections 1 to 17 are unchanged.
+
+## DRAFT survey 0.1: the settleability report
+
+> **DRAFT. Informative. For the operator to check.** Nothing in this section changes the block, the
+> record, a claim row or a verdict. Sections 1 to 17, DRAFT 0.2.0 and their schemas stand as
+> written. The reference implementation is `src/survey/`, `src/remedy/` and
+> `src/pipeline/survey.ts`; the guide is `docs/survey.md`.
+
+### S.1 Scope
+
+A survey checks a repository's recent closed pull requests the way a single check does. It reports
+how many of their claims the record could settle, why it could not settle the rest, and what would
+let it. It reports settleability. It does not judge a report, its author or the work.
+
+### S.2 Selection
+
+The pulls listing (`state=closed`, `sort=created`, `direction=desc`, 100 per page) is read page by
+page, at most `MAX_PAGES` (100) pages. After each page the reader stops for the first of these that
+holds: the page could not be read (`listing_unreadable`); the selection is full
+(`selection_full`); `--since` is set and a listed pull request was created before it
+(`since_reached`); the page held fewer than 100 (`listing_ended`). A reader that reaches the bound
+without stopping records `page_bound`. The selection is the listed pull requests created on or
+after `--since` (00:00:00Z) and opened by one of `--author` (compared without case), in listing
+order, the first `--last` of them. The listing is paginated by offset, newest created first, so it
+can move between two page reads. A pull request created after the last item already read that
+closes between two reads shifts the later items back: the next page repeats a pull request an
+earlier page listed, and the pull request that closed is not listed. A pull request that reopens
+between two reads, inside the range already read, shifts the later items forward: the next page
+skips one, with no repeat. Each number is kept once, at its first occurrence, in listing order, and
+the stop rules and the selection apply to that deduplicated list. Every page is recorded
+with its request, the SHA-256 of its body, its read time, its count, how many of its items repeated
+an earlier one (`duplicates`) and, if it failed, its error. The listing records the sum of the
+pages' duplicates. Every listed pull request is recorded once, with its number, creation time,
+author and whether it merged.
+
+### S.3 Entries
+
+Each selected pull request gets exactly one entry, in selection order. The entry holds the record a
+check of it writes (sections 6 to 10, or DRAFT 0.2.0 with advisories), or no record and one reason:
+`pull_request_unreadable`, `pull_request_moved`, `rate_limited` (the pull request read gave up on a
+rate limit) or `report_unavailable` (the named comment author has none, or the comments could not
+be listed). No selected pull request is dropped.
+
+### S.4 The aggregate
+
+The aggregate is a pure function of the entries, the reader (S.5) and survey mapping 0.2. Each
+claim row has a type:
+
+| Claim row | Type |
+| --- | --- |
+| head | T1 |
+| scope (each file, and each omission) | T2 |
+| `/tests/i/count` | T3 |
+| `/tests/i/failures` | T4 |
+| `/checks/total` | T5 |
+| `/checks/allSucceeded`, `/checks/noneFailed` | T6 |
+| `/mergedAt` | T7 |
+| `/deployedAt` | T8 |
+| references | R |
+
+Each row also has a column. `pass` is supported and `fail` is contradicted. `unverifiable` with
+`record_not_found`, `no_comparable_record_field` or `local_run_not_in_record` is not
+record-checkable. Any other `unverifiable` is unverifiable. The two rates are:
+
+- the cannot-settle share, (unverifiable + not record-checkable) / all claims;
+- the contradicted share of settled claims, contradicted / (supported + contradicted).
+
+Each rate carries its numerator, its denominator, its value and its Wilson score interval at 95%
+(z = 1.96). The value and the bounds are four-decimal strings, or null for a zero denominator. The
+aggregate also counts pull requests by block status and by no-record reason. It lists each reason
+a claim could not be settled, with its count and its remedy line (`src/remedy/remedies.ts`), worded
+for the reader: the artifact line differs with and without a token. When the survey ran the
+advisory reader, it counts the reader's notes by note. Advisory notes never enter either rate. A
+change to a type, a column or a remedy line is a new mapping version. Mapping 0.2 differs from 0.1
+in the remedy lines, now one table with the claims table's and a function of the reader, and in
+counting `local_run_not_in_record` as not record-checkable.
+
+### S.5 The survey record
+
+A survey record has `format` `"dunstan-survey-0.1-draft"` and validates against
+`spec/schema/survey-0.1-draft.schema.json`. It holds the checker identity, the selection (its
+parameters, its reader, the listing and the selected numbers), the entries, the aggregate, and the
+commands to verify it offline and to run it again. The reader, `selection.reader`, is
+`{"authenticated": <boolean>}`: whether the survey read GitHub with a token. The token itself is
+never recorded. Without one GitHub serves no artifact and answers no GraphQL query, so every tests
+claim naming a `junit` record and every `closes` claim is unverifiable, and the summary says so in
+its first lines. Its `digest.sha256` is the SHA-256 of the JCS bytes (section 10) of the survey
+record without `digest`. It holds no file contents and no report text beyond what its embedded
+records hold.
+
+### S.6 Verifying a survey record
+
+A verifier works offline. It validates the survey record against its schema and verifies each
+embedded record as section 12 does. It checks that each embedded record is of its entry's pull
+request and was written by the survey's checker. It checks that the listing holds no number twice,
+that its duplicates are the sum of its pages', that the pages' items are the listed pull requests
+plus the duplicates, and that the listing was read exactly as far as S.2 stops it. It recomputes
+the selection, the aggregate and the digest, and reports each member that differs. The survey
+record verifies only when all of them match.
+
+What a verified survey record proves is its internal consistency: the selection, the entries, the
+aggregate and the digest follow from what it records, and every embedded record verifies. A survey
+record is unsigned and holds only the digests of the listing's bodies, so verifying it does not
+prove that the recorded listing is what GitHub returned, nor that an entry with no record was
+unreadable for its recorded reason. A writer could leave a pull request out and still produce a
+record that verifies. An honest run can also miss a pull request that closed or reopened between
+two page reads (S.2): `duplicates` counts only the closes that caused a repeat, and `0` does not
+prove the listing held still. To trust a survey's completeness, run it again online
+(`rerun.online`).

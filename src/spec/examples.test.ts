@@ -32,9 +32,10 @@ function read(path: string): string {
 describe('spec/examples/blocks/valid', () => {
   const files = list('blocks/valid/', '.json');
 
-  it('holds the four cases the spec names', () => {
+  it('holds the five cases the spec names', () => {
     expect(files).toEqual([
       'full.json',
+      'local-test-record.json',
       'minimal.json',
       'non-junit-test-record.json',
       'rename.json',
@@ -131,8 +132,15 @@ interface ExampleRecord {
 describe('spec/examples/records', () => {
   const files = list('records/', '.json');
 
-  it('holds one illustrative record per outcome', () => {
-    expect(files).toEqual(['block_missing.json', 'fail.json', 'pass.json', 'unverifiable.json']);
+  // `<outcome>.json`, or `<outcome>.<slug>.json` for a second record of an outcome.
+  it('holds one illustrative record per outcome, and a local test run (spec 0.1.9)', () => {
+    expect(files).toEqual([
+      'block_missing.json',
+      'fail.json',
+      'pass.json',
+      'unverifiable.json',
+      'unverifiable.local-test-run.json',
+    ]);
   });
 
   it.each(files)('%s validates against record-0.1.schema.json', (name) => {
@@ -142,7 +150,7 @@ describe('spec/examples/records', () => {
   it.each(files)('%s is self-consistent', (name) => {
     const record = JSON.parse(read(`records/${name}`)) as ExampleRecord;
     const p = record.predicate;
-    const outcome = name.replace(/\.json$/, '');
+    const outcome = name.replace(/\.json$/, '').split('.')[0];
 
     if (outcome === 'block_missing') {
       expect(p.block.status).toBe('missing');

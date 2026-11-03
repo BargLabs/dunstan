@@ -347,7 +347,7 @@ describe('the tool response for a record with advisories', () => {
   });
 
   it('shows a differs note as a possible disagreement, unverified, and returns the record as written', () => {
-    const { content } = handbackResult(record, undefined, []);
+    const { content } = handbackResult(record, undefined, [], { hasToken: true });
     const text = content.map((item) => (item.type === 'text' ? item.text : ''));
     const [head, table, bytes] = text as [string, string, string];
     expect(head).toMatch(/^verdict: pass\n/);

@@ -18,6 +18,8 @@ import {
 import { main } from '../cli/main.js';
 import type { EvidenceReaders } from '../pipeline/check-pull-request.js';
 import type { DunstanRecord } from '../record/build.js';
+import { remedyFor } from '../remedy/remedies.js';
+import { renderSummary } from './outcome.js';
 import { RECORD_FILE, runAction } from './run.js';
 
 const cases = [...loadCases('controls'), ...loadCases('planted')];
@@ -53,6 +55,7 @@ type Source = 'pr-body' | 'file';
 async function viaCli(c: FixtureCase, source: Source, dir: string, report: string) {
   const out = join(dir, 'cli', RECORD_FILE);
   mkdirSync(join(dir, 'cli'), { recursive: true });
+  let stdout = '';
   const code = await main(
     [
       'check',
@@ -65,15 +68,18 @@ async function viaCli(c: FixtureCase, source: Source, dir: string, report: strin
       out,
     ],
     {
-      out: () => {},
+      out: (t) => {
+        stdout += t;
+      },
       err: () => {},
-      env: {},
+      // The Action reads with its token; so does the CLI here, so both word a remedy alike.
+      env: { GITHUB_TOKEN: 'test-token' },
       artifact: import.meta.url,
       readers: () => stubbedReaders(c),
       readStdin: () => new Uint8Array(),
     },
   );
-  return { code, bytes: readFileSync(out, 'utf8') };
+  return { code, stdout, bytes: readFileSync(out, 'utf8') };
 }
 
 async function viaAction(c: FixtureCase, source: Source, dir: string, report: string) {
@@ -131,7 +137,31 @@ describe('parity: the Action and dunstan check write the same record', () => {
         expect(cli.code).toBe({ pass: 0, fail: 1, unverifiable: 2 }[verdict]);
         expect(action.result.outcome.conclusion).toBe(verdict === 'pass' ? 'success' : 'failure');
         expect(action.result.exitCode).toBe(verdict === 'pass' ? 0 : 1);
+
+        // The same remedy under each tests row that has one: a line under the CLI's row, a row
+        // under the summary's.
+        const remedies = record.predicate.claims.flatMap((claim) => {
+          const remedy = remedyFor(claim, { hasToken: true });
+          return remedy === undefined ? [] : [remedy];
+        });
+        const cliLines = cli.stdout.split('\n').filter((l) => /^ {2}remedy: /.test(l));
+        expect(cliLines).toEqual(remedies.map((r) => `  remedy: ${r}`));
+        const summary = renderSummary(action.result.outcome);
+        const summaryLines = summary.split('\n').filter((l) => l.startsWith('| ↳ remedy |'));
+        expect(summaryLines).toHaveLength(remedies.length);
+        remedies.forEach((r, i) => {
+          expect(summaryLines[i]).toContain(r);
+        });
       },
     );
   }
+
+  it('covers fixtures with remedy lines', () => {
+    const named = cases
+      .filter((c) => runCase(c).predicate.claims.some((x) => remedyFor(x, { hasToken: true })))
+      .map((c) => c.name);
+    expect(named).toEqual(
+      expect.arrayContaining(['test-record-not-found', 'unsupported-test-record-kind']),
+    );
+  });
 });

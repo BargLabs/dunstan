@@ -1,0 +1,157 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "git+https://github.com/example-org/example-repo@10ca1e00aaaabbbbccccddddeeeeffff00001111",
+      "digest": {
+        "gitCommit": "10ca1e00aaaabbbbccccddddeeeeffff00001111"
+      }
+    },
+    {
+      "name": "handback-block",
+      "digest": {
+        "sha256": "622a2a7a78316d0aa0b2920a523108fad03f84802f17a0e32eb427d037008e16"
+      }
+    }
+  ],
+  "predicateType": "https://barglabs.ai/dunstan/record/v0.1",
+  "predicate": {
+    "spec": "0.1.9",
+    "checker": {
+      "name": "dunstan",
+      "version": "0.1.14",
+      "digest": {
+        "sha256": "73a50031c8bdf06b0bd96062386dc3347ad18d6b3c458c4dae123efd6e6c044a"
+      }
+    },
+    "report": {
+      "sha256": "aef69a8ab5914989f82bc0680cf44aad13d8f7fd4ae913c1d10945bc547ca692",
+      "source": {
+        "kind": "file",
+        "locator": "spec/examples/reports/found.local-test-run.md"
+      }
+    },
+    "block": {
+      "status": "found",
+      "sha256": "622a2a7a78316d0aa0b2920a523108fad03f84802f17a0e32eb427d037008e16",
+      "value": {
+        "dunstan": "0.1",
+        "headCommit": "10ca1e00aaaabbbbccccddddeeeeffff00001111",
+        "filesChanged": ["src/parse.ts", "src/parse.test.ts"],
+        "tests": [
+          {
+            "command": "pnpm test",
+            "count": 142,
+            "failures": 0,
+            "record": {
+              "kind": "local"
+            }
+          }
+        ]
+      }
+    },
+    "subject": {
+      "repository": "example-org/example-repo",
+      "pullRequest": 52,
+      "headSha": "10ca1e00aaaabbbbccccddddeeeeffff00001111",
+      "mergeSha": null
+    },
+    "evidence": {
+      "pullRequest": {
+        "status": "ok",
+        "number": 52,
+        "state": "open",
+        "merged": false,
+        "mergedAt": null,
+        "headSha": "10ca1e00aaaabbbbccccddddeeeeffff00001111",
+        "mergeSha": null,
+        "changedFiles": 2
+      },
+      "files": {
+        "status": "ok",
+        "complete": true,
+        "entries": [
+          {
+            "path": "src/parse.test.ts",
+            "status": "modified"
+          },
+          {
+            "path": "src/parse.ts",
+            "status": "modified"
+          }
+        ]
+      },
+      "sources": [
+        {
+          "kind": "pull_request",
+          "locator": "GET /repos/example-org/example-repo/pulls/52",
+          "sha256": "5f1e6c7f0b2d3a4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6",
+          "readAt": "2026-11-02T10:00:00Z"
+        },
+        {
+          "kind": "pull_request_files",
+          "locator": "GET /repos/example-org/example-repo/pulls/52/files?per_page=100&page=1",
+          "sha256": "6a2f7d8e1c3b4a5f6e70819203b4c5d6e7f8091a2b3c4d5e6f70819203b4c5d6",
+          "readAt": "2026-11-02T10:00:00Z"
+        }
+      ]
+    },
+    "claims": [
+      {
+        "id": "head:/headCommit",
+        "check": "head",
+        "field": "/headCommit",
+        "declared": "10ca1e00aaaabbbbccccddddeeeeffff00001111",
+        "observed": "10ca1e00aaaabbbbccccddddeeeeffff00001111",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/0",
+        "check": "scope",
+        "field": "/filesChanged/0",
+        "declared": "src/parse.ts",
+        "observed": "src/parse.ts",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/1",
+        "check": "scope",
+        "field": "/filesChanged/1",
+        "declared": "src/parse.test.ts",
+        "observed": "src/parse.test.ts",
+        "verdict": "pass"
+      },
+      {
+        "id": "count:/tests/0/count",
+        "check": "count",
+        "field": "/tests/0/count",
+        "declared": 142,
+        "observed": null,
+        "verdict": "unverifiable",
+        "reason": "local_run_not_in_record"
+      },
+      {
+        "id": "count:/tests/0/failures",
+        "check": "count",
+        "field": "/tests/0/failures",
+        "declared": 0,
+        "observed": null,
+        "verdict": "unverifiable",
+        "reason": "local_run_not_in_record"
+      }
+    ],
+    "verdict": "unverifiable",
+    "digests": {
+      "claims": "885bff94c751d678038151f2f7969c6d0db0eefd7146953f9a6cb4c9ba37c936",
+      "evidence": "00634ae94652d1ad5d4db84f761bab30515fb06a0818e332e2f83fead020d53e"
+    },
+    "rerun": {
+      "offline": "dunstan verify unverifiable.local-test-run.json",
+      "online": "dunstan rerun unverifiable.local-test-run.json"
+    },
+    "assurance": {
+      "status": "unsigned",
+      "issuer": "self-generated"
+    }
+  }
+}

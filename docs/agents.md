@@ -23,8 +23,13 @@ Copy this into `AGENTS.md`, `CLAUDE.md` or `.github/copilot-instructions.md`:
    from git; do not edit them by hand. If the pull request does not merge into the remote's
    default branch, add `--base <branch>`.
 2. Add your test and reference claims to the block:
-   - tests: run `dunstan template` again with `--tests-junit <your JUnit XML file>` and the CI
-     record flags it asks for, or add `tests` yourself;
+   - tests: declare test counts from the CI JUnit record, not from a local run. After CI has
+     finished on your last push, run `dunstan template --tests-ci --tests-command <cmd>
+     --tests-workflow <workflow file> --tests-job <job name>`: it reads the counts the gate will
+     read. If it declares no tests, its note says why; do not fill the counts in yourself. If only a
+     local run exists, declare it with `--tests-local <your JUnit XML file> --tests-command <cmd>`,
+     and say in the report that CI publishes no test record. Never state a count in prose that the
+     block does not declare;
    - references: each issue the pull request closes (`"relation": "closes"`) or cites
      (`"relation": "cites"`).
 3. Run `dunstan suggest --report-file <your report>`. For each claim it lists, either declare it in
@@ -46,19 +51,23 @@ acceptance criteria rest on.
 
 ```sh
 dunstan template [--base <ref>]
-                 [--tests-junit <file> --tests-command <cmd> --tests-workflow <path>
+                 [--tests-ci --tests-command <cmd> --tests-workflow <path> --tests-job <name>
+                  [--tests-artifact <name>] [--tests-artifact-path <path>] [--repo <owner/name>]
+                | --tests-local <file> --tests-command <cmd>
+                | --tests-junit <file> --tests-command <cmd> --tests-workflow <path>
                   --tests-job <name> --tests-artifact <name> --tests-artifact-path <path>]
 ```
 
 It prints a `dunstan-handback` fence on standard output and nothing else, so the output can be
-pasted or appended as it is. Notes go to standard error.
+pasted or appended as it is. Notes go to standard error. It reads only local git, except with
+`--tests-ci`, which reads the CI record from GitHub.
 
 | Field | Filled from |
 | --- | --- |
 | `dunstan` | `"0.1"`, the block version this checker reads. |
 | `headCommit` | `git rev-parse HEAD`. |
 | `filesChanged` | `git diff` of HEAD against its merge base with `--base`, which defaults to the remote's default branch (`origin/HEAD`). Rename detection is off, so a rename is listed by its old and its new path: the spec counts a renamed file as declared when either is (section 7.3), so both pass whichever way GitHub pairs the rename. |
-| `tests` | Only with `--tests-junit`: `count` and `failures` from that file's test cases, and `record` naming the CI run the gate compares them with. All five record flags are required with it. Otherwise left out, with a note on how to add it. |
+| `tests` | One of three ways, or left out with a note on how to add it. `--tests-ci`: `count` and `failures` read at HEAD from the JUnit record CI published, with the reader the gate uses, and `record` naming it (`--tests-artifact` defaults to `dunstan-junit`, `--tests-artifact-path` to `junit.xml`, `--repo` to the github.com repository `origin` names; it reads with `GITHUB_TOKEN`). `--tests-local`: the counts of a local JUnit file, with `record` `{"kind": "local"}`, which the gate reports `unverifiable` (`local_run_not_in_record`). `--tests-junit`: the counts of a local file, with `record` naming the CI run the gate compares them with; all five record flags are required with it. |
 | `references`, `mergedAt` | Never. References are the agent's own assertions, and a pull request that is not merged has no merge time. |
 | `checks` | Never: CI may not have finished. Declare `total`, `allSucceeded` or `noneFailed` yourself. `allSucceeded` is true only if every counted check run concluded `success`, so a skipped or neutral run makes it false; `noneFailed` (spec 0.1.6) is true if none concluded other than `success`, `skipped` or `neutral` and at least one succeeded. |
 
@@ -70,6 +79,13 @@ It fails loud and never invents. With no git repository, a HEAD that cannot be r
 a detached HEAD, a base that does not resolve, or no merge base, it exits 3, names the cause and
 prints no block. Git runs with an argument vector, never through a shell. The block is read back as
 the gate reads one before it is printed, so a template is never an invalid block.
+
+With `--tests-ci`, when no single count settles (no token, HEAD on no remote-tracking branch, CI not
+finished, no run uploaded the record, runs that disagree, an artifact that cannot be read), it
+prints the block without `tests`, a note naming the reason and its remedy, and exits 2: the block
+is valid and printed, so it is not an error (3), but it is not the block asked for, so a script that
+pipes it into a report does not take it for one with its tests (0). How CI publishes the record:
+[`docs/ci-test-records.md`](ci-test-records.md).
 
 Example, on a branch `feature` with two changed files:
 
@@ -86,7 +102,7 @@ $ dunstan template
 }
 ```
 dunstan: this block describes the local HEAD 3f2a1b9c4d5e6f708192a3b4c5d6e7f8091a2b3c on feature, against origin/main (merge base 9e8d7c6b5a4f3e2d1c0b9a8f7e6d5c4b3a2f1e0d). Pushing more commits makes it stale, and the gate then reports head_mismatch: run dunstan template again after your last push.
-dunstan: tests are not declared. To declare a run, add --tests-junit <JUnit XML file> with --tests-command, --tests-workflow, --tests-job, --tests-artifact and --tests-artifact-path naming the CI record its counts are checked against.
+dunstan: tests are not declared. To declare CI's counts, run dunstan template again with --tests-ci --tests-command <cmd> --tests-workflow <path> --tests-job <name> once CI has finished on your last push; it reads the JUnit record CI published (docs/ci-test-records.md). For a run made only locally, --tests-local <JUnit XML file> --tests-command <cmd> declares it as one. --tests-junit <file> with --tests-command, --tests-workflow, --tests-job, --tests-artifact and --tests-artifact-path declares a local file's counts against a CI record.
 dunstan: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.
 dunstan: checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.
 ~~~
@@ -160,6 +176,7 @@ The prose appears to make 3 claims the block does not declare:
 
 Here the agent either adds `docs/usage.md` to `filesChanged` (and the gate then checks it was
 changed) or, if this pull request did not change the file, rewords the sentence. For the tests, it
-runs `dunstan template` again with `--tests-junit` and the CI record, so the counts are declared and
-checked against the CI run. A suggestion that stays is still only a suggestion: the gate checks the
-block, and the prose remains the author's to stand behind.
+runs `dunstan template --tests-ci` once CI has finished, so the block declares the counts CI
+recorded and the gate checks them against that run; if the 42 came from a local run, it declares
+that run with `--tests-local` and says CI publishes no test record. A suggestion that stays is still
+only a suggestion: the gate checks the block, and the prose remains the author's to stand behind.

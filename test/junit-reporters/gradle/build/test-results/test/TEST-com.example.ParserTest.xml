@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.example.ParserTest" tests="2" skipped="0" failures="1" errors="0" timestamp="2026-11-02T10:00:00" hostname="runner" time="0.031">
+  <properties/>
+  <testcase name="parsesEmpty()" classname="com.example.ParserTest" time="0.002"/>
+  <testcase name="parsesNested()" classname="com.example.ParserTest" time="0.021">
+    <failure message="org.opentest4j.AssertionFailedError: expected: &lt;3&gt; but was: &lt;2&gt;" type="org.opentest4j.AssertionFailedError">org.opentest4j.AssertionFailedError: expected: &lt;3&gt; but was: &lt;2&gt;
+	at com.example.ParserTest.parsesNested(ParserTest.java:30)
+</failure>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

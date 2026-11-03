@@ -106,7 +106,7 @@ export async function check(args: string[], io: CliIo): Promise<number> {
     advisory: values.advisory === true,
   });
   writeFileSync(out, serializeRecord(record));
-  io.out(renderRecord(record));
+  io.out(renderRecord(record, { hasToken: client.hasToken }));
   io.out(`record: ${out}\n`);
   if (assurance !== undefined) {
     io.out(`signature: ${signRecordFile(out, values['sign-key'] as string)}\n`);

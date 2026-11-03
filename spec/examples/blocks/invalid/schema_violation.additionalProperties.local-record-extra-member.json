@@ -1,0 +1,12 @@
+{
+  "dunstan": "0.1",
+  "headCommit": "10ca1e00aaaabbbbccccddddeeeeffff00001111",
+  "filesChanged": ["src/parse.ts"],
+  "tests": [
+    {
+      "command": "pnpm test",
+      "count": 142,
+      "record": { "kind": "local", "file": "junit.xml" }
+    }
+  ]
+}

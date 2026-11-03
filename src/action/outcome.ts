@@ -15,6 +15,7 @@ import {
 } from '../advisory/present.js';
 import type { Claim, Verdict } from '../check/types.js';
 import type { DunstanRecord } from '../record/build.js';
+import { type RemedyContext, remedyFor } from '../remedy/remedies.js';
 import type { UnverifiableConclusion } from './inputs.js';
 
 export type Conclusion = 'success' | 'failure' | 'neutral';
@@ -36,6 +37,9 @@ export interface Outcome {
   mapping?: string;
   rerun?: string[];
   notes: string[];
+  // Whether the reads were made with a token, for the wording of a remedy (src/remedy/remedies.ts).
+  // Absent: with one, as the Action reads with its `github-token` input.
+  hasToken?: boolean;
 }
 
 export const ARTIFACT_NAME = 'dunstan-record';
@@ -79,9 +83,13 @@ export function titleFor(record: DunstanRecord): string {
   return `${p.verdict}: ${open.length} of ${total} claims (${reasons})`.slice(0, 250);
 }
 
-function claimRow(c: Claim): string {
+// A claim's row, and under a tests row the record could not settle, its remedy as a row of its own:
+// one item, so the size limit never shows a row without its remedy.
+function claimRow(c: Claim, context: RemedyContext): string {
   const verdict = c.verdict === 'pass' ? 'pass' : `**${c.verdict}**`;
-  return `| <code>${escapeHtml(c.id)}</code> | ${code(c.declared)} | ${code(c.observed)} | ${verdict} | ${c.reason === undefined ? '' : `<code>${escapeHtml(c.reason)}</code>`} |`;
+  const row = `| <code>${escapeHtml(c.id)}</code> | ${code(c.declared)} | ${code(c.observed)} | ${verdict} | ${c.reason === undefined ? '' : `<code>${escapeHtml(c.reason)}</code>`} |`;
+  const remedy = remedyFor(c, context);
+  return remedy === undefined ? row : `${row}\n| ↳ remedy | | | | ${escapeHtml(remedy)} |`;
 }
 
 function blockLine(record: DunstanRecord): string {
@@ -247,7 +255,7 @@ export function renderSummary(outcome: Outcome): string {
             '| Claim | Declared | Observed | Verdict | Reason |',
             '| --- | --- | --- | --- | --- |',
           ],
-          items: claims.map(claimRow),
+          items: claims.map((c) => claimRow(c, { hasToken: outcome.hasToken ?? true })),
           more: (n) =>
             `${plural(n, 'more claim is', 'more claims are')} in the record (summary size limit).`,
         };

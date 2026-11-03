@@ -113,7 +113,7 @@ export async function rerun(args: string[], io: CliIo): Promise<number> {
   } else {
     io.out(`evidence unchanged (digest ${p.digests.evidence})\n\n`);
   }
-  io.out(renderRecord(record));
+  io.out(renderRecord(record, { hasToken: client.hasToken }));
   io.out(`record: ${out} (the original ${path} is unchanged)\n`);
   return exitFor(p.verdict);
 }

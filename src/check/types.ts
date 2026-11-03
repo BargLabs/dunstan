@@ -26,6 +26,12 @@ export interface JunitRecord {
   path: string;
 }
 
+// A run that left no record in CI (spec 0.1.9): exactly this member. Its rows are unverifiable with
+// local_run_not_in_record.
+export interface LocalRecord {
+  kind: 'local';
+}
+
 export interface OtherRecord {
   kind: string;
   [member: string]: unknown;
@@ -35,7 +41,7 @@ export interface TestRun {
   command: string;
   count: number;
   failures?: number;
-  record: JunitRecord | OtherRecord;
+  record: JunitRecord | LocalRecord | OtherRecord;
 }
 
 export type Reference =

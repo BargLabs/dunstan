@@ -206,7 +206,8 @@ describe('PROVENANCE.md', () => {
 
   it('finds every record under demo/ and spec/examples/', () => {
     const paths = findRecords().map((r) => r.path);
-    expect(paths.filter((p) => p.startsWith('spec/examples/'))).toHaveLength(4);
+    // Spec 0.1.9 adds unverifiable.local-test-run.json beside the four outcomes.
+    expect(paths.filter((p) => p.startsWith('spec/examples/'))).toHaveLength(5);
     expect(paths.filter((p) => p.includes('/rerun-v0.1.1-2026-10-06/'))).toHaveLength(5);
     expect(paths).toContain('demo/2026-10/2-airbytehq-airbyte-74367/rerun-0.1.1/record.json');
   });

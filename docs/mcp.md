@@ -24,10 +24,11 @@ self-contained file with no dependencies, so nothing is built and nothing else i
 /plugin install dunstan@barglabs
 ```
 
-The plugin starts the server with `npx -y dunstan@0.1.13 mcp` and adds the `dunstan-check` skill. When
+The plugin starts the server with `npx -y dunstan@0.1.14 mcp` and adds the `dunstan-check` skill. When
 you enable it, Claude Code asks for an optional GitHub token (below). It stores the value in your
 system's secure credential store and passes it to the server as `GITHUB_TOKEN`. Leave it empty to read
-public repositories anonymously (a `closes` reference then needs the token; see below). The plugin
+public repositories anonymously (a `closes` reference and a `tests` count then need the token; see
+below). The plugin
 never reads a token from your environment: it sets the server's `GITHUB_TOKEN` to the value you enter,
 or to nothing.
 
@@ -41,7 +42,7 @@ environment setting:
   "mcpServers": {
     "dunstan": {
       "command": "npx",
-      "args": ["-y", "dunstan@0.1.13", "mcp"],
+      "args": ["-y", "dunstan@0.1.14", "mcp"],
       "env": { "GITHUB_TOKEN": "<a fine-grained, read-only token>" }
     }
   }
@@ -49,10 +50,13 @@ environment setting:
 ```
 
 Without `GITHUB_TOKEN` the server reads public repositories anonymously, within GitHub's anonymous
-rate limit, and the result says so in a `note:` line. One read always needs a token: GitHub's GraphQL
-API refuses anonymous calls, so without one a declared `closes` reference is `unverifiable`
-(`source_unreadable:closing_references`), never `fail`. Every other claim on a public repository is
-checked anonymously.
+rate limit, and the result says so in a `note:` line. Two reads always need a token, even on a public
+repository. GitHub's GraphQL API refuses anonymous calls, so without one a declared `closes`
+reference is `unverifiable` (`source_unreadable:closing_references`), never `fail`. And GitHub
+answers an artifact download only with a token (401 "Requires authentication" anonymously, observed
+2026-11-02), so without one a `tests` count read from a JUnit artifact is `unverifiable`
+(`source_unreadable:artifact`), with a remedy line under the row that says so. Every other claim on
+a public repository is checked anonymously.
 
 ### A read-only GitHub token
 

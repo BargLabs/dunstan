@@ -219,6 +219,7 @@ often describe the forge, not the checker. None is `NOT_APPLICABLE`, `APPLICABLE
 | `no_check_runs` | `UNRESOLVED` |
 | `no_succeeded_check_runs` | `UNRESOLVED` |
 | `no_comparable_record_field` | `UNRESOLVED` |
+| `local_run_not_in_record` | `UNRESOLVED` |
 | `record_not_found` | `UNRESOLVED` |
 | `record_ambiguous` | `UNRESOLVED` |
 

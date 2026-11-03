@@ -22,12 +22,43 @@ handback covers what the issue asked for: an accurate report of the wrong work p
 
 ## What it runs, reads and sends
 
-The plugin starts the MCP server with `npx -y dunstan@0.1.13 mcp`, which downloads the `dunstan`
+The plugin starts the MCP server with `npx -y dunstan@0.1.14 mcp`, which downloads the `dunstan`
 package at that exact version from the npm registry. The package is one self-contained file with no
 dependencies. The server runs on your machine and reads GitHub's API directly from it: the pull
 request, its files, commits, check runs, workflow runs and artifacts, deployments, and the issues the
 block references. Every request is a read. Nothing is written to GitHub or the repository, and nothing
 is sent to Barg Labs.
+
+## Changes in 0.1.14
+
+- **Test claims a reader can check (spec 0.1.9). Counts from CI.** `dunstan template --tests-ci --tests-command <cmd> --tests-workflow <path>
+  --tests-job <name>` reads the test counts at HEAD from the JUnit record CI published, with the
+  reader the check uses, and declares them. When no single count settles (CI not finished, no
+  record, no token, HEAD not pushed), it declares no tests, says why, and exits 2. The skill now
+  tells Claude to declare counts this way, after CI has finished on its last push.
+- **A local run, declared as one.** A test record `{"kind": "local"}` (`--tests-local <file>`)
+  declares counts from a run that left no record in CI. Its rows are `unverifiable` with the new
+  reason `local_run_not_in_record`. A `local` record with any other member is now an invalid block.
+- **Remedy lines.** Each `tests` row that is `unverifiable` with `record_not_found`,
+  `no_comparable_record_field`, `local_run_not_in_record` or `source_unreadable:artifact` is
+  followed by a `remedy:` line in the tool's text, the CLI and the Action's summary. Records are
+  unchanged.
+- **`dunstan junit-merge`** joins the JUnit files Maven Surefire and Gradle write, one per test
+  class, into the one file a record names. CI recipes for pytest, jest, vitest, Maven, Gradle and
+  Go: [`docs/ci-test-records.md`](../../docs/ci-test-records.md).
+- **Tests claims need a token**, as `closes` does: GitHub answers an artifact download only with
+  one, even on a public repository, so without a token a test count is `unverifiable`
+  (`source_unreadable:artifact`). The documentation said otherwise before.
+- **`dunstan survey` (DRAFT)**, a read-only report over a repository's recent closed pull requests
+  of which claims the record could settle and why the rest could not. It records whether it read
+  with a token and lists each pull request once, and its record verifies offline for consistency,
+  not completeness: [`docs/survey.md`](../../docs/survey.md).
+- **Marketplace listing.** The Action's description uses the words people search for, and the
+  repository README opens with the Dunstan logo, one sentence on what Dunstan checks and a complete
+  `pull_request` workflow. No behaviour change.
+- **Study 3 withdrawn.** [`WITHDRAWAL.md`](../../experiments/open-source-advisory-2026-11-study3/WITHDRAWAL.md)
+  records that the operator withdrew study 3 on 19 October 2026, before any search ran. Its
+  preregistration is unchanged.
 
 ## Changes in 0.1.13
 

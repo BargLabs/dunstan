@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.example.StringsTest" time="0.008" tests="3" errors="0" skipped="1" failures="0">
+  <properties>
+    <property name="java.version" value="21.0.4"/>
+  </properties>
+  <testcase name="trims" classname="com.example.StringsTest" time="0.002"/>
+  <testcase name="pads" classname="com.example.StringsTest" time="0.001">
+    <system-out><![CDATA[padding to 8
+]]></system-out>
+  </testcase>
+  <testcase name="localises" classname="com.example.StringsTest" time="0">
+    <skipped message="needs a locale"/>
+  </testcase>
+</testsuite>

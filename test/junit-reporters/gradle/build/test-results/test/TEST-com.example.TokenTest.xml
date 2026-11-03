@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.example.TokenTest" tests="2" skipped="1" failures="0" errors="0" timestamp="2026-11-02T10:00:01" hostname="runner" time="0.004">
+  <properties/>
+  <testcase name="splitsOnSpace()" classname="com.example.TokenTest" time="0.001"/>
+  <testcase name="splitsOnTab()" classname="com.example.TokenTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

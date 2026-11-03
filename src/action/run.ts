@@ -253,6 +253,7 @@ export async function runAction(io: ActionIo): Promise<ActionResult> {
       mapping: mappingFor(record, inputs),
       rerun: rerunLines(env, record),
       notes,
+      hasToken: api.hasToken,
     };
 
     try {

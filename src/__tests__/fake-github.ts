@@ -53,6 +53,10 @@ export interface Scenario {
   // the default job's window; give `created_at: undefined` for an artifact that has none.
   artifacts?: Record<number, Record<string, unknown>[]>;
   zips?: Record<number, Uint8Array>;
+  // GitHub answers an artifact download without a token with 401 "Requires authentication", even
+  // on a public repository (observed 2026-11-02). True: a zip read without an authorization header
+  // answers so.
+  artifactNeedsToken?: boolean;
   deployments?: Record<string, unknown>[];
   statuses?: Record<number, Record<string, unknown>[]>;
   comments?: Record<string, unknown>[];
@@ -323,6 +327,10 @@ export function fakeGitHub(scenario: Scenario): FakeGitHub {
       [
         /^\/repos\/[^/]+\/[^/]+\/actions\/artifacts\/([0-9]+)\/zip$/,
         (m) => {
+          const headers = new Headers(init?.headers);
+          if (scenario.artifactNeedsToken === true && !headers.has('authorization')) {
+            return json(401, { message: 'Requires authentication' });
+          }
           const zip = scenario.zips?.[n(m)];
           return zip === undefined ? json(410, { message: 'Gone' }) : new Response(zip);
         },

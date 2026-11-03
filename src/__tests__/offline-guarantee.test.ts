@@ -29,6 +29,11 @@ describe('offline guarantee', () => {
       'src/spec/extract.ts',
       'src/spec/schema.ts',
       'src/suggest/suggest.ts',
+      'src/remedy/remedies.ts',
+      'src/survey/aggregate.ts',
+      'src/survey/record.ts',
+      'src/survey/summary.ts',
+      'src/survey/verify.ts',
       'src/cli/verify.ts',
     ]) {
       expect(files).toContain(expected);

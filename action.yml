@@ -4,7 +4,7 @@
 # reports the verdict as a `dunstan` check run, the job summary and the workflow artifact
 # `dunstan-record`.
 name: Dunstan Handback Check
-description: "Checks a coding agent's handback report against the pull request's own record and reports the verdict as a check run."
+description: "Verify an AI coding agent's pull request claims against GitHub's own record, with a verdict anyone can rerun. No LLM."
 author: Barg Labs
 
 inputs:

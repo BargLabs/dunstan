@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="4" failures="1" errors="0" time="0.012000">
+	<testsuite tests="4" failures="1" time="0.005000" name="example.com/shop/cart" timestamp="2026-11-02T10:00:00Z">
+		<properties>
+			<property name="go.version" value="go1.23.2 linux/amd64"></property>
+		</properties>
+		<testcase classname="example.com/shop/cart" name="TestAdd" time="0.000000"></testcase>
+		<testcase classname="example.com/shop/cart" name="TestRemove" time="0.001000">
+			<failure message="Failed" type="">=== RUN   TestRemove&#xA;    cart_test.go:22: got 1 items, want 0&#xA;--- FAIL: TestRemove (0.00s)&#xA;</failure>
+		</testcase>
+		<testcase classname="example.com/shop/cart" name="TestTotal" time="0.000000"></testcase>
+		<testcase classname="example.com/shop/cart" name="TestDiscount" time="0.000000">
+			<skipped message="=== RUN   TestDiscount&#xA;    cart_test.go:40: needs a price list&#xA;--- SKIP: TestDiscount (0.00s)&#xA;"></skipped>
+		</testcase>
+	</testsuite>
+</testsuites>

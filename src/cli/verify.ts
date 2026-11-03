@@ -8,6 +8,8 @@ import { verifySignature } from '../record/sign.js';
 import { type VerifyProblem, verifyRecord } from '../record/verify.js';
 import { canonicalize } from '../spec/jcs.js';
 import { JsonReadError, type JsonValue, parseStrictJson } from '../spec/json.js';
+import { isSurveyRecord } from '../survey/record.js';
+import { verifySurveyRecord } from '../survey/verify.js';
 import { type CliIo, UsageError } from './output.js';
 
 export async function verify(args: string[], io: CliIo): Promise<number> {
@@ -33,6 +35,24 @@ export async function verify(args: string[], io: CliIo): Promise<number> {
     if (!(e instanceof JsonReadError)) throw e;
     io.out(`NOT verified: ${path} is not a JSON record (${e.code}: ${e.message})\n`);
     return 1;
+  }
+
+  // A survey record (DRAFT, docs/survey.md) is told by its format field. It is never signed.
+  if (isSurveyRecord(value)) {
+    if (sig !== undefined) throw new UsageError('a survey record is not signed');
+    const survey = verifySurveyRecord(value);
+    if (!survey.ok) {
+      io.out(`NOT verified: ${path}\n`);
+      for (const problem of survey.problems) {
+        io.out(`  ${problem.member || '/'}: ${problem.message}\n`);
+      }
+      return 1;
+    }
+    const s = survey.record;
+    io.out(
+      `verified: ${path}: survey of ${s?.entries.length} pull requests; every embedded record, the selection, the aggregate and the digest recompute\n`,
+    );
+    return 0;
   }
 
   const result = verifyRecord(value);

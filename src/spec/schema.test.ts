@@ -148,6 +148,24 @@ describe('the published schemas', () => {
     expect(note.test('differs:check_runs_not_at_head')).toBe(false);
   });
 
+  it('accepts a local test record with exactly its kind, and its reason in a claim (spec 0.1.9)', () => {
+    const withRecord = (record: unknown) =>
+      validateBlock({
+        dunstan: '0.1',
+        headCommit: 'c0ffee12345678abcdef0123456789abcdef0123',
+        filesChanged: [],
+        tests: [{ command: 'pnpm test', count: 3, failures: 0, record }],
+      });
+    expect(withRecord({ kind: 'local' })).toEqual([]);
+    expect(withRecord({ kind: 'local', file: 'junit.xml' }).length).toBeGreaterThan(0);
+    expect(withRecord({ kind: 'Local', file: 'junit.xml' })).toEqual([]);
+    const claimReason = new RegExp(
+      (readSchema(RECORD_SCHEMA_FILE) as { $defs: Record<string, { pattern: string }> }).$defs
+        .claimReason?.pattern as string,
+    );
+    expect(claimReason.test('local_run_not_in_record')).toBe(true);
+  });
+
   it('accepts a test record of any other kind with any shape', () => {
     expect(
       validateBlock({

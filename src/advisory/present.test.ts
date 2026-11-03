@@ -142,14 +142,20 @@ const FIGURES_LINE =
 // `no_succeeded_check_runs`; and but for spec 0.1.8, for which the 0.1 record schema's claim reason
 // gained `check_runs_not_at_head` and the DRAFT schema's advisory note
 // `unanswered:check_runs_not_at_head`; and but for the DRAFT schema's reader claim reason
-// `duplicate_record_item`, for a test case two entries of the evidence share. A change to any of
-// them is a record change.
+// `duplicate_record_item`, for a test case two entries of the evidence share; and but for spec
+// 0.1.9, for which the block schema's test record gained the `local` kind and the 0.1 record
+// schema's claim reason `local_run_not_in_record`. A change to any of them is a record change. The
+// DRAFT survey schema is new beside them and changes none of them; it gained `selection.reader`,
+// then the listing's and its pages' `duplicates` and `uniqueItems` on the listed pull requests, the
+// selected numbers and the entries.
 const SCHEMA_SHA256: Record<string, string> = {
   'handback-block-0.1.schema.json':
-    '24388a8267afbc08f6355db16c7d0195e3b835227be3303490a70e45342397ba',
-  'record-0.1.schema.json': '3650764fd473f3f48c1b2cb373aa002ced9e39c05870fc5ba90d820745a0afce',
+    'f61ddacb345dc9d0529fec2d0e4d2742b9bc6c7f3b7887795f097a9671eab8ff',
+  'record-0.1.schema.json': 'f8821fbb35bb897ae1733f9cb33ae5a8d9d09d591b049761906134d6009c7911',
   'record-0.2-draft.schema.json':
     'b79f69b2d490379ef02fc3d22362677306b9fa0cc956e829d1022926d22ceff2',
+  'survey-0.1-draft.schema.json':
+    'b7a04ca0986e50078caae7fe988d9f6f83076f758ae62e580bec95b2a1d0cfcc',
 };
 
 const evidence: Evidence = {
@@ -305,7 +311,7 @@ describe('the record does not change, but for the figure fields', () => {
   it('no surface changes a byte of the record it shows', () => {
     const record = build();
     const before = serializeRecord(record);
-    renderRecord(record);
+    renderRecord(record, { hasToken: true });
     renderSummary({
       conclusion: 'success',
       verdict: record.predicate.verdict,
@@ -313,7 +319,7 @@ describe('the record does not change, but for the figure fields', () => {
       record,
       notes: [],
     });
-    const response = handbackResult(record, undefined, []);
+    const response = handbackResult(record, undefined, [], { hasToken: true });
     expect(serializeRecord(record)).toBe(before);
     const last = response.content.at(-1);
     expect(last?.type === 'text' ? last.text : '').toBe(before);
@@ -391,11 +397,11 @@ function surfacesOf(record: ReturnType<typeof build>): Record<string, string> {
     record,
     notes: [],
   });
-  const response = handbackResult(record, undefined, []).content.map((c) =>
+  const response = handbackResult(record, undefined, [], { hasToken: true }).content.map((c) =>
     c.type === 'text' ? c.text : '',
   );
   return {
-    cli: renderRecord(record),
+    cli: renderRecord(record, { hasToken: true }),
     title: titleFor(record),
     summary,
     mcp: response.slice(0, -1).join('\n'),

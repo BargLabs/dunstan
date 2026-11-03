@@ -23,6 +23,7 @@ import { main } from '../cli/main.js';
 import { diffPointers } from '../cli/rerun.js';
 import type { ReadEvidenceInput } from '../evidence/github.js';
 import type { DunstanRecord } from '../record/build.js';
+import { remedyFor } from '../remedy/remedies.js';
 import { canonicalize } from '../spec/jcs.js';
 import type { JsonValue } from '../spec/json.js';
 import { createDunstanMcpServer, TOOL_NAME } from './server.js';
@@ -62,8 +63,14 @@ const artifact = import.meta.url;
 const canon = (value: unknown) => canonicalize(value as JsonValue);
 const number = (c: FixtureCase) => (c.evidence.pullRequest as { number: number }).number;
 
+// The remedy lines each caller printed last (src/remedy/remedies.ts): the CLI's claims table and the
+// tool's, for one fixture.
+const printed = { cli: [] as string[], mcp: [] as string[] };
+const remedies = (text: string) => text.split('\n').filter((l) => /^ {2}remedy: /.test(l));
+
 async function viaCli(c: FixtureCase): Promise<DunstanRecord> {
   stub.evidence = c.evidence;
+  let stdout = '';
   const out = join(dir, 'cli', `${c.set}-${c.name}.json`);
   const code = await main(
     [
@@ -78,7 +85,9 @@ async function viaCli(c: FixtureCase): Promise<DunstanRecord> {
       out,
     ],
     {
-      out: () => {},
+      out: (t) => {
+        stdout += t;
+      },
       err: () => {},
       env: { GITHUB_TOKEN: 'test-token' },
       artifact,
@@ -86,6 +95,7 @@ async function viaCli(c: FixtureCase): Promise<DunstanRecord> {
     },
   );
   expect(code).not.toBe(3);
+  printed.cli = remedies(stdout);
   return JSON.parse(readFileSync(out, 'utf8')) as DunstanRecord;
 }
 
@@ -119,6 +129,7 @@ async function viaMcp(
   expect(result.isError).toBeFalsy();
   const text = result.content.map((item) => (item.type === 'text' ? item.text : ''));
   const record = JSON.parse(text[2] as string) as DunstanRecord;
+  printed.mcp = remedies(text[1] as string);
   // The record returned is the record written, byte for byte.
   expect(readFileSync(outPath, 'utf8')).toBe(text[2]);
   expect(text[0]).toMatch(new RegExp(`^verdict: ${record.predicate.verdict}\n`));
@@ -161,8 +172,24 @@ describe('MCP parity with dunstan check, reader stubbed', () => {
       expect(mcp.predicate.verdict).toBe(c.expected.verdict);
       expect(canon(mcp.predicate.claims)).toBe(canon(runCase(c).predicate.claims));
       expect(canon(mcp.predicate.digests)).toBe(canon(runCase(c).predicate.digests));
+      // The same remedy lines, one under each tests row that has one, in the same order.
+      const expected = cli.predicate.claims.flatMap((claim) => {
+        const remedy = remedyFor(claim, { hasToken: true });
+        return remedy === undefined ? [] : [`  remedy: ${remedy}`];
+      });
+      expect(printed.mcp).toEqual(printed.cli);
+      expect(printed.cli).toEqual(expected);
     },
   );
+
+  it('covers fixtures that print remedy lines', () => {
+    const named = cases
+      .filter((c) => runCase(c).predicate.claims.some((x) => remedyFor(x, { hasToken: true })))
+      .map((c) => c.name);
+    expect(named).toEqual(
+      expect.arrayContaining(['test-record-not-found', 'unsupported-test-record-kind']),
+    );
+  });
 
   const found = cases.filter((c) => runCase(c).predicate.block.status === 'found');
   it.each(found.map((c) => [`${c.set}/${c.name}`, c] as const))(

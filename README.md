@@ -1,5 +1,38 @@
 # Dunstan
 
+<p align="left"><img src="brand/dunstan-icon.png" alt="Dunstan logo" width="96"></p>
+
+**Verify an AI coding agent's pull request claims, with a verdict anyone can rerun.** The agent
+says which files it changed, which tests ran and which issues it closed; Dunstan checks each claim
+against the pull request, its commits and its CI runs, and reports the verdict as a check run. Every
+verdict comes with a record: `dunstan verify` recomputes it offline and `dunstan rerun` re-reads
+the sources, so a reviewer or customer can check it themselves. Deterministic, no LLM.
+
+Add it to a workflow; the agent's report goes in the pull request body
+(`npx -y dunstan template --base main` writes the block for you):
+
+```yaml
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+  deployments: read
+  checks: write
+  actions: read
+jobs:
+  handback:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: BargLabs/dunstan@v0.1.14 # pin the full commit SHA in production
+        with:
+          report-source: pr-body
+```
+
+More in [`docs/action.md`](docs/action.md).
+
 Dunstan holds a coding agent's completion report to the record.
 
 An agent finishes and writes a handback: files changed, tests run, references closed, head commit,
@@ -29,15 +62,18 @@ report a pull request's handback before it says done ([`plugins/dunstan/`](plugi
 /plugin install dunstan@barglabs
 ```
 
-The plugin runs the MCP server with `npx -y dunstan@0.1.13 mcp`, the `dunstan` npm package at that
+The plugin runs the MCP server with `npx -y dunstan@0.1.14 mcp`, the `dunstan` npm package at that
 exact version: one self-contained file, no dependencies.
 
 **The token.** When you enable the plugin, Claude Code asks for an optional GitHub token and keeps it
 in your system's secure credential store. Use a fine-grained personal access token with read-only
 permissions, limited to the repositories you check, with an expiry; the permissions are in
 [`docs/mcp.md`](docs/mcp.md#a-read-only-github-token). Leave it empty to read public repositories
-anonymously. GitHub's GraphQL API refuses anonymous calls, so without a token a `closes` reference is
-`unverifiable`, never `fail`. The plugin never reads a token from your environment.
+anonymously. Two kinds of claim need a token, even on a public repository: GitHub's GraphQL API
+refuses anonymous calls, so a `closes` reference is `unverifiable`, never `fail`; and GitHub answers
+an artifact download only with a token (401 "Requires authentication" anonymously, observed
+2026-11-02), so a `tests` count is `unverifiable` (`source_unreadable:artifact`). The plugin never
+reads a token from your environment.
 
 **What it reads, and from where.** The server runs on your machine and calls GitHub's API directly
 from it: the pull request, its changed files, commits, check runs, workflow runs and test artifacts,
@@ -96,6 +132,34 @@ handback covers what the issue asked for: an accurate report of the wrong work p
 
 What to declare: [`docs/agents.md`](docs/agents.md#the-instruction-block).
 
+## Survey: how much of a repository's handbacks can be checked
+
+`dunstan survey` (DRAFT) runs `dunstan check` over a repository's recent closed pull requests and
+reports settleability: which claims the record could not settle, why, and what would let it settle
+them. It is read-only and needs no token to start.
+
+```sh
+dist/dunstan.mjs survey --repo <owner/name> --last 30 [--author <agent-login>] --out survey.json --summary survey.md
+dist/dunstan.mjs verify survey.json   # offline: every embedded record, the selection, the aggregate and the digest
+```
+
+It reports two rates, each with its numerator, denominator and Wilson 95% interval:
+
+- **the share of claims the record could not settle**, (unverifiable + not record-checkable) / all
+  claims, led by a table of the reasons, each with its remedy;
+- **the share of settled claims the record contradicts**, contradicted / (supported +
+  contradicted).
+
+With `--advisory` it also runs the advisory prose reader and counts its notes in a table of their
+own. Advisory notes never enter either rate. A tests claim can be settled only with `GITHUB_TOKEN`
+set and a JUnit record that CI uploads: GitHub serves no artifact to an anonymous reader, and a
+test run CI never recorded, or a local run declared as one, is not record-checkable. The survey
+record says whether it read with a token, and an anonymous survey's summary says its
+cannot-settle share is higher for it. The survey measures what the record can settle. A survey
+record is unsigned: `verify` proves it consistent with itself and every embedded record valid, not
+that its listing is what GitHub returned, so to trust its completeness, run it again online.
+Details: [`docs/survey.md`](docs/survey.md).
+
 ## Declare before done
 
 Checking a declared claim is exact. Finding the claims in prose is where readers fail: a hosted
@@ -111,13 +175,35 @@ dist/dunstan.mjs suggest --report-file report.md  # prose claims the block does 
 ```
 
 `template` fills `headCommit` and `filesChanged` (HEAD against its merge base with the remote's
-default branch, or `--base`), and `tests` only from a JUnit file and the CI record named with it. It
+default branch, or `--base`). With `--tests-ci` it fills `tests` from the JUnit record CI published
+at HEAD, read as the gate reads it; with `--tests-local` it declares a local run as one (below). It
 never fills `references` or `mergedAt`, and when git cannot answer it prints no block. `suggest`
 runs the advisory extractor over the prose outside the fence and lists each claim it proposes that
 the block does not declare, to declare or reword. It is never a verdict, writes nothing to a record
 and always exits 0; the MCP server offers it as `dunstan_suggest_declarations`. The loop, an
 instruction block to copy into `AGENTS.md` or `CLAUDE.md`, and example output:
 [`docs/agents.md`](docs/agents.md).
+
+## Make test claims checkable
+
+Most claims about tests in a completion report ("all tests pass", "142 passed") cannot be checked
+from a repository's records today: the tests ran on the agent's machine, or CI ran them and
+published no counts. Dunstan settles a `tests` claim only against a JUnit file a CI run uploaded.
+Two changes make such claims checkable:
+
+1. **CI publishes the record.** One upload step after the test command: an artifact named
+   `dunstan-junit` holding `junit.xml`, uploaded even when the tests fail. Recipes for pytest,
+   jest, vitest, Maven, Gradle and Go, with `dunstan junit-merge` for runners that write one file
+   per test class: [`docs/ci-test-records.md`](docs/ci-test-records.md).
+2. **The agent declares CI's counts.** After CI has finished on its last push, `dunstan template
+   --tests-ci --tests-command <cmd> --tests-workflow <path> --tests-job <name>` reads the counts
+   from that record, as the gate will, and declares them. A run made only locally is declared with
+   `--tests-local <file>` as `{"kind": "local"}`, which the gate reports `unverifiable`
+   (`local_run_not_in_record`), never `pass`.
+
+Reading the artifact needs a token: without one a `tests` row is `unverifiable`
+(`source_unreadable:artifact`). Each `tests` row the record cannot settle is printed with a
+`remedy:` line saying what to do.
 
 ## The GitHub Action
 

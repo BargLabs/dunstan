@@ -333,11 +333,14 @@ function checkTests(block: Block, evidence: Evidence): Claim[] {
     const countField = `/tests/${i}/count`;
     const failuresField = `/tests/${i}/failures`;
     if (test.record.kind !== 'junit') {
-      rows.push(unverifiable('count', countField, test.count, 'no_comparable_record_field'));
+      // A `local` record (spec 0.1.9) declares a run that left no record in CI: nothing in the
+      // repository's record holds its counts. Any other kind names a record this version cannot
+      // compare.
+      const reason =
+        test.record.kind === 'local' ? 'local_run_not_in_record' : 'no_comparable_record_field';
+      rows.push(unverifiable('count', countField, test.count, reason));
       if (test.failures !== undefined) {
-        rows.push(
-          unverifiable('count', failuresField, test.failures, 'no_comparable_record_field'),
-        );
+        rows.push(unverifiable('count', failuresField, test.failures, reason));
       }
       return;
     }

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="3" failures="0" errors="0" time="0.812">
+  <testsuite name="sum" errors="0" failures="0" skipped="0" timestamp="2026-11-02T10:00:00" time="0.512" tests="2">
+    <testcase classname="sum adds two numbers" name="sum adds two numbers" time="0.003">
+    </testcase>
+    <testcase classname="sum adds negatives" name="sum adds negatives" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="format" errors="0" failures="0" skipped="0" timestamp="2026-11-02T10:00:01" time="0.3" tests="1">
+    <testcase classname="format pads a number" name="format pads a number" time="0.002">
+    </testcase>
+  </testsuite>
+</testsuites>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="1" tests="4" time="0.042" timestamp="2026-11-02T10:00:00.000000+00:00" hostname="runner"><testcase classname="tests.test_math" name="test_add" time="0.001" /><testcase classname="tests.test_math" name="test_sub" time="0.001" /><testcase classname="tests.test_math" name="test_div" time="0.002"><failure message="assert 0.5 == 2">def test_div():
+&gt;       assert 1 / 2 == 2
+E       assert 0.5 == 2
+
+tests/test_math.py:12: AssertionError</failure></testcase><testcase classname="tests.test_math" name="test_pow" time="0.000"><skipped type="pytest.skip" message="not on this platform">tests/test_math.py:15: not on this platform</skipped></testcase></testsuite></testsuites>

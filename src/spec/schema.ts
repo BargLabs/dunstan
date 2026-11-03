@@ -108,3 +108,18 @@ export function validateDraftRecord(value: unknown): SchemaError[] {
   }
   return draftRecord(value) ? [] : toSchemaErrors(draftRecord.errors);
 }
+
+// The DRAFT survey record schema (spec/claim-format.md, "DRAFT survey 0.1"), which refers into the
+// 0.1 record schema. Compiled at first use, like the DRAFT 0.2.0 record schema.
+export const SURVEY_SCHEMA_FILE = 'survey-0.1-draft.schema.json';
+
+let surveyRecord: Validator | undefined;
+
+export function validateSurveyRecord(value: unknown): SchemaError[] {
+  if (surveyRecord === undefined) {
+    const ajv = createAjv();
+    ajv.addSchema(readSchema(SURVEY_SCHEMA_FILE));
+    surveyRecord = ajv.getSchema(schemaId(SURVEY_SCHEMA_FILE)) as Validator;
+  }
+  return surveyRecord(value) ? [] : toSchemaErrors(surveyRecord.errors);
+}

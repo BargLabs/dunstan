@@ -25,9 +25,11 @@ export const OFFLINE_ROOTS = [
   'src/advisory',
   'src/check',
   'src/record',
+  'src/remedy',
   'src/retrieval',
   'src/spec',
   'src/suggest',
+  'src/survey',
 ] as const;
 export const OFFLINE_ENTRIES = ['src/cli/verify.ts'] as const;
 export const SUBPROCESS_FILE = 'src/record/sign.ts';
