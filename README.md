@@ -26,7 +26,7 @@ jobs:
   handback:
     runs-on: ubuntu-latest
     steps:
-      - uses: BargLabs/dunstan@v0.1.15 # pin the full commit SHA in production
+      - uses: BargLabs/dunstan@v0.1.16 # pin the full commit SHA in production
         with:
           report-source: pr-body
 ```
@@ -52,7 +52,7 @@ export exists).
 
 ## Use with Claude
 
-Dunstan ships as a Claude Code plugin: two MCP tools and a skill that has Claude declare, check and
+Dunstan ships as a Claude Code plugin: three MCP tools and a skill that has Claude declare, check and
 report a pull request's handback before it says done ([`plugins/dunstan/`](plugins/dunstan/)).
 
 **Install.** In Claude Code:
@@ -62,7 +62,7 @@ report a pull request's handback before it says done ([`plugins/dunstan/`](plugi
 /plugin install dunstan@barglabs
 ```
 
-The plugin runs the MCP server with `npx -y dunstan@0.1.15 mcp`, the `dunstan` npm package at that
+The plugin runs the MCP server with `npx -y dunstan@0.1.16 mcp`, the `dunstan` npm package at that
 exact version: one self-contained file, no dependencies.
 
 **The token.** When you enable the plugin, Claude Code asks for an optional GitHub token and keeps it

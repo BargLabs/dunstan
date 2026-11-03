@@ -1,10 +1,11 @@
 # The MCP self-check
 
-`dunstan mcp` serves two MCP tools over stdio. A coding agent calls `dunstan_check_handback` with its
-handback block before it says a task is done, and gets back the verdict, the claims table and the
-record. Before that, it calls `dunstan_suggest_declarations` with its report, and gets back the
-sentences in its prose that look like claims the block does not declare, to declare or reword
-([`docs/agents.md`](agents.md)).
+`dunstan mcp` serves three MCP tools over stdio. A coding agent calls `dunstan_check_handback` with
+its handback block before it says a task is done, and gets back the verdict, the claims table and the
+record. Before that, it calls `dunstan_template_handback` with its checkout, and gets back the block
+filled from local git (and its test counts from CI), exactly as `dunstan template` prints it; and it
+calls `dunstan_suggest_declarations` with its report, and gets back the sentences in its prose that
+look like claims the block does not declare, to declare or reword ([`docs/agents.md`](agents.md)).
 
 It is the same checker as `dunstan check`. The tool resolves the report from the request; everything
 after that (the evidence read, the checks, the record) is the code path the CLI runs. On the same
@@ -24,7 +25,7 @@ self-contained file with no dependencies, so nothing is built and nothing else i
 /plugin install dunstan@barglabs
 ```
 
-The plugin starts the server with `npx -y dunstan@0.1.15 mcp` and adds the `dunstan-check` skill. When
+The plugin starts the server with `npx -y dunstan@0.1.16 mcp` and adds the `dunstan-check` skill. When
 you enable it, Claude Code asks for an optional GitHub token (below). It stores the value in your
 system's secure credential store and passes it to the server as `GITHUB_TOKEN`. Leave it empty to read
 public repositories anonymously (a `closes` reference and a `tests` count then need the token; see
@@ -42,7 +43,7 @@ environment setting:
   "mcpServers": {
     "dunstan": {
       "command": "npx",
-      "args": ["-y", "dunstan@0.1.15", "mcp"],
+      "args": ["-y", "dunstan@0.1.16", "mcp"],
       "env": { "GITHUB_TOKEN": "<a fine-grained, read-only token>" }
     }
   }
@@ -91,8 +92,11 @@ Put this in the agent's instructions (`CLAUDE.md`, `AGENTS.md` or the system pro
 
 > Before you say a task is done:
 >
-> 1. Commit and push your last change, run `dunstan template`, and put the `dunstan-handback` block it
->    prints in your report. Add your test and reference claims to it.
+> 1. Commit and push your last change. Once CI has finished on it, call `dunstan_template_handback`
+>    with the absolute path of your checkout, the base branch (`base`) and `tests: { "from": "ci",
+>    … }`, and put the `dunstan-handback` block it returns in your report (`dunstan template
+>    --tests-ci` is the same thing from a shell). If its first line is `tests: not declared`, do what
+>    its note says; do not add counts yourself. Add your reference claims to the block.
 > 2. Call `dunstan_suggest_declarations` with your report. For each claim it lists, declare it in the
 >    block, or reword the sentence if it is not a claim about this pull request.
 > 3. Call `dunstan_check_handback` with the repository, the pull request number and your block
@@ -149,6 +153,50 @@ request that cannot be read, a pull request that moved while it was checked and 
 once more (`pull_request_moved`, spec section 6), a record that cannot be written. An error is not
 `pass`, and it is not `fail`. Nothing was checked.
 
+### `dunstan_template_handback`
+
+It is `dunstan template` with a different caller, for an agent whose client gives it MCP but no
+shell. After its inputs are read, the tool and the command line run one function
+(`runTemplate`, `src/template/run.ts`), so for the same inputs its fence is byte for byte what
+`dunstan template` prints on standard output, and its notes are the CLI's standard error lines
+(`src/mcp/template-parity.test.ts` holds this). It takes:
+
+| Input | Required | Value |
+| --- | --- | --- |
+| `directory` | yes | The absolute path of the local git checkout of the pull request's branch. Git runs there. |
+| `base` | no | The ref the pull request merges into, as `--base`. Absent: the remote's default branch. |
+| `tests` | no | One of the two objects below. Absent: no tests, as `dunstan template` with no tests flag. |
+
+`tests` is one of:
+
+- `{ "from": "ci", "command", "workflow", "job", "artifact"?, "artifactPath"?, "repository"? }`: the
+  same as `--tests-ci --tests-command --tests-workflow --tests-job [--tests-artifact]
+  [--tests-artifact-path] [--repo]`, with the same defaults (`dunstan-junit`, `junit.xml`, the
+  repository the origin remote names). It reads the counts at HEAD from the JUnit record CI
+  published, as the gate reads it, with `GITHUB_TOKEN`.
+- `{ "from": "local", "junit", "command" }`: the same as `--tests-local <junit> --tests-command
+  <command>`. A relative `junit` path resolves against `directory`.
+
+An unknown member, a `tests` with members of both forms, or a missing required member is an input
+error that names the member. `--tests-junit` (a local file's counts declared against a CI record)
+has no form here: a tool that let an agent declare its local counts against a CI record would invite
+the `count_mismatch` that `from: "ci"` exists to remove. Use `from: "ci"`, or `from: "local"` for a
+run CI has no record of.
+
+It returns two text items:
+
+1. A first line: `tests: declared`, `tests: not declared` or `tests: none asked`. When a CI read did
+   not settle, a second line: `The block below has no tests. Do not add counts yourself; do what the
+   note says.` Then every note, prefixed `note: `, in the CLI's order and wording.
+2. The `dunstan-handback` fence, byte for byte what `dunstan template` prints.
+
+A CI read that does not settle (no token, HEAD not pushed, CI not finished, no run uploaded the
+record, runs that disagree, an artifact that cannot be read) is not a tool error: the block is valid
+and returned, as the CLI prints it and exits 2. It is not success either: the first line says the
+tests are not declared, and the block has none. Whatever git cannot answer (not a repository, no
+HEAD, a detached HEAD, a base that does not resolve, no merge base), and an input error, come back
+as a tool error (`isError: true`) with no block.
+
 ### `dunstan_suggest_declarations`
 
 It takes one input, `report`, the report text with its `dunstan-handback` fence, and returns one
@@ -177,6 +225,13 @@ the prose. Details: [`docs/agents.md`](agents.md).
 - Standard output carries the protocol only. Diagnostics go to standard error.
 
 `dunstan_suggest_declarations` reads and writes nothing at all.
+
+`dunstan_template_handback` runs git in `directory` and writes nothing (`readOnlyHint: true`). With
+`tests.from: "ci"` it reads GitHub (`openWorldHint: true`): the workflow runs at HEAD, their jobs,
+and the named JUnit artifact, every request a `GET`, with `GITHUB_TOKEN` from the server's
+environment; without a token it reads nothing and says so (`no_token`). Without `tests`, or with
+`from: "local"`, it makes no network call. It returns the block and notes, never a file's contents:
+a JUnit file is read only for its counts.
 
 Because it can write `outPath`, the check tool does not advertise `readOnlyHint`. It advertises
 `destructiveHint: false` (it never overwrites) and `openWorldHint: true` (it reads GitHub).

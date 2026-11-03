@@ -10,9 +10,12 @@ import {
   basePullRequest,
   fakeGitHub,
   HEAD,
+  junitXml,
+  makeZip,
   REPO,
   type Scenario,
 } from '../__tests__/fake-github.js';
+import { featureRepository, isolateGit } from '../__tests__/git-repo.js';
 import type { AdvisorySection } from '../advisory/advise.js';
 import { extractClaims } from '../advisory/extract.js';
 import { ADVISORY_LINE, advisoryLine } from '../advisory/present.js';
@@ -22,7 +25,15 @@ import { buildRecord, recordBlock, serializeRecord } from '../record/build.js';
 import { CHECKER_NAME, CHECKER_VERSION } from '../record/checker.js';
 import { extractHandbackBlock } from '../spec/extract.js';
 import { suggestText } from '../suggest/suggest.js';
-import { createDunstanMcpServer, handbackResult, SUGGEST_TOOL_NAME, TOOL_NAME } from './server.js';
+import {
+  createDunstanMcpServer,
+  handbackResult,
+  SUGGEST_TOOL_NAME,
+  TEMPLATE_TOOL_NAME,
+  TOOL_NAME,
+} from './server.js';
+
+isolateGit();
 
 const BLOCK = { dunstan: '0.1', headCommit: HEAD, filesChanged: ['src/a.ts', 'src/b.ts'] };
 const REPORT = `Done.\n\n\`\`\`dunstan-handback\n{"dunstan":"0.1","headCommit":"${HEAD}","filesChanged":["src/a.ts"]}\n\`\`\`\n`;
@@ -69,7 +80,7 @@ describe('dunstan_check_handback', () => {
   it('is the check tool, with the subject and exactly one of block or report', async () => {
     const { client } = await connect();
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name)).toEqual([TOOL_NAME, SUGGEST_TOOL_NAME]);
+    expect(tools.map((t) => t.name)).toEqual([TOOL_NAME, SUGGEST_TOOL_NAME, TEMPLATE_TOOL_NAME]);
     const schema = tools[0]?.inputSchema as { properties: object; required: string[] };
     expect(Object.keys(schema.properties).sort()).toEqual(
       ['block', 'outPath', 'pullRequest', 'report', 'repository'].sort(),
@@ -251,7 +262,9 @@ describe('tool titles and annotations', () => {
     const { client } = await connect();
     const { tools } = await client.listTools();
     const byName = Object.fromEntries(tools.map((t) => [t.name, t]));
-    expect(Object.keys(byName).sort()).toEqual([TOOL_NAME, SUGGEST_TOOL_NAME].sort());
+    expect(Object.keys(byName).sort()).toEqual(
+      [TOOL_NAME, SUGGEST_TOOL_NAME, TEMPLATE_TOOL_NAME].sort(),
+    );
     expect(byName[TOOL_NAME]?.title).toBe('Check a handback against the record');
     expect(byName[TOOL_NAME]?.annotations).toEqual({
       readOnlyHint: false,
@@ -266,6 +279,203 @@ describe('tool titles and annotations', () => {
       idempotentHint: true,
       openWorldHint: false,
     });
+    // dunstan_template_handback writes nothing, and with tests.from "ci" reads GitHub.
+    expect(byName[TEMPLATE_TOOL_NAME]?.title).toBe('Generate a handback block from git');
+    expect(byName[TEMPLATE_TOOL_NAME]?.annotations).toEqual({
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: true,
+    });
+  });
+});
+
+describe('dunstan_template_handback', () => {
+  const ORIGIN = `https://github.com/${REPO}.git`;
+  const WORKFLOW = '.github/workflows/ci.yml';
+  const CI = { from: 'ci', command: 'pnpm test', workflow: WORKFLOW, job: 'Test' };
+
+  // A CI run at head whose artifact holds `executed` passing test cases, or none uploaded.
+  function ciScenario(head: string, executed: number | null): Scenario {
+    return {
+      pr: basePullRequest({ head: { sha: head } }),
+      workflowRuns: [
+        {
+          id: 801,
+          check_suite_id: 8010,
+          run_attempt: 1,
+          name: 'CI',
+          event: 'pull_request',
+          status: 'completed',
+          path: WORKFLOW,
+          head_sha: head,
+        },
+      ],
+      jobs: { 801: ['Test'] },
+      artifacts: {
+        801: executed === null ? [] : [{ id: 9801, name: 'dunstan-junit', expired: false }],
+      },
+      zips: {
+        9801: makeZip({ 'junit.xml': junitXml(Array<'pass'>(executed ?? 0).fill('pass')) }),
+      },
+    };
+  }
+
+  // A server whose fetch is the given one: the fake GitHub, or one that throws on any call.
+  async function template(args: Record<string, unknown>, fetchImpl: typeof fetch) {
+    const server = createDunstanMcpServer({
+      artifact: import.meta.url,
+      env: { GITHUB_TOKEN: 'test-token' },
+      fetch: fetchImpl,
+      warn: () => {},
+    });
+    const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverSide);
+    const client = new Client({ name: 'test', version: '0' });
+    await client.connect(clientSide);
+    const result = (await client.callTool({
+      name: TEMPLATE_TOOL_NAME,
+      arguments: args,
+    })) as CallToolResult;
+    const text = result.content.map((item) => (item.type === 'text' ? item.text : ''));
+    return { result, text, client };
+  }
+
+  const offline: typeof fetch = async (input) => {
+    throw new Error(`dunstan_template_handback must not read the network here: ${String(input)}`);
+  };
+
+  it('takes directory, and optionally base and one of two closed forms of tests', async () => {
+    const { client } = await connect();
+    const { tools } = await client.listTools();
+    const tool = tools.find((t) => t.name === TEMPLATE_TOOL_NAME);
+    const schema = tool?.inputSchema as {
+      properties: Record<string, { anyOf?: object[]; oneOf?: object[] }>;
+      required: string[];
+      additionalProperties?: boolean;
+    };
+    expect(Object.keys(schema.properties).sort()).toEqual(['base', 'directory', 'tests']);
+    expect(schema.required).toEqual(['directory']);
+    expect(schema.additionalProperties).toBe(false);
+    const forms = (schema.properties.tests?.oneOf ?? schema.properties.tests?.anyOf) as {
+      properties: Record<string, { const?: string }>;
+      required: string[];
+      additionalProperties: boolean;
+    }[];
+    expect(forms).toHaveLength(2);
+    const byFrom = Object.fromEntries(forms.map((f) => [f.properties.from?.const, f]));
+    expect(Object.keys(byFrom).sort()).toEqual(['ci', 'local']);
+    expect(Object.keys(byFrom.ci?.properties ?? {}).sort()).toEqual(
+      ['artifact', 'artifactPath', 'command', 'from', 'job', 'repository', 'workflow'].sort(),
+    );
+    expect(byFrom.ci?.required.sort()).toEqual(['command', 'from', 'job', 'workflow']);
+    expect(Object.keys(byFrom.local?.properties ?? {}).sort()).toEqual([
+      'command',
+      'from',
+      'junit',
+    ]);
+    expect(byFrom.local?.required.sort()).toEqual(['command', 'from', 'junit']);
+    for (const f of forms) expect(f.additionalProperties).toBe(false);
+  });
+
+  it.each([
+    ['an unknown tests member', { ...CI, record: 'x' }, /record/],
+    ['a tests mixing both forms', { ...CI, junit: 'junit.xml' }, /junit/],
+    [
+      'a local tests with a CI member',
+      { from: 'local', junit: 'j.xml', command: 'x', job: 'Test' },
+      /job/,
+    ],
+    ['a ci tests missing job', { from: 'ci', command: 'x', workflow: WORKFLOW }, /job/],
+    ['a repository that is not owner/name', { ...CI, repository: 'nope' }, /owner\/name/],
+  ])('refuses %s as an input error, reading nothing', async (_, tests, names) => {
+    const { dir } = featureRepository(ORIGIN);
+    const { result, text } = await template({ directory: dir, tests }, offline);
+    expect(result.isError).toBe(true);
+    expect(text.join('')).toMatch(names);
+    expect(text.join('')).not.toContain('```dunstan-handback');
+  });
+
+  it('refuses an unknown member and a relative directory as input errors', async () => {
+    const { dir } = featureRepository(ORIGIN);
+    const unknown = await template({ directory: dir, repository: REPO }, offline);
+    expect(unknown.result.isError).toBe(true);
+    expect(unknown.text.join('')).toMatch(/repository/);
+    const relative = await template({ directory: 'src' }, offline);
+    expect(relative.result.isError).toBe(true);
+    expect(relative.text.join('')).toMatch(/directory src is not an absolute path/);
+    expect(relative.text.join('')).toContain('This is an error: no block was produced.');
+  });
+
+  it('returns a directory that is not a repository as a tool error, not a fence', async () => {
+    const { result, text } = await template({ directory: dir, tests: CI }, offline);
+    expect(result.isError).toBe(true);
+    expect(text).toEqual([
+      `dunstan: not a git repository: ${dir}\nThis is an error: no block was produced.\n`,
+    ]);
+  });
+
+  it('says tests: not declared on line 1 when the CI read does not settle, and returns the block without tests', async () => {
+    const { dir: repo, head } = featureRepository(ORIGIN);
+    const fake = fakeGitHub(ciScenario(head, null));
+    const { result, text } = await template({ directory: repo, tests: CI }, fake.fetch);
+    expect(result.isError).toBeFalsy();
+    const lines = (text[0] as string).split('\n');
+    expect(lines[0]).toBe('tests: not declared');
+    expect(lines[1]).toBe(
+      'The block below has no tests. Do not add counts yourself; do what the note says.',
+    );
+    expect(text[0]).toMatch(/note: tests are not declared: .*\(record_not_found\)/);
+    const block = extractHandbackBlock(text[1] as string);
+    expect(block.status).toBe('found');
+    expect((block as { value: Record<string, unknown> }).value.tests).toBeUndefined();
+  });
+
+  it('declares the CI counts, and with from: ci every request is a GET', async () => {
+    const { dir: repo, head } = featureRepository(ORIGIN);
+    const fake = fakeGitHub(ciScenario(head, 5));
+    const { result, text } = await template({ directory: repo, tests: CI }, fake.fetch);
+    expect(result.isError).toBeFalsy();
+    expect((text[0] as string).split('\n')[0]).toBe('tests: declared');
+    const block = extractHandbackBlock(text[1] as string) as { value: Record<string, unknown> };
+    expect(block.value.tests).toEqual([
+      {
+        command: 'pnpm test',
+        count: 5,
+        failures: 0,
+        record: {
+          kind: 'junit',
+          workflow: WORKFLOW,
+          job: 'Test',
+          artifact: 'dunstan-junit',
+          path: 'junit.xml',
+        },
+      },
+    ]);
+    expect(fake.requests.length).toBeGreaterThan(0);
+    for (const request of fake.requests) expect(request).toMatch(/^GET /);
+  });
+
+  it('makes no network call with no tests or with from: local', async () => {
+    const { dir: repo } = featureRepository(ORIGIN);
+    const none = await template({ directory: repo }, offline);
+    expect(none.result.isError).toBeFalsy();
+    expect((none.text[0] as string).split('\n')[0]).toBe('tests: none asked');
+
+    writeFileSync(join(repo, 'junit.xml'), junitXml(['pass', 'fail']));
+    const local = await template(
+      { directory: repo, tests: { from: 'local', junit: 'junit.xml', command: 'pnpm test' } },
+      offline,
+    );
+    expect(local.result.isError).toBeFalsy();
+    expect((local.text[0] as string).split('\n')[0]).toBe('tests: declared');
+    // A relative junit path resolves against directory.
+    const block = extractHandbackBlock(local.text[1] as string) as {
+      value: Record<string, unknown>;
+    };
+    expect(block.value.tests).toEqual([
+      { command: 'pnpm test', count: 2, failures: 1, record: { kind: 'local' } },
+    ]);
   });
 });
 
@@ -439,6 +649,12 @@ describe('dunstan mcp', () => {
     });
     expect((await reply(1)).result.serverInfo.name).toBe('dunstan');
     send({ jsonrpc: '2.0', method: 'notifications/initialized' });
+    send({ jsonrpc: '2.0', id: 3, method: 'tools/list', params: {} });
+    expect((await reply(3)).result.tools.map((t: { name: string }) => t.name)).toEqual([
+      TOOL_NAME,
+      SUGGEST_TOOL_NAME,
+      TEMPLATE_TOOL_NAME,
+    ]);
     send({
       jsonrpc: '2.0',
       id: 2,

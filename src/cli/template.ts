@@ -8,18 +8,12 @@
 // valid and printed, so this is not an error (3), and it is not the block that was asked for, so a
 // script that pipes it into a report cannot take it for one with its tests (0). --tests-local and
 // --tests-junit read a local JUnit file and nothing online.
+//
+// This file reads the flags and refuses a usage error. Everything after that is runTemplate
+// (src/template/run.ts), which the MCP tool dunstan_template_handback calls too.
 
 import { parseArgs } from 'node:util';
-import { GitHubClient } from '../evidence/http.js';
-import {
-  headCommit,
-  isPushed,
-  originRepository,
-  renderBlock,
-  type TestsSource,
-  templateBlock,
-} from '../template/template.js';
-import { testsFromCi } from '../template/tests-ci.js';
+import { runTemplate, type TemplateTests } from '../template/run.js';
 import { REPOSITORY } from './check.js';
 import { type CliIo, EXIT, UsageError } from './output.js';
 
@@ -29,10 +23,6 @@ const RECORD_FLAGS = [
   'tests-artifact',
   'tests-artifact-path',
 ] as const;
-
-// The artifact and the file in it that docs/ci-test-records.md's recipes upload.
-export const DEFAULT_ARTIFACT = 'dunstan-junit';
-export const DEFAULT_ARTIFACT_PATH = 'junit.xml';
 
 export async function template(args: string[], io: CliIo): Promise<number> {
   const { values } = parseArgs({
@@ -58,9 +48,8 @@ export async function template(args: string[], io: CliIo): Promise<number> {
   }
   if (flag('repo') !== undefined && !ci) throw new UsageError('--repo goes with --tests-ci');
   const given = (['tests-command', ...RECORD_FLAGS] as const).filter((f) => flag(f) !== undefined);
-  const cwd = io.cwd ?? process.cwd();
 
-  let tests: TestsSource | undefined;
+  let tests: TemplateTests | undefined;
   if (ci) {
     const missing = (['tests-command', 'tests-workflow', 'tests-job'] as const).filter(
       (f) => flag(f) === undefined,
@@ -72,28 +61,15 @@ export async function template(args: string[], io: CliIo): Promise<number> {
     if (repo !== undefined && !REPOSITORY.test(repo)) {
       throw new UsageError('--repo must be <owner/name>');
     }
-    // Git first: a repository git cannot answer for is refused before anything is read.
-    const head = headCommit(cwd);
-    const repository = repo ?? originRepository(cwd);
-    const client = new GitHubClient({
-      token: io.env.GITHUB_TOKEN,
-      ...(io.fetch === undefined ? {} : { fetch: io.fetch }),
-      warn: (message) => io.err(`dunstan: ${message}\n`),
-    });
-    const read = await testsFromCi(client, {
-      repository,
-      headCommit: head,
+    tests = {
+      from: 'ci',
       command: flag('tests-command') as string,
-      pushed: isPushed(cwd, head),
-      record: {
-        kind: 'junit',
-        workflow: flag('tests-workflow') as string,
-        job: flag('tests-job') as string,
-        artifact: flag('tests-artifact') ?? DEFAULT_ARTIFACT,
-        path: flag('tests-artifact-path') ?? DEFAULT_ARTIFACT_PATH,
-      },
-    });
-    tests = { kind: 'ci', read };
+      workflow: flag('tests-workflow') as string,
+      job: flag('tests-job') as string,
+      artifact: flag('tests-artifact'),
+      artifactPath: flag('tests-artifact-path'),
+      repository: repo,
+    };
   } else if (flag('tests-local') !== undefined) {
     if (flag('tests-command') === undefined) {
       throw new UsageError('--tests-local needs --tests-command <cmd>');
@@ -101,7 +77,7 @@ export async function template(args: string[], io: CliIo): Promise<number> {
     const extra = RECORD_FLAGS.find((f) => flag(f) !== undefined);
     if (extra !== undefined) throw new UsageError(`--${extra} does not go with --tests-local`);
     tests = {
-      kind: 'local',
+      from: 'local',
       junit: flag('tests-local') as string,
       command: flag('tests-command') as string,
     };
@@ -115,22 +91,23 @@ export async function template(args: string[], io: CliIo): Promise<number> {
       );
     }
     tests = {
-      kind: 'junit',
+      from: 'junit',
       junit: flag('tests-junit') as string,
       command: flag('tests-command') as string,
-      record: {
-        workflow: flag('tests-workflow') as string,
-        job: flag('tests-job') as string,
-        artifact: flag('tests-artifact') as string,
-        path: flag('tests-artifact-path') as string,
-      },
+      workflow: flag('tests-workflow') as string,
+      job: flag('tests-job') as string,
+      artifact: flag('tests-artifact') as string,
+      artifactPath: flag('tests-artifact-path') as string,
     };
   } else if (given.length > 0) {
     throw new UsageError(`--${given[0]} goes with --tests-ci, --tests-local or --tests-junit`);
   }
 
-  const t = templateBlock({ cwd, base: flag('base'), tests });
-  io.out(renderBlock(t.block));
-  for (const note of t.notes) io.err(`dunstan: ${note}\n`);
-  return tests?.kind === 'ci' && tests.read.status === 'unsettled' ? EXIT.unverifiable : 0;
+  const run = await runTemplate(
+    { cwd: io.cwd ?? process.cwd(), base: flag('base'), tests },
+    { env: io.env, fetch: io.fetch, warn: (message) => io.err(`dunstan: ${message}\n`) },
+  );
+  io.out(run.fence);
+  for (const note of run.notes) io.err(`dunstan: ${note}\n`);
+  return run.tests === 'not_declared' ? EXIT.unverifiable : 0;
 }

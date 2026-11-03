@@ -189,7 +189,7 @@ jobs:
             const lines = require("fs").readFileSync("out.jsonl", "utf8").trim().split("\n").map(JSON.parse);
             const tools = lines.find((m) => m.id === 2).result.tools.map((t) => t.name).sort();
             console.log("tools:", tools.join(", "));
-            if (tools.join() !== "dunstan_check_handback,dunstan_suggest_declarations") process.exit(1);
+            if (tools.join() !== "dunstan_check_handback,dunstan_suggest_declarations,dunstan_template_handback") process.exit(1);
           '
       - name: claude plugin validate --strict, the plugin and the marketplace
         run: |

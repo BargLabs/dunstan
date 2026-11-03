@@ -7,8 +7,11 @@ deployments. Dunstan compares each claim with what GitHub records and returns `p
 `unverifiable`, with a claims table and a record that anyone can re-check offline. No model decides
 the verdict.
 
-This plugin adds two MCP tools and one skill:
+This plugin adds three MCP tools and one skill:
 
+- `dunstan_template_handback` generates the block from the local git checkout (`headCommit` and
+  `filesChanged`), and with `tests.from: "ci"` declares the test counts CI published, read as the
+  check reads them. It is `dunstan template` for an agent with no shell, and writes nothing.
 - `dunstan_suggest_declarations` lists sentences in the report's prose that look like claims the block
   does not declare. It reads nothing, writes nothing and never gives a verdict.
 - `dunstan_check_handback` checks the block against the pull request's record on GitHub and returns
@@ -22,12 +25,22 @@ handback covers what the issue asked for: an accurate report of the wrong work p
 
 ## What it runs, reads and sends
 
-The plugin starts the MCP server with `npx -y dunstan@0.1.15 mcp`, which downloads the `dunstan`
+The plugin starts the MCP server with `npx -y dunstan@0.1.16 mcp`, which downloads the `dunstan`
 package at that exact version from the npm registry. The package is one self-contained file with no
 dependencies. The server runs on your machine and reads GitHub's API directly from it: the pull
 request, its files, commits, check runs, workflow runs and artifacts, deployments, and the issues the
 block references. Every request is a read. Nothing is written to GitHub or the repository, and nothing
 is sent to Barg Labs.
+
+## Changes in 0.1.16
+
+- **`dunstan_template_handback`, a third MCP tool.** It is `dunstan template` for an agent with no
+  shell. Give it the absolute path of the checkout (`directory`) and the base branch (`base`). With
+  `tests.from: "ci"`, once CI has finished on the last push, it declares the test counts from the
+  JUnit record CI published, read as the check reads them. When those counts do not settle, it
+  returns the block without tests and says why, and the skill tells Claude never to fill them in by
+  hand. `tests.from: "local"` declares a local run. The block is byte for byte what the CLI prints:
+  [`docs/mcp.md`](../../docs/mcp.md).
 
 ## Changes in 0.1.15
 

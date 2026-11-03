@@ -9,12 +9,18 @@
 // It is a sibling tool rather than an option of the check because it needs no pull request and
 // reads nothing, and its output is never a verdict.
 //
+// And dunstan_template_handback is `dunstan template`, for an agent with no shell: the same
+// runTemplate (src/template/run.ts) the command line calls after reading its flags, so the fence is
+// byte-identical to what the CLI prints and the notes are its notes (src/mcp/template-parity.test.ts).
+// `--tests-junit` has no form here: it declares local counts against a CI record, the mismatch
+// `tests.from: "ci"` exists to remove.
+//
 // Read-only: GITHUB_TOKEN from the environment, metadata reads only, nothing written to GitHub or the
 // repository. The record is written to a file only when the caller passes outPath, and never over an
 // existing file. An error comes back as a tool error, never as a verdict.
 
 import { existsSync, writeFileSync } from 'node:fs';
-import { basename, resolve } from 'node:path';
+import { basename, isAbsolute, resolve } from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
@@ -36,9 +42,12 @@ import { readBlockContent } from '../spec/extract.js';
 import { CanonicalizationError, canonicalize } from '../spec/jcs.js';
 import type { JsonValue } from '../spec/json.js';
 import { suggestText } from '../suggest/suggest.js';
+import { runTemplate, type TemplateTests } from '../template/run.js';
+import { TemplateError } from '../template/template.js';
 
 export const TOOL_NAME = 'dunstan_check_handback';
 export const SUGGEST_TOOL_NAME = 'dunstan_suggest_declarations';
+export const TEMPLATE_TOOL_NAME = 'dunstan_template_handback';
 
 export interface DunstanMcpOptions {
   // The URL of the running checker artifact, whose digest the record carries.
@@ -59,11 +68,13 @@ export interface CheckHandbackInput {
 
 class InputError extends Error {}
 
-const INSTRUCTIONS = `Before you say a task is done: generate your dunstan-handback block with \`dunstan template\` and add your test and reference claims; call ${SUGGEST_TOOL_NAME} with your report and declare or reword each sentence it lists; then call ${TOOL_NAME} with your pull request and the block. If the verdict is not pass, report the rows as they are; never edit the block to make it pass without changing the work. The check reads only what the block declares; the prose is yours to bring into the block.`;
+const INSTRUCTIONS = `Before you say a task is done: call ${TEMPLATE_TOOL_NAME} with the absolute path of your checkout (and tests.from "ci" once CI has finished on your last push) to generate your dunstan-handback block, or run \`dunstan template\`, the same thing from a shell; add your reference claims; call ${SUGGEST_TOOL_NAME} with your report and declare or reword each sentence it lists; then call ${TOOL_NAME} with your pull request and the block. If the verdict is not pass, report the rows as they are; never edit the block to make it pass without changing the work. The check reads only what the block declares; the prose is yours to bring into the block.`;
 
 const SUGGEST_DESCRIPTION = `List the sentences in your report's prose that look like claims your dunstan-handback block does not declare, before you say done. Give report, the report text. For each, declare it in the block, or reword it if it is not a claim about this PR. Offline: needs no pull request, reads nothing and writes nothing. Never a verdict: nothing passes or fails, and nothing is written to a record. The same text as \`dunstan suggest\`.`;
 
 const DESCRIPTION = `Check a completion handback against the repository's own record, before you say done. Give the subject (repository owner/name and pull request number) and exactly one of: block, the dunstan-handback block as a JSON object; or report, the report text that carries exactly one \`\`\`dunstan-handback fence. Of the checks claims, checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded. Returns the verdict (pass, fail or unverifiable), the claims table, and the full record as JSON. Same checker and same verdict as \`dunstan check\` on the same evidence; no model decides. Reads GitHub metadata with GITHUB_TOKEN and writes nothing to GitHub or the repository; the record is written to a file only when you pass outPath. If the verdict is not pass, report the rows as they are; change the work, not the block.`;
+
+const TEMPLATE_DESCRIPTION = `Generate your dunstan-handback block from the local git checkout of your pull request's branch, after your last push: headCommit is HEAD, filesChanged is HEAD's diff against its merge base with base. Give directory, the checkout's absolute path. To declare tests, give tests.from "ci" with command, workflow and job once CI has finished on your last push: the counts are read from the JUnit record CI published, as the gate reads it, with GITHUB_TOKEN. tests.from "local" declares a local JUnit file as a local run, which the gate reports unverifiable. Returns the first line (tests: declared, tests: not declared, or tests: none asked) and the notes, then the fence, byte for byte what \`dunstan template\` prints. When the first line is tests: not declared, the block has no tests: do not add counts yourself; do what the note says. Add your references and checks yourself. Reads git and, with tests.from "ci", GitHub metadata and the JUnit artifact for its counts; writes nothing.`;
 
 // A block given as an object is read exactly as the content of a handback fence (spec section 5):
 // the report is the block's RFC 8785 bytes, so version and schema checks are the same as for a block
@@ -163,12 +174,67 @@ export function handbackResult(
   };
 }
 
-function toolError(error: unknown): CallToolResult {
+export interface TemplateHandbackInput {
+  directory: string;
+  base?: string | undefined;
+  tests?: TemplateTests | undefined;
+}
+
+const TESTS_LINE = {
+  declared: 'tests: declared',
+  not_declared: 'tests: not declared',
+  none: 'tests: none asked',
+} as const;
+
+// dunstan template with a different caller. The reader's warnings and the notes come back as
+// `note: ` lines, in the order the CLI prints them on standard error; the fence comes back as the
+// CLI prints it on standard output. A CI read that did not settle is not a tool error: the block is
+// valid and returned, and the first line says its tests are not declared.
+export async function templateHandback(
+  input: TemplateHandbackInput,
+  options: DunstanMcpOptions,
+): Promise<CallToolResult> {
+  if (!isAbsolute(input.directory)) {
+    throw new InputError(`directory ${input.directory} is not an absolute path`);
+  }
+  const warnings: string[] = [];
+  const run = await runTemplate(
+    { cwd: input.directory, base: input.base, tests: input.tests },
+    {
+      env: options.env,
+      fetch: options.fetch,
+      warn: (message) => {
+        warnings.push(message);
+        options.warn(`dunstan: ${message}\n`);
+      },
+    },
+  );
+  const head: string[] = [TESTS_LINE[run.tests]];
+  if (run.tests === 'not_declared') {
+    head.push('The block below has no tests. Do not add counts yourself; do what the note says.');
+  }
+  head.push(...[...warnings, ...run.notes].map((n) => `note: ${n}`));
+  return {
+    content: [
+      { type: 'text', text: `${head.join('\n')}\n` },
+      { type: 'text', text: run.fence },
+    ],
+  };
+}
+
+// What an error means, by tool: the check produced no verdict, the template no block.
+const ERROR_TAIL = {
+  check: 'This is an error, not a verdict: nothing was checked.',
+  template: 'This is an error: no block was produced.',
+} as const;
+
+function toolError(error: unknown, tail: keyof typeof ERROR_TAIL = 'check'): CallToolResult {
   const known =
     error instanceof InputError ||
     error instanceof PullRequestUnreadable ||
     error instanceof PullRequestMoved ||
     error instanceof CanonicalizationError ||
+    error instanceof TemplateError ||
     typeof (error as NodeJS.ErrnoException).code === 'string';
   const message = (error as Error).message ?? String(error);
   return {
@@ -176,11 +242,53 @@ function toolError(error: unknown): CallToolResult {
     content: [
       {
         type: 'text',
-        text: `dunstan: ${known ? message : `internal error: ${message}`}\nThis is an error, not a verdict: nothing was checked.\n`,
+        text: `dunstan: ${known ? message : `internal error: ${message}`}\n${ERROR_TAIL[tail]}\n`,
       },
     ],
   };
 }
+
+const nonEmpty = z.string().min(1);
+
+// The two forms of tests, each closed: an unknown member, or a member of the other form, is refused.
+const TEMPLATE_TESTS = z.discriminatedUnion('from', [
+  z
+    .object({
+      from: z.literal('ci'),
+      command: nonEmpty.describe('The command that ran the tests, as the block declares it.'),
+      workflow: nonEmpty.describe(
+        'The workflow file that ran them, as a path: .github/workflows/ci.yml.',
+      ),
+      job: nonEmpty.describe('The name of the job that uploaded the JUnit artifact.'),
+      artifact: nonEmpty
+        .optional()
+        .describe('The artifact holding the JUnit file. Absent: dunstan-junit.'),
+      artifactPath: nonEmpty
+        .optional()
+        .describe('The JUnit file in the artifact. Absent: junit.xml.'),
+      repository: z
+        .string()
+        .regex(REPOSITORY, 'repository must be owner/name')
+        .optional()
+        .describe('The GitHub repository, owner/name. Absent: the one the origin remote names.'),
+    })
+    .strict()
+    .describe(
+      "Read CI's counts at HEAD from the JUnit record CI published, as the gate reads it (dunstan template --tests-ci).",
+    ),
+  z
+    .object({
+      from: z.literal('local'),
+      junit: nonEmpty.describe(
+        'The local JUnit XML file; a relative path resolves against directory.',
+      ),
+      command: nonEmpty.describe('The command that ran the tests, as the block declares it.'),
+    })
+    .strict()
+    .describe(
+      'Declare a local JUnit file as a local run, which the gate reports unverifiable (dunstan template --tests-local).',
+    ),
+]);
 
 export function createDunstanMcpServer(options: DunstanMcpOptions): McpServer {
   const server = new McpServer(
@@ -254,6 +362,41 @@ export function createDunstanMcpServer(options: DunstanMcpOptions): McpServer {
       },
     },
     async (input) => ({ content: [{ type: 'text', text: suggestText(input.report) }] }),
+  );
+  server.registerTool(
+    TEMPLATE_TOOL_NAME,
+    {
+      title: 'Generate a handback block from git',
+      description: TEMPLATE_DESCRIPTION,
+      inputSchema: z
+        .object({
+          directory: nonEmpty.describe(
+            "The absolute path of the local git checkout of the pull request's branch. Git runs there.",
+          ),
+          base: nonEmpty
+            .optional()
+            .describe(
+              "The ref the pull request merges into, as dunstan template --base. Absent: the remote's default branch.",
+            ),
+          tests: TEMPLATE_TESTS.optional().describe(
+            'Which tests to declare. Absent: none, and the note says how.',
+          ),
+        })
+        .strict(),
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+    },
+    async (input) => {
+      try {
+        return await templateHandback(input, options);
+      } catch (error) {
+        return toolError(error, 'template');
+      }
+    },
   );
   return server;
 }

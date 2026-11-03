@@ -40,9 +40,11 @@ Copy this into `AGENTS.md`, `CLAUDE.md` or `.github/copilot-instructions.md`:
    or declares what you hope rather than what you did, is a false report, not a fix.
 ```
 
-With the MCP server registered ([`docs/mcp.md`](mcp.md)), step 3 is the tool
-`dunstan_suggest_declarations` with the report, and a final call to `dunstan_check_handback` checks
-the block against the pull request before the agent says done.
+With the MCP server registered ([`docs/mcp.md`](mcp.md)), the first call is
+`dunstan_template_handback` with the checkout's absolute path (and `tests.from: "ci"` once CI has
+finished): it returns the same block `dunstan template` prints, for an agent with no shell. Step 3 is
+the tool `dunstan_suggest_declarations` with the report, and a final call to `dunstan_check_handback`
+checks the block against the pull request before the agent says done.
 
 A handback is checked only for what its block declares, so declare the claims the issue's
 acceptance criteria rest on.
