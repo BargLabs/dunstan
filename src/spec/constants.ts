@@ -1,7 +1,7 @@
 // The values the spec (spec/claim-format.md) names. Each lives here once; the schemas carry the same
 // strings and src/spec/schema.test.ts checks that they agree.
 
-export const SPEC_VERSION = '0.1.9';
+export const SPEC_VERSION = '0.1.11';
 
 // The `dunstan` field a block declares: the spec's major.minor.
 export const BLOCK_VERSION = '0.1';
@@ -22,6 +22,12 @@ export const PREDICATE_TYPE = 'https://barglabs.ai/dunstan/record/v0.1';
 // record stays 0.1.
 export const DRAFT_SPEC_VERSION = '0.2.0-draft';
 export const DRAFT_PREDICATE_TYPE = 'https://barglabs.ai/dunstan/record/v0.2-draft';
+
+// DRAFT GitLab profile 0.1 (spec/claim-format.md, "DRAFT GitLab profile 0.1";
+// record-gitlab-0.1-draft.schema.json), for the operator to check. A record of a GitLab merge
+// request is written to it; every GitHub record stays 0.1, byte for byte.
+export const GITLAB_DRAFT_SPEC_VERSION = `${SPEC_VERSION}-gitlab-0.1-draft`;
+export const GITLAB_DRAFT_PREDICATE_TYPE = 'https://barglabs.ai/dunstan/record/v0.1-gitlab-draft';
 
 export const BLOCK_SUBJECT_NAME = 'handback-block';
 

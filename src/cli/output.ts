@@ -61,7 +61,8 @@ function table(rows: string[][]): string {
     .join('\n');
 }
 
-// `hasToken`: whether the record's reads were made with a token, for the wording of a remedy line
+// `hasToken`: whether the record's reads were made with a token, and `caller`: who reads the table
+// ('cli' here, 'mcp' for dunstan_check_handback), for the wording of a remedy line
 // (src/remedy/remedies.ts). Each tests row the record could not settle for a reason a repository
 // can act on is followed by one indented `remedy:` line; the record holds no remedy.
 export function renderRecord(record: DunstanRecord, context: RemedyContext): string {

@@ -71,13 +71,25 @@ export interface ReadOptions {
 
 const EMPTY = new Uint8Array();
 
-export class GitHubClient {
+// The forge a client reads: where its API is, and the headers every request carries besides the
+// user agent and the token. The token is only ever sent as `authorization: Bearer`, a header fetch
+// drops on a redirect to another origin.
+interface ForgeProfile {
+  baseUrl: string;
+  headers: Record<string, string>;
+}
+
+// One client per forge, each with the same `read` and `sources` contract (spec section 6): every
+// read recorded once per locator with its SHA-256, the same budgets, the same retries, the same
+// unreadable rules.
+class ForgeClient {
   readonly sources = new Map<string, Source>();
   readonly maxArchiveBytes: number;
   readonly maxEntryBytes: number;
   readonly #allocate: (size: number) => Uint8Array;
   readonly #token: string | undefined;
   readonly #baseUrl: string;
+  readonly #profileHeaders: Record<string, string>;
   readonly #fetch: typeof fetch;
   readonly #now: () => Date;
   readonly #sleep: (ms: number) => Promise<void>;
@@ -85,9 +97,10 @@ export class GitHubClient {
   readonly #maxAttempts: number;
   readonly #maxWaitMs: number;
 
-  constructor(options: ClientOptions = {}) {
+  constructor(options: ClientOptions, profile: ForgeProfile) {
     this.#token = options.token;
-    this.#baseUrl = options.baseUrl ?? DEFAULT_API;
+    this.#baseUrl = options.baseUrl ?? profile.baseUrl;
+    this.#profileHeaders = profile.headers;
     this.#fetch = options.fetch ?? fetch;
     this.#now = options.now ?? (() => new Date());
     this.#sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
@@ -187,8 +200,7 @@ export class GitHubClient {
     | { kind: 'network' }
   > {
     const headers: Record<string, string> = {
-      accept: 'application/vnd.github+json',
-      'x-github-api-version': '2022-11-28',
+      ...this.#profileHeaders,
       'user-agent': `dunstan/${CHECKER_VERSION}`,
     };
     if (this.hasToken) headers.authorization = `Bearer ${this.#token}`;
@@ -234,6 +246,40 @@ export class GitHubClient {
       }
       return { kind: 'response', status, body: bytes, etag: response.headers.get('etag') };
     }
+  }
+}
+
+export class GitHubClient extends ForgeClient {
+  constructor(options: ClientOptions = {}) {
+    super(options, {
+      baseUrl: DEFAULT_API,
+      headers: { accept: 'application/vnd.github+json', 'x-github-api-version': '2022-11-28' },
+    });
+  }
+}
+
+// DRAFT GitLab profile 0.1 (spec/claim-format.md). gitlab.com unless a self-managed host is given.
+export const DEFAULT_GITLAB_HOST = 'gitlab.com';
+
+// A host the GitLab reader may be pointed at: a lowercase DNS name, with no scheme, port, path or
+// credentials, so that nothing but a host can reach the record's subject entry or a request URL.
+export const GITLAB_HOST =
+  /^(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/;
+
+export interface GitLabClientOptions extends ClientOptions {
+  host?: string;
+}
+
+// Reads https://<host>/api/v4. No token by default; GITLAB_TOKEN, when the caller passes it, is
+// sent as `authorization: Bearer` and is never part of a locator, a source, a warning or an error.
+export class GitLabClient extends ForgeClient {
+  readonly host: string;
+
+  constructor(options: GitLabClientOptions = {}) {
+    const host = options.host ?? DEFAULT_GITLAB_HOST;
+    if (!GITLAB_HOST.test(host)) throw new Error('a GitLab host is a lowercase DNS name');
+    super(options, { baseUrl: `https://${host}`, headers: { accept: 'application/json' } });
+    this.host = host;
   }
 }
 

@@ -10,6 +10,7 @@ import type { JunitRecord, TestRun } from '../check/types.js';
 import { readTestRecord, type TestRecordObserved } from '../evidence/github.js';
 import type { GitHubClient } from '../evidence/http.js';
 import { remedyForReason } from '../remedy/remedies.js';
+import { type Caller, phrase } from './wording.js';
 
 export interface CiTestsInput {
   repository: string;
@@ -18,6 +19,8 @@ export interface CiTestsInput {
   command: string;
   // Whether a remote-tracking branch holds HEAD (src/template/template.ts, isPushed).
   pushed: boolean;
+  // Who reads the notes: their instructions name flags or tool inputs (./wording.ts).
+  caller: Caller;
 }
 
 export type CiTests =
@@ -33,19 +36,20 @@ function unsettled(reason: string, why: string, remedy: string | undefined): CiT
 }
 
 export async function testsFromCi(client: GitHubClient, input: CiTestsInput): Promise<CiTests> {
-  const { repository, headCommit: head, record } = input;
+  const { repository, headCommit: head, record, caller } = input;
+  const againCi = phrase(caller, 'againCi');
   if (!client.hasToken) {
     return unsettled(
       'no_token',
       'GITHUB_TOKEN is not set, and GitHub answers an artifact download only with a token, even on a public repository',
-      'set GITHUB_TOKEN to a token that can read the repository, with actions: read, and run dunstan template --tests-ci again.',
+      `set GITHUB_TOKEN to a token that can read the repository, with actions: read, and ${againCi}.`,
     );
   }
   if (!input.pushed) {
     return unsettled(
       'not_pushed',
       `HEAD ${head} is not on any remote-tracking branch, so no CI run can have tested it`,
-      'push it, wait for CI to finish, and run dunstan template --tests-ci again (run git fetch first if it was pushed from elsewhere).',
+      `push it, wait for CI to finish, and ${againCi} (run git fetch first if it was pushed from elsewhere).`,
     );
   }
 
@@ -56,7 +60,7 @@ export async function testsFromCi(client: GitHubClient, input: CiTestsInput): Pr
     observed.runsNotCompleted > 0
       ? `CI has not finished: ${plural(observed.runsNotCompleted, 'run', 'runs')} of ${record.workflow} at ${head} ${observed.runsNotCompleted === 1 ? 'is' : 'are'} not completed`
       : undefined;
-  const again = 'run dunstan template --tests-ci again once CI has finished on this commit.';
+  const again = `${againCi} once CI has finished on this commit.`;
 
   if (evidence.status !== 'ok') {
     const reason =
@@ -71,7 +75,7 @@ export async function testsFromCi(client: GitHubClient, input: CiTestsInput): Pr
     return unsettled(
       reason,
       why,
-      remedyForReason(reason, { hasToken: true }) ?? 'run dunstan template --tests-ci again.',
+      remedyForReason(reason, { hasToken: true, caller }) ?? `${againCi}.`,
     );
   }
   if (evidence.runs.length === 0) {
@@ -85,7 +89,7 @@ export async function testsFromCi(client: GitHubClient, input: CiTestsInput): Pr
     return unsettled(
       'record_not_found',
       `no run of ${record.workflow} at ${head} uploaded ${named}`,
-      remedyForReason('record_not_found', { hasToken: true }),
+      remedyForReason('record_not_found', { hasToken: true, caller }),
     );
   }
   const executed = new Set(evidence.runs.map((r) => r.executed));
@@ -108,7 +112,7 @@ export async function testsFromCi(client: GitHubClient, input: CiTestsInput): Pr
   ];
   if (pending !== undefined) {
     notes.push(
-      `${pending}; a run that finishes later with other counts makes the gate's read ambiguous. Run dunstan template --tests-ci again once CI has finished.`,
+      `${pending}; a run that finishes later with other counts makes the gate's read ambiguous. ${phrase(caller, 'againCiSentence')} once CI has finished.`,
     );
   }
   return {

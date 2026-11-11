@@ -19,7 +19,7 @@ the block must say what you actually did.
    the info string `dunstan-handback`, in the exact shape below. Call `dunstan_template_handback`
    with `directory`, the absolute path of your checkout of the pull request's branch, and `base`,
    the branch it merges into. It fills `headCommit` and `filesChanged` from local git and returns the
-   fence to paste. From a shell, `npx -y dunstan@0.1.16 template --base <base branch>` does the same.
+   fence to paste. From a shell, `npx -y dunstan@0.1.18 template --base <base branch>` does the same.
 
    **Test counts come from CI, not from your own run.** After CI has finished on your last push, add
    `tests: { "from": "ci", "command": <the test command>, "workflow": <workflow file>, "job": <job
@@ -110,8 +110,10 @@ The full specification: https://github.com/BargLabs/dunstan/blob/main/spec/claim
   - `closing_event_unsettled`: the issue is closed, but GitHub has not yet recorded what closed it.
     Checking again later can settle it.
 - A `tests` row that is `unverifiable` with `record_not_found`, `no_comparable_record_field`,
-  `local_run_not_in_record` or `source_unreadable:artifact` is followed by a `remedy:` line. Pass it
-  on as it is: it says what the repository or you can do so the count can be checked.
+  `local_run_not_in_record`, `record_producer_changed_by_pr` or `source_unreadable:artifact` is
+  followed by a `remedy:` line. Pass it on as it is: it says what the repository or you can do so
+  the count can be checked. `record_producer_changed_by_pr` means the pull request changes the
+  workflow that wrote the test record, so the record cannot vouch for the change.
 - The tool does not read the prose, so it returns no advisory notes. If you are shown a Dunstan record
   with advisory notes (from `dunstan check --advisory`), describe each `differs` note as "possible
   disagreement, unverified". An advisory note is never a verdict and never proof of a false claim.

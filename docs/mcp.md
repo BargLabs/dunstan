@@ -25,7 +25,7 @@ self-contained file with no dependencies, so nothing is built and nothing else i
 /plugin install dunstan@barglabs
 ```
 
-The plugin starts the server with `npx -y dunstan@0.1.16 mcp` and adds the `dunstan-check` skill. When
+The plugin starts the server with `npx -y dunstan@0.1.18 mcp` and adds the `dunstan-check` skill. When
 you enable it, Claude Code asks for an optional GitHub token (below). It stores the value in your
 system's secure credential store and passes it to the server as `GITHUB_TOKEN`. Leave it empty to read
 public repositories anonymously (a `closes` reference and a `tests` count then need the token; see
@@ -43,7 +43,7 @@ environment setting:
   "mcpServers": {
     "dunstan": {
       "command": "npx",
-      "args": ["-y", "dunstan@0.1.16", "mcp"],
+      "args": ["-y", "dunstan@0.1.18", "mcp"],
       "env": { "GITHUB_TOKEN": "<a fine-grained, read-only token>" }
     }
   }
@@ -144,7 +144,12 @@ It returns three text items:
 1. `verdict: <pass|fail|unverifiable>`, a reminder to report the rows as they are when the verdict is
    not `pass`, where the record was written (or that it was not), and any `note:` (an anonymous read,
    a source that gave up).
-2. The claims table, exactly as `dunstan check` prints it.
+2. The claims table as `dunstan check` prints it: the same rows and the same remedy lines under them,
+   in the same order, with the instructions in those lines worded for a tool caller (inputs, not
+   flags). Where the CLI's line says `dunstan template --tests-ci fills them`, the tool's says
+   `dunstan_template_handback with tests.from "ci" fills them`. The two differ only by the phrase
+   table in `src/template/wording.ts` (`src/mcp/parity.test.ts` holds this). The record holds no
+   remedy line, so it does not change.
 3. The record as JSON, exactly as `dunstan check --out` writes it. `dunstan verify` re-checks it
    offline once it is saved to a file.
 
@@ -158,8 +163,11 @@ once more (`pull_request_moved`, spec section 6), a record that cannot be writte
 It is `dunstan template` with a different caller, for an agent whose client gives it MCP but no
 shell. After its inputs are read, the tool and the command line run one function
 (`runTemplate`, `src/template/run.ts`), so for the same inputs its fence is byte for byte what
-`dunstan template` prints on standard output, and its notes are the CLI's standard error lines
-(`src/mcp/template-parity.test.ts` holds this). It takes:
+`dunstan template` prints on standard output, and its notes are the CLI's standard error lines: the
+same notes in the same order, with the instructions worded for a tool caller (inputs, not flags).
+Where the CLI's note says `run dunstan template again`, the tool's says `call
+dunstan_template_handback again`. Its errors are worded the same way. The two differ only by the
+phrase table in `src/template/wording.ts` (`src/mcp/template-parity.test.ts` holds this). It takes:
 
 | Input | Required | Value |
 | --- | --- | --- |
@@ -187,7 +195,8 @@ It returns two text items:
 
 1. A first line: `tests: declared`, `tests: not declared` or `tests: none asked`. When a CI read did
    not settle, a second line: `The block below has no tests. Do not add counts yourself; do what the
-   note says.` Then every note, prefixed `note: `, in the CLI's order and wording.
+   note says.` Then every note, prefixed `note: `: the same notes in the same order as the CLI's,
+   with the instructions worded for a tool caller (inputs, not flags).
 2. The `dunstan-handback` fence, byte for byte what `dunstan template` prints.
 
 A CI read that does not settle (no token, HEAD not pushed, CI not finished, no run uploaded the

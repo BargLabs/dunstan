@@ -104,7 +104,7 @@ export async function template(args: string[], io: CliIo): Promise<number> {
   }
 
   const run = await runTemplate(
-    { cwd: io.cwd ?? process.cwd(), base: flag('base'), tests },
+    { cwd: io.cwd ?? process.cwd(), base: flag('base'), tests, caller: 'cli' },
     { env: io.env, fetch: io.fetch, warn: (message) => io.err(`dunstan: ${message}\n`) },
   );
   io.out(run.fence);

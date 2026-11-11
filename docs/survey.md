@@ -38,7 +38,9 @@ names a JUnit record comes out unverifiable (`source_unreadable:artifact`), and 
 `closes` claim (GitHub's GraphQL API refuses anonymous calls). A test run the block names but no CI
 run uploaded is `record_not_found`, a run against a record kind other than `junit` is
 `no_comparable_record_field`, and a run the block declares as local (`{"kind": "local"}`) is
-`local_run_not_in_record`. All three count as not record-checkable.
+`local_run_not_in_record`. All three count as not record-checkable. A tests claim whose pull
+request changes the workflow its record names is `record_producer_changed_by_pr` (spec 0.1.10): the
+record exists and the pull request wrote it, so it counts as unverifiable.
 
 **The record says whether it read with a token.** `selection.reader` is `{"authenticated": true}`
 when `GITHUB_TOKEN` was set and `false` when it was not; the token itself is never recorded. The
@@ -96,13 +98,14 @@ record is an exact integer or a four-decimal string. The second rate's denominat
 claims the record could settle. The claims it could not settle are the first rate, stated beside
 it, never left out silently.
 
-## The mapping (version 0.2)
+## The mapping (version 0.3)
 
 `src/survey/mapping.ts`. A test pins the version to a digest of the whole mapping and of every
 remedy line, as worded with and without a token, so a change to either is a new version. Version
 0.2 differs from 0.1 in two ways: the remedy lines are the one table the claims table also prints
 from, each a function of the reader, with the claims table's wording for the four tests reasons;
-and `local_run_not_in_record` is not record-checkable.
+and `local_run_not_in_record` is not record-checkable. Version 0.3 differs from 0.2 only in a
+remedy line for `record_producer_changed_by_pr` (spec 0.1.10); the types and columns are unchanged.
 
 | Claim row | Type |
 | --- | --- |
@@ -130,10 +133,11 @@ GitHub was read with a token), and the survey's summary prints it beside each re
 not be settled. Every reason in the spec's section 16 has a line: a reason that decides a claim
 reads "no remedy: the record decides", and a test fails when a reason has neither. The same table
 gives the `remedy:` line that `dunstan check`, the Action's summary and the MCP tool print under a
-tests row unverifiable for one of the four tests reasons below. The lines the survey leads with:
+tests row unverifiable for one of the five tests reasons below. The lines the survey leads with:
 
 | Reason | Remedy |
 | --- | --- |
+| `record_producer_changed_by_pr` | This pull request changes the workflow that produced the test record, so the record is its own evidence. Land the workflow change separately, then declare the counts. |
 | `record_not_found` | no run of the named workflow at the head uploaded that artifact from that job. Publish the JUnit record from CI (docs/ci-test-records.md), then check that the record's workflow, job, artifact and path are the ones the run used: dunstan template --tests-ci fills them. |
 | `no_comparable_record_field` | this record's kind has nothing Dunstan can compare. Name a junit record a CI run uploaded (docs/ci-test-records.md); for a run that left no record in CI, declare {"kind": "local"}. |
 | `local_run_not_in_record` | these counts are from a local run. Publish the JUnit record from CI (docs/ci-test-records.md), and run dunstan template --tests-ci after CI has finished on your last push. |

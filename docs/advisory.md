@@ -128,8 +128,9 @@ wording left the comparison at 0.2.0. A consumer that reads the record reads the
 record changes since are the figure fields of the advisory section ("Measured figures", below),
 comparison 0.3.0, which keeps `differs:declared_not_changed` only for a path that is a file at the
 head ("Paths that are not at the head", below), and comparison 0.4.0, which reads who closed a
-`closes` target ("Closes read by who closed the target", below). The `not_closing` wording changed
-with 0.4.0 to say what is now read.
+`closes` target ("Closes read by who closed the target", below), and comparison 0.5.0, which asks
+only that a cited commit exists ("Cited commits that the head does not reach", below). The
+`not_closing` wording changed with 0.4.0 to say what is now read.
 `src/advisory/present.ts` holds the wording. `src/advisory/present.test.ts` pins the schemas'
 SHA-256 and a record's notes and digests, and checks each surface's text, with and without the
 figures.
@@ -147,13 +148,13 @@ figures.
    `observed` and `note`. A file claim is also matched by name ("Bare file names", below), and one
    still not among the changed files is a disagreement only when its path is a file at the head.
    The rules of this step are the **comparison**, versioned apart from the extractor: the record's
-   `advisory.comparison.version` is `0.4.0`.
+   `advisory.comparison.version` is `0.5.0`.
 
 | Kind | Value | Gate check | Notes it can carry |
 | --- | --- | --- | --- |
 | `file_changed` | path | 7.3 scope, one declared path, then by name, then the path at the head | `agrees`, `agrees_by_name`, `differs:declared_not_changed` (a file at the head), `unanswered:no_such_path`, `unanswered:directory`, `unanswered:source_unreadable:path`, `unanswered:ambiguous_path`, `unanswered:file_list_truncated` |
 | `reference_closes` | `#N`, `owner/repo#N` | 7.4 `closes` | `agrees` (among the closing references, or closed by this pull request or one of its commits), `differs:not_closing` (merged or closed pull request), `differs:not_found`, `unanswered:closing_link_unsettled` (open pull request), `unanswered:closing_base_not_default` (merged elsewhere, target open), `unanswered:closing_event_unsettled` (target closed, no ClosedEvent yet), `unanswered:…` |
-| `commit` | 7 to 40 hex | 7.2 if the head starts with it, else 7.4 `cites` (40 hex only) | `agrees`, `differs:not_found`, `differs:not_reachable`, `unanswered:…` |
+| `commit` | 7 to 40 hex | 7.2 if the head starts with it, else 7.4 `cites` (40 hex only) | `agrees`, `differs:not_found`, `unanswered:…` (`differs:not_reachable` before comparison 0.5.0) |
 | `head_commit` | 7 to 40 hex | 7.2 head | `agrees`, `differs:head_mismatch` |
 | `checks_succeeded` | boolean | 7.5 `allSucceeded` | `agrees`, `differs:all_succeeded_mismatch`, `unanswered:checks_incomplete`, `unanswered:no_check_runs`, `unanswered:check_runs_not_at_head` (check runs read at the block's `headCommit`, which is not the head; spec 0.1.8) |
 | `check_count` | integer | 7.5 `total` | `agrees`, `differs:count_mismatch`, `unanswered:check_runs_not_at_head` |
@@ -311,6 +312,34 @@ and is not rebound, so a record compared by 0.4.0 carries `null` for `differsAcc
 The rules are pinned by synthetic tests in `advise.test.ts`, "reference_closes is settled by who
 closed the target (spec 0.1.4, comparison 0.4.0)", and in `src/check/checks.test.ts`, "a closes
 missing from the closing references is settled by who closed the target".
+
+### Cited commits that the head does not reach (comparison 0.5.0)
+
+A `commit` claim of 40 hex that is not the head is compared by the gate's 7.4 `cites` check, which
+spec 0.1.11 changed (issue #127): a cited commit passes if it exists in the subject repository,
+whether or not the head reaches it. A commit that landed on the base branch after the pull request
+branched, or one on another branch, is a true citation. Comparison 0.5.0 is 0.4.0 with that check
+under it:
+
+| What the record shows | Note |
+| --- | --- |
+| the commit exists, and the head reaches it | `agrees` |
+| the commit exists, and the head does not reach it | `agrees` (`differs:not_reachable` under 0.4.0) |
+| the commit does not exist | `differs:not_found` |
+| the commit, or the compare with the head, could not be read | `unanswered:source_unreadable:…` |
+
+The reads are unchanged: the commit and its compare with the head are still asked for, and
+`observed` still records `{exists, reachableFromHead}`. Only the note changes. A record written
+under 0.4.0 keeps its `differs:not_reachable` notes, and its wording stays in
+`src/advisory/present.ts`.
+
+**Comparison 0.5.0 is unmeasured.** The published `differs` figure is bound to comparison 0.2.0
+and is not rebound, so a record compared by 0.5.0 carries `null` for `differsAccuracy`, shown as
+"unmeasured", until 0.5.0 is measured.
+
+The rule is pinned by synthetic tests in `advise.test.ts`, "commit and head_commit read the head,
+or a cited commit", and in `src/check/checks.test.ts`, "passes a cites commit that exists,
+reachable from the head or not".
 
 ## The grammar, as written
 

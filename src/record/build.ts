@@ -19,6 +19,8 @@ import {
   BLOCK_SUBJECT_NAME,
   DRAFT_PREDICATE_TYPE,
   DRAFT_SPEC_VERSION,
+  GITLAB_DRAFT_PREDICATE_TYPE,
+  GITLAB_DRAFT_SPEC_VERSION,
   PREDICATE_TYPE,
   SPEC_VERSION,
   STATEMENT_TYPE,
@@ -63,11 +65,20 @@ export type Assurance =
   | { status: 'unsigned'; issuer: 'self-generated' }
   | { status: 'signed'; issuer: string; keyFingerprint: string };
 
+// DRAFT GitLab profile 0.1: the forge a GitLab record's evidence was read from. A record without it
+// is a GitHub record, as every record written before the profile is.
+export interface Forge {
+  kind: 'gitlab';
+  host: string;
+}
+
 export interface RecordSubject {
   repository: string;
   pullRequest: number;
   headSha: string;
   mergeSha: string | null;
+  // DRAFT GitLab profile 0.1 only. Never present in a GitHub record.
+  forge?: Forge;
 }
 
 export interface Predicate {
@@ -139,7 +150,7 @@ export function claimsFor(block: RecordBlock, evidence: Evidence, repository: st
 export function statementSubjects(block: RecordBlock, subject: RecordSubject): StatementSubject[] {
   const subjects: StatementSubject[] = [
     {
-      name: `git+https://github.com/${subject.repository}@${subject.headSha}`,
+      name: `git+https://${subject.forge?.host ?? 'github.com'}/${subject.repository}@${subject.headSha}`,
       digest: { gitCommit: subject.headSha },
     },
   ];
@@ -171,6 +182,9 @@ export interface BuildInput {
   // with no answer here is recorded unreadable. Never evidence: it is recorded in the advisory
   // section, so `digests.evidence` and `digests.claims` are the same with or without it.
   pathsAtHead?: readonly PathAnswer[];
+  // DRAFT GitLab profile 0.1: given, the record is of a GitLab merge request and is written to the
+  // profile; absent, it is a GitHub record exactly as before.
+  forge?: Forge;
 }
 
 export function readerClaimsDigest(readerClaims: readonly ReaderClaim[]): string {
@@ -187,6 +201,7 @@ export function buildRecord(input: BuildInput): DunstanRecord {
     headSha: pr.headSha,
     mergeSha: pr.mergeSha,
   };
+  if (input.forge !== undefined) subject.forge = { kind: input.forge.kind, host: input.forge.host };
   const claims = claimsFor(block, evidence, repository);
   const readerClaims = input.readerClaims?.map((c) => readReaderClaim(c, evidence, repository));
   const advisory =
@@ -214,6 +229,14 @@ export function buildRecord(input: BuildInput): DunstanRecord {
       assurance: input.assurance ?? { status: 'unsigned', issuer: 'self-generated' },
     },
   };
+  if (input.forge !== undefined) {
+    // The GitLab profile carries no reader claims or advisories in this draft.
+    if (readerClaims !== undefined || advisory !== undefined) {
+      throw new Error('a GitLab record carries no reader claims or advisories in this draft');
+    }
+    record.predicateType = GITLAB_DRAFT_PREDICATE_TYPE;
+    record.predicate.spec = GITLAB_DRAFT_SPEC_VERSION;
+  }
   if (readerClaims !== undefined || advisory !== undefined) {
     record.predicateType = DRAFT_PREDICATE_TYPE;
     record.predicate.spec = DRAFT_SPEC_VERSION;

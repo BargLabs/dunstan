@@ -107,7 +107,7 @@ export function aggregate(
   advisory: boolean,
   reader: SurveyReader,
 ): SurveyAggregate {
-  const context = { hasToken: reader.authenticated };
+  const context = { hasToken: reader.authenticated, caller: 'cli' } as const;
   const totals = zero();
   const types = new Map<ClaimType, ColumnCounts>(CLAIM_TYPES.map((t) => [t.type, zero()]));
   const unsettled = new Map<string, { column: Column; count: number }>();

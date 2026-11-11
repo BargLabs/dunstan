@@ -285,11 +285,11 @@ export function checkReferences(block: Block, evidence: Evidence, repository: st
         entry.status === 'ok' ? absentSection('references') : unreadReason(entry),
       );
     }
+    // A cited commit need not be in the head's history (spec 0.1.11, section 7.4): a commit that
+    // landed on the base after the branch, or one on another branch, is a true citation. Whether
+    // the head reaches it is recorded and decides nothing.
     const observed = { exists: entry.exists, reachableFromHead: entry.reachableFromHead };
     if (!entry.exists) return fail('reference', field, reference, observed, 'not_found');
-    if (!entry.reachableFromHead) {
-      return fail('reference', field, reference, observed, 'not_reachable');
-    }
     return pass('reference', field, reference, observed);
   });
 }
@@ -327,6 +327,23 @@ function countRow(
     : fail('count', field, declared, observed, 'count_mismatch');
 }
 
+// Why a `junit` record cannot be compared, if the changed files say so (spec 0.1.10, section 7.5).
+// On `pull_request`, GitHub runs the workflow file as the pull request has it, so a pull request that
+// changes the record's workflow, as a path or a previous path, wrote its own evidence:
+// record_producer_changed_by_pr. A list that holds the path shows that even when it is incomplete.
+// Otherwise, a list that is absent, unreadable or incomplete cannot show the workflow unchanged, and
+// the rows take its reason, the one the scope rows give. Only the workflow file's own path is read;
+// what it calls or runs is not (section 14).
+function producerReason(record: JunitRecord, evidence: Evidence): string | undefined {
+  const files = evidence.files;
+  if (files === undefined) return absentSection('files');
+  if (files.status !== 'ok') return unreadReason(files);
+  if (files.entries.some((e) => e.path === record.workflow || e.previousPath === record.workflow)) {
+    return 'record_producer_changed_by_pr';
+  }
+  return files.complete ? undefined : 'file_list_truncated';
+}
+
 function checkTests(block: Block, evidence: Evidence): Claim[] {
   const rows: Claim[] = [];
   (block.tests ?? []).forEach((test, i) => {
@@ -345,6 +362,15 @@ function checkTests(block: Block, evidence: Evidence): Claim[] {
       return;
     }
     const record = test.record as JunitRecord;
+    // Before the counts are compared: a changed producer is never a pass and never a fail.
+    const producer = producerReason(record, evidence);
+    if (producer !== undefined) {
+      rows.push(unverifiable('count', countField, test.count, producer));
+      if (test.failures !== undefined) {
+        rows.push(unverifiable('count', failuresField, test.failures, producer));
+      }
+      return;
+    }
     const entry = evidence.testRecords?.find((r) => sameRecord(r.record, record));
     rows.push(countRow(countField, test.count, entry, (run) => run.executed));
     if (test.failures !== undefined) {

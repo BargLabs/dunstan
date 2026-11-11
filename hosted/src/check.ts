@@ -281,8 +281,8 @@ export async function handleCheck(request: Request, env: Env, deps: Deps): Promi
   }
   return json({
     verdict: record.predicate.verdict,
-    // Every read is made with the installation's token.
-    claimsTable: renderRecord(record, { hasToken: true }),
+    // Every read is made with the installation's token. The table is the CLI's, unchanged.
+    claimsTable: renderRecord(record, { hasToken: true, caller: 'cli' }),
     record: bytes,
     signature,
     rerun: rerunOf(recordFileName(parsed.repository, parsed.pullRequest)),

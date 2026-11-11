@@ -222,6 +222,17 @@ describe('compareAdvisory: the gate check for each kind', () => {
       ],
     };
     expect(note('commit', OTHER, cited).note).toBe('agrees');
+    // Comparison 0.5.0 (spec 0.1.11): a cited commit the head does not reach agrees; only one that
+    // does not exist differs.
+    const reference = (exists: boolean, reachableFromHead: boolean): Evidence => ({
+      ...evidence,
+      references: [{ kind: 'commit', ref: OTHER, status: 'ok', exists, reachableFromHead }],
+    });
+    expect(note('commit', OTHER, reference(true, false))).toEqual({
+      observed: { exists: true, reachableFromHead: false },
+      note: 'agrees',
+    });
+    expect(note('commit', OTHER, reference(false, false)).note).toBe('differs:not_found');
   });
 
   it('checks_succeeded and check_count are the 7.5 checks rules', () => {
@@ -486,13 +497,14 @@ describe('a file named by a bare name or a partial path (comparison 0.2.0)', () 
     expect(EXTRACTOR.digest.sha256).not.toBe(EXTRACTOR_0_1_4);
   });
 
-  it('is comparison 0.4.0; the accuracy of differs notes stays bound to 0.2.0, where it was measured', () => {
-    expect(COMPARISON_VERSION).toBe('0.4.0');
-    expect(COMPARISON).toEqual({ version: '0.4.0' });
+  it('is comparison 0.5.0; the accuracy of differs notes stays bound to 0.2.0, where it was measured', () => {
+    expect(COMPARISON_VERSION).toBe('0.5.0');
+    expect(COMPARISON).toEqual({ version: '0.5.0' });
     expect(differsAccuracyFor(EXTRACTOR_0_1_1, COMPARISON_0_2_0)).not.toBeNull();
     expect(differsAccuracyFor(EXTRACTOR_0_1_1, '0.1.0')).toBeNull();
-    // 0.3.0 and 0.4.0 are unmeasured, even with the extractor the figure was measured on.
+    // 0.3.0, 0.4.0 and 0.5.0 are unmeasured, even with the extractor the figure was measured on.
     expect(differsAccuracyFor(EXTRACTOR_0_1_1, '0.3.0')).toBeNull();
+    expect(differsAccuracyFor(EXTRACTOR_0_1_1, '0.4.0')).toBeNull();
     expect(differsAccuracyFor(EXTRACTOR_0_1_1, COMPARISON_VERSION)).toBeNull();
     // Measured with extractor 0.1.1 only: 0.1.2, 0.1.3 and 0.1.4 are unmeasured.
     expect(differsAccuracyFor(EXTRACTOR.digest.sha256, COMPARISON_0_2_0)).toBeNull();
@@ -994,7 +1006,7 @@ describe('a record with an advisory section (DRAFT 0.2.0)', () => {
     ) as DunstanRecord;
     const a = record.predicate.advisory;
     if (a === undefined) throw new Error('fixture');
-    expect(a.comparison).toEqual({ version: '0.4.0' });
+    expect(a.comparison).toEqual({ version: '0.5.0' });
     expect(a.pathsAtHead).toEqual(ANSWERS);
     expect(a.advisories.map((x) => [x.value, x.note])).toEqual([
       ['src/a.ts', 'agrees'],

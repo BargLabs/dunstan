@@ -1,6 +1,6 @@
 # The Dunstan claim format
 
-Version 0.1.9. Draft. Licensed under Apache-2.0 (`spec/LICENSE`).
+Version 0.1.11. Draft. Licensed under Apache-2.0 (`spec/LICENSE`).
 
 A coding agent that finishes a task writes a completion report. This specification defines a block
 the agent declares inside that report, the checks a checker runs on each declared field against the
@@ -30,6 +30,8 @@ verdict.
 Not part of 0.1.4: [DRAFT 0.2.0: reader claims and retrieval](#draft-020-reader-claims-and-retrieval),
 with [advisories from prose](#d11-advisories-from-prose), for the operator to check. Also not part
 of 0.1, and informative: [DRAFT survey 0.1: the settleability report](#draft-survey-01-the-settleability-report).
+Also not part of 0.1, for the operator to check: [DRAFT GitLab profile 0.1](#draft-gitlab-profile-01),
+which reads a GitLab merge request where section 6 reads a GitHub pull request.
 
 ## 1. Conventions
 
@@ -268,7 +270,7 @@ entry of a section that is there, is no evidence: each claim that reads it is `u
 | scope (section 7.3), every row | `files` |
 | `closes` | `closingReferences`; for a target not among them, its `references` entry, then its `closeEvents` target (row 6 of section 7.4), each by its own name |
 | `cites`, issue or commit | its `references` entry |
-| `tests[]` count and failures, `junit` record | its `testRecords` entry |
+| `tests[]` count and failures, `junit` record | `files` (since 0.1.10: section 7.5, "A record the pull request produced"), then its `testRecords` entry |
 | `checks.total`, `checks.allSucceeded`, `checks.noneFailed` | `checkRuns` |
 | `deployedAt` | the `deployments` entry for its environment |
 
@@ -477,9 +479,13 @@ request closer. A commit id is compared exactly.
   and `null` for an `unverifiable` row (section 7.1).
 - **`cites`, issue or pull request,** passes if it exists, and otherwise fails with `not_found`.
   `observed` is `{exists}`.
-- **`cites`, commit,** passes if the commit exists in the subject repository and is reachable from the
-  observed head (it is the head, or an ancestor of it). A missing commit fails with `not_found`, an
-  unreachable one with `not_reachable`. `observed` is `{exists, reachableFromHead}`.
+- **`cites`, commit,** passes if the commit exists in the subject repository, and otherwise fails
+  with `not_found` (since 0.1.11). A cited commit need not be in the head's history: one that landed
+  on the base branch after the pull request branched, or one on another branch, is a true citation.
+  Whether the head reaches it (it is the head, or an ancestor of it) is read and recorded, and
+  decides nothing; a read of it that failed still leaves the row `unverifiable` with
+  `source_unreadable:compare`, since the entry holds both fields or neither. `observed` is
+  `{exists, reachableFromHead}`.
 
 A field the reader could not read is `unverifiable` (`evidence_field_unpopulated:<field>` or
 `source_unreadable:<kind>`), never `fail`.
@@ -521,6 +527,32 @@ is not a UTC timestamp is unparseable, as any other shape error is, and makes th
 with kind `workflow_runs`. The window is decided from the two listings the checker already reads,
 whose digests are in `sources`; the evidence records its outcome, as it records an expired
 artifact's, and holds no time of a job or an artifact.
+
+**A record the pull request produced** (since 0.1.10). On `pull_request`, GitHub runs the
+workflow file as the pull request has it, so a pull request that changes the workflow a `junit`
+record names can make its own CI publish any count: the record is then its own evidence, and the
+claim would pass against counts the change itself wrote. Before the counts are compared, and
+before the record's read status is looked at, a checker reads the changed-file entries
+(`files.entries`, section 7.3), which it reads whenever a block is found:
+
+1. If the record's `workflow` equals the `path` or the `previousPath` of an entry, compared as
+   paths are (section 4), both rows (`count:/tests/<i>/count`, and `count:/tests/<i>/failures`
+   when `failures` is declared) are `unverifiable` with `record_producer_changed_by_pr`. This holds
+   whatever the counts are, and also when the list is incomplete: the entry is listed, so the
+   workflow did change. A changed producer is never `pass` and never `fail`. The paths are the
+   changed set of section 7.3, so the `previousPath` of a `copied` entry counts too: a pull request
+   that only copies the workflow to another path is left `unverifiable`, never passed.
+2. Otherwise, if `files` cannot show that the workflow is unchanged, the rows take the reason the
+   scope rows take for the same state (section 7.3): `file_list_truncated` when `files.complete`
+   is `false`, since an unlisted entry may be the workflow; `source_unreadable:pull_request_files`
+   when the list is unreadable; and `evidence_field_unpopulated:files` when the section is absent
+   (section 6). These are the reasons for an unread or incomplete list wherever it is read, so no
+   new reason is needed: the claim is unsettled because the file list is, not because the
+   producer changed.
+3. Otherwise the rows are decided as above.
+
+The rule reads only the workflow file's own path. It does not follow what that workflow runs or
+calls; section 14 lists what it does not catch. It adds no read, no request and no evidence field.
 
 For a `local` record (since 0.1.9) the rows are `unverifiable` with `local_run_not_in_record`, and
 nothing is read for it: no CI run holds its counts. For a record of any other kind the rows are
@@ -830,11 +862,21 @@ record reads in in-toto, SLSA and other formats' terms, with what does not carry
 - The block is untrusted input. Its paths are validated as repository-relative and are compared as
   strings, never opened.
 - A JUnit file is read for element counts only.
-- (Informative, since 0.1.9.) A `junit` record's file is produced by the pull request's own CI run,
-  and on `pull_request` GitHub runs the workflow file as the pull request has it. So a pull request
-  that changes the named workflow, or the configuration of the reporter that writes the file,
-  produces its own evidence. This version changes no verdict for that case; a rule for it is left
-  to a later version.
+- A `junit` record's file is produced by the pull request's own CI run, and on `pull_request`
+  GitHub runs the workflow file as the pull request has it, so a pull request can produce its own
+  evidence. Since 0.1.10, a pull request that changes the named workflow file, as a path or a
+  previous path, has its tests rows `unverifiable` with `record_producer_changed_by_pr` (section
+  7.5). The rule starts from the workflow's exact path, which the changed-file list decides
+  deterministically. It does not catch a pull request that changes what the workflow runs without
+  changing the workflow file itself:
+  - the test reporter's configuration (for example `pytest.ini`, `jest.config.*`,
+    `vitest.config.*`);
+  - local actions and reusable workflows the named workflow calls;
+  - scripts, and `package.json` test scripts, the job runs;
+  - the test files themselves.
+
+  A checker does not guess at these: which files a job reads is not in the record, and section 2
+  forbids reading file contents to find out.
 - Nothing in a record is a probability or a judgment, so nothing in it can be tuned by rewording a
   report.
 
@@ -879,7 +921,7 @@ against the schemas and check each record's block, report and claim and evidence
 | `closing_base_not_default` | unverifiable | The pull request merged into a branch other than the default, and the target is still open: a later merge into the default branch may yet close it. |
 | `closing_event_unsettled` | unverifiable | The target is closed, and its complete close-event read holds no ClosedEvent: GitHub sets the state before its timeline shows the event, so who closed it is not yet recorded. |
 | `not_found` | fail | The cited issue, pull request or commit, or the issue a `closes` names, does not exist. |
-| `not_reachable` | fail | The cited commit is not reachable from the head. |
+| `not_reachable` | fail | The cited commit is not reachable from the head. Not given since 0.1.11 (section 7.4); a record of 0.1.10 or earlier may carry it. |
 | `count_mismatch` | fail | A declared count differs from the record. |
 | `all_succeeded_mismatch` | fail | `allSucceeded` differs from the conclusions of the check runs counted, the latest per workflow path and name (section 7.5). |
 | `none_failed_mismatch` | fail | `noneFailed` differs from the conclusions of the check runs counted, read against the closed list `success`, `skipped`, `neutral` (section 7.5). |
@@ -889,6 +931,7 @@ against the schemas and check each record's block, report and claim and evidence
 | `check_runs_not_at_head` | unverifiable | The check runs were read at a commit other than the pull request's head (`checkRuns.commit` is not `pullRequest.headSha`; section 7.5, since 0.1.8). |
 | `no_comparable_record_field` | unverifiable | The test record's kind has no comparable field in this version. |
 | `local_run_not_in_record` | unverifiable | The test record is `local`: the counts are from a run that left no record in CI (section 7.5, since 0.1.9). |
+| `record_producer_changed_by_pr` | unverifiable | The pull request changes the workflow file the `junit` record names, as a path or a previous path, so the record is the change's own evidence (section 7.5, since 0.1.10). Not caught: the reporter's configuration, local actions and reusable workflows the workflow calls, scripts and `package.json` test scripts the job runs, and the test files themselves (section 14). |
 | `record_not_found` | unverifiable | No run carries the named test record. |
 | `record_ambiguous` | unverifiable | Candidate runs disagree on the number. |
 | `not_merged` | fail | The pull request is not merged. |
@@ -898,6 +941,108 @@ against the schemas and check each record's block, report and claim and evidence
 | `source_unreadable:<kind>` | unverifiable | The source errored. |
 
 ## 17. Changes
+
+- **0.1.11** (2026-11-10). A cited commit only has to exist, checked by checker 0.1.18 (issue
+  #127). Under 0.1.10 a `cites` reference to a commit passed only if the commit was the head or an
+  ancestor of it, and a commit that existed but was not failed with `not_reachable`. A `cites`
+  reference names a commit the work refers to, and that commit need not be in the pull request's
+  history: one that landed on the base branch after the branch was made, or one on another branch,
+  is a true citation. Two such rows were adjudicated as checker defects in the agent-account
+  measurement window. A `closes` reference is unaffected, and no relation claims ancestry.
+
+  **The rule.** Section 7.4: a `cites` commit passes if it exists in the subject repository, and
+  fails with `not_found` if it does not. `reachableFromHead` is still read and recorded in the
+  evidence and in `observed`, and decides nothing. Section 16 keeps `not_reachable` for records
+  of 0.1.10 and earlier and says it is not given since 0.1.11.
+
+  The evidence is unchanged: the commit and its compare with the head are read as before, and no
+  request, field or token permission is added or removed. `record-0.1.schema.json` and the block
+  schema are unchanged, and the claim reason keeps `not_reachable`, so a record written before
+  0.1.11 stays valid. The block version stays `"0.1"`: every block valid under 0.1.10 is valid.
+
+  **Verdicts that change.** A `cites` commit row that failed with `not_reachable` passes. A pull
+  request whose verdict was `fail` only on such rows is now `pass`, or `unverifiable` if another row
+  is. Every other claim is unchanged. Section 13 says a patch release changes a verdict only where
+  a rule contradicted section 2. This one changes a verdict where the rule did not: the 0.1.10 rule
+  was decided on the record, but on a fact a `cites` does not assert, so a true citation read as a
+  false claim. The operator decided on 2026-11-10 to make the change in a patch release
+  regardless, as 0.1.9 changed which blocks are valid.
+
+  **Records already written.** A 0.1.10 record is verified offline by the checker it names
+  (section 12); checker 0.1.18 refuses it at `/predicate/checker`. Recomputed under 0.1.18, a
+  record with a `not_reachable` row has that row `pass`, and every other record gets the same
+  claims and verdict. `dunstan rerun` of it re-reads the sources and writes a new record.
+
+  Example records: each carries spec 0.1.11 and checker 0.1.18. `pass.json` cites a commit the head
+  reaches, so its claims, verdicts and digests are unchanged. The acceptance case
+  `cites-unreachable-commit`, a planted defect expected to fail with `not_reachable`, is a positive
+  control now, and the planted `cites-nonexistent-commit` takes its place as the commit case
+  (`docs/acceptance/preregistration-0.1.md`, addendum of 2026-11-10). The DRAFT advisory
+  comparison becomes 0.5.0 (D.11.2, D.12): a `commit` advisory of 40 hex that the head does not
+  reach `agrees`, where 0.4.0 gave `differs:not_reachable`.
+
+- **DRAFT GitLab profile 0.1** (2026-11-10, not a 0.1 version). Adds the informative
+  [DRAFT GitLab profile 0.1](#draft-gitlab-profile-01): how a checker reads a GitLab merge request
+  for every evidence section, the `predicate.subject.forge` member a GitLab record carries, and
+  `spec/schema/record-gitlab-0.1-draft.schema.json`. Every evidence section has a GitLab source:
+  `pullRequest`, `files`, `closingReferences`, `references` and `closeEvents`; `checkRuns` from the
+  head pipeline's jobs and bridges, by one job status table; `testRecords` from the named job's
+  artifacts archive, counted by Dunstan; and `deployments` from the project's deployments, by one
+  deployment status table. A project in a subgroup is named by its full path, in the GitLab schema
+  only. What has no GitLab equivalent is listed in G.6: an issue's `exists: false` and
+  `resolvedAs`, a check run's suite, app and workflow, a deployment's status events, a fast-forward
+  merge's merged commit without a squash, the comment report and the advisory. Nothing normative
+  changes: the version stays 0.1.10, `record-0.1.schema.json` and the block schema are unchanged,
+  and every GitHub record is written exactly as before.
+
+- **0.1.10** (2026-11-09). A test record the pull request produced, checked by checker 0.1.17. A
+  `tests[]` claim with a `junit` record settles against a JUnit file the named workflow uploaded at
+  the head (section 7.5), and on `pull_request` GitHub runs that workflow as the pull request has
+  it. Under 0.1.9 a pull request that edited the workflow could make its own CI publish any count,
+  and the claim passed against evidence the change itself wrote; 0.1.9 said so in section 14 and
+  changed no verdict. The operator ruled on 2026-11-02 that the claim fails closed, with a named
+  reason, once the agent-account measurement window had closed (it closed 2026-11-09).
+
+  **The rule.** Section 7.5 gains "A record the pull request produced". If the record's `workflow`
+  is the `path` or the `previousPath` of a changed-file entry, both tests rows are `unverifiable`
+  with the new reason `record_producer_changed_by_pr` (section 16), whatever the counts, and
+  before the record's read status or its counts are looked at. Where `files` cannot show the
+  workflow unchanged, the rows take the reason that state already has: `file_list_truncated`,
+  `source_unreadable:pull_request_files` or `evidence_field_unpopulated:files`, as the scope rows
+  do. So tests rows read `files` for the first time, and section 6's table of absent sections says
+  so. Section 14's informative bullet becomes the rule's statement and lists what it does not
+  catch: the reporter's configuration, the local actions and reusable workflows the workflow calls,
+  the scripts and `package.json` test scripts the job runs, and the test files themselves.
+
+  The evidence is unchanged: `files` was already read whenever a block was found, and no request,
+  field or token permission is added. `record-0.1.schema.json`'s claim reason gains
+  `record_producer_changed_by_pr`. The DRAFT schema refers to the 0.1 claim reason and holds no
+  copy of it, and no advisory or reader claim gives the new reason, so it is unchanged. The block
+  schema is unchanged and the block version stays `"0.1"`: every block valid under 0.1.9 is valid.
+
+  **Verdicts that change.** For a block whose `tests[]` names a `junit` record: where the pull
+  request changes that workflow, rows that passed, failed or were unverifiable for another reason
+  are `unverifiable` with `record_producer_changed_by_pr`; where `files` is incomplete, unreadable
+  or absent, they take that reason. A pull request whose verdict was `fail` only on such a test
+  row is now `unverifiable`, and one whose verdict was `pass` with such a row is now
+  `unverifiable`. Every other claim, and every block with no `junit` record, is unchanged. Section
+  13 says a patch release changes a verdict only where a rule contradicted section 2; this one
+  does, as the operator decided: a count the change itself wrote is no evidence of the claim, and a
+  pass on it broke "fail closed".
+
+  **Records already written.** A 0.1.9 record is verified offline by the checker it names (section
+  12); checker 0.1.17 refuses it at `/predicate/checker`. Recomputed under 0.1.17, a record whose
+  block names a `junit` record whose workflow its `files` lists, or whose `files` is incomplete or
+  unread, has those tests rows changed as above, and every other record gets the same claims and
+  verdict. `dunstan rerun` of it re-reads the sources and writes a new record.
+
+  Example records: each carries spec 0.1.10 and checker 0.1.17. None changes its own record's
+  workflow, and each whose block names a `junit` record has a complete, read `files`, so their
+  claims, verdicts and digests are unchanged. No acceptance fixture changes: none changes its
+  record's workflow, and the two whose `files` is incomplete or unreadable (`file-list-truncated`,
+  `files-unreadable`) declare no tests. In the informative DRAFT survey section, survey mapping 0.3
+  adds the remedy line for the new reason (S.4); its columns are unchanged, and the new reason is
+  counted as unverifiable, not as not record-checkable, because the record exists.
 
 - **0.1.9** (2026-11-02). A test record kind for a local run, checked by checker 0.1.14. Most
   claims about tests in completion reports cannot be checked from a repository's record: the run
@@ -1804,7 +1949,7 @@ A checker writes the section only when asked to (`dunstan check --advisory`; the
 ```json
 "advisory": {
   "extractor": { "version": "0.1.3", "digest": { "sha256": "<64 hex>" } },
-  "comparison": { "version": "0.4.0" },
+  "comparison": { "version": "0.5.0" },
   "precision": null,
   "differsAccuracy": null,
   "pathsAtHead": [
@@ -1828,7 +1973,9 @@ A checker writes the section only when asked to (`dunstan check --advisory`; the
   grammar and its digest as they were. `0.1.0` compared a file claim by exact path only. `0.2.0`
   also matches it by name. `0.3.0` also asks whether a path not among the changed files exists at
   the head. `0.4.0` compares a `reference_closes` claim by the spec 0.1.4 `closes` check, which
-  reads who closed the target (section 7.4). A record written before `comparison` existed was compared by `0.1.0`.
+  reads who closed the target (section 7.4). `0.5.0` compares a `commit` claim of 40 hex by the
+  spec 0.1.11 `cites` check, which asks only that the commit exists. A record written before
+  `comparison` existed was compared by `0.1.0`.
 - `pathsAtHead` (comparison 0.3.0) holds the answers a file claim's note was computed from (D.11.4,
   D.11.5): one entry for each distinct path in `pathsToRead`, in code-unit order of `path`. An
   entry is `{path, status: "ok", object}`, where `object` is `"Blob"` (a file), `"Tree"` (a
@@ -2036,6 +2183,17 @@ nothing is at that path at the head.
    unchanged.
 
 ### D.12 Changes to this draft
+
+- **2026-11-10.** Spec 0.1.11 (section 17), advisory comparison 0.5.0. A `commit` advisory of 40
+  hex that is not the head is compared by the 7.4 `cites` check, which now asks only that the
+  commit exists: one the head does not reach is `agrees`, where 0.4.0 gave `differs:not_reachable`,
+  and one that does not exist stays `differs:not_found`. `observed` still carries
+  `{exists, reachableFromHead}`, and no read changes. Because the notes a `commit` claim can carry
+  changed, the comparison is versioned: `0.5.0`. Its other rules are 0.4.0's. No published figure
+  applies to it, so a record compared by it carries `null` for `differsAccuracy`. The DRAFT
+  schema's comparison description names 0.5.0; its advisory note keeps `differs:not_reachable` for
+  records compared by 0.4.0 and earlier. The extractor is unchanged. The checker that runs it is
+  0.1.18.
 
 - **2026-10-15.** A test's identity is its `(classname, name)` pair (D.3), and a duplicate is
   `unverifiable` (D.6 step 4), with the new reason `duplicate_record_item`. A test item's `id` was
@@ -2333,7 +2491,7 @@ be listed). No selected pull request is dropped.
 
 ### S.4 The aggregate
 
-The aggregate is a pure function of the entries, the reader (S.5) and survey mapping 0.2. Each
+The aggregate is a pure function of the entries, the reader (S.5) and survey mapping 0.3. Each
 claim row has a type:
 
 | Claim row | Type |
@@ -2363,7 +2521,9 @@ for the reader: the artifact line differs with and without a token. When the sur
 advisory reader, it counts the reader's notes by note. Advisory notes never enter either rate. A
 change to a type, a column or a remedy line is a new mapping version. Mapping 0.2 differs from 0.1
 in the remedy lines, now one table with the claims table's and a function of the reader, and in
-counting `local_run_not_in_record` as not record-checkable.
+counting `local_run_not_in_record` as not record-checkable. Mapping 0.3 differs from 0.2 only in a
+remedy line for `record_producer_changed_by_pr` (spec 0.1.10), which is unverifiable: the record
+exists, and the pull request wrote it.
 
 ### S.5 The survey record
 
@@ -2404,3 +2564,209 @@ record that verifies. An honest run can also miss a pull request that reopened b
 reads, or, when all 3 reads repeated, one that closed during the last (S.2): `duplicates` counts
 only the closes that caused a repeat, and `0` does not prove the listing held still. To trust a survey's completeness, run it again online
 (`rerun.online`).
+
+## DRAFT GitLab profile 0.1
+
+> **DRAFT. Not normative. For the operator to check.** Nothing in this section changes version
+> 0.1.11. Sections 1 to 17, `handback-block-0.1.schema.json`, `record-0.1.schema.json` and every
+> 0.1 verdict stand as written, and a record of a GitHub pull request is written exactly as it was
+> before this section. The key words of section 1 are used here to say what the profile would
+> require if it is adopted; until then they bind nothing. Promoting it to normative is the
+> operator's. The reference implementation is `src/evidence/gitlab.ts`; open questions are in G.9.
+
+### G.1 Scope
+
+A GitLab merge request is checked as section 6 checks a GitHub pull request: the same block, the
+same claim rows (section 7), the same verdict (section 8) and the same record (section 9), with
+the evidence read from GitLab's REST API (`https://<host>/api/v4`). The checks in `src/check/` are
+unchanged and do not know which forge the evidence came from: a verdict is the same function of
+the block, the evidence and the subject repository on either forge. This profile maps every
+evidence section of section 6: `pullRequest`, `files`, `closingReferences`, `references`,
+`closeEvents`, `checkRuns`, `testRecords` and `deployments` (G.3). What has no GitLab equivalent is
+listed in G.6.
+
+In this profile, "the merge request" is the subject, and where section 6 or 7 says "pull request"
+it means the merge request. A project is named by its full path, `group/subgroup/.../project`: up
+to 20 levels of groups and then the project, each segment of the characters GitLab allows. That is
+the GitLab schema's `repository` pattern (G.2), which admits every path the 0.1 `repository`
+pattern admits. The path the invocation names MUST be the one the merge request read names
+(`references.full` less its `!<iid>`), compared case-insensitively as GitLab compares paths; a path
+GitLab resolves to another project, one renamed or transferred, gives no record. A block names an
+issue as the 0.1 block schema admits, `#N` or `<owner>/<repo>#N`: an issue of the subject project
+is `#N` at any depth, and a block that names another subgroup project's issue in full is not a
+valid 0.1 block (G.9).
+
+### G.2 The record
+
+A record of a merge request has `predicateType`
+`https://barglabs.ai/dunstan/record/v0.1-gitlab-draft` and `spec`
+`"<0.1 version>-gitlab-0.1-draft"` (`"0.1.11-gitlab-0.1-draft"` for checker 0.1.18), and
+validates against `spec/schema/record-gitlab-0.1-draft.schema.json`. That schema refers to the 0.1
+schema for every member the two share. It differs from 0.1 in these members only:
+
+- **`predicate.subject.forge`**, REQUIRED in a GitLab record: `{"kind": "gitlab", "host":
+  "<host>"}`, where `host` is the GitLab instance's lowercase DNS name, `gitlab.com` unless the
+  invocation names a self-managed host. This is the one member a GitLab record adds. A record
+  without it is a GitHub record, as every record written before this section is, so a GitHub
+  record does not carry it and its bytes do not change.
+- **The head commit's subject entry** (section 9.1): `{"name":
+  "git+https://<host>/<full path>@<sha>", "digest": {"gitCommit": "<sha>"}}`.
+- **A project's full path and an issue reference** (G.1): `predicate.subject.repository` is the
+  schema's `repository`, and every issue reference in `closingReferences`, `references` and
+  `closeEvents` is its `issueRef`, `<full path>#<iid>`. The schema restates those three evidence
+  sections with that pattern and takes every other evidence section from 0.1 by reference. Both
+  patterns admit every value 0.1's admit, so a GitLab record written before this change still
+  validates; `record-0.1.schema.json` and the block schema are unchanged.
+- **`predicateType` and `spec`**, as above, so that a consumer of 0.1 records refuses a GitLab
+  record rather than reading it as GitHub's.
+
+`predicate.subject.repository` is the project's full path as the merge request read names it
+(G.3), `predicate.subject.pullRequest` is the merge request's `iid` (its number within the
+project, `!<iid>`), and `headSha` and `mergeSha` are as section 9.3 gives them. `#N` in a block
+names issue N of that project. GitLab numbers issues and merge requests apart, so `#N` is never a
+merge request.
+
+**The report.** The invocation names the report as for GitHub (section 3): a file, standard
+input, or the merge request's description, which is its body. A description report is recorded
+as `kind` `pr-body` with the locator `GET /api/v4/projects/<id>/merge_requests/<iid>#description`,
+where `<id>` is the project's full path, URL-encoded (`example-org%2Fexample-repo`). A comment by
+its author is not read in this draft.
+
+### G.3 Evidence
+
+Every read is `GET https://<host>/api/v4/...`. A locator is the method and the path from
+`/api/v4`. A paginated read asks for `per_page=100&page=<n>` and is read page by page until a page
+holds fewer than 100 items, to the bound of 100 pages (`MAX_PAGES`). A listing that reaches the
+bound, or has any page unreadable, makes its section unreadable, as in section 6. The source kinds
+are section 6's.
+
+| Section | GitLab source and fields |
+| --- | --- |
+| `pullRequest` | `GET /projects/<id>/merge_requests/<iid>` (kind `pull_request`). `state`: `opened` is `open`, unmerged; `closed` is `closed`, unmerged; `merged` is `closed` with `merged` `true`; any other value (`locked`, a merge in progress) is unparseable. `mergedAt`: `merged_at`. `headSha`: `sha`. `mergeSha`, by merge method, when merged: for a merge with a merge commit, squashed or not, `merge_commit_sha`, the merge commit; for a squash merged by fast-forward, `squash_commit_sha`, the squash commit, since GitLab gives no `merge_commit_sha`; for a fast-forward merge without a squash, `null`, since GitLab states no merged commit, and the head is never put in its place. That is: `merge_commit_sha` when GitLab gives one, else `squash_commit_sha` when it gives one, else `null`. Not merged: `null`. `changedFiles`: the number of distinct paths the diffs listing (next row) gives, not `changes_count`, which GitLab caps as a string (`"1000+"`). The project's full path is `references.full` less its `!<iid>`, and MUST be the path read (G.1), else the answer is unparseable. |
+| `files` | `GET /projects/<id>/merge_requests/<iid>/diffs`, every page (kind `pull_request_files`), read with the merge request. Each entry: `path` `new_path`; `status` `added` when `new_file`, `removed` when `deleted_file`, `renamed` with `previousPath` `old_path` when `renamed_file`, else `modified`. `complete` is `true` only when `changes_count` is a decimal integer equal to the number of distinct paths listed: a capped or absent `changes_count` gives `false`. The listing's answer carries each file's diff, as GitHub's files listing carries its patch; the checker keeps the paths, the flags and the body's SHA-256, never the diff. |
+| `closingReferences` | `GET /projects/<id>/merge_requests/<iid>/closes_issues`, every page (kind `closing_references`): each issue as its `references.full`, `<namespace>/<project>#<iid>`, so an issue in another project is named with its own project. An item without one, or with one that is not an issue reference the GitLab schema admits (an external tracker's issue), is unparseable. |
+| `references`, an issue | The project, `GET /projects/<project>` (kind `repository`), once per project other than the subject's, as section 6 reads a repository; then `GET /projects/<project>/issues/<iid>` (kind `issue`). An answer is `exists: true`, and its `references.full` MUST name the issue read, compared as section 7.4 compares issues, else it is unparseable. **GitLab has no `exists: false` for an issue**: it answers 404 for a confidential issue the reader may not see and for a project whose issues are off, so a 404 is `unreadable` with kind `issue`, and a `cites` or `closes` of an issue never fails `not_found` on GitLab. **GitLab has no `resolvedAs`**: a moved issue is answered as itself, closed, with `moved_to_id`, never as a redirect, so `resolvedAs` is never recorded. |
+| `references`, a commit | `GET /projects/<id>/repository/commits/<sha>` (kind `commit`): 404 or 410 is `exists: false`, since the merge request's diffs were read from the same repository; any other failed answer is `unreadable`. `reachableFromHead`: `true` for the head itself; otherwise `GET /projects/<id>/repository/merge_base?refs[]=<sha>&refs[]=<head>` (kind `compare`), whose `id` equals the commit exactly when the commit is an ancestor of the head. |
+| `closeEvents.pullRequest` | `baseRef`: the merge request's `target_branch`, from its read. `defaultBranch`: the subject project's `default_branch`, `GET /projects/<id>` (kind `repository`; `null` when the answer gives `null`). `commits`: every `id` of `GET /projects/<id>/merge_requests/<iid>/commits`, every page (kind `pull_request_commits`). GitLab gives no count to compare the list with, so the listing read to its end is the list. |
+| `closeEvents.targets` | Per target, as section 6 chooses them: `GET /projects/<project>/issues/<iid>` (kind `issue`) gives `type` `issue` and `state`, `open` for `opened` and `closed` for `closed`. Its events are `GET /projects/<project>/issues/<iid>/resource_state_events`, at most 10 pages (kind `issue`): each item whose `state` is `closed`, in the order GitLab lists them, as `{at, closer}`. `at` is its `created_at`. `closer` is `{kind: "pull_request", ref: "<namespace>/<project>#<iid>"}` from its `source_merge_request` (the project from its `web_url`, `https://<host>/<namespace>/<project>/-/merge_requests/<iid>`), else `{kind: "commit", oid}` from its `source_commit`, else `null`. GitLab names no other closer, so `{kind: "other"}` is never recorded. |
+| `checkRuns` | The operator's ruling (2026-11-10): a merge request's check runs are the latest jobs of its head pipeline, excluding the checker's own job. The head pipeline is the merge request read's `head_pipeline` (its `id` and `sha`). With none, the section is `{"status": "unpopulated", "field": "head_pipeline"}`; with one whose `sha` is not the block's `headCommit`, it is `{"status": "unpopulated", "field": "head_pipeline_not_at_head_commit"}`, and nothing more is read for it. Otherwise: `GET /projects/<id>/pipelines/<pipeline>/jobs?include_retried=false`, every page, which gives each job at its latest attempt, and `GET /projects/<id>/pipelines/<pipeline>/bridges`, every page, the trigger jobs, each by its own status (both kind `check_runs`). Each job and bridge is a run: `id` its `id`, `name` its `name`, and `status` and `conclusion` from its `status` by the job status table below. `commit` is the pipeline's `sha`. `excludedIds` are the ids the invocation names (`dunstan check --exclude-gitlab-job <id>`, the checker's own `CI_JOB_ID`), as section 7.5's excluded runs are. No run records a check suite, an app or a workflow, so section 7.5 counts the latest run per name. A status the table does not list makes the listing unparseable and the section unreadable (`source_unreadable:check_runs`), never a pass. `checks.total`, `checks.allSucceeded` and `checks.noneFailed` are then section 7.5's, unchanged. |
+| `testRecords` | A `junit` record names its GitLab source with the fields it has, so the schema is unchanged: `workflow` is the project's CI configuration file, `job` is the job's `name` in the head pipeline, `artifact` is `archive`, the job's artifacts archive (the zip its `artifacts:paths` upload; GitLab's `file_type` for it), and `path` is the JUnit XML's path inside that archive. Per distinct record, as section 6 chooses them: the head pipeline as for `checkRuns` (the same two `unpopulated` entries when there is none, or it is for another commit). The CI configuration file is the project's `ci_config_path`, or `.gitlab-ci.yml` where that is `null` or empty, from `GET /projects/<id>` (kind `repository`); an answer without the member is unparseable, since it cannot say which file ran. A `workflow` that is not that file gives no candidate run. The jobs are the `checkRuns` jobs listing (kind `check_runs`), read once. Each job named `job`, in `id` order, whose listing gives an `artifacts` item of `file_type` `archive`, is read: `GET /projects/<id>/jobs/<job>/artifacts` (kind `artifact`, locator suffix `#<path>`), the archive, and the file at `path` in it, counted by section 7.5's rules for a JUnit file. Dunstan counts the tests itself; GitLab's parsed test report (`file_type` `junit`, `/pipelines/<id>/test_report`) is never read. Each counted file is a run, `runId` the job's `id` (a retried job is a new job with a new id, so the id names the attempt) and `runAttempt` 1. A job not in the pipeline, an `artifact` other than `archive`, a job with no archive and no `artifacts_expire_at`, and an archive without `path` give no candidate run (`record_not_found`). A job whose listing gives no archive but an `artifacts_expire_at` (its artifacts expired), an archive whose download fails, and an archive or file that does not parse are unreadable (`source_unreadable:artifact`). Section 7.5's "A record the pull request produced" reads `files` for `workflow` first, as on GitHub: a merge request's pipeline runs the CI configuration file as the merge request has it, so one that changes it wrote its own evidence. |
+| `deployments` | `GET /projects/<id>/deployments?environment=<environment>&order_by=id&sort=desc`, every page (kind `deployments`): the project's deployments to the named environment, each with its `id`, `sha`, `status`, `created_at`, `updated_at` and `environment.name`, which MUST be the environment asked for, else the item is unparseable. GitLab's listing has no commit filter, so the whole listing is read, to the bound of 100 pages; past it the section is unreadable. The entries are section 6's: every deployment of the head commit, and, for a merged merge request with a `mergeSha`, every one created at or after `mergedAt` and at or before `deployedAt.at`, to the second. `relation` is section 6's: `head`, `merge`, else, for a merged merge request, `descendant` or `unrelated` by whether `mergeSha` is an ancestor of the deployment's commit (`GET /projects/<id>/repository/merge_base`, kind `compare`, as for `references`), `unknown` when that read fails; for one not merged, `unrelated`. `successAt` is the deployment's `updated_at` when its `status` is `success` by the deployment status table below, else `null`. GitLab's deployment has one status, not a list of status events, and the API gives no time it became `success`; `updated_at` is no earlier than that time, so a deployment never reads as earlier than it was (G.9). A status the table does not list makes the listing unparseable and the section unreadable. Section 7.6 is then unchanged. |
+| `sources` | As section 6. |
+
+**The job status table.** A job's or bridge's GitLab `status` gives its run's `status` and
+`conclusion` (section 7.5) by this closed list, `GITLAB_JOB_STATUSES` in `src/evidence/gitlab.ts`:
+
+| GitLab `status` | `status` | `conclusion` |
+| --- | --- | --- |
+| `success` | `completed` | `success` |
+| `failed` | `completed` | `failure`, whether or not the job is allowed to fail (`allow_failure`): the operator's ruling (2026-11-10) is that an allowed-to-fail job counts by its own status |
+| `canceled` | `completed` | `cancelled` |
+| `skipped` | `completed` | `skipped` |
+| `manual` | `completed` | `skipped`. A manual job that was never run concludes `skipped`; this is a choice the operator may revisit (G.9) |
+| `created`, `pending`, `preparing`, `waiting_for_resource`, `scheduled` | `queued` | `null` |
+| `running` | `in_progress` | `null` |
+| any other value | | unparseable: the section is unreadable |
+
+A run that is not `completed` is read as section 7.5 reads GitHub's: it leaves `allSucceeded` and
+`noneFailed` unsettled (`checks_incomplete`) unless a completed run already fails them.
+
+**The deployment status table.** A deployment's GitLab `status` says whether it is a successful
+deployment (section 7.6), by this closed list, `GITLAB_DEPLOYMENT_STATUSES` in
+`src/evidence/gitlab.ts`:
+
+| GitLab `status` | A successful deployment |
+| --- | --- |
+| `success` | yes: `successAt` is its `updated_at` |
+| `created`, `running`, `failed`, `canceled`, `skipped`, `blocked` | no: `successAt` is `null` |
+| any other value | unparseable: the section is unreadable |
+
+A merge request read, or its diffs listing, that fails or answers in another shape gives no
+record, as a pull request that cannot be read does (section 6). The diffs listing is read with the
+merge request because `changedFiles` is taken from it.
+
+Times are recorded as received and MUST be RFC 3339 UTC with a `Z` offset (section 1); any other
+form is unparseable. Determinism is section 6's.
+
+### G.4 The one-merge-request rule
+
+Section 6's "One pull request" applies unchanged. After the evidence, the checker reads the merge
+request and its diffs listing again, not as sources. If the head, the target branch, the state
+(open, closed or merged), the project's full path, or any other member `pullRequest` holds differs
+from the first read, it discards everything it read and checks once more from a fresh read. If the
+merge request moves again it writes no record (`pull_request_moved`).
+
+### G.5 What the checks read
+
+Every section 7 rule reads the evidence as written above. Where GitLab has no equivalent, the
+claim is decided by what the evidence holds, never by a guess:
+
+- a `cites` or `closes` of an issue GitLab answers 404 for is `unverifiable` with
+  `source_unreadable:issue` (G.3);
+- `resolvedAs` is never recorded, so section 7.4's transferred-issue pass never applies;
+- a merge request merged by fast-forward without a squash has `mergeSha` `null` (G.3), so section
+  7.4 row 3 passes only on a commit closer that is one of the merge request's commits, and section
+  7.6 counts only a deployment of the head.
+
+### G.6 What has no GitLab equivalent
+
+Every evidence section of section 6 has a GitLab source (G.3), so every claim of section 4 is
+settled from GitLab as section 7 settles it from GitHub. A `local` test record, and a record of any
+other kind, is decided as section 7.5 says, on either forge. These members and inputs have no
+GitLab equivalent and are never recorded or read:
+
+- an issue's `exists: false` and `resolvedAs` (G.3, G.5), and a `{kind: "other"}` closer;
+- a check run's `checkSuiteId`, `appSlug`, `workflowPath`, `workflowName`, `workflowRunId` and
+  `runAttempt`: a job has no check suite, app or workflow run, so section 7.5 keys each run by its
+  name, and a retried job is left out of the jobs listing rather than numbered;
+- a test record run's attempt, which is always 1, since a retried job is a new job (G.3);
+- a deployment's status events: a GitLab deployment has one status, and `successAt` is its
+  `updated_at` (G.3, G.9);
+- a fast-forward merge's merged commit, when there is no squash (G.3, G.9);
+- a comment by its author as the report (section 3), and the advisory (DRAFT 0.2.0), which
+  `dunstan check` refuses on GitLab.
+
+### G.7 Re-running
+
+`rerun.offline` is `dunstan verify <record>` and `rerun.online` is `dunstan rerun <record>`, as
+section 12 gives them. The record names its whole subject (`forge`, `repository`, `pullRequest`),
+so neither command needs a flag. Offline verify recomputes the claims exactly as for a GitHub
+record and checks the head commit's subject entry against `forge.host`. An online re-run reads the
+same project's merge request again from `forge.host`, and the job ids the record excluded stay
+excluded.
+
+### G.8 Security and privacy
+
+A GitLab record publishes what section 14 lists for GitHub, plus the GitLab host. The reader sends
+no token by default. With `GITLAB_TOKEN` set it sends it as `Authorization: Bearer <token>`, a
+header a fetch drops on a redirect to another origin. The token is never written into a record, a
+source locator, a log line or an error message. No file contents are kept: the diffs listing's
+diffs are digested with the rest of its body and never recorded, and the JUnit file a block's
+`junit` record names is read from the job's artifacts archive only to be counted, as section 7.5
+reads GitHub's artifact; its counts are recorded, never its text.
+
+### G.9 Open questions for the operator
+
+1. A block that names an issue of another project in a subgroup in full
+   (`group/subgroup/project#N`) is not a valid 0.1 block, since the block schema's issue pattern
+   admits two segments; an issue of the subject project is `#N` at any depth. Widening the block's
+   pattern is a change to the block format, which this draft leaves alone.
+2. A fast-forward merge without a squash has no `mergeSha`, since GitLab states no merged commit
+   for it. The head is the commit a fast-forward puts on the target when no rebase was needed, but
+   the API does not say which case a merge was.
+3. A `manual` job that was never run concludes `skipped` (the job status table), so it fails
+   `allSucceeded` and does not fail `noneFailed`. Reading it as not completed instead would leave
+   both unsettled while it waits.
+4. `successAt` is a successful deployment's `updated_at`, which is no earlier than the time it
+   succeeded, since the API gives no such time. A later update to the deployment can only make it
+   read later, never earlier, so it can fail a claim it should pass but never pass one it should
+   fail.
+5. The deployments listing has no commit filter, so the whole environment's listing is read, to
+   the bound of 100 pages; an environment with more deployments is unreadable.
+6. A `junit` record's `artifact` is `archive`, the job's one artifacts archive. A name from the
+   job's `artifacts:name` would read as GitHub's artifact name does, but the listing gives it only as
+   the archive's file name.
+7. The head pipeline is the merge request's `head_pipeline` only. A merge request whose head has
+   pipelines for both the branch and the merge request has one of them as its head pipeline; the
+   other is not read.
+8. A comment by its author (section 3) as the report.

@@ -53,7 +53,7 @@ describe('docs/advisory.md', () => {
 
   it('states the fixed line with the published figures, and the figures and their binding', () => {
     // The figures were measured on extractor 0.1.1 and comparison 0.2.0; the extractor that runs is
-    // 0.1.3, and the comparison 0.4.0.
+    // 0.1.3, and the comparison 0.5.0.
     const measured = 'ab77ce47d1c5172ec912d1221e03bbe5b312ff5dc2acb594c4b8549fe602c360';
     const precision = precisionFor(measured);
     const differsAccuracy = differsAccuracyFor(measured, '0.2.0');
@@ -187,7 +187,6 @@ describe('docs/advisory.md', () => {
     const start = doc.indexOf(heading);
     const raw = doc.slice(start, doc.indexOf('\n## ', start + 1));
     const section = raw.replace(/\s+/g, ' ');
-    expect(COMPARISON_VERSION).toBe('0.4.0');
     for (const row of [
       '| a ClosedEvent of the target names this pull request as its closer | `agrees` |',
       '| merged into a branch other than the default, and the target is open | `unanswered:closing_base_not_default` |',
@@ -197,6 +196,24 @@ describe('docs/advisory.md', () => {
     }
     expect(section).toContain('never a body, a title or a commit message');
     expect(section).toContain('**Comparison 0.4.0 is unmeasured.**');
+    expect(differsAccuracyFor(EXTRACTOR.digest.sha256, '0.4.0')).toBeNull();
+  });
+
+  it('states comparison 0.5.0: a cited commit only has to exist, and that it is unmeasured', () => {
+    const heading = '### Cited commits that the head does not reach (comparison 0.5.0)';
+    expect(doc).toContain(`\n${heading}\n`);
+    const start = doc.indexOf(heading);
+    const raw = doc.slice(start, doc.indexOf('\n## ', start + 1));
+    const section = raw.replace(/\s+/g, ' ');
+    expect(COMPARISON_VERSION).toBe('0.5.0');
+    expect(doc).toContain('`advisory.comparison.version` is `0.5.0`.');
+    for (const row of [
+      '| the commit exists, and the head does not reach it | `agrees` (`differs:not_reachable` under 0.4.0) |',
+      '| the commit does not exist | `differs:not_found` |',
+    ]) {
+      expect(raw).toContain(row);
+    }
+    expect(section).toContain('**Comparison 0.5.0 is unmeasured.**');
     expect(differsAccuracyFor(EXTRACTOR.digest.sha256, COMPARISON_VERSION)).toBeNull();
   });
 

@@ -310,7 +310,7 @@ describe('the Action', () => {
       [null, 'unanswered:evidence_field_unpopulated:closingIssuesReferences'],
     ]);
     expect(r.summary).toContain(
-      '| Advisory (DRAFT, not part of the verdict) | 4 advisories: 1 agree; 1 agree by name only; 1 possible disagreement, unverified; 1 unanswered. Extractor 0.1.3, comparison 0.4.0, precision unmeasured.',
+      '| Advisory (DRAFT, not part of the verdict) | 4 advisories: 1 agree; 1 agree by name only; 1 possible disagreement, unverified; 1 unanswered. Extractor 0.1.3, comparison 0.5.0, precision unmeasured.',
     );
     expect(plain.summary).not.toContain('Advisory');
     expect(plain.summary).not.toContain(ADVISORY_LINE);
@@ -687,7 +687,7 @@ describe('summary', () => {
     }));
   const advisoryOf = (n: number) => ({
     extractor: { version: '0.1.3' },
-    comparison: { version: '0.4.0' },
+    comparison: { version: '0.5.0' },
     precision: null,
     differsAccuracy: null,
     pathsAtHead: [],

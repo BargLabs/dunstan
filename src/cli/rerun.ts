@@ -5,9 +5,13 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
-import { readEvidence } from '../evidence/github.js';
-import { GitHubClient } from '../evidence/http.js';
-import { atOnePullRequest, githubReaders } from '../pipeline/check-pull-request.js';
+import { GitHubClient, GitLabClient } from '../evidence/http.js';
+import {
+  atOnePullRequest,
+  type EvidenceReaders,
+  githubReaders,
+  gitlabReaders,
+} from '../pipeline/check-pull-request.js';
 import {
   buildRecord,
   type DunstanRecord,
@@ -15,9 +19,10 @@ import {
   serializeRecord,
 } from '../record/build.js';
 import { checkerIdentity } from '../record/checker.js';
+import { isGitlabRecord } from '../record/verify.js';
 import { escapePointerToken, type JsonValue, parseStrictJson } from '../spec/json.js';
 import { withoutSources } from '../spec/record.js';
-import { validateRecord } from '../spec/schema.js';
+import { validateGitlabDraftRecord, validateRecord } from '../spec/schema.js';
 import { parseCheckRunIds } from './check.js';
 import { type CliIo, exitFor, renderRecord, UsageError } from './output.js';
 
@@ -58,31 +63,51 @@ export async function rerun(args: string[], io: CliIo): Promise<number> {
     throw new UsageError('rerun never overwrites the record it re-runs');
 
   const value = parseStrictJson(readFileSync(path, 'utf8'));
-  const errors = validateRecord(value);
+  // A GitLab record (DRAFT GitLab profile 0.1) validates against its own schema; every other
+  // record against 0.1's, as before.
+  const gitlab = isGitlabRecord(value);
+  const errors = gitlab ? validateGitlabDraftRecord(value) : validateRecord(value);
   if (errors.length > 0) {
     throw new UsageError(
       `${path} is not a valid record: ${errors[0]?.pointer} ${errors[0]?.message}`,
     );
   }
   const old = (value as unknown as DunstanRecord).predicate;
+  const forge = old.subject.forge;
+  if (gitlab && values['exclude-check-run'] !== undefined) {
+    throw new UsageError('a GitLab record is re-run without --exclude-check-run');
+  }
 
-  const client = new GitHubClient({
-    token: io.env.GITHUB_TOKEN,
-    ...(io.fetch === undefined ? {} : { fetch: io.fetch }),
-    warn: (message) => io.err(`dunstan: ${message}\n`),
-  });
+  const warn = (message: string) => io.err(`dunstan: ${message}\n`);
+  const fetchOption = io.fetch === undefined ? {} : { fetch: io.fetch };
+  let client: GitHubClient | GitLabClient;
+  let readers: EvidenceReaders;
+  if (forge === undefined) {
+    const github = new GitHubClient({ token: io.env.GITHUB_TOKEN, ...fetchOption, warn });
+    client = github;
+    readers = githubReaders(github);
+  } else {
+    const gitlabClient = new GitLabClient({
+      host: forge.host,
+      token: io.env.GITLAB_TOKEN,
+      ...fetchOption,
+      warn,
+    });
+    client = gitlabClient;
+    readers = gitlabReaders(gitlabClient);
+  }
   // The run the original checker executed in is still its own run; it stays excluded.
   const oldExcluded =
     old.evidence.checkRuns?.status === 'ok' ? old.evidence.checkRuns.excludedIds : [];
   const excluded = [...oldExcluded, ...parseCheckRunIds(values['exclude-check-run'])];
   // Read at one pull request, as `dunstan check` reads: once more if it moved, never across a move.
   const evidence = await atOnePullRequest(
-    githubReaders(client),
+    readers,
     old.subject.repository,
     old.subject.pullRequest,
     undefined,
     (pr) =>
-      readEvidence(client, {
+      readers.evidence({
         repository: old.subject.repository,
         pullRequest: pr,
         block: old.block.status === 'found' ? old.block.value : null,
@@ -96,6 +121,7 @@ export async function rerun(args: string[], io: CliIo): Promise<number> {
     repository: old.subject.repository,
     evidence,
     rerun: rerunCommands(basename(out)),
+    ...(forge === undefined ? {} : { forge }),
   });
 
   if (existsSync(out)) io.err(`dunstan: replacing ${out}\n`);
@@ -113,7 +139,7 @@ export async function rerun(args: string[], io: CliIo): Promise<number> {
   } else {
     io.out(`evidence unchanged (digest ${p.digests.evidence})\n\n`);
   }
-  io.out(renderRecord(record, { hasToken: client.hasToken }));
+  io.out(renderRecord(record, { hasToken: client.hasToken, caller: 'cli' }));
   io.out(`record: ${out} (the original ${path} is unchanged)\n`);
   return exitFor(p.verdict);
 }

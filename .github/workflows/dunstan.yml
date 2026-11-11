@@ -26,11 +26,25 @@ jobs:
   handback:
     runs-on: ubuntu-latest
     steps:
-      # Only because the Action under test is this repository at the pull request's commit. A consumer
-      # uses BargLabs/dunstan@<sha> and checks nothing out: the Action reads metadata only.
+      # The checker is the default branch's, never the pull request's (audit D2): `uses: ./` runs the
+      # Action of the commit checked out here, so a pull request that changes src/ or action/dist/
+      # cannot grade its own handback with the code it changed. The Action reads the pull request
+      # through the API only, so nothing of the pull request is checked out, and nothing of this
+      # checkout runs before the Action (src/__tests__/dogfood-workflow.test.ts holds this).
+      #
+      # The cost: a pull request that changes the checker or the Action is checked here by the default
+      # branch's version. Its new behaviour is tested by ci.yml, not by this check, until it merges.
+      # And a pull_request workflow runs the pull request's own copy of this file, so a change to
+      # this file is a change to the gate: review it as one.
+      #
+      # A consumer uses BargLabs/dunstan@<sha> and checks nothing out.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
+
+      - name: Name the checker's commit
+        run: echo "Checker and Action bundle at $(git rev-parse HEAD), the default branch, not this pull request"
 
       - name: Check the handback block
         uses: ./

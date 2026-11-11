@@ -11,7 +11,8 @@
 //
 // And dunstan_template_handback is `dunstan template`, for an agent with no shell: the same
 // runTemplate (src/template/run.ts) the command line calls after reading its flags, so the fence is
-// byte-identical to what the CLI prints and the notes are its notes (src/mcp/template-parity.test.ts).
+// byte-identical to what the CLI prints and the notes are its notes, in its order, with their
+// instructions worded for a tool caller (src/template/wording.ts, src/mcp/template-parity.test.ts).
 // `--tests-junit` has no form here: it declares local counts against a CI record, the mismatch
 // `tests.from: "ci"` exists to remove.
 //
@@ -149,12 +150,13 @@ export async function checkHandback(
 
 // The tool's response for a record: the verdict lines and the claims table for the agent to read,
 // then the record's exact bytes. Only the first two are worded for a reader; the record is as
-// written.
+// written. The table is the CLI's, with its remedy lines worded for a tool caller (caller 'mcp',
+// src/template/wording.ts): they name dunstan_template_handback and its inputs, not flags.
 export function handbackResult(
   record: DunstanRecord,
   outPath: string | undefined,
   notes: readonly string[],
-  context: RemedyContext,
+  context: Omit<RemedyContext, 'caller'>,
 ): CallToolResult {
   const verdict = record.predicate.verdict;
   const head = [`verdict: ${verdict}`];
@@ -168,7 +170,7 @@ export function handbackResult(
   return {
     content: [
       { type: 'text', text: `${head.join('\n')}\n` },
-      { type: 'text', text: renderRecord(record, context) },
+      { type: 'text', text: renderRecord(record, { ...context, caller: 'mcp' }) },
       { type: 'text', text: serializeRecord(record) },
     ],
   };
@@ -187,8 +189,9 @@ const TESTS_LINE = {
 } as const;
 
 // dunstan template with a different caller. The reader's warnings and the notes come back as
-// `note: ` lines, in the order the CLI prints them on standard error; the fence comes back as the
-// CLI prints it on standard output. A CI read that did not settle is not a tool error: the block is
+// `note: ` lines, in the order the CLI prints them on standard error, with their instructions
+// worded for a tool caller (caller 'mcp': inputs, not flags); the fence comes back as the CLI
+// prints it on standard output. A CI read that did not settle is not a tool error: the block is
 // valid and returned, and the first line says its tests are not declared.
 export async function templateHandback(
   input: TemplateHandbackInput,
@@ -199,7 +202,7 @@ export async function templateHandback(
   }
   const warnings: string[] = [];
   const run = await runTemplate(
-    { cwd: input.directory, base: input.base, tests: input.tests },
+    { cwd: input.directory, base: input.base, tests: input.tests, caller: 'mcp' },
     {
       env: options.env,
       fetch: options.fetch,

@@ -11,6 +11,9 @@ import type {
   CloseEventsEvidence,
   CloseTargetEvidence,
   Evidence,
+  FilesEvidence,
+  TestRecordEvidence,
+  TestRun,
 } from './types.js';
 
 const REPO = 'example-org/example-repo';
@@ -146,7 +149,8 @@ describe('runChecks', () => {
       `evidence_field_unpopulated:${section}`,
     ];
 
-    // Only the pull request, which is never absent: head and mergedAt read it and pass.
+    // Only the pull request, which is never absent: head and mergedAt read it and pass. A junit
+    // tests row reads `files` first (spec 0.1.10), to know the pull request left its workflow alone.
     const bare = evidence();
     delete bare.files;
     expect(notPassing(bare)).toEqual([
@@ -155,7 +159,7 @@ describe('runChecks', () => {
       unpopulated('reference:/references/0', 'closingReferences'),
       unpopulated('reference:/references/1', 'references'),
       unpopulated('reference:/references/2', 'references'),
-      unpopulated('count:/tests/0/count', 'testRecords'),
+      unpopulated('count:/tests/0/count', 'files'),
       unpopulated('count:/checks/total', 'checkRuns'),
       unpopulated('count:/checks/allSucceeded', 'checkRuns'),
       unpopulated('count:/checks/noneFailed', 'checkRuns'),
@@ -230,6 +234,36 @@ describe('runChecks', () => {
     expect(row(cites, 'reference:/references/1')).toMatchObject({
       verdict: 'unverifiable',
       reason: 'evidence_field_unpopulated:references',
+    });
+  });
+
+  // Spec 0.1.11 (issue #127): a cited commit need not be in the head's history. Whether the head
+  // reaches it is recorded and decides nothing; only a commit that does not exist fails.
+  it('passes a cites commit that exists, reachable from the head or not', () => {
+    const CITED = 'c17ed00000000000000000000000000000000001';
+    const verdictOf = (exists: boolean, reachableFromHead: boolean) =>
+      row(
+        runChecks(
+          block({ references: [{ commit: CITED, relation: 'cites' }] }),
+          evidence({
+            references: [{ kind: 'commit', ref: CITED, status: 'ok', exists, reachableFromHead }],
+          }),
+          REPO,
+        ),
+        'reference:/references/0',
+      );
+    expect(verdictOf(true, true)).toMatchObject({
+      verdict: 'pass',
+      observed: { exists: true, reachableFromHead: true },
+    });
+    expect(verdictOf(true, false)).toMatchObject({
+      verdict: 'pass',
+      observed: { exists: true, reachableFromHead: false },
+    });
+    expect(verdictOf(false, false)).toMatchObject({
+      verdict: 'fail',
+      reason: 'not_found',
+      observed: { exists: false, reachableFromHead: false },
     });
   });
 
@@ -1558,6 +1592,216 @@ describe('check runs read at a commit other than the head', () => {
       'source_unreadable:check_runs',
       'source_unreadable:check_runs',
       'source_unreadable:check_runs',
+    ]);
+  });
+});
+
+// Spec 0.1.10, section 7.5: a junit record whose workflow the pull request changes is the pull
+// request's own evidence, so its rows are unverifiable with record_producer_changed_by_pr. The rule
+// reads the changed-file list, which is always read, and applies before the counts are compared.
+describe('a test record produced by a workflow the pull request changes', () => {
+  const WORKFLOW = '.github/workflows/ci.yml';
+  const junit = {
+    kind: 'junit',
+    workflow: WORKFLOW,
+    job: 'test',
+    artifact: 'junit-report',
+    path: 'junit.xml',
+  } as const;
+  const tests = (count = 10, failures: number | undefined = 0): TestRun[] => [
+    { command: 'pnpm test', count, ...(failures === undefined ? {} : { failures }), record: junit },
+  ];
+  // The record holds 10 executed and 0 failed.
+  const RECORDS: TestRecordEvidence[] = [
+    { record: junit, status: 'ok', runs: [{ runId: 1, runAttempt: 1, executed: 10, failed: 0 }] },
+  ];
+  const files = (...entries: { path: string; previousPath?: string }[]): FilesEvidence => ({
+    status: 'ok',
+    complete: true,
+    entries: [
+      { path: 'a.ts', status: 'modified' },
+      ...entries.map((e) => ({
+        ...e,
+        status: e.previousPath === undefined ? ('modified' as const) : ('renamed' as const),
+      })),
+    ],
+  });
+  const testsRows = (b: Block, e: Evidence) =>
+    runChecks(b, e, REPO)
+      .filter((c) => c.field.startsWith('/tests/'))
+      .map((c) => [c.id, c.verdict, c.reason]);
+  const both = (reason: string) => [
+    ['count:/tests/0/count', 'unverifiable', reason],
+    ['count:/tests/0/failures', 'unverifiable', reason],
+  ];
+
+  it('is unverifiable when the workflow is a changed path, whether the counts match or not', () => {
+    for (const [count, failures] of [
+      [10, 0],
+      [11, 3],
+    ] as const) {
+      expect(
+        testsRows(
+          block({ tests: tests(count, failures) }),
+          evidence({ files: files({ path: WORKFLOW }), testRecords: RECORDS }),
+        ),
+      ).toEqual(both('record_producer_changed_by_pr'));
+    }
+  });
+
+  it('is unverifiable when the workflow is a changed previous path, or renamed into', () => {
+    for (const entry of [
+      { path: '.github/workflows/new.yml', previousPath: WORKFLOW },
+      { path: WORKFLOW, previousPath: '.github/workflows/old.yml' },
+    ]) {
+      expect(
+        testsRows(
+          block({ tests: tests() }),
+          evidence({ files: files(entry), testRecords: RECORDS }),
+        ),
+      ).toEqual(both('record_producer_changed_by_pr'));
+    }
+  });
+
+  it('a row with an observed null, as every unverifiable row has', () => {
+    const claims = runChecks(
+      block({ tests: tests() }),
+      evidence({ files: files({ path: WORKFLOW }), testRecords: RECORDS }),
+      REPO,
+    );
+    expect(row(claims, 'count:/tests/0/count')).toEqual({
+      id: 'count:/tests/0/count',
+      check: 'count',
+      field: '/tests/0/count',
+      declared: 10,
+      observed: null,
+      verdict: 'unverifiable',
+      reason: 'record_producer_changed_by_pr',
+    });
+  });
+
+  it('compares the path exactly: another workflow, or a longer path, is not the producer', () => {
+    expect(
+      testsRows(
+        block({ tests: tests() }),
+        evidence({
+          files: files(
+            { path: '.github/workflows/lint.yml' },
+            { path: `${WORKFLOW}.bak` },
+            { path: '.GITHUB/workflows/ci.yml' },
+          ),
+          testRecords: RECORDS,
+        }),
+      ),
+    ).toEqual([
+      ['count:/tests/0/count', 'pass', undefined],
+      ['count:/tests/0/failures', 'pass', undefined],
+    ]);
+  });
+
+  it('decides as before when the workflow is unchanged: pass on a match, fail on a mismatch', () => {
+    const e = evidence({ files: files(), testRecords: RECORDS });
+    expect(testsRows(block({ tests: tests(10, 0) }), e)).toEqual([
+      ['count:/tests/0/count', 'pass', undefined],
+      ['count:/tests/0/failures', 'pass', undefined],
+    ]);
+    expect(testsRows(block({ tests: tests(11, 0) }), e)).toEqual([
+      ['count:/tests/0/count', 'fail', 'count_mismatch'],
+      ['count:/tests/0/failures', 'pass', undefined],
+    ]);
+  });
+
+  it('takes the reason of a changed-file list that cannot show the workflow unchanged', () => {
+    const b = block({ tests: tests() });
+    expect(
+      testsRows(
+        b,
+        evidence({
+          files: { status: 'ok', complete: false, entries: [{ path: 'a.ts', status: 'modified' }] },
+          testRecords: RECORDS,
+        }),
+      ),
+    ).toEqual(both('file_list_truncated'));
+    expect(
+      testsRows(
+        b,
+        evidence({
+          files: { status: 'unreadable', source: 'pull_request_files' },
+          testRecords: RECORDS,
+        }),
+      ),
+    ).toEqual(both('source_unreadable:pull_request_files'));
+    const absent = evidence({ testRecords: RECORDS });
+    delete absent.files;
+    expect(testsRows(b, absent)).toEqual(both('evidence_field_unpopulated:files'));
+  });
+
+  it('names the producer from an incomplete list that holds it', () => {
+    expect(
+      testsRows(
+        block({ tests: tests() }),
+        evidence({
+          files: {
+            status: 'ok',
+            complete: false,
+            entries: [{ path: WORKFLOW, status: 'modified' }],
+          },
+          testRecords: RECORDS,
+        }),
+      ),
+    ).toEqual(both('record_producer_changed_by_pr'));
+  });
+
+  it('applies before the test record is read: a changed producer outranks its read status', () => {
+    const e = evidence({
+      files: files({ path: WORKFLOW }),
+      testRecords: [{ record: junit, status: 'unreadable', source: 'artifact' }],
+    });
+    expect(testsRows(block({ tests: tests() }), e)).toEqual(both('record_producer_changed_by_pr'));
+  });
+
+  it('leaves a local record and a record of another kind their own reasons', () => {
+    const e = evidence({ files: files({ path: WORKFLOW }) });
+    expect(
+      testsRows(
+        block({
+          tests: [
+            { command: 'x', count: 1, record: { kind: 'local' } },
+            { command: 'y', count: 1, record: { kind: 'tap', workflow: WORKFLOW } },
+          ],
+        }),
+        e,
+      ),
+    ).toEqual([
+      ['count:/tests/0/count', 'unverifiable', 'local_run_not_in_record'],
+      ['count:/tests/1/count', 'unverifiable', 'no_comparable_record_field'],
+    ]);
+  });
+
+  it('judges each tests entry by its own record', () => {
+    const other = { ...junit, workflow: '.github/workflows/other.yml' };
+    const claims = testsRows(
+      block({
+        tests: [
+          { command: 'a', count: 10, record: junit },
+          { command: 'b', count: 10, record: other },
+        ],
+      }),
+      evidence({
+        files: files({ path: WORKFLOW }),
+        testRecords: [
+          ...RECORDS,
+          {
+            record: other,
+            status: 'ok',
+            runs: [{ runId: 2, runAttempt: 1, executed: 10, failed: 0 }],
+          },
+        ],
+      }),
+    );
+    expect(claims).toEqual([
+      ['count:/tests/0/count', 'unverifiable', 'record_producer_changed_by_pr'],
+      ['count:/tests/1/count', 'pass', undefined],
     ]);
   });
 });

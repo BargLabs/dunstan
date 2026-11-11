@@ -166,6 +166,15 @@ describe('the published schemas', () => {
     expect(claimReason.test('local_run_not_in_record')).toBe(true);
   });
 
+  it("accepts record_producer_changed_by_pr as a claim's reason (spec 0.1.10)", () => {
+    const claimReason = new RegExp(
+      (readSchema(RECORD_SCHEMA_FILE) as { $defs: Record<string, { pattern: string }> }).$defs
+        .claimReason?.pattern as string,
+    );
+    expect(claimReason.test('record_producer_changed_by_pr')).toBe(true);
+    expect(claimReason.test('record_producer_changed')).toBe(false);
+  });
+
   it('accepts a test record of any other kind with any shape', () => {
     expect(
       validateBlock({

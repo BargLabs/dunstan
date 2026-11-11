@@ -29,6 +29,7 @@ const inlineSchemas = {
         'handback-block-0.1.schema.json',
         'record-0.1.schema.json',
         'record-0.2-draft.schema.json',
+        'record-gitlab-0.1-draft.schema.json',
         'survey-0.1-draft.schema.json',
       ]) {
         files[file] = readFileSync(new URL(file, schemaDir), 'utf8');

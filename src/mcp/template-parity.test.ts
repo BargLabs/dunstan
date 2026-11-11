@@ -1,7 +1,9 @@
 // Parity: dunstan_template_handback is `dunstan template` with a different caller. For each case the
 // tool's fence is byte for byte what the CLI prints on standard output, and its `note: ` lines are
-// the CLI's standard error lines with `dunstan: ` stripped, in the same order. Both run against the
-// same temporary git repository, with GitHub stubbed by fetch.
+// the CLI's standard error lines with `dunstan: ` stripped, in the same order, with each pair of the
+// phrase table (src/template/wording.ts) replaced: the tool's instructions name its inputs, never a
+// flag. The same holds for the errors the tool returns. Both run against the same temporary git
+// repository, with GitHub stubbed by fetch.
 
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -18,7 +20,8 @@ import {
   REPO,
   type Scenario,
 } from '../__tests__/fake-github.js';
-import { featureRepository, isolateGit } from '../__tests__/git-repo.js';
+import { featureRepository, git, isolateGit } from '../__tests__/git-repo.js';
+import { asMcp, NAMES_A_FLAG } from '../__tests__/wording.js';
 import { main } from '../cli/main.js';
 import { extractHandbackBlock } from '../spec/extract.js';
 import { createDunstanMcpServer, TEMPLATE_TOOL_NAME } from './server.js';
@@ -257,7 +260,7 @@ describe('dunstan_template_handback parity with dunstan template', () => {
     expect(extractHandbackBlock(cli.out).status).toBe('found');
     expect(fence).toBe(cli.out);
 
-    // The notes, line for line, in the CLI's order and wording.
+    // The notes, line for line, in the CLI's order, worded for a tool caller.
     const lines = head1.split('\n');
     expect(lines.at(-1)).toBe('');
     lines.pop();
@@ -270,12 +273,89 @@ describe('dunstan_template_handback parity with dunstan template', () => {
     const errLines = cli.err.split('\n');
     expect(errLines.pop()).toBe('');
     for (const e of errLines) expect(e).toMatch(/^dunstan: /);
-    expect(notes.map((n) => n.slice('note: '.length))).toEqual(
-      errLines.map((e) => e.slice('dunstan: '.length)),
-    );
+    const mcpNotes = notes.map((n) => n.slice('note: '.length));
+    const cliNotes = errLines.map((e) => e.slice('dunstan: '.length));
+    // The same count, in the same order; each the CLI's note with every pair of the phrase table
+    // replaced, and nothing else changed. So the two wordings differ only by the table.
+    expect(mcpNotes).toHaveLength(cliNotes.length);
+    expect(mcpNotes).toEqual(cliNotes.map(asMcp));
+    // The table is in use: at least the stale-block note is worded apart.
+    expect(mcpNotes.filter((n, i) => n !== cliNotes[i]).length).toBeGreaterThan(0);
+    // No flag reaches the tool caller, and the CLI still names its own.
+    expect(head1).not.toMatch(NAMES_A_FLAG);
+    expect(cli.err).toMatch(/dunstan template /);
     if (c.says !== undefined) expect(notes.join('\n')).toMatch(c.says);
 
     // The same reads of GitHub.
     expect(mcp.requests).toEqual(cli.requests);
+  });
+});
+
+// The errors git or the inputs give, each as the CLI prints it and as the tool returns it. `cli` is
+// the command line's message, unchanged.
+interface ErrorCase {
+  name: string;
+  setUp?: (dir: string) => void;
+  flags: string[];
+  input: Record<string, unknown>;
+  cli: RegExp;
+}
+
+const ERROR_CASES: ErrorCase[] = [
+  {
+    name: 'no origin remote',
+    setUp: (dir) => git(dir, 'remote', 'remove', 'origin'),
+    flags: [...ciFlags, '--tests-job', JOB],
+    input: { tests: ciTests },
+    cli: /^there is no origin remote: pass --repo <owner\/name>$/,
+  },
+  {
+    name: 'origin not on github.com',
+    setUp: (dir) => git(dir, 'remote', 'set-url', 'origin', 'https://gitlab.example/o/r.git'),
+    flags: [...ciFlags, '--tests-job', JOB],
+    input: { tests: ciTests },
+    cli: /^origin https:\/\/gitlab\.example\/o\/r\.git is not a github\.com repository: pass --repo <owner\/name>$/,
+  },
+  {
+    name: 'an unresolvable default branch',
+    setUp: (dir) => git(dir, 'symbolic-ref', '--delete', 'refs/remotes/origin/HEAD'),
+    flags: [],
+    input: {},
+    cli: /: pass --base <ref>, or run git remote set-head origin --auto$/,
+  },
+  {
+    name: 'a base that is not a ref',
+    flags: ['--base=-x'],
+    input: { base: '-x' },
+    cli: /^--base -x is not a ref$/,
+  },
+  {
+    name: 'an unreadable tests.junit',
+    flags: ['--tests-local', '/nonexistent/junit.xml', '--tests-command', 'pnpm test'],
+    input: { tests: { from: 'local', junit: '/nonexistent/junit.xml', command: 'pnpm test' } },
+    cli: /^--tests-local \/nonexistent\/junit\.xml: /,
+  },
+];
+
+describe('dunstan_template_handback errors, worded for a tool caller', () => {
+  it.each(ERROR_CASES.map((c) => [c.name, c] as const))('%s', async (_, c) => {
+    const { dir, head } = featureRepository(ORIGIN);
+    c.setUp?.(dir);
+    const s = ci(head, []);
+
+    const cli = await viaCli(dir, c.flags, s, TOKEN);
+    const mcp = await viaMcp({ directory: dir, ...c.input }, s, TOKEN);
+
+    expect(cli.code).toBe(3);
+    expect(cli.out).toBe('');
+    const cliMessage = cli.err.replace(/^dunstan: /, '').replace(/\n$/, '');
+    expect(cliMessage).toMatch(c.cli);
+
+    expect(mcp.result.isError).toBe(true);
+    expect(mcp.text).toEqual([
+      `dunstan: ${asMcp(cliMessage)}\nThis is an error: no block was produced.\n`,
+    ]);
+    expect(mcp.text[0]).not.toMatch(NAMES_A_FLAG);
+    expect(mcp.requests).toEqual([]);
   });
 });

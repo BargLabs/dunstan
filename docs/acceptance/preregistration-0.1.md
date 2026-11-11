@@ -200,6 +200,24 @@ runs at another commit than the head, and every other case keeps its expected va
 section 7.5 window on a JUnit artifact's attempt changes no case: the evidence records no times
 (spec section 17, 0.1.8), so each case's `testRecords` section is read as before.
 
+Addendum, 2026-11-10, spec 0.1.11 (issue #127). **One planted case becomes a positive control**,
+against the rule under "Decision rule" below; it is reported in the pull request that makes it, for
+the operator to accept or refuse. Spec 0.1.11 (section 7.4) passes a `cites` commit that exists,
+whether or not the head reaches it: a cited commit need not be in the pull request's history, so
+the 0.1.10 `fail` on it read a true citation as a false claim. `cites-unreachable-commit`, the
+planted row "cites an unreachable commit" above, expected `fail` with `reference:/references/2`
+`not_reachable`, now holds a true claim. It moves, unchanged in its report and evidence, from
+`fixtures/planted/` to `fixtures/controls/`, where every row is expected `pass`, and its golden
+digests are added. Its place among the planted defects is taken by a new case:
+
+| Required item | Case | Expected verdict | Expected failing or unverifiable row and reason |
+| --- | --- | --- | --- |
+| cites a nonexistent commit | `cites-nonexistent-commit` | `fail` | `reference:/references/2` `not_found` |
+
+It is `cites-unreachable-commit` with the cited commit `c17ed000…0404`, which the evidence records
+as absent (`exists: false`). Every other case keeps its expected values, and no other case cites a
+commit the head does not reach.
+
 ### Cross-machine (d)
 
 CI runs every fixture, planted and control, through `runChecks` and the record builder on

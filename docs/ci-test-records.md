@@ -80,12 +80,12 @@ merged.
       - run: mvn -B test
       - name: Merge the test reports
         if: ${{ !cancelled() }}
-        run: npx -y dunstan@0.1.16 junit-merge target/surefire-reports/TEST-*.xml --out junit.xml
+        run: npx -y dunstan@0.1.18 junit-merge target/surefire-reports/TEST-*.xml --out junit.xml
       # ... the upload step ...
 ```
 
 In a multi-module build, list every module's reports: for example
-`shopt -s globstar && npx -y dunstan@0.1.16 junit-merge **/target/surefire-reports/TEST-*.xml --out junit.xml`.
+`shopt -s globstar && npx -y dunstan@0.1.18 junit-merge **/target/surefire-reports/TEST-*.xml --out junit.xml`.
 
 ## Gradle
 
@@ -95,7 +95,7 @@ Gradle writes one file per test class under `build/test-results/test/`.
       - run: ./gradlew test
       - name: Merge the test reports
         if: ${{ !cancelled() }}
-        run: npx -y dunstan@0.1.16 junit-merge build/test-results/test/*.xml --out junit.xml
+        run: npx -y dunstan@0.1.18 junit-merge build/test-results/test/*.xml --out junit.xml
       # ... the upload step ...
 ```
 
@@ -168,9 +168,14 @@ A run made only on your machine is declared as one: `dunstan template --tests-lo
   401 "Requires authentication", even on a public repository (observed 2026-11-02). A check without
   a token reports the `tests` rows `unverifiable` with `source_unreadable:artifact`. The Action
   reads with its `github-token` and needs `actions: read`.
-- **The record is produced by the pull request's own CI run** (spec section 14). On `pull_request`
-  GitHub runs the workflow file as the pull request has it, so a pull request that changes the
-  named workflow, or its reporter's configuration, produces its own evidence.
+- **The record is produced by the pull request's own CI run** (spec sections 7.5 and 14). On
+  `pull_request` GitHub runs the workflow file as the pull request has it, so a pull request that
+  changes the named workflow produces its own evidence. Since spec 0.1.10 its `tests` rows are
+  `unverifiable` with `record_producer_changed_by_pr`, whatever the counts: land the workflow
+  change in a pull request of its own, then declare the counts in the next. The rule reads only the
+  workflow file's own path. A pull request that changes the reporter's configuration, a local
+  action or reusable workflow the workflow calls, a script or `package.json` test script the job
+  runs, or the tests themselves, is not caught by it.
 - **An expired artifact is unverifiable.** Artifacts expire after the repository's retention
   period (90 days by default); a check after that reports `source_unreadable:artifact`, never
   `record_not_found`, since the run did upload the record.

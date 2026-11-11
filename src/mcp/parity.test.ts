@@ -2,6 +2,8 @@
 // reader stubbed to answer the fixture's evidence, the MCP tool's claims, verdict and digests are
 // byte-identical to `dunstan check`'s. The two records may differ only in the report's source (and,
 // for a block given as an object, the report's digest): nothing a claim, verdict or digest reads.
+// The remedy lines under the claims table are worded for each caller, and differ only by the phrase
+// table (src/template/wording.ts); the record holds no remedy line.
 
 import { mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -11,6 +13,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { asMcp, NAMES_A_FLAG } from '../__tests__/wording.js';
 import {
   FIXTURE_REPOSITORY,
   FIXTURES,
@@ -136,6 +139,13 @@ async function viaMcp(
   return record;
 }
 
+// Every string a record holds, at any depth.
+function stringsIn(value: unknown): string[] {
+  if (typeof value === 'string') return [value];
+  if (value === null || typeof value !== 'object') return [];
+  return Object.values(value).flatMap(stringsIn);
+}
+
 function expectParity(cli: DunstanRecord, mcp: DunstanRecord, differ: string[]): void {
   const a = cli.predicate;
   const b = mcp.predicate;
@@ -172,23 +182,45 @@ describe('MCP parity with dunstan check, reader stubbed', () => {
       expect(mcp.predicate.verdict).toBe(c.expected.verdict);
       expect(canon(mcp.predicate.claims)).toBe(canon(runCase(c).predicate.claims));
       expect(canon(mcp.predicate.digests)).toBe(canon(runCase(c).predicate.digests));
-      // The same remedy lines, one under each tests row that has one, in the same order.
-      const expected = cli.predicate.claims.flatMap((claim) => {
-        const remedy = remedyFor(claim, { hasToken: true });
-        return remedy === undefined ? [] : [`  remedy: ${remedy}`];
-      });
-      expect(printed.mcp).toEqual(printed.cli);
-      expect(printed.cli).toEqual(expected);
+      // The same remedy lines, one under each tests row that has one, in the same order, each worded
+      // for its caller: the tool's is the CLI's with the phrase table's pairs replaced, and names no
+      // flag (src/template/wording.ts).
+      const expected = (caller: 'cli' | 'mcp') =>
+        cli.predicate.claims.flatMap((claim) => {
+          const remedy = remedyFor(claim, { hasToken: true, caller });
+          return remedy === undefined ? [] : [`  remedy: ${remedy}`];
+        });
+      expect(printed.mcp).toEqual(printed.cli.map(asMcp));
+      expect(printed.cli).toEqual(expected('cli'));
+      expect(printed.mcp).toEqual(expected('mcp'));
+      for (const line of printed.mcp) expect(line).not.toMatch(NAMES_A_FLAG);
+      // Neither record holds a remedy line, in either wording: the wording is presentation only.
+      const lines = [...printed.cli, ...printed.mcp].map((l) => l.slice('  remedy: '.length));
+      for (const record of [cli, mcp]) {
+        const strings = stringsIn(record);
+        for (const line of lines) expect(strings.some((s) => s.includes(line))).toBe(false);
+      }
     },
   );
 
   it('covers fixtures that print remedy lines', () => {
     const named = cases
-      .filter((c) => runCase(c).predicate.claims.some((x) => remedyFor(x, { hasToken: true })))
+      .filter((c) =>
+        runCase(c).predicate.claims.some((x) => remedyFor(x, { hasToken: true, caller: 'cli' })),
+      )
       .map((c) => c.name);
     expect(named).toEqual(
       expect.arrayContaining(['test-record-not-found', 'unsupported-test-record-kind']),
     );
+    // And at least one whose line names the template, so the wording for the tool is exercised.
+    const worded = cases.filter((c) =>
+      runCase(c).predicate.claims.some(
+        (x) =>
+          remedyFor(x, { hasToken: true, caller: 'cli' }) !==
+          remedyFor(x, { hasToken: true, caller: 'mcp' }),
+      ),
+    );
+    expect(worded.map((c) => c.name)).toContain('test-record-not-found');
   });
 
   const found = cases.filter((c) => runCase(c).predicate.block.status === 'found');

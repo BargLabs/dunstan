@@ -14,6 +14,11 @@
     "claims": "b9ddb9fe63bfb372b1495bac677fc4d3c347e597963b804250ead5e0221f7082",
     "evidence": "9439695ce5b48453c50a6cf2bc166a67bb18880265f3b86f9a666bfc67ddadf9"
   },
+  "cites-unreachable-commit": {
+    "block": "058898970d24c7731d3293421a54a85b5916442449e3f98aacde2229cb8a4d83",
+    "claims": "8059cff2043673787a0cf2764d3ff4066767d411b4f68fcc4c10455bb5978bdf",
+    "evidence": "5bcd4bfc4365eed29b97bc3a87dc09e738d6df3237745a1ebf02fc4a96e59bb2"
+  },
   "closes-commit-closer": {
     "block": "faf37ff1b41f67d3751962fe094a97f82bcf08e90eda38c0298ad462f7d18222",
     "claims": "3e70e425128c106069645ff814f327f11a62ea09bb05eb0392587a7bfe9a8aca",

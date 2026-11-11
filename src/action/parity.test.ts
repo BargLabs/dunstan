@@ -141,7 +141,7 @@ describe('parity: the Action and dunstan check write the same record', () => {
         // The same remedy under each tests row that has one: a line under the CLI's row, a row
         // under the summary's.
         const remedies = record.predicate.claims.flatMap((claim) => {
-          const remedy = remedyFor(claim, { hasToken: true });
+          const remedy = remedyFor(claim, { hasToken: true, caller: 'cli' });
           return remedy === undefined ? [] : [remedy];
         });
         const cliLines = cli.stdout.split('\n').filter((l) => /^ {2}remedy: /.test(l));
@@ -158,7 +158,9 @@ describe('parity: the Action and dunstan check write the same record', () => {
 
   it('covers fixtures with remedy lines', () => {
     const named = cases
-      .filter((c) => runCase(c).predicate.claims.some((x) => remedyFor(x, { hasToken: true })))
+      .filter((c) =>
+        runCase(c).predicate.claims.some((x) => remedyFor(x, { hasToken: true, caller: 'cli' })),
+      )
       .map((c) => c.name);
     expect(named).toEqual(
       expect.arrayContaining(['test-record-not-found', 'unsupported-test-record-kind']),

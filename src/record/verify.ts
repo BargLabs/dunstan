@@ -7,11 +7,16 @@ import { EXTRACTOR } from '../advisory/grammar.js';
 import { differsAccuracyFor, precisionFor } from '../advisory/precision.js';
 import type { Evidence } from '../check/types.js';
 import { checkReaderClaim } from '../retrieval/reader-claims.js';
-import { DRAFT_PREDICATE_TYPE } from '../spec/constants.js';
+import { DRAFT_PREDICATE_TYPE, GITLAB_DRAFT_PREDICATE_TYPE } from '../spec/constants.js';
 import { canonicalize, sha256Canonical } from '../spec/jcs.js';
 import type { JsonValue } from '../spec/json.js';
 import { type BlockStatus, claimsDigest, evidenceDigest, overallVerdict } from '../spec/record.js';
-import { validateDraftRecord, validateRecord } from '../spec/schema.js';
+import {
+  type SchemaError,
+  validateDraftRecord,
+  validateGitlabDraftRecord,
+  validateRecord,
+} from '../spec/schema.js';
 import { claimsFor, type DunstanRecord, readerClaimsDigest, statementSubjects } from './build.js';
 import { CHECKER_NAME, CHECKER_VERSION } from './checker.js';
 
@@ -31,17 +36,31 @@ function same(a: unknown, b: unknown): boolean {
   return canonicalize(a as JsonValue) === canonicalize(b as JsonValue);
 }
 
+function predicateTypeOf(value: unknown): unknown {
+  return value !== null && typeof value === 'object'
+    ? (value as { predicateType?: unknown }).predicateType
+    : undefined;
+}
+
 function isDraft(value: unknown): boolean {
-  return (
-    value !== null &&
-    typeof value === 'object' &&
-    (value as { predicateType?: unknown }).predicateType === DRAFT_PREDICATE_TYPE
-  );
+  return predicateTypeOf(value) === DRAFT_PREDICATE_TYPE;
+}
+
+// DRAFT GitLab profile 0.1: a record of a GitLab merge request. Its claims and digests are
+// recomputed exactly as a GitHub record's are; only its schema and its subject entry's host differ.
+export function isGitlabRecord(value: unknown): boolean {
+  return predicateTypeOf(value) === GITLAB_DRAFT_PREDICATE_TYPE;
+}
+
+export function validateAnyRecord(value: unknown): SchemaError[] {
+  if (isDraft(value)) return validateDraftRecord(value);
+  if (isGitlabRecord(value)) return validateGitlabDraftRecord(value);
+  return validateRecord(value);
 }
 
 export function verifyRecord(value: unknown): VerifyResult {
   const draft = isDraft(value);
-  const schemaErrors = draft ? validateDraftRecord(value) : validateRecord(value);
+  const schemaErrors = validateAnyRecord(value);
   if (schemaErrors.length > 0) {
     return {
       ok: false,

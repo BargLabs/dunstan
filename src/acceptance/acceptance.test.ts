@@ -28,7 +28,9 @@ describe('acceptance (c): planted defects', () => {
       'head-mismatch',
       'closes-not-linked',
       'cites-nonexistent-issue',
-      'cites-unreachable-commit',
+      // Spec 0.1.11 (#127): cites-unreachable-commit is a control now; a cited commit that does
+      // not exist is the planted commit case.
+      'cites-nonexistent-commit',
       'test-count-wrong',
       'test-failures-understated',
       'checks-total-wrong',
@@ -86,6 +88,8 @@ describe('acceptance (c): positive controls', () => {
         // Spec 0.1.4, amended 2026-10-13 (10T4): one workflow run twice on one head.
         'checks-push-and-pull-request',
         'checks-reopened-same-workflow',
+        // Spec 0.1.11 (#127): a cited commit the head does not reach, planted until 0.1.10.
+        'cites-unreachable-commit',
       ]),
     );
   });

@@ -26,7 +26,7 @@ jobs:
   handback:
     runs-on: ubuntu-latest
     steps:
-      - uses: BargLabs/dunstan@v0.1.16 # pin the full commit SHA in production
+      - uses: BargLabs/dunstan@v0.1.18 # pin the full commit SHA in production
         with:
           report-source: pr-body
 ```
@@ -62,7 +62,7 @@ report a pull request's handback before it says done ([`plugins/dunstan/`](plugi
 /plugin install dunstan@barglabs
 ```
 
-The plugin runs the MCP server with `npx -y dunstan@0.1.16 mcp`, the `dunstan` npm package at that
+The plugin runs the MCP server with `npx -y dunstan@0.1.18 mcp`, the `dunstan` npm package at that
 exact version: one self-contained file, no dependencies.
 
 **The token.** When you enable the plugin, Claude Code asks for an optional GitHub token and keeps it
@@ -107,6 +107,11 @@ pnpm install && pnpm build          # writes dist/dunstan.mjs and prints its SHA
 # Check a pull request against the report it names (exactly one report source).
 GITHUB_TOKEN=... dist/dunstan.mjs check --repo <owner/name> --pr <n> --report-pr-body --out record.json
 #   or --report-file <path|->, or --report-comment-author <login> (that author's latest comment)
+
+# Check a GitLab merge request (DRAFT, see "GitLab (draft)" below). GITLAB_TOKEN is optional.
+dist/dunstan.mjs check --gitlab-project <full path> --mr <iid> --report-mr-description --out record.json
+#   or --report-file <path|->; --gitlab-host <host> for a self-managed GitLab (default gitlab.com);
+#   --exclude-gitlab-job "$CI_JOB_ID" in a pipeline, so the checker's own job is not counted
 
 dist/dunstan.mjs verify record.json   # offline: recompute claims, verdict and digests
 dist/dunstan.mjs rerun record.json    # online: re-read the sources, report evidence_changed
@@ -202,8 +207,53 @@ Two changes make such claims checkable:
    (`local_run_not_in_record`), never `pass`.
 
 Reading the artifact needs a token: without one a `tests` row is `unverifiable`
-(`source_unreadable:artifact`). Each `tests` row the record cannot settle is printed with a
-`remedy:` line saying what to do.
+(`source_unreadable:artifact`). A pull request that changes the workflow file its record names
+wrote its own evidence, so its `tests` rows are `unverifiable` (`record_producer_changed_by_pr`,
+spec 0.1.10): land the workflow change in a pull request of its own. Each `tests` row the record
+cannot settle is printed with a `remedy:` line saying what to do.
+
+## GitLab (draft)
+
+`dunstan check --gitlab-project <full path> --mr <iid>` checks a GitLab merge request on
+gitlab.com, or on a self-managed instance with `--gitlab-host <host>`. The project is named by its
+full path, `group/subgroup/.../project`. The report is `--report-mr-description` (the merge
+request's description) or `--report-file <path|->`. It reads without a token; set `GITLAB_TOKEN`
+to read what an anonymous reader cannot. The token is sent as a header and is never written into a
+record, a source, a log line or an error. This is the
+[DRAFT GitLab profile 0.1](spec/claim-format.md#draft-gitlab-profile-01), which the operator has
+not yet made normative. Nothing about GitHub changes: every GitHub record is written byte for byte
+as before.
+
+Every evidence section has a GitLab source, so every claim a block makes can be settled:
+
+- the merge request (its head, state, merge time and merge commit: the squash commit for a squash
+  merged by fast-forward), its changed files from the diffs listing, its `closes_issues`, and the
+  issues and commits a block names, with each `closes` target's state events (the head, scope,
+  `closes`, `cites` and `mergedAt` claims);
+- `checks`: the latest jobs and the bridges of the merge request's head pipeline, which must be for
+  `headCommit`, by one job status table. A failed job counts as failed even when it is allowed to
+  fail, and a manual job never run as skipped. Run in a pipeline, pass the checker's own job,
+  `--exclude-gitlab-job "$CI_JOB_ID"`;
+- a `tests[]` item whose `junit` record names `workflow: .gitlab-ci.yml` (the project's CI
+  configuration file), the `job`, `artifact: archive` and the `path` of the JUnit file in that
+  job's artifacts archive: Dunstan downloads the archive and counts the file itself, never GitLab's
+  parsed test report;
+- `deployedAt`: the project's deployments to the named environment, where only `success` is a
+  successful deployment.
+
+What has no GitLab equivalent, and so is never recorded: an issue's `exists: false` (GitLab
+answers 404 for a confidential issue, so a `cites` or `closes` of one is
+`source_unreadable:issue`, never `not_found`) and `resolvedAs`, a check run's suite, app and
+workflow, a deployment's status events, a fast-forward merge's merged commit without a squash, the
+`--report-comment-author` report and `--advisory`. A block names an issue of the subject project as
+`#N` at any depth; it cannot name another subgroup project's issue in full, since the block format
+admits two-segment references only.
+
+A GitLab record has its own predicate type (`.../record/v0.1-gitlab-draft`) and schema
+(`spec/schema/record-gitlab-0.1-draft.schema.json`), and carries
+`predicate.subject.forge: {"kind": "gitlab", "host": ...}`. `dunstan verify` re-runs it offline,
+and `dunstan rerun` re-reads it from the host it names. The GitHub Action, the MCP tool, the survey
+and the hosted tier read GitHub only.
 
 ## The GitHub Action
 
@@ -288,11 +338,13 @@ baseline, a negated list or a deliberate test failure as claims, and since 0.1.3
 list or a merge time after a colon ([`docs/advisory.md`](docs/advisory.md), "Attribution" and
 "Lists, merge times and own references"). Extractor 0.1.4's rules did not generalise to held-out
 pull requests and were reverted ("Labels, used names and descriptions"). No figure is published
-for 0.1.3, so a record it writes says "unmeasured". The comparison that runs is 0.4.0: a file claim
+for 0.1.3, so a record it writes says "unmeasured". The comparison that runs is 0.5.0: a file claim
 not among the changed files is a possible disagreement only when its path is a file at the head,
 and is unanswered when nothing or a directory is there ("Paths that are not at the head"), and a
 `closes` claim is settled by who closed the target, as the gate's is ("Closes read by who closed
-the target"). It is unmeasured too: the `differs` figure stays bound to comparison 0.2.0.
+the target"), and a cited commit agrees when it exists, whether or not the head reaches it, as the
+gate's `cites` does since spec 0.1.11 ("Cited commits that the head does not reach"). It is
+unmeasured too: the `differs` figure stays bound to comparison 0.2.0.
 
 The base rate is always shown next to the `differs` figure: among the 44 advisories the record
 could check, none was a false claim (0 of 44), so 0 of 20 means there was little to find, not that

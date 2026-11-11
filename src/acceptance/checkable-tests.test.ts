@@ -144,7 +144,7 @@ function blockIn(text: string): Block {
 
 // The remedy line the claims table prints under a row.
 const remedyLine = (claim: Claim, hasToken: boolean) =>
-  `  remedy: ${remedyFor(claim, { hasToken })}`;
+  `  remedy: ${remedyFor(claim, { hasToken, caller: 'cli' })}`;
 
 describe('1. "142 tests passed", declared against the CI record', () => {
   it('passes both rows', async () => {
@@ -181,7 +181,7 @@ describe('3. no run uploaded the artifact', () => {
       ['count:/tests/0/failures', 'unverifiable', 'record_not_found'],
     ]);
     const row = r.claims.find((c) => c.id === 'count:/tests/0/count') as Claim;
-    expect(remedyFor(row, { hasToken: true })).toMatch(/docs\/ci-test-records\.md/);
+    expect(remedyFor(row, { hasToken: true, caller: 'cli' })).toMatch(/docs\/ci-test-records\.md/);
     const lines = r.out.split('\n');
     for (const id of ['count:/tests/0/count', 'count:/tests/0/failures']) {
       const at = lines.findIndex((l) => l.includes(id));
@@ -206,7 +206,7 @@ describe('4. a local test record', () => {
     expect(r.requests.filter((q) => q.includes('/actions/'))).toEqual([]);
     expect(r.record.predicate.evidence.testRecords).toBeUndefined();
     const row = r.claims.find((c) => c.id === 'count:/tests/0/count') as Claim;
-    expect(remedyFor(row, { hasToken: true })).toMatch(/--tests-ci/);
+    expect(remedyFor(row, { hasToken: true, caller: 'cli' })).toMatch(/--tests-ci/);
     expect(r.out).toContain(remedyLine(row, true));
     expect(r.code).toBe(2);
   });
@@ -358,8 +358,10 @@ describe('6. an artifact download read anonymously', () => {
         .error,
     ).toBe('http_401');
     const row = r.claims.find((c) => c.id === 'count:/tests/0/count') as Claim;
-    expect(remedyFor(row, { hasToken: false })).toMatch(/GITHUB_TOKEN/);
-    expect(remedyFor(row, { hasToken: false })).not.toBe(remedyFor(row, { hasToken: true }));
+    expect(remedyFor(row, { hasToken: false, caller: 'cli' })).toMatch(/GITHUB_TOKEN/);
+    expect(remedyFor(row, { hasToken: false, caller: 'cli' })).not.toBe(
+      remedyFor(row, { hasToken: true, caller: 'cli' }),
+    );
     expect(r.out).toContain(remedyLine(row, false));
   });
 

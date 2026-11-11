@@ -21,6 +21,7 @@ import { countJunit } from '../evidence/junit.js';
 import { BLOCK_INFO_STRING, BLOCK_VERSION } from '../spec/constants.js';
 import { readBlockContent } from '../spec/extract.js';
 import type { CiTests } from './tests-ci.js';
+import { type Caller, phrase } from './wording.js';
 
 export class TemplateError extends Error {
   constructor(message: string) {
@@ -59,6 +60,8 @@ export interface TemplateOptions {
   // The ref the pull request merges into. Absent: the remote's default branch, origin/HEAD.
   base?: string | undefined;
   tests?: TestsSource | undefined;
+  // Who reads the notes and errors: their instructions name flags or tool inputs (./wording.ts).
+  caller: Caller;
 }
 
 export interface Template {
@@ -102,12 +105,12 @@ function commitOf(cwd: string, ref: string): string | undefined {
 }
 
 // The remote's default branch, as origin/HEAD names it: "origin/main".
-function defaultBase(cwd: string): string {
+function defaultBase(cwd: string, caller: Caller): string {
   const r = git(cwd, ['symbolic-ref', '--quiet', 'refs/remotes/origin/HEAD']);
   const ref = r.stdout.trim();
   if (!r.ok || !ref.startsWith('refs/remotes/')) {
     throw new TemplateError(
-      "the remote's default branch cannot be resolved (refs/remotes/origin/HEAD is not set): pass --base <ref>, or run git remote set-head origin --auto",
+      `the remote's default branch cannot be resolved (refs/remotes/origin/HEAD is not set): ${phrase(caller, 'base')}, or run git remote set-head origin --auto`,
     );
   }
   return ref.slice('refs/remotes/'.length);
@@ -126,14 +129,18 @@ function localCounts(
 }
 
 // The run the block declares, if any, and the note that says where its counts came from.
-function testsFrom(cwd: string, tests: TestsSource): { run?: TestRun; notes: string[] } {
+function testsFrom(
+  cwd: string,
+  tests: TestsSource,
+  caller: Caller,
+): { run?: TestRun; notes: string[] } {
   if (tests.kind === 'ci') {
     return tests.read.status === 'settled'
       ? { run: tests.read.run, notes: tests.read.notes }
       : { notes: tests.read.notes };
   }
   if (tests.kind === 'local') {
-    const counts = localCounts(cwd, '--tests-local', tests.junit);
+    const counts = localCounts(cwd, phrase(caller, 'localFile'), tests.junit);
     return {
       run: {
         command: tests.command,
@@ -142,10 +149,12 @@ function testsFrom(cwd: string, tests: TestsSource): { run?: TestRun; notes: str
         record: { kind: 'local' },
       },
       notes: [
-        `tests: ${counts.executed} executed and ${counts.failed} failed in ${tests.junit}, declared as a local run (record {"kind": "local"}). The gate reports them unverifiable (local_run_not_in_record) until CI publishes a record: publish one (docs/ci-test-records.md), then run dunstan template --tests-ci once CI has finished. Until then, say in the report that CI publishes no test record, and state no count in prose that the block does not declare.`,
+        `tests: ${counts.executed} executed and ${counts.failed} failed in ${tests.junit}, declared as a local run (record {"kind": "local"}). The gate reports them unverifiable (local_run_not_in_record) until CI publishes a record: publish one (docs/ci-test-records.md), then ${phrase(caller, 'ciOnceFinished')}. Until then, say in the report that CI publishes no test record, and state no count in prose that the block does not declare.`,
       ],
     };
   }
+  // The command line only: the MCP tool has no form of a local file declared against a CI record
+  // (src/mcp/server.ts), so this error and the note below are never worded for it.
   const counts = localCounts(cwd, '--tests-junit', tests.junit);
   const r = tests.record;
   return {
@@ -162,12 +171,13 @@ function testsFrom(cwd: string, tests: TestsSource): { run?: TestRun; notes: str
 }
 
 // The github.com repository `origin` names, as owner/name: an https, ssh or scp-style URL, with or
-// without `.git`. Any other host, or no origin, is refused: the caller names one with --repo.
-export function originRepository(cwd: string): string {
+// without `.git`. Any other host, or no origin, is refused: the caller names one (--repo, or the
+// tool's tests.repository).
+export function originRepository(cwd: string, caller: Caller): string {
   const r = git(cwd, ['remote', 'get-url', 'origin']);
   const url = r.stdout.trim();
   if (!r.ok || url === '') {
-    throw new TemplateError('there is no origin remote: pass --repo <owner/name>');
+    throw new TemplateError(`there is no origin remote: ${phrase(caller, 'repo')}`);
   }
   const m =
     /^(?:https:\/\/(?:[^@/]+@)?|ssh:\/\/git@|git@)github\.com[:/]([A-Za-z0-9-]+)\/([A-Za-z0-9._-]+?)(?:\.git)?\/?$/.exec(
@@ -175,7 +185,7 @@ export function originRepository(cwd: string): string {
     );
   if (m === null) {
     throw new TemplateError(
-      `origin ${url} is not a github.com repository: pass --repo <owner/name>`,
+      `origin ${url} is not a github.com repository: ${phrase(caller, 'repo')}`,
     );
   }
   return `${m[1]}/${m[2]}`;
@@ -206,7 +216,7 @@ export function headCommit(cwd: string): string {
 }
 
 export function templateBlock(options: TemplateOptions): Template {
-  const { cwd } = options;
+  const { cwd, caller } = options;
   const head = headCommit(cwd);
   const symbolic = git(cwd, ['symbolic-ref', '--quiet', 'HEAD']);
   if (!symbolic.ok) {
@@ -216,8 +226,10 @@ export function templateBlock(options: TemplateOptions): Template {
   }
   const branch = symbolic.stdout.trim().replace(/^refs\/heads\//, '');
 
-  if (options.base?.startsWith('-')) throw new TemplateError(`--base ${options.base} is not a ref`);
-  const base = options.base ?? defaultBase(cwd);
+  if (options.base?.startsWith('-')) {
+    throw new TemplateError(`${phrase(caller, 'baseName')} ${options.base} is not a ref`);
+  }
+  const base = options.base ?? defaultBase(cwd, caller);
   const baseCommit = commitOf(cwd, base);
   if (baseCommit === undefined) throw new TemplateError(`the base ${base} cannot be resolved`);
   const mb = git(cwd, ['merge-base', baseCommit, head]);
@@ -245,7 +257,7 @@ export function templateBlock(options: TemplateOptions): Template {
   );
 
   const block: Block = { dunstan: BLOCK_VERSION, headCommit: head, filesChanged };
-  const tests = options.tests === undefined ? undefined : testsFrom(cwd, options.tests);
+  const tests = options.tests === undefined ? undefined : testsFrom(cwd, options.tests, caller);
   if (tests?.run !== undefined) block.tests = [tests.run];
 
   // The block is read back as the gate reads one, so a template is never an invalid block.
@@ -258,7 +270,7 @@ export function templateBlock(options: TemplateOptions): Template {
   }
 
   const notes = [
-    `this block describes the local HEAD ${head} on ${branch}, against ${base} (merge base ${mergeBase}). Pushing more commits makes it stale, and the gate then reports head_mismatch: run dunstan template again after your last push.`,
+    `this block describes the local HEAD ${head} on ${branch}, against ${base} (merge base ${mergeBase}). Pushing more commits makes it stale, and the gate then reports head_mismatch: ${phrase(caller, 'again')} after your last push.`,
   ];
   if (filesChanged.length === 0) notes.push('HEAD changes no file against the merge base.');
   const dirty = git(cwd, ['status', '--porcelain', '-z']);
@@ -266,9 +278,7 @@ export function templateBlock(options: TemplateOptions): Template {
     notes.push('the working tree has changes that are not committed; they are not in this block.');
   }
   if (tests === undefined) {
-    notes.push(
-      "tests are not declared. To declare CI's counts, run dunstan template again with --tests-ci --tests-command <cmd> --tests-workflow <path> --tests-job <name> once CI has finished on your last push; it reads the JUnit record CI published (docs/ci-test-records.md). For a run made only locally, --tests-local <JUnit XML file> --tests-command <cmd> declares it as one. --tests-junit <file> with --tests-command, --tests-workflow, --tests-job, --tests-artifact and --tests-artifact-path declares a local file's counts against a CI record.",
-    );
+    notes.push(phrase(caller, 'noTests'));
   } else {
     notes.push(...tests.notes);
   }

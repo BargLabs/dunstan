@@ -565,8 +565,8 @@ async function readCloseTarget(client: GitHubClient, ref: string): Promise<Close
 
 // The targets whose close events are read: each `closes` that exists and that the closing
 // references, read, do not list, under the identity it resolves to (`resolvedAs`, or its own), once
-// each, in order of first appearance in the block.
-function closeTargets(
+// each, in order of first appearance in the block. The GitLab reader chooses its targets with it too.
+export function closeTargets(
   block: Block,
   repository: string,
   closing: ClosingReferencesEvidence | undefined,

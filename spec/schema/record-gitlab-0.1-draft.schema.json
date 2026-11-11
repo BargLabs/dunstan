@@ -1,0 +1,247 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://barglabs.ai/dunstan/spec/schema/record-gitlab-0.1-draft.schema.json",
+  "title": "Dunstan record, DRAFT GitLab profile 0.1",
+  "description": "DRAFT, not normative, for the operator to check (spec/claim-format.md, \"DRAFT GitLab profile 0.1\"). A 0.1 record of a GitLab merge request: the predicate's subject carries forge {kind: gitlab, host}, and the head commit's subject entry names that host. A project and an issue reference are named by the project's full path, group/subgroup/.../project, which admits every path the 0.1 repository pattern admits; the evidence sections that hold issue references are restated here with that pattern. Every other member is a reference into record-0.1.schema.json, which this file does not change.",
+  "type": "object",
+  "required": ["_type", "subject", "predicateType", "predicate"],
+  "additionalProperties": false,
+  "properties": {
+    "_type": { "$ref": "record-0.1.schema.json#/properties/_type" },
+    "subject": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "prefixItems": [
+        { "$ref": "#/$defs/commitSubject" },
+        { "$ref": "record-0.1.schema.json#/$defs/blockSubject" }
+      ],
+      "items": false
+    },
+    "predicateType": { "const": "https://barglabs.ai/dunstan/record/v0.1-gitlab-draft" },
+    "predicate": { "$ref": "#/$defs/predicate" }
+  },
+  "allOf": [{ "$ref": "record-0.1.schema.json#/allOf/0" }],
+  "$defs": {
+    "repository": {
+      "description": "A GitLab project's full path: up to 20 levels of groups, then the project. Every path the 0.1 repository pattern admits is one.",
+      "type": "string",
+      "maxLength": 5375,
+      "pattern": "^[A-Za-z0-9_][A-Za-z0-9._-]{0,254}(?:/[A-Za-z0-9_][A-Za-z0-9._-]{0,254}){0,19}/[A-Za-z0-9._-]{1,255}$"
+    },
+    "issueRef": {
+      "description": "An issue of a GitLab project, <full path>#<iid>.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_][A-Za-z0-9._-]{0,254}(?:/[A-Za-z0-9_][A-Za-z0-9._-]{0,254}){0,19}/[A-Za-z0-9._-]{1,255}#[1-9][0-9]{0,9}$"
+    },
+    "evidence": {
+      "description": "0.1's evidence, with the sections that hold issue references (closingReferences, references, closeEvents) restated to name an issue by #/$defs/issueRef. Every other section is 0.1's.",
+      "type": "object",
+      "required": ["pullRequest", "sources"],
+      "additionalProperties": false,
+      "properties": {
+        "pullRequest": {
+          "$ref": "record-0.1.schema.json#/$defs/evidence/properties/pullRequest"
+        },
+        "files": { "$ref": "record-0.1.schema.json#/$defs/evidence/properties/files" },
+        "closingReferences": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["status", "issues"],
+              "additionalProperties": false,
+              "properties": {
+                "status": { "const": "ok" },
+                "issues": { "type": "array", "items": { "$ref": "#/$defs/issueRef" } }
+              }
+            },
+            { "$ref": "record-0.1.schema.json#/$defs/unreadOnly" }
+          ]
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": ["kind", "ref", "status", "exists"],
+                "additionalProperties": false,
+                "properties": {
+                  "kind": { "const": "issue" },
+                  "ref": { "$ref": "#/$defs/issueRef" },
+                  "status": { "const": "ok" },
+                  "exists": { "type": "boolean" },
+                  "resolvedAs": { "$ref": "#/$defs/issueRef" }
+                },
+                "if": { "required": ["resolvedAs"] },
+                "then": { "properties": { "exists": { "const": true } } }
+              },
+              {
+                "$ref": "record-0.1.schema.json#/$defs/evidence/properties/references/items/oneOf/1"
+              },
+              {
+                "$ref": "record-0.1.schema.json#/$defs/evidence/properties/references/items/oneOf/2"
+              }
+            ]
+          }
+        },
+        "closeEvents": {
+          "type": "object",
+          "required": ["pullRequest", "targets"],
+          "additionalProperties": false,
+          "properties": {
+            "pullRequest": {
+              "$ref": "record-0.1.schema.json#/$defs/evidence/properties/closeEvents/properties/pullRequest"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "required": ["ref", "status", "type", "state", "events"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "ref": { "$ref": "#/$defs/issueRef" },
+                      "status": { "const": "ok" },
+                      "type": { "enum": ["issue", "pull_request"] },
+                      "state": { "enum": ["open", "closed", "merged"] },
+                      "events": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": ["at", "closer"],
+                          "additionalProperties": false,
+                          "properties": {
+                            "at": { "$ref": "record-0.1.schema.json#/$defs/timestamp" },
+                            "closer": {
+                              "oneOf": [
+                                { "type": "null" },
+                                {
+                                  "type": "object",
+                                  "required": ["kind", "ref"],
+                                  "additionalProperties": false,
+                                  "properties": {
+                                    "kind": { "const": "pull_request" },
+                                    "ref": { "$ref": "#/$defs/issueRef" }
+                                  }
+                                },
+                                {
+                                  "$ref": "record-0.1.schema.json#/$defs/evidence/properties/closeEvents/properties/targets/items/oneOf/0/properties/events/items/properties/closer/oneOf/2"
+                                },
+                                {
+                                  "$ref": "record-0.1.schema.json#/$defs/evidence/properties/closeEvents/properties/targets/items/oneOf/0/properties/events/items/properties/closer/oneOf/3"
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "if": { "properties": { "type": { "const": "issue" } } },
+                    "then": { "properties": { "state": { "enum": ["open", "closed"] } } }
+                  },
+                  {
+                    "type": "object",
+                    "required": ["ref"],
+                    "properties": { "ref": { "$ref": "#/$defs/issueRef" } },
+                    "allOf": [{ "$ref": "record-0.1.schema.json#/$defs/unread" }]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "checkRuns": { "$ref": "record-0.1.schema.json#/$defs/evidence/properties/checkRuns" },
+        "testRecords": {
+          "$ref": "record-0.1.schema.json#/$defs/evidence/properties/testRecords"
+        },
+        "deployments": {
+          "$ref": "record-0.1.schema.json#/$defs/evidence/properties/deployments"
+        },
+        "sources": { "$ref": "record-0.1.schema.json#/$defs/evidence/properties/sources" }
+      }
+    },
+    "host": {
+      "description": "The GitLab instance's lowercase DNS name: gitlab.com, or a self-managed host.",
+      "type": "string",
+      "maxLength": 253,
+      "pattern": "^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$"
+    },
+    "commitSubject": {
+      "type": "object",
+      "required": ["name", "digest"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^git\\+https://[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*/[A-Za-z0-9_][A-Za-z0-9._-]{0,254}(?:/[A-Za-z0-9_][A-Za-z0-9._-]{0,254}){0,19}/[A-Za-z0-9._-]{1,255}@[0-9a-f]{40}$"
+        },
+        "digest": { "$ref": "record-0.1.schema.json#/$defs/commitSubject/properties/digest" }
+      }
+    },
+    "predicate": {
+      "type": "object",
+      "required": [
+        "spec",
+        "checker",
+        "report",
+        "block",
+        "subject",
+        "evidence",
+        "claims",
+        "verdict",
+        "digests",
+        "rerun",
+        "assurance"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "spec": {
+          "description": "The 0.1 version the checker implements, with the profile: 0.1.11-gitlab-0.1-draft.",
+          "type": "string",
+          "pattern": "^0\\.1\\.(?:0|[1-9][0-9]*)-gitlab-0\\.1-draft$"
+        },
+        "checker": { "$ref": "record-0.1.schema.json#/$defs/predicate/properties/checker" },
+        "report": { "$ref": "record-0.1.schema.json#/$defs/predicate/properties/report" },
+        "block": { "$ref": "record-0.1.schema.json#/$defs/block" },
+        "subject": {
+          "type": "object",
+          "required": ["repository", "pullRequest", "headSha", "mergeSha", "forge"],
+          "additionalProperties": false,
+          "properties": {
+            "repository": {
+              "description": "The project's full path, group/subgroup/.../project, as the merge request read names it.",
+              "$ref": "#/$defs/repository"
+            },
+            "pullRequest": {
+              "description": "The merge request's iid.",
+              "type": "integer",
+              "minimum": 1
+            },
+            "headSha": { "$ref": "record-0.1.schema.json#/$defs/commitSha" },
+            "mergeSha": {
+              "oneOf": [{ "$ref": "record-0.1.schema.json#/$defs/commitSha" }, { "type": "null" }]
+            },
+            "forge": {
+              "description": "The forge the evidence was read from. A record without it is a GitHub record.",
+              "type": "object",
+              "required": ["kind", "host"],
+              "additionalProperties": false,
+              "properties": {
+                "kind": { "const": "gitlab" },
+                "host": { "$ref": "#/$defs/host" }
+              }
+            }
+          }
+        },
+        "evidence": { "$ref": "#/$defs/evidence" },
+        "claims": { "$ref": "record-0.1.schema.json#/$defs/predicate/properties/claims" },
+        "verdict": { "$ref": "record-0.1.schema.json#/$defs/verdict" },
+        "digests": { "$ref": "record-0.1.schema.json#/$defs/predicate/properties/digests" },
+        "rerun": { "$ref": "record-0.1.schema.json#/$defs/predicate/properties/rerun" },
+        "assurance": { "$ref": "record-0.1.schema.json#/$defs/predicate/properties/assurance" }
+      }
+    }
+  }
+}

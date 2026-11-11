@@ -109,6 +109,22 @@ export function validateDraftRecord(value: unknown): SchemaError[] {
   return draftRecord(value) ? [] : toSchemaErrors(draftRecord.errors);
 }
 
+// The DRAFT GitLab profile 0.1 record schema (spec/claim-format.md, "DRAFT GitLab profile 0.1"),
+// which refers into the 0.1 record schema. Compiled at first use, like the DRAFT 0.2.0 one: the
+// hosted Worker writes GitHub records only.
+export const GITLAB_DRAFT_RECORD_SCHEMA_FILE = 'record-gitlab-0.1-draft.schema.json';
+
+let gitlabDraftRecord: Validator | undefined;
+
+export function validateGitlabDraftRecord(value: unknown): SchemaError[] {
+  if (gitlabDraftRecord === undefined) {
+    const ajv = createAjv();
+    ajv.addSchema(readSchema(GITLAB_DRAFT_RECORD_SCHEMA_FILE));
+    gitlabDraftRecord = ajv.getSchema(schemaId(GITLAB_DRAFT_RECORD_SCHEMA_FILE)) as Validator;
+  }
+  return gitlabDraftRecord(value) ? [] : toSchemaErrors(gitlabDraftRecord.errors);
+}
+
 // The DRAFT survey record schema (spec/claim-format.md, "DRAFT survey 0.1"), which refers into the
 // 0.1 record schema. Compiled at first use, like the DRAFT 0.2.0 record schema.
 export const SURVEY_SCHEMA_FILE = 'survey-0.1-draft.schema.json';

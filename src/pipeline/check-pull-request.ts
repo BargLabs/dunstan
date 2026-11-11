@@ -24,13 +24,15 @@ import {
   readPathObjects,
   readPullRequest,
 } from '../evidence/github.js';
-import type { GitHubClient } from '../evidence/http.js';
+import { readGitLabEvidence, readMergeRequest } from '../evidence/gitlab.js';
+import type { GitHubClient, GitLabClient } from '../evidence/http.js';
 import type { Report } from '../evidence/report.js';
 import {
   type Assurance,
   buildRecord,
   type CheckerIdentity,
   type DunstanRecord,
+  type Forge,
   type RecordBlock,
   recordBlock,
   rerunCommands,
@@ -59,6 +61,19 @@ export function githubReaders(client: GitHubClient): EvidenceReaders {
       readPullRequest(client, repository, number, options),
     evidence: (input) => readEvidence(client, input),
     pathObjects: (input) => readPathObjects(client, input),
+    restart: () => client.sources.clear(),
+  };
+}
+
+// DRAFT GitLab profile 0.1: a merge request read with its diffs, and the evidence the profile maps.
+// The advisory's existence query is GitHub's only; `dunstan check` refuses --advisory on GitLab.
+export function gitlabReaders(client: GitLabClient): EvidenceReaders {
+  return {
+    pullRequest: (project, iid, options) => readMergeRequest(client, project, iid, options),
+    evidence: (input) => readGitLabEvidence(client, input),
+    pathObjects: async () => {
+      throw new Error('the advisory is not read from GitLab in this draft');
+    },
     restart: () => client.sources.clear(),
   };
 }
@@ -111,6 +126,9 @@ export interface CheckPullRequestInput {
   // Run the advisory extractor over the report (DRAFT 0.2.0, src/advisory/). Off by default. It
   // adds an advisory section and never changes the verdict or the claims.
   advisory?: boolean;
+  // DRAFT GitLab profile 0.1: the subject is a GitLab merge request on this host, read with
+  // gitlabReaders. Absent, it is a GitHub pull request and the record is written as before.
+  forge?: Forge;
 }
 
 export async function checkPullRequest(input: CheckPullRequestInput): Promise<DunstanRecord> {
@@ -152,5 +170,6 @@ async function checkAt(input: CheckPullRequestInput, pr: PullRequestRead): Promi
     rerun: rerunCommands(input.recordFile),
     ...(input.assurance === undefined ? {} : { assurance: input.assurance }),
     ...(proposed === undefined ? {} : { advisory: proposed, pathsAtHead }),
+    ...(input.forge === undefined ? {} : { forge: input.forge }),
   });
 }

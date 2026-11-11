@@ -168,7 +168,7 @@ export function renderSurveySummary(record: SurveyRecord): string {
   }
 
   const p = a.pullRequests;
-  const context = { hasToken: record.selection.reader.authenticated };
+  const context = { hasToken: record.selection.reader.authenticated, caller: 'cli' } as const;
   const remedy = (reason: string) => remedyForReason(reason, context) ?? '';
   lines.push(
     '',

@@ -6,13 +6,16 @@
 // 0.2: the remedy lines are one table with the claims table's (the four tests reasons take its
 // wording), each a function of the reader the survey record names (`selection.reader`); and
 // `local_run_not_in_record` is not record-checkable.
+//
+// 0.3: a remedy line for `record_producer_changed_by_pr` (spec 0.1.10). It is unverifiable, not
+// not-record-checkable: the record exists, and the pull request wrote it.
 
 import type { Claim } from '../check/types.js';
 import { remedyTable } from '../remedy/remedies.js';
 import { sha256Canonical } from '../spec/jcs.js';
 import type { JsonValue } from '../spec/json.js';
 
-export const SURVEY_MAPPING_VERSION = '0.2';
+export const SURVEY_MAPPING_VERSION = '0.3';
 
 export type ClaimType = 'T1' | 'T2' | 'T3' | 'T4' | 'T5' | 'T6' | 'T7' | 'T8' | 'R';
 
@@ -73,7 +76,8 @@ export function column(claim: Pick<Claim, 'verdict' | 'reason'>): Column {
 }
 
 // Everything the mapping decides, as one value: its digest changes when any of it does. The remedy
-// lines are a function of the reader, so both readers' lines are in it.
+// lines are a function of the reader, so both readers' lines are in it. The survey is read from the
+// command line or the Action, so its lines are the command line's.
 export function mappingDigest(): string {
   return sha256Canonical({
     version: SURVEY_MAPPING_VERSION,
@@ -81,8 +85,8 @@ export function mappingDigest(): string {
     columns: COLUMNS,
     notRecordCheckable: NOT_RECORD_CHECKABLE,
     remedies: {
-      authenticated: remedyTable({ hasToken: true }),
-      anonymous: remedyTable({ hasToken: false }),
+      authenticated: remedyTable({ hasToken: true, caller: 'cli' }),
+      anonymous: remedyTable({ hasToken: false, caller: 'cli' }),
     },
   } as unknown as JsonValue);
 }

@@ -329,7 +329,7 @@
       "additionalProperties": false,
       "properties": {
         "comparison": {
-          "description": "The version of the rules that turn a proposed claim and the evidence into its note, separate from the extractor's. 0.1.0 compared a file claim by exact path only; 0.2.0 also matches it by name; 0.3.0 also asks whether a path not among the changed files exists at the head (D.11.4); 0.4.0 compares a closes claim by who closed the target (spec 0.1.4).",
+          "description": "The version of the rules that turn a proposed claim and the evidence into its note, separate from the extractor's. 0.1.0 compared a file claim by exact path only; 0.2.0 also matches it by name; 0.3.0 also asks whether a path not among the changed files exists at the head (D.11.4); 0.4.0 compares a closes claim by who closed the target (spec 0.1.4); 0.5.0 compares a cited commit by whether it exists only (spec 0.1.11).",
           "type": "object",
           "required": ["version"],
           "additionalProperties": false,

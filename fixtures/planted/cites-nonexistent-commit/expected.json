@@ -1,5 +1,5 @@
 {
-  "description": "Cites a commit that exists but is not an ancestor of the head",
+  "description": "Cites a commit that does not exist in the repository",
   "blockStatus": "found",
   "verdict": "fail",
   "claims": [
@@ -30,7 +30,7 @@
     {
       "id": "reference:/references/2",
       "verdict": "fail",
-      "reason": "not_reachable"
+      "reason": "not_found"
     },
     {
       "id": "count:/tests/0/count",

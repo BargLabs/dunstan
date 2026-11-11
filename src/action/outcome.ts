@@ -255,7 +255,9 @@ export function renderSummary(outcome: Outcome): string {
             '| Claim | Declared | Observed | Verdict | Reason |',
             '| --- | --- | --- | --- | --- |',
           ],
-          items: claims.map((c) => claimRow(c, { hasToken: outcome.hasToken ?? true })),
+          items: claims.map((c) =>
+            claimRow(c, { hasToken: outcome.hasToken ?? true, caller: 'cli' }),
+          ),
           more: (n) =>
             `${plural(n, 'more claim is', 'more claims are')} in the record (summary size limit).`,
         };

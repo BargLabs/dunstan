@@ -21,7 +21,7 @@ import {
 // before it, and 0.1.4 reverted to it), which no figure is published for.
 const DIGEST = 'ab77ce47d1c5172ec912d1221e03bbe5b312ff5dc2acb594c4b8549fe602c360';
 const SOURCE = 'operator-adjudicated, Barg Labs internal corpus, 2026-10-05';
-// The comparison the differs figure was measured on. The one that runs is 0.4.0, which no figure
+// The comparison the differs figure was measured on. The one that runs is 0.5.0, which no figure
 // is published for.
 const MEASURED_COMPARISON = '0.2.0';
 
@@ -43,10 +43,11 @@ describe('the published figures', () => {
     expect(PUBLISHED_DIFFERS_ACCURACY.map((p) => [p.extractorDigest, p.comparisonVersion])).toEqual(
       [[DIGEST, MEASURED_COMPARISON]],
     );
-    // Comparison 0.4.0 runs, and inherits nothing from 0.2.0 or 0.3.0.
-    expect(COMPARISON_VERSION).toBe('0.4.0');
+    // Comparison 0.5.0 runs, and inherits nothing from 0.2.0, 0.3.0 or 0.4.0.
+    expect(COMPARISON_VERSION).toBe('0.5.0');
     expect(differsAccuracyFor(DIGEST, COMPARISON_VERSION)).toBeNull();
     expect(differsAccuracyFor(DIGEST, '0.3.0')).toBeNull();
+    expect(differsAccuracyFor(DIGEST, '0.4.0')).toBeNull();
   });
 
   it('state the operator-signed values, n and intervals', () => {
@@ -122,6 +123,7 @@ describe('the binding: a changed digest or comparison is unmeasured', () => {
       [DIGEST, '0.1.0'],
       [DIGEST, '0.3.0'],
       [DIGEST, '0.4.0'],
+      [DIGEST, '0.5.0'],
       [DIGEST, '0.2'],
       [DIGEST, ''],
       [OTHER_DIGEST, '0.1.0'],

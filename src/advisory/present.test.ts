@@ -144,18 +144,29 @@ const FIGURES_LINE =
 // `unanswered:check_runs_not_at_head`; and but for the DRAFT schema's reader claim reason
 // `duplicate_record_item`, for a test case two entries of the evidence share; and but for spec
 // 0.1.9, for which the block schema's test record gained the `local` kind and the 0.1 record
-// schema's claim reason `local_run_not_in_record`. A change to any of them is a record change. The
+// schema's claim reason `local_run_not_in_record`; and but for spec 0.1.10, for which the 0.1
+// record schema's claim reason gained `record_producer_changed_by_pr`. A change to any of them is a
+// record change. The
 // DRAFT survey schema is new beside them and changes none of them; it gained `selection.reader`,
 // then the listing's and its pages' `duplicates` and `uniqueItems` on the listed pull requests, the
 // selected numbers and the entries, then the listing's required `abandoned` reads (at most two, each
 // a list of pages of the shape the listing's pages share, now `$defs/listingPage`), recorded when a
-// page that repeats an earlier item starts the listing's read again from page 1.
+// page that repeats an earlier item starts the listing's read again from page 1. The DRAFT GitLab
+// profile 0.1 schema is new beside them too and changes none of them: it refers into the 0.1 record
+// schema for every member a GitLab record shares with a GitHub one. It then gained a project's full
+// path in a subgroup, its own `repository` and `issueRef`, and restates the three evidence sections
+// that hold issue references with them; the 0.1 record and block schemas are unchanged. And but
+// for comparison 0.5.0 (spec 0.1.11), whose name the DRAFT schema's comparison description gained,
+// and the GitLab profile schema's `spec` description, which names 0.1.11 as its example; no other
+// schema changed.
 const SCHEMA_SHA256: Record<string, string> = {
   'handback-block-0.1.schema.json':
     'f61ddacb345dc9d0529fec2d0e4d2742b9bc6c7f3b7887795f097a9671eab8ff',
-  'record-0.1.schema.json': 'f8821fbb35bb897ae1733f9cb33ae5a8d9d09d591b049761906134d6009c7911',
+  'record-0.1.schema.json': 'ab2981f637624a9da5d6397669d927a20a7e75d30403ae55ad580ee87d0f6c0b',
   'record-0.2-draft.schema.json':
-    'b79f69b2d490379ef02fc3d22362677306b9fa0cc956e829d1022926d22ceff2',
+    '6c91b6702bf66a2603fe3ab4218441ef2b20d54521097fd6985ab5a97f66e750',
+  'record-gitlab-0.1-draft.schema.json':
+    'f8feb99f73eff1e1f47632a6c1f4fe0bccc16608965e02aace8bf9b26cda3dbd',
   'survey-0.1-draft.schema.json':
     '2958cf69b1cf0919c3d8b48e7f13f7583d222f8bb6733d5bda08161b4c2709b0',
 };
@@ -239,8 +250,8 @@ describe('the record does not change, but for the figure fields', () => {
   it('keeps the notes, the comparison and the extractor, and every digest of a record', () => {
     const record = build();
     const a = record.predicate.advisory;
-    expect(a?.comparison).toEqual({ version: '0.4.0' });
-    expect(COMPARISON_VERSION).toBe('0.4.0');
+    expect(a?.comparison).toEqual({ version: '0.5.0' });
+    expect(COMPARISON_VERSION).toBe('0.5.0');
     expect(a?.pathsAtHead).toEqual([{ path: 'src/z.ts', status: 'ok', object: 'Blob' }]);
     expect(a?.extractor).toEqual(EXTRACTOR);
     expect(EXTRACTOR.version).toBe('0.1.3');
@@ -268,10 +279,12 @@ describe('the record does not change, but for the figure fields', () => {
     // Spec 0.1.4 and comparison 0.4.0: the evidence gained #13's close events (9ff3e3e4… before),
     // and the advisory digest moved (455e8b97… before) with the comparison's name and #13's
     // `observed`, which now carries the state and close events read. #13's note is unchanged.
+    // Spec 0.1.11 and comparison 0.5.0: the advisory digest moved (2b4b5132… before) with the
+    // comparison's name only; this report cites no commit, so no note or `observed` changed.
     expect(record.predicate.digests).toEqual({
       claims: '56cccb4067679d0c95cf609ad87d9ea8eae7198b330baaa9cc0babeb0991b576',
       evidence: '4f508a64cc2f97ef466366f01e6b9491d0f698b43a96817c1a6517e90bcdea09',
-      advisory: '2b4b5132c96fe30b990b773b93292602052e4389ae7390d35acbf4f5b3a7498e',
+      advisory: '2e94790ae11051030f7d6e892ee5e090cd3d52dc6be093e3eedba25bfebaecda',
     });
     // Named as extractor 0.1.1 and comparison 0.2.0, with their figures and without the answers
     // 0.3.0 records, the section is byte for byte the one pinned when the figures were published:
@@ -313,7 +326,7 @@ describe('the record does not change, but for the figure fields', () => {
   it('no surface changes a byte of the record it shows', () => {
     const record = build();
     const before = serializeRecord(record);
-    renderRecord(record, { hasToken: true });
+    renderRecord(record, { hasToken: true, caller: 'cli' });
     renderSummary({
       conclusion: 'success',
       verdict: record.predicate.verdict,
@@ -403,7 +416,7 @@ function surfacesOf(record: ReturnType<typeof build>): Record<string, string> {
     c.type === 'text' ? c.text : '',
   );
   return {
-    cli: renderRecord(record, { hasToken: true }),
+    cli: renderRecord(record, { hasToken: true, caller: 'cli' }),
     title: titleFor(record),
     summary,
     mcp: response.slice(0, -1).join('\n'),

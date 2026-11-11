@@ -313,8 +313,12 @@ describe('the reader', () => {
     const { record: tokened } = await fixtureRun();
     const line = (r: SurveyRecord) =>
       r.aggregate.unsettled.find((u) => u.reason === 'source_unreadable:artifact')?.remedy;
-    expect(line(record)).toBe(remedyForReason('source_unreadable:artifact', { hasToken: false }));
-    expect(line(tokened)).toBe(remedyForReason('source_unreadable:artifact', { hasToken: true }));
+    expect(line(record)).toBe(
+      remedyForReason('source_unreadable:artifact', { hasToken: false, caller: 'cli' }),
+    );
+    expect(line(tokened)).toBe(
+      remedyForReason('source_unreadable:artifact', { hasToken: true, caller: 'cli' }),
+    );
     expect(line(record)).not.toBe(line(tokened));
     const v = await verifyFile(out);
     expect(v.out).toMatch(/^verified: /);
@@ -738,12 +742,12 @@ describe('the command line', () => {
 });
 
 describe('the mapping', () => {
-  it('is version 0.2, pinned to a digest of every type, column and remedy', () => {
-    expect(SURVEY_MAPPING_VERSION).toBe('0.2');
+  it('is version 0.3, pinned to a digest of every type, column and remedy', () => {
+    expect(SURVEY_MAPPING_VERSION).toBe('0.3');
     // A change to the mapping or to a remedy line, in either reader's wording, changes this digest:
     // bump the version with it.
     expect(mappingDigest()).toBe(
-      '294722f55e76647c1e411605424145224f5d9948f337add0feadbf335335347d',
+      'f5ca2dba20b198ad773fda60ace7133bf57a18d73bfd4d632bd0051c19de339b',
     );
   });
 

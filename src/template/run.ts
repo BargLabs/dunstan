@@ -1,7 +1,9 @@
 // The one core of `dunstan template`, after its inputs are read: the command line
 // (src/cli/template.ts) and the MCP tool dunstan_template_handback (src/mcp/server.ts) each turn
 // their inputs into a TemplateRequest and call runTemplate, so the two print the same fence and the
-// same notes for the same inputs (src/mcp/template-parity.test.ts).
+// same notes, in the same order, for the same inputs. The notes' instructions are worded for the
+// caller the request names: flags for the command line, tool inputs for the MCP tool, and nothing
+// else differs (src/template/wording.ts, src/mcp/template-parity.test.ts).
 //
 // Git first: HEAD and the repository are read before anything is read online, so a repository git
 // cannot answer for is refused (TemplateError) with nothing read and nothing printed. Only
@@ -17,6 +19,7 @@ import {
   templateBlock,
 } from './template.js';
 import { testsFromCi } from './tests-ci.js';
+import type { Caller } from './wording.js';
 
 // The artifact and the file in it that docs/ci-test-records.md's recipes upload.
 export const DEFAULT_ARTIFACT = 'dunstan-junit';
@@ -61,6 +64,9 @@ export interface TemplateRequest {
   // The ref the pull request merges into. Absent: the remote's default branch.
   base?: string | undefined;
   tests?: TemplateTests | undefined;
+  // Who reads the notes and errors: the command line's name flags, the MCP tool's name its inputs
+  // (src/template/wording.ts). Required, so every caller says which it is.
+  caller: Caller;
 }
 
 export interface TemplateContext {
@@ -102,7 +108,7 @@ async function testsSource(
   }
   // Git first: a repository git cannot answer for is refused before anything is read.
   const head = headCommit(cwd);
-  const repository = tests.repository ?? originRepository(cwd);
+  const repository = tests.repository ?? originRepository(cwd, request.caller);
   const client = new GitHubClient({
     token: context.env.GITHUB_TOKEN,
     ...(context.fetch === undefined ? {} : { fetch: context.fetch }),
@@ -113,6 +119,7 @@ async function testsSource(
     headCommit: head,
     command: tests.command,
     pushed: isPushed(cwd, head),
+    caller: request.caller,
     record: {
       kind: 'junit',
       workflow: tests.workflow,
@@ -129,7 +136,7 @@ export async function runTemplate(
   context: TemplateContext,
 ): Promise<TemplateRun> {
   const tests = await testsSource(request, context);
-  const t = templateBlock({ cwd: request.cwd, base: request.base, tests });
+  const t = templateBlock({ cwd: request.cwd, base: request.base, tests, caller: request.caller });
   return {
     fence: renderBlock(t.block),
     notes: t.notes,

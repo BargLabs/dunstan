@@ -25,6 +25,10 @@ usage:
                 (--report-file <path|-> | --report-pr-body | --report-comment-author <login>)
                 [--out <record.json>] [--sign-key <path> --signer <principal>]
                 [--exclude-check-run <id>]... [--advisory]
+  dunstan check --gitlab-project <namespace/project> --mr <iid> [--gitlab-host <host>]
+                (--report-file <path|-> | --report-mr-description)
+                [--out <record.json>] [--sign-key <path> --signer <principal>]
+                [--exclude-gitlab-job <id>]...
   dunstan verify <record.json> [--sig <file> --allowed-signers <file>]
   dunstan rerun <record.json> [--out <record.json>] [--exclude-check-run <id>]...
   dunstan template [--base <ref>]
@@ -44,8 +48,13 @@ check     reads the pull request, the named report and the evidence its block ne
           record and prints the claims table. GITHUB_TOKEN is read from the environment.
           --advisory also reads the report's prose for asserted claims and records them as
           advisories (DRAFT 0.2.0, docs/advisory.md). They never change the verdict.
-verify    offline: recomputes claims, verdict and digests from the record and compares them.
+          GitLab (DRAFT GitLab profile 0.1): --gitlab-project and --mr check a merge request on
+          gitlab.com, or on --gitlab-host; --report-mr-description reads its description.
+          GITLAB_TOKEN is optional. Checks are the head pipeline's jobs and bridges, less each
+          --exclude-gitlab-job (the checker's own job, CI_JOB_ID).
+verify   offline: recomputes claims, verdict and digests from the record and compares them.
 rerun     online: re-reads the sources for the recorded subject and block; writes a new record.
+          A GitLab record is re-read from the host it names.
 template  local git: prints a dunstan-handback block for HEAD, its files against the merge base
           with --base (default: the remote's default branch). Tests: --tests-ci reads the counts
           at HEAD from the CI record check reads (artifact dunstan-junit, file junit.xml unless
