@@ -35,6 +35,10 @@ export interface RemedyContext {
   // dunstan_template_handback and its inputs for an MCP caller (src/template/wording.ts). Only
   // dunstan_check_handback's text passes 'mcp'; the CLI, the Action and the survey pass 'cli'.
   caller: Caller;
+  // 'gitlab' for a GitLab record (DRAFT GitLab profile 0.1): a tests row's line is then
+  // GITLAB_TESTS_REMEDIES', in GitLab's terms. Absent for a GitHub record, whose lines are REMEDIES'.
+  // Only renderRecord sets it, from the record's `subject.forge`.
+  forge?: 'gitlab';
 }
 
 export type Remedy = (context: RemedyContext) => string;
@@ -151,8 +155,41 @@ export const TESTS_REMEDY_REASONS: readonly string[] = [
   'source_unreadable:artifact',
 ];
 
+const GITLAB_PROFILE = 'spec/claim-format.md, G.3';
+const ARCHIVE_UNREADABLE =
+  "the job's artifacts archive could not be read: it expired, its download failed, or the archive or the JUnit file in it does not parse.";
+
+// The same reasons on a GitLab record, in GitLab's terms (DRAFT GitLab profile 0.1, G.3): a junit
+// record names the CI configuration file, a job of the head pipeline, its artifacts archive and the
+// file's path inside it. docs/ci-test-records.md reads GitHub only, so no line names it, nor the
+// template; no line depends on the caller. Printed by the claims table, and by `dunstan template
+// --tests-ci --gitlab-project` (and its MCP tool) for the reason it declared no count: the survey
+// and the Action read GitHub and never see these.
+export const GITLAB_TESTS_REMEDIES: Readonly<Record<string, Remedy>> = {
+  record_not_found: line(
+    `no job of that name in the head pipeline uploaded an artifacts archive holding that path. Publish the JUnit report from CI in the job's artifacts archive (artifacts:paths), then check that the record names the project's CI configuration file, the job's name, archive, and the file's path inside the archive (${GITLAB_PROFILE}).`,
+  ),
+  no_comparable_record_field: line(
+    `this record's kind has nothing Dunstan can compare. Name a junit record that a job of the head pipeline uploaded in its artifacts archive (${GITLAB_PROFILE}); for a run that left no record in CI, declare {"kind": "local"}.`,
+  ),
+  local_run_not_in_record: line(
+    `these counts are from a local run. Publish the JUnit report from CI in a job's artifacts archive, and declare it as a junit record once the head pipeline has finished (${GITLAB_PROFILE}).`,
+  ),
+  record_producer_changed_by_pr: line(
+    'This merge request changes the CI configuration file that produced the test record, so the record is its own evidence. Land the CI configuration change separately, then declare the counts.',
+  ),
+  'source_unreadable:artifact': ({ hasToken }) =>
+    hasToken
+      ? `${ARCHIVE_UNREADABLE} Re-run the job to upload it again.`
+      : `${ARCHIVE_UNREADABLE} Without a token GitLab serves the archive only where the project's pipelines are public: check again with GITLAB_TOKEN set to a token that can read the project, or re-run the job to upload it again.`,
+};
+
 // The remedy line for a reason in a context, or undefined when there is none.
 export function remedyForReason(reason: string, context: RemedyContext): string | undefined {
+  if (context.forge === 'gitlab') {
+    const gitlab = GITLAB_TESTS_REMEDIES[reason];
+    if (gitlab !== undefined) return gitlab(context);
+  }
   const exact = REMEDIES[reason];
   if (exact !== undefined) return exact(context);
   const colon = reason.indexOf(':');

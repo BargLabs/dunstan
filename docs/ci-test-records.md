@@ -80,12 +80,12 @@ merged.
       - run: mvn -B test
       - name: Merge the test reports
         if: ${{ !cancelled() }}
-        run: npx -y dunstan@0.1.19 junit-merge target/surefire-reports/TEST-*.xml --out junit.xml
+        run: npx -y dunstan@0.1.20 junit-merge target/surefire-reports/TEST-*.xml --out junit.xml
       # ... the upload step ...
 ```
 
 In a multi-module build, list every module's reports: for example
-`shopt -s globstar && npx -y dunstan@0.1.19 junit-merge **/target/surefire-reports/TEST-*.xml --out junit.xml`.
+`shopt -s globstar && npx -y dunstan@0.1.20 junit-merge **/target/surefire-reports/TEST-*.xml --out junit.xml`.
 
 ## Gradle
 
@@ -95,7 +95,7 @@ Gradle writes one file per test class under `build/test-results/test/`.
       - run: ./gradlew test
       - name: Merge the test reports
         if: ${{ !cancelled() }}
-        run: npx -y dunstan@0.1.19 junit-merge build/test-results/test/*.xml --out junit.xml
+        run: npx -y dunstan@0.1.20 junit-merge build/test-results/test/*.xml --out junit.xml
       # ... the upload step ...
 ```
 

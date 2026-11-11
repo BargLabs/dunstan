@@ -10,7 +10,8 @@ look like claims the block does not declare, to declare or reword ([`docs/agents
 It is the same checker as `dunstan check`. The tool resolves the report from the request; everything
 after that (the evidence read, the checks, the record) is the code path the CLI runs. On the same
 evidence the two give byte-identical claims, verdict and digests: `src/mcp/parity.test.ts` holds this
-on every fixture in `fixtures/`, with the GitHub reader stubbed. The tool changes who calls the
+on every fixture in `fixtures/`, with the GitHub reader stubbed, and for a GitLab merge request
+against `dunstan check --gitlab-project ... --mr ...` on a fake GitLab. The tool changes who calls the
 checker and when, nothing else. No model decides the verdict.
 
 ## Setting it up
@@ -25,7 +26,7 @@ self-contained file with no dependencies, so nothing is built and nothing else i
 /plugin install dunstan@barglabs
 ```
 
-The plugin starts the server with `npx -y dunstan@0.1.19 mcp` and adds the `dunstan-check` skill. When
+The plugin starts the server with `npx -y dunstan@0.1.20 mcp` and adds the `dunstan-check` skill. When
 you enable it, Claude Code asks for an optional GitHub token (below). It stores the value in your
 system's secure credential store and passes it to the server as `GITHUB_TOKEN`. Leave it empty to read
 public repositories anonymously (a `closes` reference and a `tests` count then need the token; see
@@ -43,7 +44,7 @@ environment setting:
   "mcpServers": {
     "dunstan": {
       "command": "npx",
-      "args": ["-y", "dunstan@0.1.19", "mcp"],
+      "args": ["-y", "dunstan@0.1.20", "mcp"],
       "env": { "GITHUB_TOKEN": "<a fine-grained, read-only token>" }
     }
   }
@@ -58,6 +59,25 @@ answers an artifact download only with a token (401 "Requires authentication" an
 2026-11-02), so without one a `tests` count read from a JUnit artifact is `unverifiable`
 (`source_unreadable:artifact`), with a remedy line under the row that says so. Every other claim on
 a public repository is checked anonymously.
+
+### A GitLab merge request (DRAFT)
+
+`dunstan_check_handback` also checks a GitLab merge request, on gitlab.com or a self-managed host,
+as `dunstan check --gitlab-project` does (DRAFT GitLab profile 0.1; the README's GitLab section). For
+a GitLab subject the server reads `GITLAB_TOKEN` from its environment, and only that: it sends
+`GITLAB_TOKEN` only to the GitLab host the call names and `GITHUB_TOKEN` only to GitHub, never one
+forge's token to the other's host. In another MCP client, give the server `GITLAB_TOKEN` in the same
+`env` block as `GITHUB_TOKEN`, through the client's own secret setting, with a read-only token
+(`read_api`). The plugin's configuration asks for a GitHub token only.
+
+Without `GITLAB_TOKEN` the server reads the project anonymously, and the result says so in a `note:`
+line. A `tests` claim on GitLab needs the token even on a public project: GitLab's anonymous answer
+for a project leaves out its CI configuration file (`ci_config_path`), so the record cannot say
+which file ran, and the `tests` rows are `unverifiable`. A second `note:` says so.
+
+`dunstan_template_handback`'s CI read takes a GitLab merge request too (`tests.from: "ci"` with
+`gitlabProject` and `mergeRequest`, below), read with `GITLAB_TOKEN` only. The survey reads GitHub
+only.
 
 ### A read-only GitHub token
 
@@ -99,8 +119,9 @@ Put this in the agent's instructions (`CLAUDE.md`, `AGENTS.md` or the system pro
 >    its note says; do not add counts yourself. Add your reference claims to the block.
 > 2. Call `dunstan_suggest_declarations` with your report. For each claim it lists, declare it in the
 >    block, or reword the sentence if it is not a claim about this pull request.
-> 3. Call `dunstan_check_handback` with the repository, the pull request number and your block
->    (`block`, as a JSON object), or the report that carries it (`report`, as text).
+> 3. Call `dunstan_check_handback` with the repository and the pull request number (on GitLab, the
+>    project's full path and the merge request's iid) and your block (`block`, as a JSON object), or
+>    the report that carries it (`report`, as text).
 >
 > - If the verdict is `pass`, say done, and include the block in your report.
 > - If the verdict is `fail` or `unverifiable`, report the rows that are not `pass` as they are, with
@@ -123,11 +144,21 @@ brought into the block: by the author, before the check, never as a verdict.
 
 | Input | Required | Value |
 | --- | --- | --- |
-| `repository` | yes | The GitHub repository, `owner/name`. |
-| `pullRequest` | yes | The pull request number. |
+| `repository` | for a GitHub subject | The GitHub repository, `owner/name`. Read with `GITHUB_TOKEN`. |
+| `pullRequest` | for a GitHub subject | The pull request number. |
+| `gitlabProject` | for a GitLab subject | The project's full path, `group/subgroup/.../project`, as `--gitlab-project`. Read with `GITLAB_TOKEN`. |
+| `mergeRequest` | for a GitLab subject | The merge request's iid, as `--mr`: a positive integer. |
+| `gitlabHost` | no | A self-managed GitLab host, as `--gitlab-host`. Absent: `gitlab.com`. |
 | `block` | one of these two | The handback block as a JSON object. |
 | `report` | one of these two | The report text, carrying exactly one `dunstan-handback` fence. |
 | `outPath` | no | Write the record to this path. The path must not exist. |
+
+Exactly one subject: `repository` and `pullRequest`, or `gitlabProject` and `mergeRequest` (with
+`gitlabHost` off gitlab.com). Members of both, of neither, or part of one (`gitlabProject` without
+`mergeRequest`, `gitlabHost` alone) are an input error that names what to give, never a guess; so
+is a project path, host or iid that `dunstan check --gitlab-project` would refuse, checked with the
+same rules. A GitLab subject is read as `dunstan check --gitlab-project` reads it, with no job
+excluded: the caller is an agent, not the checker's own CI job.
 
 Exactly one of `block` or `report`. Both, or neither, is an input error.
 
@@ -173,7 +204,7 @@ phrase table in `src/template/wording.ts` (`src/mcp/template-parity.test.ts` hol
 | --- | --- | --- |
 | `directory` | yes | The absolute path of the local git checkout of the pull request's branch. Git runs there. |
 | `base` | no | The ref the pull request merges into, as `--base`. Absent: the remote's default branch. |
-| `tests` | no | One of the two objects below. Absent: no tests, as `dunstan template` with no tests flag. |
+| `tests` | no | One of the objects below. Absent: no tests, as `dunstan template` with no tests flag. |
 
 `tests` is one of:
 
@@ -182,6 +213,15 @@ phrase table in `src/template/wording.ts` (`src/mcp/template-parity.test.ts` hol
   [--tests-artifact-path] [--repo]`, with the same defaults (`dunstan-junit`, `junit.xml`, the
   repository the origin remote names). It reads the counts at HEAD from the JUnit record CI
   published, as the gate reads it, with `GITHUB_TOKEN`.
+- `{ "from": "ci", "gitlabProject", "mergeRequest", "gitlabHost"?, "command", "job", "path"?,
+  "workflow"? }` (DRAFT GitLab profile 0.1): the same as `--tests-ci --gitlab-project --mr
+  [--gitlab-host] --tests-command --tests-job [--tests-path] [--tests-workflow]`. It reads the merge
+  request's head pipeline at HEAD and the named job's artifacts archive, with the reader `dunstan
+  check --gitlab-project` uses, and `GITLAB_TOKEN` only, sent only to the GitLab host. `path` is the
+  JUnit file in the archive (absent: `junit.xml`); `workflow` is the project's CI configuration file
+  (absent: the one the project names). The record names `artifact: "archive"`. This form is closed:
+  `repository`, `artifact` or `artifactPath` beside a GitLab member is an input error, and so is a
+  GitLab member without `gitlabProject` and `mergeRequest`.
 - `{ "from": "local", "junit", "command" }`: the same as `--tests-local <junit> --tests-command
   <command>`. A relative `junit` path resolves against `directory`.
 
@@ -200,7 +240,9 @@ It returns two text items:
 2. The `dunstan-handback` fence, byte for byte what `dunstan template` prints.
 
 A CI read that does not settle (no token, HEAD not pushed, CI not finished, no run uploaded the
-record, runs that disagree, an artifact that cannot be read) is not a tool error: the block is valid
+record, runs that disagree, an artifact that cannot be read; on GitLab also no head pipeline, a head
+pipeline at another commit, a merge request whose head is not HEAD, no job of that name, no archive,
+expired artifacts, no file at `path`, a file that does not parse) is not a tool error: the block is valid
 and returned, as the CLI prints it and exits 2. It is not success either: the first line says the
 tests are not declared, and the block has none. Whatever git cannot answer (not a repository, no
 HEAD, a detached HEAD, a base that does not resolve, no merge base), and an input error, come back
@@ -227,7 +269,10 @@ the prose. Details: [`docs/agents.md`](agents.md).
   counts from artifacts and deployments. Every request is a `GET`, or one of three fixed GraphQL
   queries: the closing references, and the two that read a target's ClosedEvents and the pull
   request's base branch and commit ids. It never reads a repository file's contents.
-- It writes nothing to GitHub and nothing to the repository.
+- For a GitLab merge request it reads GitLab metadata with `GITLAB_TOKEN`, every request a `GET` to
+  the GitLab host the call names: the evidence the DRAFT GitLab profile maps (README, "GitLab
+  (draft)"). It never sends `GITHUB_TOKEN` to GitLab, nor `GITLAB_TOKEN` to GitHub.
+- It writes nothing to GitHub or GitLab, and nothing to the repository.
 - It writes a file only when the caller passes `outPath`, and never over an existing file. Without
   `outPath` the record is returned and not saved; its `rerun` commands name the file `dunstan check`
   would have written (`dunstan-<owner>-<name>-<n>.json`).
@@ -238,12 +283,15 @@ the prose. Details: [`docs/agents.md`](agents.md).
 `dunstan_template_handback` runs git in `directory` and writes nothing (`readOnlyHint: true`). With
 `tests.from: "ci"` it reads GitHub (`openWorldHint: true`): the workflow runs at HEAD, their jobs,
 and the named JUnit artifact, every request a `GET`, with `GITHUB_TOKEN` from the server's
-environment; without a token it reads nothing and says so (`no_token`). Without `tests`, or with
-`from: "local"`, it makes no network call. It returns the block and notes, never a file's contents:
+environment; without a token it reads nothing and says so (`no_token`). Given `gitlabProject`, it
+reads GitLab instead: the merge request, the project (for its CI configuration file), the head
+pipeline's jobs and the named job's artifacts archive, every request a `GET` to the GitLab host,
+with `GITLAB_TOKEN`; without that token it reads nothing and says so (`no_token`). Without
+`tests`, or with `from: "local"`, it makes no network call. It returns the block and notes, never a file's contents:
 a JUnit file is read only for its counts.
 
 Because it can write `outPath`, the check tool does not advertise `readOnlyHint`. It advertises
-`destructiveHint: false` (it never overwrites) and `openWorldHint: true` (it reads GitHub).
+`destructiveHint: false` (it never overwrites) and `openWorldHint: true` (it reads GitHub or GitLab).
 
 ## The registry entry
 

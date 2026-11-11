@@ -61,15 +61,27 @@ function table(rows: string[][]): string {
     .join('\n');
 }
 
+// The report's kind as the table prints it. A GitLab record keeps `pr-body` for a description
+// report (profile G.2), and the table names it "merge request description"; every other kind, and
+// every kind on a GitHub record, is printed as recorded.
+function reportKindText(kind: string, gitlab: boolean): string {
+  return gitlab && kind === 'pr-body' ? 'merge request description' : kind;
+}
+
 // `hasToken`: whether the record's reads were made with a token, and `caller`: who reads the table
 // ('cli' here, 'mcp' for dunstan_check_handback), for the wording of a remedy line
 // (src/remedy/remedies.ts). Each tests row the record could not settle for a reason a repository
 // can act on is followed by one indented `remedy:` line; the record holds no remedy.
+//
+// A GitLab record (DRAFT GitLab profile 0.1, `subject.forge.kind` `gitlab`) is printed in GitLab's
+// terms: its merge request is `<project>!<iid>`, since `#N` names an issue on GitLab. The record is
+// unchanged; a GitHub record's table is byte-identical to before (src/cli/output.test.ts).
 export function renderRecord(record: DunstanRecord, context: RemedyContext): string {
   const p = record.predicate;
+  const gitlab = p.subject.forge?.kind === 'gitlab';
   const lines = [
-    `${p.checker.name} ${p.checker.version}  ${p.subject.repository}#${p.subject.pullRequest}  head ${p.subject.headSha}`,
-    `report: ${p.report.source.kind} ${p.report.source.locator} (sha256 ${p.report.sha256})`,
+    `${p.checker.name} ${p.checker.version}  ${p.subject.repository}${gitlab ? '!' : '#'}${p.subject.pullRequest}  head ${p.subject.headSha}`,
+    `report: ${reportKindText(p.report.source.kind, gitlab)} ${p.report.source.locator} (sha256 ${p.report.sha256})`,
   ];
   const b = p.block;
   if (b.status === 'found') lines.push(`block: found (sha256 ${b.sha256})`);
@@ -88,7 +100,7 @@ export function renderRecord(record: DunstanRecord, context: RemedyContext): str
     lines.push('', rows[0] as string);
     p.claims.forEach((c, i) => {
       lines.push(rows[i + 1] as string);
-      const remedy = remedyFor(c, context);
+      const remedy = remedyFor(c, gitlab ? { ...context, forge: 'gitlab' } : context);
       if (remedy !== undefined) lines.push(`  remedy: ${remedy}`);
     });
   }

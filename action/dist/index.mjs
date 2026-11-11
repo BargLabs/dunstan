@@ -9835,7 +9835,7 @@ async function readEvidence(client, input2) {
 // src/record/checker.ts
 import { readFileSync } from "node:fs";
 var CHECKER_NAME = "dunstan";
-var CHECKER_VERSION = "0.1.19";
+var CHECKER_VERSION = "0.1.20";
 function checkerIdentity(artifact) {
   return {
     name: CHECKER_NAME,
@@ -13992,7 +13992,28 @@ var TESTS_REMEDY_REASONS = [
   "record_producer_changed_by_pr",
   "source_unreadable:artifact"
 ];
+var GITLAB_PROFILE = "spec/claim-format.md, G.3";
+var ARCHIVE_UNREADABLE = "the job's artifacts archive could not be read: it expired, its download failed, or the archive or the JUnit file in it does not parse.";
+var GITLAB_TESTS_REMEDIES = {
+  record_not_found: line(
+    `no job of that name in the head pipeline uploaded an artifacts archive holding that path. Publish the JUnit report from CI in the job's artifacts archive (artifacts:paths), then check that the record names the project's CI configuration file, the job's name, archive, and the file's path inside the archive (${GITLAB_PROFILE}).`
+  ),
+  no_comparable_record_field: line(
+    `this record's kind has nothing Dunstan can compare. Name a junit record that a job of the head pipeline uploaded in its artifacts archive (${GITLAB_PROFILE}); for a run that left no record in CI, declare {"kind": "local"}.`
+  ),
+  local_run_not_in_record: line(
+    `these counts are from a local run. Publish the JUnit report from CI in a job's artifacts archive, and declare it as a junit record once the head pipeline has finished (${GITLAB_PROFILE}).`
+  ),
+  record_producer_changed_by_pr: line(
+    "This merge request changes the CI configuration file that produced the test record, so the record is its own evidence. Land the CI configuration change separately, then declare the counts."
+  ),
+  "source_unreadable:artifact": ({ hasToken }) => hasToken ? `${ARCHIVE_UNREADABLE} Re-run the job to upload it again.` : `${ARCHIVE_UNREADABLE} Without a token GitLab serves the archive only where the project's pipelines are public: check again with GITLAB_TOKEN set to a token that can read the project, or re-run the job to upload it again.`
+};
 function remedyForReason(reason, context) {
+  if (context.forge === "gitlab") {
+    const gitlab = GITLAB_TESTS_REMEDIES[reason];
+    if (gitlab !== void 0) return gitlab(context);
+  }
   const exact = REMEDIES[reason];
   if (exact !== void 0) return exact(context);
   const colon = reason.indexOf(":");

@@ -81,11 +81,22 @@ describe('dunstan_check_handback', () => {
     const { client } = await connect();
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name)).toEqual([TOOL_NAME, SUGGEST_TOOL_NAME, TEMPLATE_TOOL_NAME]);
-    const schema = tools[0]?.inputSchema as { properties: object; required: string[] };
+    const schema = tools[0]?.inputSchema as { properties: object; required?: string[] };
+    // Either subject: repository and pullRequest, or gitlabProject, mergeRequest and optionally
+    // gitlabHost. Which one, and that it is whole, the tool checks (src/mcp/gitlab.test.ts).
     expect(Object.keys(schema.properties).sort()).toEqual(
-      ['block', 'outPath', 'pullRequest', 'report', 'repository'].sort(),
+      [
+        'block',
+        'gitlabHost',
+        'gitlabProject',
+        'mergeRequest',
+        'outPath',
+        'pullRequest',
+        'report',
+        'repository',
+      ].sort(),
     );
-    expect(schema.required.sort()).toEqual(['pullRequest', 'repository']);
+    expect(schema.required ?? []).toEqual([]);
   });
 
   it('checks a report text: the verdict, the claims table and the record', async () => {
@@ -366,9 +377,22 @@ describe('dunstan_template_handback', () => {
     const byFrom = Object.fromEntries(forms.map((f) => [f.properties.from?.const, f]));
     expect(Object.keys(byFrom).sort()).toEqual(['ci', 'local']);
     expect(Object.keys(byFrom.ci?.properties ?? {}).sort()).toEqual(
-      ['artifact', 'artifactPath', 'command', 'from', 'job', 'repository', 'workflow'].sort(),
+      [
+        'artifact',
+        'artifactPath',
+        'command',
+        'from',
+        'job',
+        'repository',
+        'workflow',
+        'gitlabProject',
+        'mergeRequest',
+        'gitlabHost',
+        'path',
+      ].sort(),
     );
-    expect(byFrom.ci?.required.sort()).toEqual(['command', 'from', 'job', 'workflow']);
+    // workflow is required on GitHub only, which the tool checks (src/mcp/template-parity.test.ts).
+    expect(byFrom.ci?.required.sort()).toEqual(['command', 'from', 'job']);
     expect(Object.keys(byFrom.local?.properties ?? {}).sort()).toEqual([
       'command',
       'from',

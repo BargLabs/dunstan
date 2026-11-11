@@ -32,8 +32,21 @@ jobs:
         run: pnpm run lint
       - name: Typecheck
         run: pnpm run typecheck
+      # The same suite, also written as JUnit XML (docs/ci-test-records.md, the Vitest recipe).
       - name: Test
-        run: pnpm test
+        run: pnpm test --reporter=default --reporter=junit --outputFile.junit=junit.xml
+      # This repository's own test record, which a handback's `tests` claim names (spec section 7.5).
+      # One leg uploads it: two legs cannot upload one artifact name. A block declares it as
+      # workflow .github/workflows/ci.yml, job `check (ubuntu-latest)` (the name GitHub gives this
+      # matrix leg; the job has no `name:`, and adding one would change it), artifact dunstan-junit,
+      # path junit.xml.
+      - name: Upload the test record for Dunstan
+        if: ${{ !cancelled() && matrix.os == 'ubuntu-latest' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dunstan-junit
+          path: junit.xml
+          if-no-files-found: error
 
       # Acceptance (d): every fixture's claims, verdict and digests on this machine, plus the digest
       # of the checker bundle built here. The cross-machine job compares them byte for byte.

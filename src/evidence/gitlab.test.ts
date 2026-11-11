@@ -31,7 +31,7 @@ import { PullRequestMoved, PullRequestUnreadable } from './github.js';
 import { GITLAB_PROJECT, reportFromMergeRequestDescription } from './gitlab.js';
 import { GitLabClient } from './http.js';
 
-const CHECKER = { name: 'dunstan', version: '0.1.19', digest: { sha256: '0'.repeat(64) } };
+const CHECKER = { name: 'dunstan', version: '0.1.20', digest: { sha256: '0'.repeat(64) } };
 // Not a real token, and not in GitLab's token format, so no secret scanner reads it as one.
 const TOKEN = 'fake-gitlab-token-NEVER-IN-A-RECORD';
 

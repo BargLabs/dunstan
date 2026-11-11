@@ -2632,6 +2632,9 @@ as `kind` `pr-body` with the locator `GET /api/v4/projects/<id>/merge_requests/<
 where `<id>` is the project's full path, URL-encoded (`example-org%2Fexample-repo`). A comment by
 its author is not read in this draft.
 
+The record keeps `kind` `pr-body` for a description report, and the claims table a person reads
+names it "merge request description".
+
 ### G.3 Evidence
 
 Every read is `GET https://<host>/api/v4/...`. A locator is the method and the path from

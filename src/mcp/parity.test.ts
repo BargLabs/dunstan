@@ -5,7 +5,7 @@
 // The remedy lines under the claims table are worded for each caller, and differ only by the phrase
 // table (src/template/wording.ts); the record holds no remedy line.
 
-import { mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -13,6 +13,16 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { junitXml, makeZip } from '../__tests__/fake-github.js';
+import {
+  baseDiffs,
+  baseMergeRequest,
+  fakeGitLab,
+  type GitLabScenario,
+  GL_HEAD,
+  GL_PROJECT,
+  glJob,
+} from '../__tests__/fake-gitlab.js';
 import { asMcp, NAMES_A_FLAG } from '../__tests__/wording.js';
 import {
   FIXTURE_REPOSITORY,
@@ -239,6 +249,232 @@ describe('MCP parity with dunstan check, reader stubbed', () => {
         '/predicate/report/source/kind',
         '/predicate/report/source/locator',
       ]);
+    },
+  );
+});
+
+// GitLab (DRAFT GitLab profile 0.1): on the same recorded GitLab evidence, a fake GitLab answering
+// both callers, the tool given gitlabProject and mergeRequest and `dunstan check --gitlab-project
+// ... --mr ...` give the same claims, verdict and digests, compared as the GitHub cases are. The
+// clock is fixed, so each source's readAt is the same in both records, and the two records differ
+// only where the GitHub cases' do. Each set of evidence is read through the real GitLab reader: the
+// stub above stands in for GitHub only.
+const GL_FILES = ['src/new-name.ts', 'src/added.ts', 'docs/gone.md'];
+const GL_PIPELINE = { id: 700, iid: 7, sha: GL_HEAD, ref: 'feature', status: 'success' };
+const GL_JUNIT = {
+  kind: 'junit',
+  workflow: '.gitlab-ci.yml',
+  job: 'test',
+  artifact: 'archive',
+  path: 'reports/junit.xml',
+};
+const GL_TESTS = { tests: [{ command: 'npm test', count: 4, failures: 2, record: GL_JUNIT }] };
+const GL_CHECKS = { checks: { total: 3, allSucceeded: true, noneFailed: true } };
+
+interface GitLabParityCase {
+  name: string;
+  block: Record<string, unknown>;
+  over?: Partial<GitLabScenario>;
+  host?: string;
+  token?: boolean;
+}
+
+const GITLAB_CASES: GitLabParityCase[] = [
+  { name: 'files that match', block: { filesChanged: GL_FILES } },
+  { name: 'an undeclared file', block: { filesChanged: GL_FILES.slice(1) } },
+  {
+    name: 'a self-managed host',
+    block: { filesChanged: GL_FILES },
+    host: 'gitlab.example.com',
+  },
+  {
+    name: 'checks from the head pipeline',
+    block: { filesChanged: GL_FILES, ...GL_CHECKS },
+    over: {
+      jobs: [glJob(12, 'test', 'success'), glJob(11, 'build', 'success')],
+      bridges: [{ id: 13, name: 'downstream', status: 'success' }],
+    },
+  },
+  {
+    name: 'tests counted from the job artifact',
+    block: { filesChanged: GL_FILES, ...GL_TESTS },
+    over: {
+      jobs: [glJob(12, 'test', 'success', { archive: true })],
+      artifacts: {
+        12: makeZip({ 'reports/junit.xml': junitXml(['pass', 'fail', 'error', 'skip', 'pass']) }),
+      },
+    },
+  },
+  {
+    name: 'a tests record not found',
+    block: { filesChanged: GL_FILES, ...GL_TESTS },
+    over: { jobs: [glJob(12, 'test', 'success')] },
+  },
+  {
+    name: 'a tests record read anonymously',
+    block: { filesChanged: GL_FILES, ...GL_TESTS },
+    over: {
+      jobs: [glJob(12, 'test', 'success', { archive: true })],
+      artifacts: { 12: makeZip({ 'reports/junit.xml': junitXml(['pass']) }) },
+      projects: { [GL_PROJECT]: { path_with_namespace: GL_PROJECT, default_branch: 'main' } },
+    },
+    token: false,
+  },
+  {
+    name: 'a cited issue',
+    block: { filesChanged: GL_FILES, references: [{ issue: '#3', relation: 'cites' }] },
+  },
+];
+
+function glScenario(c: GitLabParityCase, report: string): GitLabScenario {
+  return {
+    mr: baseMergeRequest({ description: report, head_pipeline: GL_PIPELINE }),
+    diffs: baseDiffs(),
+    ...c.over,
+  };
+}
+
+const glReport = (block: Record<string, unknown>) =>
+  `Done.\n\n\`\`\`dunstan-handback\n${JSON.stringify(block)}\n\`\`\`\n`;
+const glEnv = (c: GitLabParityCase) =>
+  c.token === false ? {} : { GITLAB_TOKEN: 'fake-gitlab-token-PARITY-0042' };
+const glHostArgs = (c: GitLabParityCase) => (c.host === undefined ? [] : ['--gitlab-host', c.host]);
+const glSlug = (c: GitLabParityCase) => c.name.replaceAll(' ', '-');
+
+async function glViaCli(
+  c: GitLabParityCase,
+  report: string,
+): Promise<{ record: DunstanRecord; remedies: string[]; urls: string[] }> {
+  const fake = fakeGitLab(glScenario(c, report));
+  const reportFile = join(dir, 'gitlab', `${glSlug(c)}.md`);
+  writeFileSync(reportFile, report);
+  const out = join(dir, 'gitlab', 'cli', `${glSlug(c)}.json`);
+  let stdout = '';
+  const code = await main(
+    [
+      'check',
+      '--gitlab-project',
+      GL_PROJECT,
+      '--mr',
+      '1',
+      ...glHostArgs(c),
+      '--report-file',
+      reportFile,
+      '--out',
+      out,
+    ],
+    {
+      out: (t) => {
+        stdout += t;
+      },
+      err: () => {},
+      env: glEnv(c),
+      artifact,
+      fetch: fake.fetch,
+      readStdin: () => new Uint8Array(),
+    },
+  );
+  expect(code).not.toBe(3);
+  return {
+    record: JSON.parse(readFileSync(out, 'utf8')) as DunstanRecord,
+    remedies: remedies(stdout),
+    urls: fake.requests.map((q) => q.url),
+  };
+}
+
+async function glViaMcp(
+  c: GitLabParityCase,
+  report: string,
+  subdir: string,
+  given: { report: string } | { block: Record<string, unknown> },
+): Promise<{ record: DunstanRecord; remedies: string[]; urls: string[] }> {
+  const fake = fakeGitLab(glScenario(c, report));
+  const server = createDunstanMcpServer({
+    artifact,
+    env: glEnv(c),
+    fetch: fake.fetch,
+    warn: () => {},
+  });
+  const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
+  await server.connect(serverSide);
+  const glClient = new Client({ name: 'parity-test-gitlab', version: '0' });
+  await glClient.connect(clientSide);
+  const outPath = join(dir, 'gitlab', subdir, `${glSlug(c)}.json`);
+  const result = (await glClient.callTool({
+    name: TOOL_NAME,
+    arguments: {
+      gitlabProject: GL_PROJECT,
+      mergeRequest: 1,
+      ...(c.host === undefined ? {} : { gitlabHost: c.host }),
+      outPath,
+      ...given,
+    },
+  })) as CallToolResult;
+  await glClient.close();
+  expect(result.isError).toBeFalsy();
+  const text = result.content.map((item) => (item.type === 'text' ? item.text : ''));
+  const record = JSON.parse(text[2] as string) as DunstanRecord;
+  expect(readFileSync(outPath, 'utf8')).toBe(text[2]);
+  expect(text[0]).toMatch(new RegExp(`^verdict: ${record.predicate.verdict}\n`));
+  return { record, remedies: remedies(text[1] as string), urls: fake.requests.map((q) => q.url) };
+}
+
+describe('MCP parity with dunstan check --gitlab-project, on a fake GitLab', () => {
+  beforeAll(() => {
+    mkdirSync(join(dir, 'gitlab', 'cli'), { recursive: true });
+    mkdirSync(join(dir, 'gitlab', 'mcp'), { recursive: true });
+    mkdirSync(join(dir, 'gitlab', 'mcp-block'), { recursive: true });
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-11T09:00:00.000Z'));
+  });
+  afterAll(() => {
+    vi.useRealTimers();
+  });
+
+  it('reaches pass, fail and unverifiable, and prints remedy lines', async () => {
+    const verdicts = new Set<string>();
+    let remedyLines = 0;
+    for (const c of GITLAB_CASES) {
+      const block = { dunstan: '0.1', headCommit: GL_HEAD, ...c.block };
+      const cli = await glViaCli(c, glReport(block));
+      verdicts.add(cli.record.predicate.verdict);
+      remedyLines += cli.remedies.length;
+    }
+    expect([...verdicts].sort()).toEqual(['fail', 'pass', 'unverifiable']);
+    expect(remedyLines).toBeGreaterThan(0);
+  });
+
+  it.each(GITLAB_CASES.map((c) => [c.name, c] as const))(
+    '%s: report text and block object give the CLI claims, verdict and digests',
+    async (_, c) => {
+      const block = { dunstan: '0.1', headCommit: GL_HEAD, ...c.block };
+      const report = glReport(block);
+      const cli = await glViaCli(c, report);
+      expect(cli.record.predicate.subject.forge).toEqual({
+        kind: 'gitlab',
+        host: c.host ?? 'gitlab.com',
+      });
+
+      const text = await glViaMcp(c, report, 'mcp', { report });
+      expectParity(cli.record, text.record, [
+        '/predicate/report/source/kind',
+        '/predicate/report/source/locator',
+      ]);
+      expect(text.record.predicate.report.sha256).toBe(cli.record.predicate.report.sha256);
+      expect(canon(text.record.predicate.evidence)).toBe(canon(cli.record.predicate.evidence));
+      // The same reads, in the same order, of the same host.
+      expect(text.urls).toEqual(cli.urls);
+      // The same remedy lines, each worded for its caller, naming no flag.
+      expect(text.remedies).toEqual(cli.remedies.map(asMcp));
+      for (const line of text.remedies) expect(line).not.toMatch(NAMES_A_FLAG);
+
+      const object = await glViaMcp(c, report, 'mcp-block', { block });
+      expectParity(cli.record, object.record, [
+        '/predicate/report/sha256',
+        '/predicate/report/source/kind',
+        '/predicate/report/source/locator',
+      ]);
+      expect(object.urls).toEqual(cli.urls);
     },
   );
 });

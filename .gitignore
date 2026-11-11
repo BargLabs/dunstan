@@ -5,6 +5,8 @@ dist/
 .build/
 coverage/
 *.log
+# The JUnit record `pnpm test` writes in CI (.github/workflows/ci.yml); CI uploads it, git never holds it.
+/junit.xml
 *.tsbuildinfo
 .pnpm-store/
 .worktrees/

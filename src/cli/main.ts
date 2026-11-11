@@ -34,6 +34,9 @@ usage:
   dunstan template [--base <ref>]
                    [--tests-ci --tests-command <cmd> --tests-workflow <path> --tests-job <name>
                     [--tests-artifact <name>] [--tests-artifact-path <path>] [--repo <owner/name>]
+                  | --tests-ci --gitlab-project <namespace/project> --mr <iid> [--gitlab-host <host>]
+                    --tests-command <cmd> --tests-job <name> [--tests-workflow <path>]
+                    [--tests-path <path>] [--tests-artifact archive]
                   | --tests-local <file> --tests-command <cmd>
                   | --tests-junit <file> --tests-command <cmd> --tests-workflow <path>
                     --tests-job <name> --tests-artifact <name> --tests-artifact-path <path>]
@@ -62,6 +65,10 @@ template  local git: prints a dunstan-handback block for HEAD, its files against
           --tests-local declares a local JUnit file's counts as a local run; --tests-junit
           declares them against a CI record. Only --tests-ci reads the network. References,
           checks and mergedAt never (docs/agents.md, docs/ci-test-records.md).
+          GitLab (DRAFT GitLab profile 0.1): --tests-ci --gitlab-project and --mr read the counts
+          from the merge request's head pipeline at HEAD, as check reads them: the job's
+          artifacts archive, file junit.xml unless --tests-path, the project's CI configuration
+          file unless --tests-workflow. GITLAB_TOKEN is read from the environment.
 suggest   offline: lists sentences in the report's prose (a file, or stdin) that look like claims
           its block does not declare, to declare or reword. Never a verdict (docs/agents.md).
 survey    read-only, DRAFT (docs/survey.md): checks the --last (default 30, at most 200) most

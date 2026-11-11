@@ -26,7 +26,8 @@ Copy this into `AGENTS.md`, `CLAUDE.md` or `.github/copilot-instructions.md`:
    - tests: declare test counts from the CI JUnit record, not from a local run. After CI has
      finished on your last push, run `dunstan template --tests-ci --tests-command <cmd>
      --tests-workflow <workflow file> --tests-job <job name>`: it reads the counts the gate will
-     read. If it declares no tests, its note says why; do not fill the counts in yourself. If only a
+     read (on GitLab, add `--gitlab-project <full path> --mr <iid>`; `--tests-workflow` is then
+     optional). If it declares no tests, its note says why; do not fill the counts in yourself. If only a
      local run exists, declare it with `--tests-local <your JUnit XML file> --tests-command <cmd>`,
      and say in the report that CI publishes no test record. Never state a count in prose that the
      block does not declare;
@@ -49,12 +50,24 @@ checks the block against the pull request before the agent says done.
 A handback is checked only for what its block declares, so declare the claims the issue's
 acceptance criteria rest on.
 
+In this repository, step 2's tests line is, once CI has finished on your last push:
+
+```sh
+dunstan template --tests-ci --tests-command "pnpm test" --tests-workflow .github/workflows/ci.yml --tests-job "check (ubuntu-latest)"
+```
+
+The `check (ubuntu-latest)` leg of `.github/workflows/ci.yml` uploads the suite's JUnit record as
+the artifact `dunstan-junit`, holding `junit.xml`, which are the two defaults `--tests-ci` uses.
+
 ## `dunstan template`
 
 ```sh
 dunstan template [--base <ref>]
                  [--tests-ci --tests-command <cmd> --tests-workflow <path> --tests-job <name>
                   [--tests-artifact <name>] [--tests-artifact-path <path>] [--repo <owner/name>]
+                | --tests-ci --gitlab-project <namespace/project> --mr <iid> [--gitlab-host <host>]
+                  --tests-command <cmd> --tests-job <name> [--tests-workflow <path>]
+                  [--tests-path <path>] [--tests-artifact archive]
                 | --tests-local <file> --tests-command <cmd>
                 | --tests-junit <file> --tests-command <cmd> --tests-workflow <path>
                   --tests-job <name> --tests-artifact <name> --tests-artifact-path <path>]
@@ -62,14 +75,15 @@ dunstan template [--base <ref>]
 
 It prints a `dunstan-handback` fence on standard output and nothing else, so the output can be
 pasted or appended as it is. Notes go to standard error. It reads only local git, except with
-`--tests-ci`, which reads the CI record from GitHub.
+`--tests-ci`, which reads the CI record from GitHub, or, with `--gitlab-project` and `--mr`, from
+the GitLab merge request's head pipeline (DRAFT GitLab profile 0.1).
 
 | Field | Filled from |
 | --- | --- |
 | `dunstan` | `"0.1"`, the block version this checker reads. |
 | `headCommit` | `git rev-parse HEAD`. |
 | `filesChanged` | `git diff` of HEAD against its merge base with `--base`, which defaults to the remote's default branch (`origin/HEAD`). Rename detection is off, so a rename is listed by its old and its new path: the spec counts a renamed file as declared when either is (section 7.3), so both pass whichever way GitHub pairs the rename. |
-| `tests` | One of three ways, or left out with a note on how to add it. `--tests-ci`: `count` and `failures` read at HEAD from the JUnit record CI published, with the reader the gate uses, and `record` naming it (`--tests-artifact` defaults to `dunstan-junit`, `--tests-artifact-path` to `junit.xml`, `--repo` to the github.com repository `origin` names; it reads with `GITHUB_TOKEN`). `--tests-local`: the counts of a local JUnit file, with `record` `{"kind": "local"}`, which the gate reports `unverifiable` (`local_run_not_in_record`). `--tests-junit`: the counts of a local file, with `record` naming the CI run the gate compares them with; all five record flags are required with it. |
+| `tests` | One of three ways, or left out with a note on how to add it. `--tests-ci`: `count` and `failures` read at HEAD from the JUnit record CI published, with the reader the gate uses, and `record` naming it (`--tests-artifact` defaults to `dunstan-junit`, `--tests-artifact-path` to `junit.xml`, `--repo` to the github.com repository `origin` names; it reads with `GITHUB_TOKEN`). On GitLab, `--tests-ci --gitlab-project <full path> --mr <iid>` reads the head pipeline of that merge request at HEAD with the reader `dunstan check --gitlab-project` uses, and `record` names `artifact` `archive` (the job's artifacts archive), `path` from `--tests-path` (default `junit.xml`) and `workflow` from `--tests-workflow` (default: the project's CI configuration file); it reads with `GITLAB_TOKEN`, and `--repo` with the GitLab flags is refused. `--tests-local`: the counts of a local JUnit file, with `record` `{"kind": "local"}`, which the gate reports `unverifiable` (`local_run_not_in_record`). `--tests-junit`: the counts of a local file, with `record` naming the CI run the gate compares them with; all five record flags are required with it. |
 | `references`, `mergedAt` | Never. References are the agent's own assertions, and a pull request that is not merged has no merge time. |
 | `checks` | Never: CI may not have finished. Declare `total`, `allSucceeded` or `noneFailed` yourself. `allSucceeded` is true only if every counted check run concluded `success`, so a skipped or neutral run makes it false; `noneFailed` (spec 0.1.6) is true if none concluded other than `success`, `skipped` or `neutral` and at least one succeeded. |
 
@@ -83,7 +97,10 @@ prints no block. Git runs with an argument vector, never through a shell. The bl
 the gate reads one before it is printed, so a template is never an invalid block.
 
 With `--tests-ci`, when no single count settles (no token, HEAD on no remote-tracking branch, CI not
-finished, no run uploaded the record, runs that disagree, an artifact that cannot be read), it
+finished, no run uploaded the record, runs that disagree, an artifact that cannot be read; on
+GitLab also no head pipeline, a head pipeline at another commit, a merge request whose head is not
+HEAD, no job of that name, no archive, expired artifacts, no file at the path, a file that does not
+parse, or a merge request that changes the CI configuration file), it
 prints the block without `tests`, a note naming the reason and its remedy, and exits 2: the block
 is valid and printed, so it is not an error (3), but it is not the block asked for, so a script that
 pipes it into a report does not take it for one with its tests (0). How CI publishes the record:

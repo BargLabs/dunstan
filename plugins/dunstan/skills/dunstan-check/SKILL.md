@@ -1,11 +1,12 @@
 ---
 name: dunstan-check
-description: Before saying a pull request is done, generate the dunstan-handback block with dunstan_template_handback (test counts read from CI), list undeclared prose claims with dunstan_suggest_declarations, check the block against the pull request's GitHub record with dunstan_check_handback, and report the verdict exactly as returned.
+description: Before saying a pull request is done, generate the dunstan-handback block with dunstan_template_handback (test counts read from CI), list undeclared prose claims with dunstan_suggest_declarations, check the block against the pull request's GitHub record (or a GitLab merge request's record) with dunstan_check_handback, and report the verdict exactly as returned.
 ---
 
 # Check the handback before you say done
 
-Use this when you finish work on a GitHub pull request and are about to report it as done.
+Use this when you finish work on a GitHub pull request and are about to report it as done. The
+template's CI read (step 2) and the check (step 4) also take a GitLab merge request (DRAFT).
 
 Dunstan checks what you declare against the pull request's own record on GitHub: the head commit,
 the changed files, test counts from a machine-readable test record, references such as `closes #12`,
@@ -19,13 +20,19 @@ the block must say what you actually did.
    the info string `dunstan-handback`, in the exact shape below. Call `dunstan_template_handback`
    with `directory`, the absolute path of your checkout of the pull request's branch, and `base`,
    the branch it merges into. It fills `headCommit` and `filesChanged` from local git and returns the
-   fence to paste. From a shell, `npx -y dunstan@0.1.19 template --base <base branch>` does the same.
+   fence to paste. From a shell, `npx -y dunstan@0.1.20 template --base <base branch>` does the same.
 
    **Test counts come from CI, not from your own run.** After CI has finished on your last push, add
    `tests: { "from": "ci", "command": <the test command>, "workflow": <workflow file>, "job": <job
    name> }` to the call (from a shell: `--tests-ci --tests-command <the test command>
    --tests-workflow <workflow file> --tests-job <job name>`). It reads the counts from the JUnit
-   record CI published, as the check will, and declares them. If the tool's first line is `tests:
+   record CI published, as the check will, and declares them. On a GitLab merge request, give
+   `tests: { "from": "ci", "gitlabProject": <the project's full path>, "mergeRequest": <the iid>,
+   "command": <the test command>, "job": <job name> }`, with `path` for the JUnit file in the job's
+   artifacts archive if it is not `junit.xml`, and `gitlabHost` off gitlab.com (from a shell:
+   `--tests-ci --gitlab-project <path> --mr <iid> --tests-command <cmd> --tests-job <job name>`). It
+   reads the merge request's head pipeline at HEAD with `GITLAB_TOKEN`; never mix `repository`,
+   `artifact` or `artifactPath` into it. If the tool's first line is `tests:
    not declared` (or the command declares no tests), its note says why (CI not finished, no record
    published, no token) and what to do; do not fill the counts in yourself. If only a local run
    exists, declare it with `tests: { "from": "local", "junit": <your JUnit file>, "command": <the
@@ -88,7 +95,11 @@ The full specification: https://github.com/BargLabs/dunstan/blob/main/spec/claim
    the claim in the block, or reword the sentence if it is not a claim about this pull request. It
    reads nothing and is never a verdict.
 4. **Call `dunstan_check_handback`** with the repository (`owner/name`), the pull request number and
-   your report (`report`) or the block as a JSON object (`block`).
+   your report (`report`) or the block as a JSON object (`block`). For a GitLab merge request, give
+   `gitlabProject` (the project's full path, `group/subgroup/.../project`) and `mergeRequest` (the
+   iid, the number after `!`) instead, and `gitlabHost` if it is not on gitlab.com. Give one subject
+   or the other, never members of both. A GitHub subject is read with `GITHUB_TOKEN`, a GitLab one
+   with `GITLAB_TOKEN`; neither token is sent to the other forge.
 5. **Report the verdict exactly as returned**, with the claims table rows that are not `pass`.
 
 ## Reporting the result honestly
@@ -121,6 +132,10 @@ The full specification: https://github.com/BargLabs/dunstan/blob/main/spec/claim
   anonymously, say that a GitHub token would let it read that source, and that the user adds one
   through the plugin's configuration (`/plugin`, then configure Dunstan): a fine-grained, read-only
   token. Never suggest exporting a token into the environment or passing one on the command line.
+- On a GitLab merge request, a result that notes `GITLAB_TOKEN is not set` was read anonymously, and
+  its `tests` rows are `unverifiable` even on a public project: GitLab's anonymous answer leaves out
+  the project's CI configuration file. Say so. The plugin's configuration asks for a GitHub token
+  only, so do not tell the user to add a GitLab token there.
 - A tool error means nothing was checked. Say so; an error is not a pass.
 - Never edit the block to make the check pass without changing the work. A block that declares less,
   or declares what you hoped rather than what you did, is a false report.

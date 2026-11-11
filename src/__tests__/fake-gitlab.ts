@@ -4,6 +4,8 @@
 // so tests can assert what was (and was not) read, and with what. The project is
 // example-org/example-repo: no real project's names are in a fixture.
 
+import { junitXml, makeZip } from './fake-github.js';
+
 export const GL_PROJECT = 'example-org/example-repo';
 export const GL_ID = 'example-org%2Fexample-repo';
 export const GL_HEAD = 'c0ffee00c0ffee00c0ffee00c0ffee00c0ffee00';
@@ -255,6 +257,61 @@ export function glJob(
         ? [{ file_type: 'archive', size: 100, filename: 'artifacts.zip', file_format: 'zip' }]
         : [],
     artifacts_expire_at: options.expireAt ?? null,
+  };
+}
+
+// The job dunstan template's GitLab tests read by default, and its id.
+export const GL_TEST_JOB = 'test';
+export const GL_TEST_JOB_ID = 7001;
+
+// An open merge request whose head is `head` (a featureRepository's HEAD: it changes src/a.ts and
+// adds src/b.ts), its head pipeline at `pipeline.sha` (head unless given; none for null), and the
+// jobs given; by default one job `test` whose archive holds junit.xml with 142 passing tests.
+export function templateMergeRequest(
+  head: string,
+  options: {
+    pipeline?: { sha: string } | null;
+    mrSha?: string;
+    jobs?: Record<string, unknown>[];
+    artifacts?: Record<number, Uint8Array | number>;
+    project?: Record<string, unknown> | number;
+    mrStatus?: number;
+  } = {},
+): GitLabScenario {
+  const pipeline =
+    options.pipeline === null ? null : { id: 501, sha: options.pipeline?.sha ?? head };
+  const passing = junitXml(Array<'pass'>(142).fill('pass'));
+  return {
+    mr: baseMergeRequest({
+      state: 'opened',
+      merged_at: null,
+      sha: options.mrSha ?? head,
+      merge_commit_sha: null,
+      changes_count: '2',
+      head_pipeline: pipeline,
+    }),
+    ...(options.mrStatus === undefined ? {} : { mrStatus: options.mrStatus }),
+    diffs: [
+      {
+        old_path: 'src/a.ts',
+        new_path: 'src/a.ts',
+        new_file: false,
+        renamed_file: false,
+        deleted_file: false,
+        diff: '',
+      },
+      {
+        old_path: 'src/b.ts',
+        new_path: 'src/b.ts',
+        new_file: true,
+        renamed_file: false,
+        deleted_file: false,
+        diff: '',
+      },
+    ],
+    ...(options.project === undefined ? {} : { projects: { [GL_PROJECT]: options.project } }),
+    jobs: options.jobs ?? [glJob(GL_TEST_JOB_ID, GL_TEST_JOB, 'success', { archive: true })],
+    artifacts: options.artifacts ?? { [GL_TEST_JOB_ID]: makeZip({ 'junit.xml': passing }) },
   };
 }
 

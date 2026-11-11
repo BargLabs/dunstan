@@ -1,0 +1,664 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`dunstan_check_handback on a GitHub subject, byte for byte as on main > a block object 1`] = `
+{
+  "requests": [
+    "GET /repos/example-org/example-repo/pulls/7",
+    "GET /repos/example-org/example-repo/pulls/7/files?per_page=100&page=1",
+    "GET /repos/example-org/example-repo/pulls/7",
+  ],
+  "result": {
+    "content": [
+      {
+        "text": "verdict: pass
+record: not written (pass outPath to write it)
+",
+        "type": "text",
+      },
+      {
+        "text": "dunstan 0.1.20  example-org/example-repo#7  head a11ce5e0c0ffee00d00dfeed0000111122223333
+report: api mcp dunstan_check_handback#block (sha256 8ed9e38c1e1fc77914e60e758bea557020d0e3770700eeb2f7230aa018b4c94b)
+block: found (sha256 8ed9e38c1e1fc77914e60e758bea557020d0e3770700eeb2f7230aa018b4c94b)
+
+VERDICT  CLAIM                  DECLARED                                  OBSERVED                                  REASON
+pass     head:/headCommit       a11ce5e0c0ffee00d00dfeed0000111122223333  a11ce5e0c0ffee00d00dfeed0000111122223333
+pass     scope:/filesChanged/0  src/a.ts                                  src/a.ts
+pass     scope:/filesChanged/1  src/b.ts                                  src/b.ts
+
+verdict: pass
+",
+        "type": "text",
+      },
+      {
+        "text": "{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "git+https://github.com/example-org/example-repo@a11ce5e0c0ffee00d00dfeed0000111122223333",
+      "digest": {
+        "gitCommit": "a11ce5e0c0ffee00d00dfeed0000111122223333"
+      }
+    },
+    {
+      "name": "handback-block",
+      "digest": {
+        "sha256": "8ed9e38c1e1fc77914e60e758bea557020d0e3770700eeb2f7230aa018b4c94b"
+      }
+    }
+  ],
+  "predicateType": "https://barglabs.ai/dunstan/record/v0.1",
+  "predicate": {
+    "spec": "0.1.11",
+    "checker": {
+      "name": "dunstan",
+      "version": "0.1.20",
+      "digest": {
+        "sha256": "67fb103c56db33e2f6acbf8868cfdd427fcb48b9ea9a2c186e6e835502996a39"
+      }
+    },
+    "report": {
+      "sha256": "8ed9e38c1e1fc77914e60e758bea557020d0e3770700eeb2f7230aa018b4c94b",
+      "source": {
+        "kind": "api",
+        "locator": "mcp dunstan_check_handback#block"
+      }
+    },
+    "block": {
+      "status": "found",
+      "sha256": "8ed9e38c1e1fc77914e60e758bea557020d0e3770700eeb2f7230aa018b4c94b",
+      "value": {
+        "dunstan": "0.1",
+        "filesChanged": [
+          "src/a.ts",
+          "src/b.ts"
+        ],
+        "headCommit": "a11ce5e0c0ffee00d00dfeed0000111122223333"
+      }
+    },
+    "subject": {
+      "repository": "example-org/example-repo",
+      "pullRequest": 7,
+      "headSha": "a11ce5e0c0ffee00d00dfeed0000111122223333",
+      "mergeSha": null
+    },
+    "evidence": {
+      "pullRequest": {
+        "status": "ok",
+        "number": 7,
+        "state": "open",
+        "merged": false,
+        "mergedAt": null,
+        "headSha": "a11ce5e0c0ffee00d00dfeed0000111122223333",
+        "mergeSha": null,
+        "changedFiles": 2
+      },
+      "sources": [
+        {
+          "kind": "pull_request",
+          "locator": "GET /repos/example-org/example-repo/pulls/7",
+          "sha256": "668be92e8e52e9921d992d350f5adc543c85a7bb7ab795b28226b2aaaab5bcd1",
+          "readAt": "2026-11-11T09:00:00.000Z",
+          "etag": "\\"200\\""
+        },
+        {
+          "kind": "pull_request_files",
+          "locator": "GET /repos/example-org/example-repo/pulls/7/files?per_page=100&page=1",
+          "sha256": "4ee6a4bfec96e3688fca534d591908b44f597fcbc0db60439e4a8d62a98c1e42",
+          "readAt": "2026-11-11T09:00:00.000Z",
+          "etag": "\\"200\\""
+        }
+      ],
+      "files": {
+        "status": "ok",
+        "complete": true,
+        "entries": [
+          {
+            "path": "src/a.ts",
+            "status": "modified"
+          },
+          {
+            "path": "src/b.ts",
+            "status": "added"
+          }
+        ]
+      }
+    },
+    "claims": [
+      {
+        "id": "head:/headCommit",
+        "check": "head",
+        "field": "/headCommit",
+        "declared": "a11ce5e0c0ffee00d00dfeed0000111122223333",
+        "observed": "a11ce5e0c0ffee00d00dfeed0000111122223333",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/0",
+        "check": "scope",
+        "field": "/filesChanged/0",
+        "declared": "src/a.ts",
+        "observed": "src/a.ts",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/1",
+        "check": "scope",
+        "field": "/filesChanged/1",
+        "declared": "src/b.ts",
+        "observed": "src/b.ts",
+        "verdict": "pass"
+      }
+    ],
+    "verdict": "pass",
+    "digests": {
+      "claims": "91d3a39ce207dd09c09c017ac71483045616b09a15b8ddb98f76ae45143439d0",
+      "evidence": "f485d8bbb703be2476cd3696812b30399c9a8fb36789ca39a158eb7cd787bc4b"
+    },
+    "rerun": {
+      "offline": "dunstan verify dunstan-example-org-example-repo-7.json",
+      "online": "dunstan rerun dunstan-example-org-example-repo-7.json"
+    },
+    "assurance": {
+      "status": "unsigned",
+      "issuer": "self-generated"
+    }
+  }
+}
+",
+        "type": "text",
+      },
+    ],
+  },
+}
+`;
+
+exports[`dunstan_check_handback on a GitHub subject, byte for byte as on main > a report text 1`] = `
+{
+  "requests": [
+    "GET /repos/example-org/example-repo/pulls/7",
+    "GET /repos/example-org/example-repo/pulls/7/files?per_page=100&page=1",
+    "GET /repos/example-org/example-repo/pulls/7",
+  ],
+  "result": {
+    "content": [
+      {
+        "text": "verdict: fail
+Report the rows below as they are. Change the work, not the block.
+record: not written (pass outPath to write it)
+",
+        "type": "text",
+      },
+      {
+        "text": "dunstan 0.1.20  example-org/example-repo#7  head a11ce5e0c0ffee00d00dfeed0000111122223333
+report: api mcp dunstan_check_handback#report (sha256 4656b9c3b4f97f1a35b771127603b2fbabfdcd4a82f683d5b432f3f0f6c51c90)
+block: found (sha256 7f7edbf99822effd2d53067853a9fcd1edbcfe108c74b50e35ba794832c95646)
+
+VERDICT  CLAIM                      DECLARED                                  OBSERVED                                  REASON
+pass     head:/headCommit           a11ce5e0c0ffee00d00dfeed0000111122223333  a11ce5e0c0ffee00d00dfeed0000111122223333
+pass     scope:/filesChanged/0      src/a.ts                                  src/a.ts
+fail     scope:undeclared:src/b.ts  null                                      src/b.ts                                  undeclared_file
+
+verdict: fail
+",
+        "type": "text",
+      },
+      {
+        "text": "{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "git+https://github.com/example-org/example-repo@a11ce5e0c0ffee00d00dfeed0000111122223333",
+      "digest": {
+        "gitCommit": "a11ce5e0c0ffee00d00dfeed0000111122223333"
+      }
+    },
+    {
+      "name": "handback-block",
+      "digest": {
+        "sha256": "7f7edbf99822effd2d53067853a9fcd1edbcfe108c74b50e35ba794832c95646"
+      }
+    }
+  ],
+  "predicateType": "https://barglabs.ai/dunstan/record/v0.1",
+  "predicate": {
+    "spec": "0.1.11",
+    "checker": {
+      "name": "dunstan",
+      "version": "0.1.20",
+      "digest": {
+        "sha256": "67fb103c56db33e2f6acbf8868cfdd427fcb48b9ea9a2c186e6e835502996a39"
+      }
+    },
+    "report": {
+      "sha256": "4656b9c3b4f97f1a35b771127603b2fbabfdcd4a82f683d5b432f3f0f6c51c90",
+      "source": {
+        "kind": "api",
+        "locator": "mcp dunstan_check_handback#report"
+      }
+    },
+    "block": {
+      "status": "found",
+      "sha256": "7f7edbf99822effd2d53067853a9fcd1edbcfe108c74b50e35ba794832c95646",
+      "value": {
+        "dunstan": "0.1",
+        "headCommit": "a11ce5e0c0ffee00d00dfeed0000111122223333",
+        "filesChanged": [
+          "src/a.ts"
+        ]
+      }
+    },
+    "subject": {
+      "repository": "example-org/example-repo",
+      "pullRequest": 7,
+      "headSha": "a11ce5e0c0ffee00d00dfeed0000111122223333",
+      "mergeSha": null
+    },
+    "evidence": {
+      "pullRequest": {
+        "status": "ok",
+        "number": 7,
+        "state": "open",
+        "merged": false,
+        "mergedAt": null,
+        "headSha": "a11ce5e0c0ffee00d00dfeed0000111122223333",
+        "mergeSha": null,
+        "changedFiles": 2
+      },
+      "sources": [
+        {
+          "kind": "pull_request",
+          "locator": "GET /repos/example-org/example-repo/pulls/7",
+          "sha256": "668be92e8e52e9921d992d350f5adc543c85a7bb7ab795b28226b2aaaab5bcd1",
+          "readAt": "2026-11-11T09:00:00.000Z",
+          "etag": "\\"200\\""
+        },
+        {
+          "kind": "pull_request_files",
+          "locator": "GET /repos/example-org/example-repo/pulls/7/files?per_page=100&page=1",
+          "sha256": "4ee6a4bfec96e3688fca534d591908b44f597fcbc0db60439e4a8d62a98c1e42",
+          "readAt": "2026-11-11T09:00:00.000Z",
+          "etag": "\\"200\\""
+        }
+      ],
+      "files": {
+        "status": "ok",
+        "complete": true,
+        "entries": [
+          {
+            "path": "src/a.ts",
+            "status": "modified"
+          },
+          {
+            "path": "src/b.ts",
+            "status": "added"
+          }
+        ]
+      }
+    },
+    "claims": [
+      {
+        "id": "head:/headCommit",
+        "check": "head",
+        "field": "/headCommit",
+        "declared": "a11ce5e0c0ffee00d00dfeed0000111122223333",
+        "observed": "a11ce5e0c0ffee00d00dfeed0000111122223333",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/0",
+        "check": "scope",
+        "field": "/filesChanged/0",
+        "declared": "src/a.ts",
+        "observed": "src/a.ts",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:undeclared:src/b.ts",
+        "check": "scope",
+        "field": "/filesChanged",
+        "declared": null,
+        "observed": "src/b.ts",
+        "verdict": "fail",
+        "reason": "undeclared_file"
+      }
+    ],
+    "verdict": "fail",
+    "digests": {
+      "claims": "98b880e0f2a673a32d272a6a309a057215ecf1f0220f64d1dd18b6a89954632e",
+      "evidence": "f485d8bbb703be2476cd3696812b30399c9a8fb36789ca39a158eb7cd787bc4b"
+    },
+    "rerun": {
+      "offline": "dunstan verify dunstan-example-org-example-repo-7.json",
+      "online": "dunstan rerun dunstan-example-org-example-repo-7.json"
+    },
+    "assurance": {
+      "status": "unsigned",
+      "issuer": "self-generated"
+    }
+  }
+}
+",
+        "type": "text",
+      },
+    ],
+  },
+}
+`;
+
+exports[`dunstan_check_handback on a GitHub subject, byte for byte as on main > a report with no block 1`] = `
+{
+  "requests": [
+    "GET /repos/example-org/example-repo/pulls/7",
+    "GET /repos/example-org/example-repo/pulls/7",
+  ],
+  "result": {
+    "content": [
+      {
+        "text": "verdict: unverifiable
+Report the rows below as they are. Change the work, not the block.
+record: not written (pass outPath to write it)
+",
+        "type": "text",
+      },
+      {
+        "text": "dunstan 0.1.20  example-org/example-repo#7  head a11ce5e0c0ffee00d00dfeed0000111122223333
+report: api mcp dunstan_check_handback#report (sha256 e3120d618df2f1ba82774f343a963dbb73be75e6912c2df29ce17ff78897588b)
+block: missing (block_missing)
+
+verdict: unverifiable
+",
+        "type": "text",
+      },
+      {
+        "text": "{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "git+https://github.com/example-org/example-repo@a11ce5e0c0ffee00d00dfeed0000111122223333",
+      "digest": {
+        "gitCommit": "a11ce5e0c0ffee00d00dfeed0000111122223333"
+      }
+    }
+  ],
+  "predicateType": "https://barglabs.ai/dunstan/record/v0.1",
+  "predicate": {
+    "spec": "0.1.11",
+    "checker": {
+      "name": "dunstan",
+      "version": "0.1.20",
+      "digest": {
+        "sha256": "67fb103c56db33e2f6acbf8868cfdd427fcb48b9ea9a2c186e6e835502996a39"
+      }
+    },
+    "report": {
+      "sha256": "e3120d618df2f1ba82774f343a963dbb73be75e6912c2df29ce17ff78897588b",
+      "source": {
+        "kind": "api",
+        "locator": "mcp dunstan_check_handback#report"
+      }
+    },
+    "block": {
+      "status": "missing",
+      "reason": "block_missing",
+      "sha256": null,
+      "value": null
+    },
+    "subject": {
+      "repository": "example-org/example-repo",
+      "pullRequest": 7,
+      "headSha": "a11ce5e0c0ffee00d00dfeed0000111122223333",
+      "mergeSha": null
+    },
+    "evidence": {
+      "pullRequest": {
+        "status": "ok",
+        "number": 7,
+        "state": "open",
+        "merged": false,
+        "mergedAt": null,
+        "headSha": "a11ce5e0c0ffee00d00dfeed0000111122223333",
+        "mergeSha": null,
+        "changedFiles": 2
+      },
+      "sources": [
+        {
+          "kind": "pull_request",
+          "locator": "GET /repos/example-org/example-repo/pulls/7",
+          "sha256": "668be92e8e52e9921d992d350f5adc543c85a7bb7ab795b28226b2aaaab5bcd1",
+          "readAt": "2026-11-11T09:00:00.000Z",
+          "etag": "\\"200\\""
+        }
+      ]
+    },
+    "claims": [],
+    "verdict": "unverifiable",
+    "digests": {
+      "claims": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "evidence": "55323f990ca9eac9fe6e41124110f4c238ac1a82ec7ff3afc50c7571e9c35e7c"
+    },
+    "rerun": {
+      "offline": "dunstan verify dunstan-example-org-example-repo-7.json",
+      "online": "dunstan rerun dunstan-example-org-example-repo-7.json"
+    },
+    "assurance": {
+      "status": "unsigned",
+      "issuer": "self-generated"
+    }
+  }
+}
+",
+        "type": "text",
+      },
+    ],
+  },
+}
+`;
+
+exports[`dunstan_check_handback on a GitHub subject, byte for byte as on main > an unreadable pull request 1`] = `
+{
+  "requests": [
+    "GET /repos/example-org/example-repo/pulls/8",
+  ],
+  "result": {
+    "content": [
+      {
+        "text": "dunstan: cannot read pull request example-org/example-repo#8 (http_404); no record is written
+This is an error, not a verdict: nothing was checked.
+",
+        "type": "text",
+      },
+    ],
+    "isError": true,
+  },
+}
+`;
+
+exports[`dunstan_check_handback on a GitHub subject, byte for byte as on main > both block and report 1`] = `
+{
+  "requests": [],
+  "result": {
+    "content": [
+      {
+        "text": "dunstan: pass exactly one of block (the handback block as a JSON object) or report (text carrying one dunstan-handback fence)
+This is an error, not a verdict: nothing was checked.
+",
+        "type": "text",
+      },
+    ],
+    "isError": true,
+  },
+}
+`;
+
+exports[`dunstan_check_handback on a GitHub subject, byte for byte as on main > no GITHUB_TOKEN 1`] = `
+{
+  "requests": [
+    "GET /repos/example-org/example-repo/pulls/7",
+    "GET /repos/example-org/example-repo/pulls/7/files?per_page=100&page=1",
+    "GET /repos/example-org/example-repo/pulls/7",
+  ],
+  "result": {
+    "content": [
+      {
+        "text": "verdict: pass
+record: not written (pass outPath to write it)
+note: GITHUB_TOKEN is not set; read anonymously
+",
+        "type": "text",
+      },
+      {
+        "text": "dunstan 0.1.20  example-org/example-repo#7  head a11ce5e0c0ffee00d00dfeed0000111122223333
+report: api mcp dunstan_check_handback#block (sha256 8ed9e38c1e1fc77914e60e758bea557020d0e3770700eeb2f7230aa018b4c94b)
+block: found (sha256 8ed9e38c1e1fc77914e60e758bea557020d0e3770700eeb2f7230aa018b4c94b)
+
+VERDICT  CLAIM                  DECLARED                                  OBSERVED                                  REASON
+pass     head:/headCommit       a11ce5e0c0ffee00d00dfeed0000111122223333  a11ce5e0c0ffee00d00dfeed0000111122223333
+pass     scope:/filesChanged/0  src/a.ts                                  src/a.ts
+pass     scope:/filesChanged/1  src/b.ts                                  src/b.ts
+
+verdict: pass
+",
+        "type": "text",
+      },
+      {
+        "text": "{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "git+https://github.com/example-org/example-repo@a11ce5e0c0ffee00d00dfeed0000111122223333",
+      "digest": {
+        "gitCommit": "a11ce5e0c0ffee00d00dfeed0000111122223333"
+      }
+    },
+    {
+      "name": "handback-block",
+      "digest": {
+        "sha256": "8ed9e38c1e1fc77914e60e758bea557020d0e3770700eeb2f7230aa018b4c94b"
+      }
+    }
+  ],
+  "predicateType": "https://barglabs.ai/dunstan/record/v0.1",
+  "predicate": {
+    "spec": "0.1.11",
+    "checker": {
+      "name": "dunstan",
+      "version": "0.1.20",
+      "digest": {
+        "sha256": "67fb103c56db33e2f6acbf8868cfdd427fcb48b9ea9a2c186e6e835502996a39"
+      }
+    },
+    "report": {
+      "sha256": "8ed9e38c1e1fc77914e60e758bea557020d0e3770700eeb2f7230aa018b4c94b",
+      "source": {
+        "kind": "api",
+        "locator": "mcp dunstan_check_handback#block"
+      }
+    },
+    "block": {
+      "status": "found",
+      "sha256": "8ed9e38c1e1fc77914e60e758bea557020d0e3770700eeb2f7230aa018b4c94b",
+      "value": {
+        "dunstan": "0.1",
+        "filesChanged": [
+          "src/a.ts",
+          "src/b.ts"
+        ],
+        "headCommit": "a11ce5e0c0ffee00d00dfeed0000111122223333"
+      }
+    },
+    "subject": {
+      "repository": "example-org/example-repo",
+      "pullRequest": 7,
+      "headSha": "a11ce5e0c0ffee00d00dfeed0000111122223333",
+      "mergeSha": null
+    },
+    "evidence": {
+      "pullRequest": {
+        "status": "ok",
+        "number": 7,
+        "state": "open",
+        "merged": false,
+        "mergedAt": null,
+        "headSha": "a11ce5e0c0ffee00d00dfeed0000111122223333",
+        "mergeSha": null,
+        "changedFiles": 2
+      },
+      "sources": [
+        {
+          "kind": "pull_request",
+          "locator": "GET /repos/example-org/example-repo/pulls/7",
+          "sha256": "668be92e8e52e9921d992d350f5adc543c85a7bb7ab795b28226b2aaaab5bcd1",
+          "readAt": "2026-11-11T09:00:00.000Z",
+          "etag": "\\"200\\""
+        },
+        {
+          "kind": "pull_request_files",
+          "locator": "GET /repos/example-org/example-repo/pulls/7/files?per_page=100&page=1",
+          "sha256": "4ee6a4bfec96e3688fca534d591908b44f597fcbc0db60439e4a8d62a98c1e42",
+          "readAt": "2026-11-11T09:00:00.000Z",
+          "etag": "\\"200\\""
+        }
+      ],
+      "files": {
+        "status": "ok",
+        "complete": true,
+        "entries": [
+          {
+            "path": "src/a.ts",
+            "status": "modified"
+          },
+          {
+            "path": "src/b.ts",
+            "status": "added"
+          }
+        ]
+      }
+    },
+    "claims": [
+      {
+        "id": "head:/headCommit",
+        "check": "head",
+        "field": "/headCommit",
+        "declared": "a11ce5e0c0ffee00d00dfeed0000111122223333",
+        "observed": "a11ce5e0c0ffee00d00dfeed0000111122223333",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/0",
+        "check": "scope",
+        "field": "/filesChanged/0",
+        "declared": "src/a.ts",
+        "observed": "src/a.ts",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/1",
+        "check": "scope",
+        "field": "/filesChanged/1",
+        "declared": "src/b.ts",
+        "observed": "src/b.ts",
+        "verdict": "pass"
+      }
+    ],
+    "verdict": "pass",
+    "digests": {
+      "claims": "91d3a39ce207dd09c09c017ac71483045616b09a15b8ddb98f76ae45143439d0",
+      "evidence": "f485d8bbb703be2476cd3696812b30399c9a8fb36789ca39a158eb7cd787bc4b"
+    },
+    "rerun": {
+      "offline": "dunstan verify dunstan-example-org-example-repo-7.json",
+      "online": "dunstan rerun dunstan-example-org-example-repo-7.json"
+    },
+    "assurance": {
+      "status": "unsigned",
+      "issuer": "self-generated"
+    }
+  }
+}
+",
+        "type": "text",
+      },
+    ],
+  },
+}
+`;

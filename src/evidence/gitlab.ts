@@ -722,6 +722,38 @@ async function readTestRecord(
   return { record, status: 'ok', runs };
 }
 
+// The project's CI configuration file, as the testRecords row reads it, for `dunstan template
+// --tests-ci --gitlab-project`, which names it when the caller does not: null when it cannot say.
+export function readGitLabCiConfigPath(
+  client: GitLabClient,
+  project: string,
+): Promise<string | null> {
+  return readCiConfigPath(client, project);
+}
+
+// One record's testRecords entry, exactly as readGitLabEvidence gives it for a block whose
+// headCommit is `headCommit`: the same head pipeline rule, the same jobs listing and the same
+// readTestRecord. `dunstan template --tests-ci --gitlab-project` reads its counts here, so the
+// counts it declares are the ones the check reads.
+export async function readGitLabTestRecord(
+  client: GitLabClient,
+  project: string,
+  mr: MergeRequestRead,
+  headCommit: string,
+  record: JunitRecord,
+  ciConfig: () => Promise<string | null> = () => readCiConfigPath(client, project),
+): Promise<TestRecordEvidence> {
+  const pipeline = pipelineAt(mr, headCommit);
+  if (!('id' in pipeline)) return { record, ...pipeline };
+  return readTestRecord(
+    client,
+    project,
+    record,
+    jobsReader(client, project, pipeline.id),
+    ciConfig,
+  );
+}
+
 // ---------------------------------------------------------------- deployments
 
 // A deployment status (profile G.3, the deployment status table): a closed list. Only `success` is

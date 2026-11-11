@@ -16,9 +16,14 @@ Before you say done (docs/agents.md):
 2. Add your test and reference claims. Optional members: tests, checks, references, mergedAt,
    deployedAt. Declare test counts from the CI JUnit record, not from a local run: run
    `dunstan template --tests-ci --tests-command <cmd> --tests-workflow <path> --tests-job <name>`
-   after CI has finished on your last push. If only a local run exists, declare it with
-   `--tests-local <JUnit file> --tests-command <cmd>` and say here that CI publishes no test
-   record. Never state a count in prose that the block does not declare (docs/ci-test-records.md).
+   after CI has finished on your last push. In this repository that is:
+
+       dunstan template --tests-ci --tests-command "pnpm test" --tests-workflow .github/workflows/ci.yml --tests-job "check (ubuntu-latest)"
+
+   If only a local run exists, declare it with `--tests-local <JUnit file> --tests-command <cmd>`
+   and say here why CI's record is missing: this repository's CI uploads one (artifact
+   dunstan-junit from `check (ubuntu-latest)`), so a missing record means that run did not upload
+   it. Never state a count in prose that the block does not declare (docs/ci-test-records.md).
 3. Save this description to a file and run `dunstan suggest` on it. Declare each claim it lists in
    the block, or reword the sentence if it is not a claim about this pull request.
 4. After each push, run `dunstan template` again: the head commit moves.

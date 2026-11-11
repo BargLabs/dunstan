@@ -25,12 +25,29 @@ handback covers what the issue asked for: an accurate report of the wrong work p
 
 ## What it runs, reads and sends
 
-The plugin starts the MCP server with `npx -y dunstan@0.1.19 mcp`, which downloads the `dunstan`
+The plugin starts the MCP server with `npx -y dunstan@0.1.20 mcp`, which downloads the `dunstan`
 package at that exact version from the npm registry. The package is one self-contained file with no
 dependencies. The server runs on your machine and reads GitHub's API directly from it: the pull
 request, its files, commits, check runs, workflow runs and artifacts, deployments, and the issues the
 block references. Every request is a read. Nothing is written to GitHub or the repository, and nothing
 is sent to Barg Labs.
+
+## Changes in 0.1.20
+
+- **The MCP tools check GitLab merge requests (DRAFT GitLab profile 0.1).** `dunstan_check_handback`
+  takes a GitLab subject, `gitlabProject` and `mergeRequest` (with `gitlabHost` off gitlab.com), in
+  place of `repository` and `pullRequest`, and reads it with `GITLAB_TOKEN`. On the same evidence it
+  gives the same claims, verdict and digests as `dunstan check --gitlab-project`. A call that names
+  both subjects, neither, or part of one is refused before anything is read.
+- **The template declares GitLab CI test counts.** `dunstan template --tests-ci --gitlab-project
+  <path> --mr <iid>` and `dunstan_template_handback` with `tests.from: "ci"` read the counts from
+  the JUnit file in a job's artifacts archive, with the reader the check uses. When the record cannot
+  be read, the block declares no tests and the note gives the check's reason. A tests claim on
+  GitLab needs `GITLAB_TOKEN`, even on a public project.
+- **GitLab output speaks GitLab.** On a GitLab record the claims table names the merge request
+  `<project>!<iid>` and a description report "merge request description", and its remedy lines name
+  jobs, pipelines and `GITLAB_TOKEN`. Records are unchanged, and every GitHub table is byte-identical
+  to 0.1.19.
 
 ## Changes in 0.1.19
 

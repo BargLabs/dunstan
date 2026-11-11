@@ -333,8 +333,9 @@ function countRow(
 // record_producer_changed_by_pr. A list that holds the path shows that even when it is incomplete.
 // Otherwise, a list that is absent, unreadable or incomplete cannot show the workflow unchanged, and
 // the rows take its reason, the one the scope rows give. Only the workflow file's own path is read;
-// what it calls or runs is not (section 14).
-function producerReason(record: JunitRecord, evidence: Evidence): string | undefined {
+// what it calls or runs is not (section 14). Exported for `dunstan template --tests-ci`, which,
+// when it has read the changed files, declares no counts this refuses.
+export function producerReason(record: JunitRecord, evidence: Evidence): string | undefined {
   const files = evidence.files;
   if (files === undefined) return absentSection('files');
   if (files.status !== 'ok') return unreadReason(files);

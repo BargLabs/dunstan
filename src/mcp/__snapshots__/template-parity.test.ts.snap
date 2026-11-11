@@ -1,0 +1,565 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`dunstan_template_handback errors, worded for a tool caller > a base that is not a ref 1`] = `
+{
+  "err": "dunstan: --base -x is not a ref
+",
+  "tool": [
+    "dunstan: base -x is not a ref
+This is an error: no block was produced.
+",
+  ],
+}
+`;
+
+exports[`dunstan_template_handback errors, worded for a tool caller > an unreadable tests.junit 1`] = `
+{
+  "err": "dunstan: --tests-local /nonexistent/junit.xml: ENOENT: no such file or directory, open '/nonexistent/junit.xml'
+",
+  "tool": [
+    "dunstan: tests.junit /nonexistent/junit.xml: ENOENT: no such file or directory, open '/nonexistent/junit.xml'
+This is an error: no block was produced.
+",
+  ],
+}
+`;
+
+exports[`dunstan_template_handback errors, worded for a tool caller > an unresolvable default branch 1`] = `
+{
+  "err": "dunstan: the remote's default branch cannot be resolved (refs/remotes/origin/HEAD is not set): pass --base <ref>, or run git remote set-head origin --auto
+",
+  "tool": [
+    "dunstan: the remote's default branch cannot be resolved (refs/remotes/origin/HEAD is not set): give base, or run git remote set-head origin --auto
+This is an error: no block was produced.
+",
+  ],
+}
+`;
+
+exports[`dunstan_template_handback errors, worded for a tool caller > no origin remote 1`] = `
+{
+  "err": "dunstan: there is no origin remote: pass --repo <owner/name>
+",
+  "tool": [
+    "dunstan: there is no origin remote: give tests.repository (owner/name)
+This is an error: no block was produced.
+",
+  ],
+}
+`;
+
+exports[`dunstan_template_handback errors, worded for a tool caller > origin not on github.com 1`] = `
+{
+  "err": "dunstan: origin https://gitlab.example/o/r.git is not a github.com repository: pass --repo <owner/name>
+",
+  "tool": [
+    "dunstan: origin https://gitlab.example/o/r.git is not a github.com repository: give tests.repository (owner/name)
+This is an error: no block was produced.
+",
+  ],
+}
+`;
+
+exports[`dunstan_template_handback parity with dunstan template > from: ci, settled 1`] = `
+{
+  "code": 0,
+  "err": "dunstan: this block describes the local HEAD <commit 0> on feature, against origin/main (merge base <commit 1>). Pushing more commits makes it stale, and the gate then reports head_mismatch: run dunstan template again after your last push.
+dunstan: tests: 142 executed and 0 failed in junit.xml in the artifact dunstan-junit of job Test in .github/workflows/ci.yml at <commit 0>, read from CI as the gate reads it (run 801).
+dunstan: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.
+dunstan: checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.
+",
+  "out": "\`\`\`dunstan-handback
+{
+  "dunstan": "0.1",
+  "headCommit": "<commit 0>",
+  "filesChanged": [
+    "src/a.ts",
+    "src/b.ts"
+  ],
+  "tests": [
+    {
+      "command": "pnpm test",
+      "count": 142,
+      "failures": 0,
+      "record": {
+        "kind": "junit",
+        "workflow": ".github/workflows/ci.yml",
+        "job": "Test",
+        "artifact": "dunstan-junit",
+        "path": "junit.xml"
+      }
+    }
+  ]
+}
+\`\`\`
+",
+  "tool": [
+    "tests: declared
+note: this block describes the local HEAD <commit 0> on feature, against origin/main (merge base <commit 1>). Pushing more commits makes it stale, and the gate then reports head_mismatch: call dunstan_template_handback again after your last push.
+note: tests: 142 executed and 0 failed in junit.xml in the artifact dunstan-junit of job Test in .github/workflows/ci.yml at <commit 0>, read from CI as the gate reads it (run 801).
+note: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.
+note: checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.
+",
+    "\`\`\`dunstan-handback
+{
+  "dunstan": "0.1",
+  "headCommit": "<commit 0>",
+  "filesChanged": [
+    "src/a.ts",
+    "src/b.ts"
+  ],
+  "tests": [
+    {
+      "command": "pnpm test",
+      "count": 142,
+      "failures": 0,
+      "record": {
+        "kind": "junit",
+        "workflow": ".github/workflows/ci.yml",
+        "job": "Test",
+        "artifact": "dunstan-junit",
+        "path": "junit.xml"
+      }
+    }
+  ]
+}
+\`\`\`
+",
+  ],
+}
+`;
+
+exports[`dunstan_template_handback parity with dunstan template > from: ci, settled, with every record member named 1`] = `
+{
+  "code": 0,
+  "err": "dunstan: this block describes the local HEAD <commit 0> on feature, against origin/main (merge base <commit 1>). Pushing more commits makes it stale, and the gate then reports head_mismatch: run dunstan template again after your last push.
+dunstan: tests: 3 executed and 0 failed in junit.xml in the artifact dunstan-junit of job Test in .github/workflows/ci.yml at <commit 0>, read from CI as the gate reads it (run 801).
+dunstan: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.
+dunstan: checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.
+",
+  "out": "\`\`\`dunstan-handback
+{
+  "dunstan": "0.1",
+  "headCommit": "<commit 0>",
+  "filesChanged": [
+    "src/a.ts",
+    "src/b.ts"
+  ],
+  "tests": [
+    {
+      "command": "pnpm test",
+      "count": 3,
+      "failures": 0,
+      "record": {
+        "kind": "junit",
+        "workflow": ".github/workflows/ci.yml",
+        "job": "Test",
+        "artifact": "dunstan-junit",
+        "path": "junit.xml"
+      }
+    }
+  ]
+}
+\`\`\`
+",
+  "tool": [
+    "tests: declared
+note: this block describes the local HEAD <commit 0> on feature, against origin/main (merge base <commit 1>). Pushing more commits makes it stale, and the gate then reports head_mismatch: call dunstan_template_handback again after your last push.
+note: tests: 3 executed and 0 failed in junit.xml in the artifact dunstan-junit of job Test in .github/workflows/ci.yml at <commit 0>, read from CI as the gate reads it (run 801).
+note: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.
+note: checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.
+",
+    "\`\`\`dunstan-handback
+{
+  "dunstan": "0.1",
+  "headCommit": "<commit 0>",
+  "filesChanged": [
+    "src/a.ts",
+    "src/b.ts"
+  ],
+  "tests": [
+    {
+      "command": "pnpm test",
+      "count": 3,
+      "failures": 0,
+      "record": {
+        "kind": "junit",
+        "workflow": ".github/workflows/ci.yml",
+        "job": "Test",
+        "artifact": "dunstan-junit",
+        "path": "junit.xml"
+      }
+    }
+  ]
+}
+\`\`\`
+",
+  ],
+}
+`;
+
+exports[`dunstan_template_handback parity with dunstan template > from: ci, unsettled: CI not finished 1`] = `
+{
+  "code": 2,
+  "err": "dunstan: this block describes the local HEAD <commit 0> on feature, against origin/main (merge base <commit 1>). Pushing more commits makes it stale, and the gate then reports head_mismatch: run dunstan template again after your last push.
+dunstan: tests are not declared: CI has not finished: 1 run of .github/workflows/ci.yml at <commit 0> is not completed, and no completed run uploaded the artifact dunstan-junit holding junit.xml from job Test (record_not_found).
+dunstan: remedy: run dunstan template --tests-ci again once CI has finished on this commit.
+dunstan: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.
+dunstan: checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.
+",
+  "out": "\`\`\`dunstan-handback
+{
+  "dunstan": "0.1",
+  "headCommit": "<commit 0>",
+  "filesChanged": [
+    "src/a.ts",
+    "src/b.ts"
+  ]
+}
+\`\`\`
+",
+  "tool": [
+    "tests: not declared
+The block below has no tests. Do not add counts yourself; do what the note says.
+note: this block describes the local HEAD <commit 0> on feature, against origin/main (merge base <commit 1>). Pushing more commits makes it stale, and the gate then reports head_mismatch: call dunstan_template_handback again after your last push.
+note: tests are not declared: CI has not finished: 1 run of .github/workflows/ci.yml at <commit 0> is not completed, and no completed run uploaded the artifact dunstan-junit holding junit.xml from job Test (record_not_found).
+note: remedy: call dunstan_template_handback again with tests.from "ci" once CI has finished on this commit.
+note: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.
+note: checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.
+",
+    "\`\`\`dunstan-handback
+{
+  "dunstan": "0.1",
+  "headCommit": "<commit 0>",
+  "filesChanged": [
+    "src/a.ts",
+    "src/b.ts"
+  ]
+}
+\`\`\`
+",
+  ],
+}
+`;
+
+exports[`dunstan_template_handback parity with dunstan template > from: ci, unsettled: no_token 1`] = `
+{
+  "code": 2,
+  "err": "dunstan: this block describes the local HEAD <commit 0> on feature, against origin/main (merge base <commit 1>). Pushing more commits makes it stale, and the gate then reports head_mismatch: run dunstan template again after your last push.
+dunstan: tests are not declared: GITHUB_TOKEN is not set, and GitHub answers an artifact download only with a token, even on a public repository (no_token).
+dunstan: remedy: set GITHUB_TOKEN to a token that can read the repository, with actions: read, and run dunstan template --tests-ci again.
+dunstan: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.
+dunstan: checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.
+",
+  "out": "\`\`\`dunstan-handback
+{
+  "dunstan": "0.1",
+  "headCommit": "<commit 0>",
+  "filesChanged": [
+    "src/a.ts",
+    "src/b.ts"
+  ]
+}
+\`\`\`
+",
+  "tool": [
+    "tests: not declared
+The block below has no tests. Do not add counts yourself; do what the note says.
+note: this block describes the local HEAD <commit 0> on feature, against origin/main (merge base <commit 1>). Pushing more commits makes it stale, and the gate then reports head_mismatch: call dunstan_template_handback again after your last push.
+note: tests are not declared: GITHUB_TOKEN is not set, and GitHub answers an artifact download only with a token, even on a public repository (no_token).
+note: remedy: set GITHUB_TOKEN to a token that can read the repository, with actions: read, and call dunstan_template_handback again with tests.from "ci".
+note: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.
+note: checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.
+",
+    "\`\`\`dunstan-handback
+{
+  "dunstan": "0.1",
+  "headCommit": "<commit 0>",
+  "filesChanged": [
+    "src/a.ts",
+    "src/b.ts"
+  ]
+}
+\`\`\`
+",
+  ],
+}
+`;
+
+exports[`dunstan_template_handback parity with dunstan template > from: ci, unsettled: not_pushed 1`] = `
+{
+  "code": 2,
+  "err": "dunstan: this block describes the local HEAD <commit 0> on feature, against origin/main (merge base <commit 1>). Pushing more commits makes it stale, and the gate then reports head_mismatch: run dunstan template again after your last push.
+dunstan: tests are not declared: HEAD <commit 0> is not on any remote-tracking branch, so no CI run can have tested it (not_pushed).
+dunstan: remedy: push it, wait for CI to finish, and run dunstan template --tests-ci again (run git fetch first if it was pushed from elsewhere).
+dunstan: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.
+dunstan: checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.
+",
+  "out": "\`\`\`dunstan-handback
+{
+  "dunstan": "0.1",
+  "headCommit": "<commit 0>",
+  "filesChanged": [
+    "src/a.ts",
+    "src/b.ts"
+  ]
+}
+\`\`\`
+",
+  "tool": [
+    "tests: not declared
+The block below has no tests. Do not add counts yourself; do what the note says.
+note: this block describes the local HEAD <commit 0> on feature, against origin/main (merge base <commit 1>). Pushing more commits makes it stale, and the gate then reports head_mismatch: call dunstan_template_handback again after your last push.
+note: tests are not declared: HEAD <commit 0> is not on any remote-tracking branch, so no CI run can have tested it (not_pushed).
+note: remedy: push it, wait for CI to finish, and call dunstan_template_handback again with tests.from "ci" (run git fetch first if it was pushed from elsewhere).
+note: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.
+note: checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.
+",
+    "\`\`\`dunstan-handback
+{
+  "dunstan": "0.1",
+  "headCommit": "<commit 0>",
+  "filesChanged": [
+    "src/a.ts",
+    "src/b.ts"
+  ]
+}
+\`\`\`
+",
+  ],
+}
+`;
+
+exports[`dunstan_template_handback parity with dunstan template > from: ci, unsettled: record_ambiguous 1`] = `
+{
+  "code": 2,
+  "err": "dunstan: this block describes the local HEAD <commit 0> on feature, against origin/main (merge base <commit 1>). Pushing more commits makes it stale, and the gate then reports head_mismatch: run dunstan template again after your last push.
+dunstan: tests are not declared: the runs of .github/workflows/ci.yml at <commit 0> that uploaded dunstan-junit disagree (run 801: 142 executed, 0 failed; run 802: 141 executed, 0 failed), and the gate never picks one (record_ambiguous).
+dunstan: remedy: make the runs agree (re-run the one that differs), or name a job only one of them runs.
+dunstan: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.
+dunstan: checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.
+",
+  "out": "\`\`\`dunstan-handback
+{
+  "dunstan": "0.1",
+  "headCommit": "<commit 0>",
+  "filesChanged": [
+    "src/a.ts",
+    "src/b.ts"
+  ]
+}
+\`\`\`
+",
+  "tool": [
+    "tests: not declared
+The block below has no tests. Do not add counts yourself; do what the note says.
+note: this block describes the local HEAD <commit 0> on feature, against origin/main (merge base <commit 1>). Pushing more commits makes it stale, and the gate then reports head_mismatch: call dunstan_template_handback again after your last push.
+note: tests are not declared: the runs of .github/workflows/ci.yml at <commit 0> that uploaded dunstan-junit disagree (run 801: 142 executed, 0 failed; run 802: 141 executed, 0 failed), and the gate never picks one (record_ambiguous).
+note: remedy: make the runs agree (re-run the one that differs), or name a job only one of them runs.
+note: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.
+note: checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.
+",
+    "\`\`\`dunstan-handback
+{
+  "dunstan": "0.1",
+  "headCommit": "<commit 0>",
+  "filesChanged": [
+    "src/a.ts",
+    "src/b.ts"
+  ]
+}
+\`\`\`
+",
+  ],
+}
+`;
+
+exports[`dunstan_template_handback parity with dunstan template > from: ci, unsettled: record_not_found 1`] = `
+{
+  "code": 2,
+  "err": "dunstan: this block describes the local HEAD <commit 0> on feature, against origin/main (merge base <commit 1>). Pushing more commits makes it stale, and the gate then reports head_mismatch: run dunstan template again after your last push.
+dunstan: tests are not declared: no run of .github/workflows/ci.yml at <commit 0> uploaded the artifact dunstan-junit holding junit.xml from job Test (record_not_found).
+dunstan: remedy: no run of the named workflow at the head uploaded that artifact from that job. Publish the JUnit record from CI (docs/ci-test-records.md), then check that the record's workflow, job, artifact and path are the ones the run used: dunstan template --tests-ci fills them.
+dunstan: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.
+dunstan: checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.
+",
+  "out": "\`\`\`dunstan-handback
+{
+  "dunstan": "0.1",
+  "headCommit": "<commit 0>",
+  "filesChanged": [
+    "src/a.ts",
+    "src/b.ts"
+  ]
+}
+\`\`\`
+",
+  "tool": [
+    "tests: not declared
+The block below has no tests. Do not add counts yourself; do what the note says.
+note: this block describes the local HEAD <commit 0> on feature, against origin/main (merge base <commit 1>). Pushing more commits makes it stale, and the gate then reports head_mismatch: call dunstan_template_handback again after your last push.
+note: tests are not declared: no run of .github/workflows/ci.yml at <commit 0> uploaded the artifact dunstan-junit holding junit.xml from job Test (record_not_found).
+note: remedy: no run of the named workflow at the head uploaded that artifact from that job. Publish the JUnit record from CI (docs/ci-test-records.md), then check that the record's workflow, job, artifact and path are the ones the run used: dunstan_template_handback with tests.from "ci" fills them.
+note: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.
+note: checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.
+",
+    "\`\`\`dunstan-handback
+{
+  "dunstan": "0.1",
+  "headCommit": "<commit 0>",
+  "filesChanged": [
+    "src/a.ts",
+    "src/b.ts"
+  ]
+}
+\`\`\`
+",
+  ],
+}
+`;
+
+exports[`dunstan_template_handback parity with dunstan template > from: ci, unsettled: the artifact cannot be read 1`] = `
+{
+  "code": 2,
+  "err": "dunstan: this block describes the local HEAD <commit 0> on feature, against origin/main (merge base <commit 1>). Pushing more commits makes it stale, and the gate then reports head_mismatch: run dunstan template again after your last push.
+dunstan: tests are not declared: a run of .github/workflows/ci.yml at <commit 0> uploaded dunstan-junit, and it could not be read (source_unreadable:artifact).
+dunstan: remedy: the run uploaded the record, but it could not be read: it expired, was uploaded outside the latest attempt of the named job, the job had not completed, or the file is not well-formed JUnit. Re-run the job to upload it again, or check again once the job completes.
+dunstan: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.
+dunstan: checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.
+",
+  "out": "\`\`\`dunstan-handback
+{
+  "dunstan": "0.1",
+  "headCommit": "<commit 0>",
+  "filesChanged": [
+    "src/a.ts",
+    "src/b.ts"
+  ]
+}
+\`\`\`
+",
+  "tool": [
+    "tests: not declared
+The block below has no tests. Do not add counts yourself; do what the note says.
+note: this block describes the local HEAD <commit 0> on feature, against origin/main (merge base <commit 1>). Pushing more commits makes it stale, and the gate then reports head_mismatch: call dunstan_template_handback again after your last push.
+note: tests are not declared: a run of .github/workflows/ci.yml at <commit 0> uploaded dunstan-junit, and it could not be read (source_unreadable:artifact).
+note: remedy: the run uploaded the record, but it could not be read: it expired, was uploaded outside the latest attempt of the named job, the job had not completed, or the file is not well-formed JUnit. Re-run the job to upload it again, or check again once the job completes.
+note: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.
+note: checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.
+",
+    "\`\`\`dunstan-handback
+{
+  "dunstan": "0.1",
+  "headCommit": "<commit 0>",
+  "filesChanged": [
+    "src/a.ts",
+    "src/b.ts"
+  ]
+}
+\`\`\`
+",
+  ],
+}
+`;
+
+exports[`dunstan_template_handback parity with dunstan template > from: local 1`] = `
+{
+  "code": 0,
+  "err": "dunstan: this block describes the local HEAD <commit 0> on feature, against origin/main (merge base <commit 1>). Pushing more commits makes it stale, and the gate then reports head_mismatch: run dunstan template again after your last push.
+dunstan: tests: 3 executed and 1 failed in <junit>, declared as a local run (record {"kind": "local"}). The gate reports them unverifiable (local_run_not_in_record) until CI publishes a record: publish one (docs/ci-test-records.md), then run dunstan template --tests-ci once CI has finished. Until then, say in the report that CI publishes no test record, and state no count in prose that the block does not declare.
+dunstan: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.
+dunstan: checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.
+",
+  "out": "\`\`\`dunstan-handback
+{
+  "dunstan": "0.1",
+  "headCommit": "<commit 0>",
+  "filesChanged": [
+    "src/a.ts",
+    "src/b.ts"
+  ],
+  "tests": [
+    {
+      "command": "pnpm test",
+      "count": 3,
+      "failures": 1,
+      "record": {
+        "kind": "local"
+      }
+    }
+  ]
+}
+\`\`\`
+",
+  "tool": [
+    "tests: declared
+note: this block describes the local HEAD <commit 0> on feature, against origin/main (merge base <commit 1>). Pushing more commits makes it stale, and the gate then reports head_mismatch: call dunstan_template_handback again after your last push.
+note: tests: 3 executed and 1 failed in <junit>, declared as a local run (record {"kind": "local"}). The gate reports them unverifiable (local_run_not_in_record) until CI publishes a record: publish one (docs/ci-test-records.md), then call dunstan_template_handback with tests.from "ci" once CI has finished. Until then, say in the report that CI publishes no test record, and state no count in prose that the block does not declare.
+note: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.
+note: checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.
+",
+    "\`\`\`dunstan-handback
+{
+  "dunstan": "0.1",
+  "headCommit": "<commit 0>",
+  "filesChanged": [
+    "src/a.ts",
+    "src/b.ts"
+  ],
+  "tests": [
+    {
+      "command": "pnpm test",
+      "count": 3,
+      "failures": 1,
+      "record": {
+        "kind": "local"
+      }
+    }
+  ]
+}
+\`\`\`
+",
+  ],
+}
+`;
+
+exports[`dunstan_template_handback parity with dunstan template > no tests 1`] = `
+{
+  "code": 0,
+  "err": "dunstan: this block describes the local HEAD <commit 0> on feature, against origin/main (merge base <commit 1>). Pushing more commits makes it stale, and the gate then reports head_mismatch: run dunstan template again after your last push.
+dunstan: tests are not declared. To declare CI's counts, run dunstan template again with --tests-ci --tests-command <cmd> --tests-workflow <path> --tests-job <name> once CI has finished on your last push; it reads the JUnit record CI published (docs/ci-test-records.md). For a run made only locally, --tests-local <JUnit XML file> --tests-command <cmd> declares it as one. --tests-junit <file> with --tests-command, --tests-workflow, --tests-job, --tests-artifact and --tests-artifact-path declares a local file's counts against a CI record.
+dunstan: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.
+dunstan: checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.
+",
+  "out": "\`\`\`dunstan-handback
+{
+  "dunstan": "0.1",
+  "headCommit": "<commit 0>",
+  "filesChanged": [
+    "src/a.ts",
+    "src/b.ts"
+  ]
+}
+\`\`\`
+",
+  "tool": [
+    "tests: none asked
+note: this block describes the local HEAD <commit 0> on feature, against origin/main (merge base <commit 1>). Pushing more commits makes it stale, and the gate then reports head_mismatch: call dunstan_template_handback again after your last push.
+note: tests are not declared. To declare CI's counts, call dunstan_template_handback again with tests { from: "ci", command, workflow, job } once CI has finished on your last push; it reads the JUnit record CI published (docs/ci-test-records.md). For a run made only locally, tests { from: "local", junit, command } declares it as one.
+note: references and mergedAt are not filled: add each issue this pull request closes or cites yourself, and leave mergedAt out until it is merged.
+note: checks are not filled: declare them yourself once CI has finished. checks.allSucceeded is true only if every counted check run concluded success, so a skipped or neutral run makes it false; checks.noneFailed is true if none concluded other than success, skipped or neutral and at least one succeeded.
+",
+    "\`\`\`dunstan-handback
+{
+  "dunstan": "0.1",
+  "headCommit": "<commit 0>",
+  "filesChanged": [
+    "src/a.ts",
+    "src/b.ts"
+  ]
+}
+\`\`\`
+",
+  ],
+}
+`;

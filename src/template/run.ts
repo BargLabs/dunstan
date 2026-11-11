@@ -7,9 +7,10 @@
 //
 // Git first: HEAD and the repository are read before anything is read online, so a repository git
 // cannot answer for is refused (TemplateError) with nothing read and nothing printed. Only
-// `from: "ci"` reads the network, read-only, with the token the caller passes.
+// `from: "ci"` reads the network, read-only: GitHub with GITHUB_TOKEN, or, given a GitLab merge
+// request (DRAFT GitLab profile 0.1), its GitLab host with GITLAB_TOKEN only.
 
-import { GitHubClient } from '../evidence/http.js';
+import { DEFAULT_GITLAB_HOST, GitHubClient, GitLabClient } from '../evidence/http.js';
 import {
   headCommit,
   isPushed,
@@ -18,7 +19,7 @@ import {
   type TestsSource,
   templateBlock,
 } from './template.js';
-import { testsFromCi } from './tests-ci.js';
+import { testsFromCi, testsFromGitLabCi } from './tests-ci.js';
 import type { Caller } from './wording.js';
 
 // The artifact and the file in it that docs/ci-test-records.md's recipes upload.
@@ -36,6 +37,23 @@ export interface TemplateTestsFromCi {
   artifactPath?: string | undefined;
   // owner/name, checked by the caller. Absent: the repository the origin remote names.
   repository?: string | undefined;
+}
+
+// --tests-ci --gitlab-project: the counts at HEAD, read from the head pipeline of a GitLab merge
+// request as the check reads them (DRAFT GitLab profile 0.1, G.3). Each member is checked by the
+// caller; the artifact is always `archive`, the job's artifacts archive.
+export interface TemplateTestsFromGitLabCi {
+  from: 'ci';
+  gitlabProject: string;
+  mergeRequest: number;
+  // Absent: gitlab.com.
+  gitlabHost?: string | undefined;
+  command: string;
+  job: string;
+  // The JUnit file in the archive. Absent: DEFAULT_ARTIFACT_PATH.
+  path?: string | undefined;
+  // Absent: the project's CI configuration file, as the profile reads it.
+  workflow?: string | undefined;
 }
 
 // --tests-local: a local JUnit file, declared as a local run.
@@ -56,7 +74,14 @@ export interface TemplateTestsFromJunit {
   artifactPath: string;
 }
 
-export type TemplateTests = TemplateTestsFromCi | TemplateTestsFromLocal | TemplateTestsFromJunit;
+export type TemplateTests =
+  | TemplateTestsFromCi
+  | TemplateTestsFromGitLabCi
+  | TemplateTestsFromLocal
+  | TemplateTestsFromJunit;
+
+// The GitLab artifact a `junit` record names: the job's artifacts archive (profile G.3).
+export const GITLAB_ARTIFACT = 'archive';
 
 export interface TemplateRequest {
   // The directory git runs in; a relative JUnit path resolves against it.
@@ -105,6 +130,32 @@ async function testsSource(
         path: tests.artifactPath,
       },
     };
+  }
+  if ('gitlabProject' in tests) {
+    // Git first, as on GitHub. GITLAB_TOKEN only, sent only to the GitLab host.
+    const head = headCommit(cwd);
+    const client = new GitLabClient({
+      host: tests.gitlabHost ?? DEFAULT_GITLAB_HOST,
+      token: context.env.GITLAB_TOKEN,
+      ...(context.fetch === undefined ? {} : { fetch: context.fetch }),
+      warn: context.warn,
+    });
+    const read = await testsFromGitLabCi(client, {
+      project: tests.gitlabProject,
+      mergeRequest: tests.mergeRequest,
+      headCommit: head,
+      command: tests.command,
+      pushed: isPushed(cwd, head),
+      caller: request.caller,
+      record: {
+        kind: 'junit',
+        workflow: tests.workflow,
+        job: tests.job,
+        artifact: GITLAB_ARTIFACT,
+        path: tests.path ?? DEFAULT_ARTIFACT_PATH,
+      },
+    });
+    return { kind: 'ci', read };
   }
   // Git first: a repository git cannot answer for is refused before anything is read.
   const head = headCommit(cwd);

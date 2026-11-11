@@ -26,7 +26,7 @@ jobs:
   handback:
     runs-on: ubuntu-latest
     steps:
-      - uses: BargLabs/dunstan@v0.1.19 # pin the full commit SHA in production
+      - uses: BargLabs/dunstan@v0.1.20 # pin the full commit SHA in production
         with:
           report-source: pr-body
 ```
@@ -62,7 +62,7 @@ report a pull request's handback before it says done ([`plugins/dunstan/`](plugi
 /plugin install dunstan@barglabs
 ```
 
-The plugin runs the MCP server with `npx -y dunstan@0.1.19 mcp`, the `dunstan` npm package at that
+The plugin runs the MCP server with `npx -y dunstan@0.1.20 mcp`, the `dunstan` npm package at that
 exact version: one self-contained file, no dependencies.
 
 **The token.** When you enable the plugin, Claude Code asks for an optional GitHub token and keeps it
@@ -252,8 +252,24 @@ admits two-segment references only.
 A GitLab record has its own predicate type (`.../record/v0.1-gitlab-draft`) and schema
 (`spec/schema/record-gitlab-0.1-draft.schema.json`), and carries
 `predicate.subject.forge: {"kind": "gitlab", "host": ...}`. `dunstan verify` re-runs it offline,
-and `dunstan rerun` re-reads it from the host it names. The GitHub Action, the MCP tool, the survey
-and the hosted tier read GitHub only.
+and `dunstan rerun` re-reads it from the host it names.
+
+`dunstan template --tests-ci --gitlab-project <full path> --mr <iid> --tests-command <cmd>
+--tests-job <name>` declares a GitLab job's counts: it reads the merge request's head pipeline at
+HEAD and the named job's artifacts archive with the reader `dunstan check` uses, and names the
+record as above (`--tests-path`, default `junit.xml`; `--tests-workflow`, default the project's CI
+configuration file; `--gitlab-host` off gitlab.com). It reads with `GITLAB_TOKEN` and, without one,
+declares no tests, since GitLab's anonymous answer leaves out the CI configuration file. Whatever
+the check would not settle (no head pipeline, a head pipeline at another commit, no job of that
+name, no archive, expired artifacts, no file at the path, a file that does not parse) gives the
+block without tests and a note saying why. `--repo` and the GitLab flags together are refused.
+
+The MCP tools read GitLab too, with `GITLAB_TOKEN` ([`docs/mcp.md`](docs/mcp.md)):
+`dunstan_check_handback` given `gitlabProject`, `mergeRequest` and optionally `gitlabHost`, with the
+same claims, verdict and digests as `dunstan check --gitlab-project` on the same evidence; and
+`dunstan_template_handback` given `tests.from: "ci"` with `gitlabProject`, `mergeRequest`, `job` and
+optionally `gitlabHost`, `path` and `workflow`, with the same fence as `dunstan template --tests-ci
+--gitlab-project`. The survey, the GitHub Action and the hosted tier read GitHub only.
 
 ## The GitHub Action
 
