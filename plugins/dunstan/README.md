@@ -25,12 +25,20 @@ handback covers what the issue asked for: an accurate report of the wrong work p
 
 ## What it runs, reads and sends
 
-The plugin starts the MCP server with `npx -y dunstan@0.1.18 mcp`, which downloads the `dunstan`
+The plugin starts the MCP server with `npx -y dunstan@0.1.19 mcp`, which downloads the `dunstan`
 package at that exact version from the npm registry. The package is one self-contained file with no
 dependencies. The server runs on your machine and reads GitHub's API directly from it: the pull
 request, its files, commits, check runs, workflow runs and artifacts, deployments, and the issues the
 block references. Every request is a read. Nothing is written to GitHub or the repository, and nothing
 is sent to Barg Labs.
+
+## Changes in 0.1.19
+
+- **The CLI takes check-run and job ids of any length.** `--exclude-check-run` and
+  `--exclude-gitlab-job` accepted at most ten digits, but GitHub check-run ids and GitLab job ids are
+  already longer (12 and 11 digits), so excluding the checker's own run was refused with a usage
+  error. They now take any positive integer up to 9007199254740991, the largest a record holds
+  exactly; a larger value is refused, never rounded. No verdict changes.
 
 ## Changes in 0.1.18
 

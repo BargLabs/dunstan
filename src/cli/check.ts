@@ -15,9 +15,18 @@ import { type CliIo, exitFor, renderRecord, UsageError } from './output.js';
 
 export const REPOSITORY = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})\/[A-Za-z0-9._-]{1,100}$/;
 
+// A positive decimal integer, no sign and no leading zero, at most Number.MAX_SAFE_INTEGER: the
+// largest integer a record's JSON number holds exactly. Check-run and job ids already pass ten
+// digits (GitLab job ids are 11, GitHub check-run ids 12), so the bound is the integer range, never
+// a digit count. A larger value is refused, never rounded.
 export function parsePositiveInt(value: string, flag: string): number {
-  if (!/^[1-9][0-9]{0,9}$/.test(value)) throw new UsageError(`${flag} must be a positive integer`);
-  return Number(value);
+  const parsed = /^[1-9][0-9]{0,15}$/.test(value) ? Number(value) : Number.NaN;
+  if (!Number.isSafeInteger(parsed)) {
+    throw new UsageError(
+      `${flag} must be a positive integer of at most ${Number.MAX_SAFE_INTEGER}`,
+    );
+  }
+  return parsed;
 }
 
 export function parseCheckRunIds(values: readonly string[] | undefined): number[] {

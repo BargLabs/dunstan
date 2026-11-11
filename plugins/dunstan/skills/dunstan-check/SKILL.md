@@ -19,7 +19,7 @@ the block must say what you actually did.
    the info string `dunstan-handback`, in the exact shape below. Call `dunstan_template_handback`
    with `directory`, the absolute path of your checkout of the pull request's branch, and `base`,
    the branch it merges into. It fills `headCommit` and `filesChanged` from local git and returns the
-   fence to paste. From a shell, `npx -y dunstan@0.1.18 template --base <base branch>` does the same.
+   fence to paste. From a shell, `npx -y dunstan@0.1.19 template --base <base branch>` does the same.
 
    **Test counts come from CI, not from your own run.** After CI has finished on your last push, add
    `tests: { "from": "ci", "command": <the test command>, "workflow": <workflow file>, "job": <job

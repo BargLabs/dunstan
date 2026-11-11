@@ -9835,7 +9835,7 @@ async function readEvidence(client, input2) {
 // src/record/checker.ts
 import { readFileSync } from "node:fs";
 var CHECKER_NAME = "dunstan";
-var CHECKER_VERSION = "0.1.18";
+var CHECKER_VERSION = "0.1.19";
 function checkerIdentity(artifact) {
   return {
     name: CHECKER_NAME,
