@@ -114,7 +114,7 @@ describe('the MCP registry entry', () => {
 });
 
 describe('the plugin', () => {
-  it('passes the GitHub token only from its own sensitive, optional userConfig entry', () => {
+  it('passes each forge token only from its own sensitive, optional userConfig entry', () => {
     expect(plugin.userConfig.github_token).toMatchObject({
       type: 'string',
       sensitive: true,
@@ -122,11 +122,22 @@ describe('the plugin', () => {
     });
     expect(plugin.userConfig.github_token.description).toMatch(/fine-grained/);
     expect(plugin.userConfig.github_token.description).toMatch(/read-only/);
+    expect(plugin.userConfig.gitlab_token).toMatchObject({
+      type: 'string',
+      sensitive: true,
+      required: false,
+    });
+    expect(plugin.userConfig.gitlab_token.description).toMatch(/read_api/);
+    expect(plugin.userConfig.gitlab_token.description).toMatch(/only to the GitLab host/);
     expect(mcp.mcpServers.dunstan).toEqual({
       command: 'npx',
       args: ['-y', `dunstan@${pkg.version}`, 'mcp'],
-      // biome-ignore lint/suspicious/noTemplateCurlyInString: Claude Code's user_config placeholder, literal
-      env: { GITHUB_TOKEN: '${user_config.github_token}' },
+      env: {
+        // biome-ignore lint/suspicious/noTemplateCurlyInString: Claude Code's user_config placeholder, literal
+        GITHUB_TOKEN: '${user_config.github_token}',
+        // biome-ignore lint/suspicious/noTemplateCurlyInString: Claude Code's user_config placeholder, literal
+        GITLAB_TOKEN: '${user_config.gitlab_token}',
+      },
     });
   });
 

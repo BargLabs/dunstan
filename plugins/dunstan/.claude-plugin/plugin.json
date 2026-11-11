@@ -1,7 +1,7 @@
 {
   "name": "dunstan",
   "displayName": "Dunstan",
-  "version": "0.1.20",
+  "version": "0.1.21",
   "description": "Checks a coding agent's declared handback (head commit, changed files, tests, references, checks) against the pull request's own GitHub record before it says done. Deterministic: no model decides the verdict.",
   "author": {
     "name": "Barg Labs",
@@ -21,6 +21,14 @@
       "type": "string",
       "title": "GitHub token (optional, fine-grained, read-only)",
       "description": "A fine-grained personal access token with read-only permissions, limited to the repositories you check, with an expiry. Leave empty to read public repositories anonymously. Dunstan sends it only to GitHub's API.",
+      "sensitive": true,
+      "required": false,
+      "default": ""
+    },
+    "gitlab_token": {
+      "type": "string",
+      "title": "GitLab token (optional, read_api, read-only)",
+      "description": "A GitLab personal, project or group access token with the read_api scope only, limited to the projects you check, with an expiry. Leave empty to read public projects anonymously; a tests claim on GitLab then stays unverifiable. Dunstan sends it only to the GitLab host a check names.",
       "sensitive": true,
       "required": false,
       "default": ""

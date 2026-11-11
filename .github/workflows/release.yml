@@ -118,3 +118,34 @@ jobs:
           ./mcp-publisher login github-oidc
           ./mcp-publisher publish
           test "$(curl -s -o /dev/null -w '%{http_code}' "$url")" = 200 || { echo "the registry does not serve $name $VERSION"; exit 1; }
+
+  # The GitHub release for a version tag, after npm and the MCP registry serve that version, with the
+  # plugin's "Changes in <version>" notes as its body. v0.1.17 to v0.1.20 had no release: this
+  # workflow published npm and the registry only, and the repository page showed v0.1.16 as the
+  # latest. It can be re-run: a release that exists is left as it is. A version whose notes are
+  # missing refuses, rather than publishing an empty release.
+  github-release:
+    needs: publish
+    if: github.repository == 'BargLabs/dunstan' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Create the GitHub release from the plugin's notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          test "$(node -p 'require("./package.json").version')" = "$version" || { echo "$TAG is not package.json's version" >&2; exit 1; }
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "the release $TAG exists; left as it is"
+            exit 0
+          fi
+          awk -v h="## Changes in $version" '$0 == h { f = 1; next } /^## / { if (f) exit } f' plugins/dunstan/README.md > notes.md
+          test -n "$(tr -d '[:space:]' < notes.md)" || { echo "plugins/dunstan/README.md has no '## Changes in $version' section" >&2; exit 1; }
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --title "Dunstan $version" --notes-file notes.md

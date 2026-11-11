@@ -26,7 +26,7 @@ self-contained file with no dependencies, so nothing is built and nothing else i
 /plugin install dunstan@barglabs
 ```
 
-The plugin starts the server with `npx -y dunstan@0.1.20 mcp` and adds the `dunstan-check` skill. When
+The plugin starts the server with `npx -y dunstan@0.1.21 mcp` and adds the `dunstan-check` skill. When
 you enable it, Claude Code asks for an optional GitHub token (below). It stores the value in your
 system's secure credential store and passes it to the server as `GITHUB_TOKEN`. Leave it empty to read
 public repositories anonymously (a `closes` reference and a `tests` count then need the token; see
@@ -44,7 +44,7 @@ environment setting:
   "mcpServers": {
     "dunstan": {
       "command": "npx",
-      "args": ["-y", "dunstan@0.1.20", "mcp"],
+      "args": ["-y", "dunstan@0.1.21", "mcp"],
       "env": { "GITHUB_TOKEN": "<a fine-grained, read-only token>" }
     }
   }
@@ -68,7 +68,8 @@ a GitLab subject the server reads `GITLAB_TOKEN` from its environment, and only 
 `GITLAB_TOKEN` only to the GitLab host the call names and `GITHUB_TOKEN` only to GitHub, never one
 forge's token to the other's host. In another MCP client, give the server `GITLAB_TOKEN` in the same
 `env` block as `GITHUB_TOKEN`, through the client's own secret setting, with a read-only token
-(`read_api`). The plugin's configuration asks for a GitHub token only.
+(`read_api`). The plugin asks for both, each optional: `gitlab_token` is passed to the server as
+`GITLAB_TOKEN`, as `github_token` is as `GITHUB_TOKEN`.
 
 Without `GITLAB_TOKEN` the server reads the project anonymously, and the result says so in a `note:`
 line. A `tests` claim on GitLab needs the token even on a public project: GitLab's anonymous answer

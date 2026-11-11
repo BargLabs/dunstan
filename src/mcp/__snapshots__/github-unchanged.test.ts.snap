@@ -16,7 +16,7 @@ record: not written (pass outPath to write it)
         "type": "text",
       },
       {
-        "text": "dunstan 0.1.20  example-org/example-repo#7  head a11ce5e0c0ffee00d00dfeed0000111122223333
+        "text": "dunstan 0.1.21  example-org/example-repo#7  head a11ce5e0c0ffee00d00dfeed0000111122223333
 report: api mcp dunstan_check_handback#block (sha256 8ed9e38c1e1fc77914e60e758bea557020d0e3770700eeb2f7230aa018b4c94b)
 block: found (sha256 8ed9e38c1e1fc77914e60e758bea557020d0e3770700eeb2f7230aa018b4c94b)
 
@@ -51,7 +51,7 @@ verdict: pass
     "spec": "0.1.11",
     "checker": {
       "name": "dunstan",
-      "version": "0.1.20",
+      "version": "0.1.21",
       "digest": {
         "sha256": "67fb103c56db33e2f6acbf8868cfdd427fcb48b9ea9a2c186e6e835502996a39"
       }
@@ -189,7 +189,7 @@ record: not written (pass outPath to write it)
         "type": "text",
       },
       {
-        "text": "dunstan 0.1.20  example-org/example-repo#7  head a11ce5e0c0ffee00d00dfeed0000111122223333
+        "text": "dunstan 0.1.21  example-org/example-repo#7  head a11ce5e0c0ffee00d00dfeed0000111122223333
 report: api mcp dunstan_check_handback#report (sha256 4656b9c3b4f97f1a35b771127603b2fbabfdcd4a82f683d5b432f3f0f6c51c90)
 block: found (sha256 7f7edbf99822effd2d53067853a9fcd1edbcfe108c74b50e35ba794832c95646)
 
@@ -224,7 +224,7 @@ verdict: fail
     "spec": "0.1.11",
     "checker": {
       "name": "dunstan",
-      "version": "0.1.20",
+      "version": "0.1.21",
       "digest": {
         "sha256": "67fb103c56db33e2f6acbf8868cfdd427fcb48b9ea9a2c186e6e835502996a39"
       }
@@ -361,7 +361,7 @@ record: not written (pass outPath to write it)
         "type": "text",
       },
       {
-        "text": "dunstan 0.1.20  example-org/example-repo#7  head a11ce5e0c0ffee00d00dfeed0000111122223333
+        "text": "dunstan 0.1.21  example-org/example-repo#7  head a11ce5e0c0ffee00d00dfeed0000111122223333
 report: api mcp dunstan_check_handback#report (sha256 e3120d618df2f1ba82774f343a963dbb73be75e6912c2df29ce17ff78897588b)
 block: missing (block_missing)
 
@@ -385,7 +385,7 @@ verdict: unverifiable
     "spec": "0.1.11",
     "checker": {
       "name": "dunstan",
-      "version": "0.1.20",
+      "version": "0.1.21",
       "digest": {
         "sha256": "67fb103c56db33e2f6acbf8868cfdd427fcb48b9ea9a2c186e6e835502996a39"
       }
@@ -507,7 +507,7 @@ note: GITHUB_TOKEN is not set; read anonymously
         "type": "text",
       },
       {
-        "text": "dunstan 0.1.20  example-org/example-repo#7  head a11ce5e0c0ffee00d00dfeed0000111122223333
+        "text": "dunstan 0.1.21  example-org/example-repo#7  head a11ce5e0c0ffee00d00dfeed0000111122223333
 report: api mcp dunstan_check_handback#block (sha256 8ed9e38c1e1fc77914e60e758bea557020d0e3770700eeb2f7230aa018b4c94b)
 block: found (sha256 8ed9e38c1e1fc77914e60e758bea557020d0e3770700eeb2f7230aa018b4c94b)
 
@@ -542,7 +542,7 @@ verdict: pass
     "spec": "0.1.11",
     "checker": {
       "name": "dunstan",
-      "version": "0.1.20",
+      "version": "0.1.21",
       "digest": {
         "sha256": "67fb103c56db33e2f6acbf8868cfdd427fcb48b9ea9a2c186e6e835502996a39"
       }

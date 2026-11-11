@@ -26,7 +26,7 @@ jobs:
   handback:
     runs-on: ubuntu-latest
     steps:
-      - uses: BargLabs/dunstan@v0.1.20 # pin the full commit SHA in production
+      - uses: BargLabs/dunstan@v0.1.21 # pin the full commit SHA in production
         with:
           report-source: pr-body
 ```
@@ -62,7 +62,7 @@ report a pull request's handback before it says done ([`plugins/dunstan/`](plugi
 /plugin install dunstan@barglabs
 ```
 
-The plugin runs the MCP server with `npx -y dunstan@0.1.20 mcp`, the `dunstan` npm package at that
+The plugin runs the MCP server with `npx -y dunstan@0.1.21 mcp`, the `dunstan` npm package at that
 exact version: one self-contained file, no dependencies.
 
 **The token.** When you enable the plugin, Claude Code asks for an optional GitHub token and keeps it
@@ -73,7 +73,9 @@ anonymously. Two kinds of claim need a token, even on a public repository: GitHu
 refuses anonymous calls, so a `closes` reference is `unverifiable`, never `fail`; and GitHub answers
 an artifact download only with a token (401 "Requires authentication" anonymously, observed
 2026-11-02), so a `tests` count is `unverifiable` (`source_unreadable:artifact`). The plugin never
-reads a token from your environment.
+reads a token from your environment. For GitLab it asks for a second optional token, with the
+`read_api` scope only, which it sends only to the GitLab host a check names; a `tests` claim on GitLab
+needs it even on a public project ([`docs/mcp.md`](docs/mcp.md#a-gitlab-merge-request-draft)).
 
 **What it reads, and from where.** The server runs on your machine and calls GitHub's API directly
 from it: the pull request, its changed files, commits, check runs, workflow runs and test artifacts,

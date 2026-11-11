@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`renderRecord on a GitHub record > prints block_missing.json (hasToken false, cli) exactly as checker 0.1.19 did, but for the version 1`] = `
-"dunstan 0.1.20  example-org/example-repo#43  head c0ffee12345678abcdef0123456789abcdef0123
+"dunstan 0.1.21  example-org/example-repo#43  head c0ffee12345678abcdef0123456789abcdef0123
 report: file spec/examples/reports/missing.no-block.md (sha256 28daee8722c9ed9a2d3a2397288b6d31f00a1db60ab4be6e470fc167601470fd)
 block: missing (block_missing)
 
@@ -10,7 +10,7 @@ verdict: unverifiable
 `;
 
 exports[`renderRecord on a GitHub record > prints block_missing.json (hasToken false, mcp) exactly as checker 0.1.19 did, but for the version 1`] = `
-"dunstan 0.1.20  example-org/example-repo#43  head c0ffee12345678abcdef0123456789abcdef0123
+"dunstan 0.1.21  example-org/example-repo#43  head c0ffee12345678abcdef0123456789abcdef0123
 report: file spec/examples/reports/missing.no-block.md (sha256 28daee8722c9ed9a2d3a2397288b6d31f00a1db60ab4be6e470fc167601470fd)
 block: missing (block_missing)
 
@@ -19,7 +19,7 @@ verdict: unverifiable
 `;
 
 exports[`renderRecord on a GitHub record > prints block_missing.json (hasToken true, cli) exactly as checker 0.1.19 did, but for the version 1`] = `
-"dunstan 0.1.20  example-org/example-repo#43  head c0ffee12345678abcdef0123456789abcdef0123
+"dunstan 0.1.21  example-org/example-repo#43  head c0ffee12345678abcdef0123456789abcdef0123
 report: file spec/examples/reports/missing.no-block.md (sha256 28daee8722c9ed9a2d3a2397288b6d31f00a1db60ab4be6e470fc167601470fd)
 block: missing (block_missing)
 
@@ -28,7 +28,7 @@ verdict: unverifiable
 `;
 
 exports[`renderRecord on a GitHub record > prints block_missing.json (hasToken true, mcp) exactly as checker 0.1.19 did, but for the version 1`] = `
-"dunstan 0.1.20  example-org/example-repo#43  head c0ffee12345678abcdef0123456789abcdef0123
+"dunstan 0.1.21  example-org/example-repo#43  head c0ffee12345678abcdef0123456789abcdef0123
 report: file spec/examples/reports/missing.no-block.md (sha256 28daee8722c9ed9a2d3a2397288b6d31f00a1db60ab4be6e470fc167601470fd)
 block: missing (block_missing)
 
@@ -37,7 +37,7 @@ verdict: unverifiable
 `;
 
 exports[`renderRecord on a GitHub record > prints fail.json (hasToken false, cli) exactly as checker 0.1.19 did, but for the version 1`] = `
-"dunstan 0.1.20  example-org/example-repo#43  head c0ffee12345678abcdef0123456789abcdef0123
+"dunstan 0.1.21  example-org/example-repo#43  head c0ffee12345678abcdef0123456789abcdef0123
 report: file spec/examples/reports/found.omits-a-file.md (sha256 bfe1a4f517836ae49dbc1183db4b5f06afc544767f5ec86dd50ccfccf4977420)
 block: found (sha256 a72c44d87cb2cadfd24c01b217c244286719cec0c553a3041e2becc22b974343)
 
@@ -54,7 +54,7 @@ verdict: fail
 `;
 
 exports[`renderRecord on a GitHub record > prints fail.json (hasToken false, mcp) exactly as checker 0.1.19 did, but for the version 1`] = `
-"dunstan 0.1.20  example-org/example-repo#43  head c0ffee12345678abcdef0123456789abcdef0123
+"dunstan 0.1.21  example-org/example-repo#43  head c0ffee12345678abcdef0123456789abcdef0123
 report: file spec/examples/reports/found.omits-a-file.md (sha256 bfe1a4f517836ae49dbc1183db4b5f06afc544767f5ec86dd50ccfccf4977420)
 block: found (sha256 a72c44d87cb2cadfd24c01b217c244286719cec0c553a3041e2becc22b974343)
 
@@ -71,7 +71,7 @@ verdict: fail
 `;
 
 exports[`renderRecord on a GitHub record > prints fail.json (hasToken true, cli) exactly as checker 0.1.19 did, but for the version 1`] = `
-"dunstan 0.1.20  example-org/example-repo#43  head c0ffee12345678abcdef0123456789abcdef0123
+"dunstan 0.1.21  example-org/example-repo#43  head c0ffee12345678abcdef0123456789abcdef0123
 report: file spec/examples/reports/found.omits-a-file.md (sha256 bfe1a4f517836ae49dbc1183db4b5f06afc544767f5ec86dd50ccfccf4977420)
 block: found (sha256 a72c44d87cb2cadfd24c01b217c244286719cec0c553a3041e2becc22b974343)
 
@@ -88,7 +88,7 @@ verdict: fail
 `;
 
 exports[`renderRecord on a GitHub record > prints fail.json (hasToken true, mcp) exactly as checker 0.1.19 did, but for the version 1`] = `
-"dunstan 0.1.20  example-org/example-repo#43  head c0ffee12345678abcdef0123456789abcdef0123
+"dunstan 0.1.21  example-org/example-repo#43  head c0ffee12345678abcdef0123456789abcdef0123
 report: file spec/examples/reports/found.omits-a-file.md (sha256 bfe1a4f517836ae49dbc1183db4b5f06afc544767f5ec86dd50ccfccf4977420)
 block: found (sha256 a72c44d87cb2cadfd24c01b217c244286719cec0c553a3041e2becc22b974343)
 
@@ -105,7 +105,7 @@ verdict: fail
 `;
 
 exports[`renderRecord on a GitHub record > prints pass.json (hasToken false, cli) exactly as checker 0.1.19 did, but for the version 1`] = `
-"dunstan 0.1.20  example-org/example-repo#42  head 4b1d9e2a7c3f5e8a0b6d2c9f1e4a7b0d3c6e9f2a
+"dunstan 0.1.21  example-org/example-repo#42  head 4b1d9e2a7c3f5e8a0b6d2c9f1e4a7b0d3c6e9f2a
 report: file spec/examples/reports/found.one-block.md (sha256 04305bbd445ea48c7814d73cc4358d0835004fc52facbfbb8115b3c8e3132634)
 block: found (sha256 1a94bd2e38dca98399490e4f7ee11e2eee048c408839116d8e947222d0541ce2)
 
@@ -129,7 +129,7 @@ verdict: pass
 `;
 
 exports[`renderRecord on a GitHub record > prints pass.json (hasToken false, mcp) exactly as checker 0.1.19 did, but for the version 1`] = `
-"dunstan 0.1.20  example-org/example-repo#42  head 4b1d9e2a7c3f5e8a0b6d2c9f1e4a7b0d3c6e9f2a
+"dunstan 0.1.21  example-org/example-repo#42  head 4b1d9e2a7c3f5e8a0b6d2c9f1e4a7b0d3c6e9f2a
 report: file spec/examples/reports/found.one-block.md (sha256 04305bbd445ea48c7814d73cc4358d0835004fc52facbfbb8115b3c8e3132634)
 block: found (sha256 1a94bd2e38dca98399490e4f7ee11e2eee048c408839116d8e947222d0541ce2)
 
@@ -153,7 +153,7 @@ verdict: pass
 `;
 
 exports[`renderRecord on a GitHub record > prints pass.json (hasToken true, cli) exactly as checker 0.1.19 did, but for the version 1`] = `
-"dunstan 0.1.20  example-org/example-repo#42  head 4b1d9e2a7c3f5e8a0b6d2c9f1e4a7b0d3c6e9f2a
+"dunstan 0.1.21  example-org/example-repo#42  head 4b1d9e2a7c3f5e8a0b6d2c9f1e4a7b0d3c6e9f2a
 report: file spec/examples/reports/found.one-block.md (sha256 04305bbd445ea48c7814d73cc4358d0835004fc52facbfbb8115b3c8e3132634)
 block: found (sha256 1a94bd2e38dca98399490e4f7ee11e2eee048c408839116d8e947222d0541ce2)
 
@@ -177,7 +177,7 @@ verdict: pass
 `;
 
 exports[`renderRecord on a GitHub record > prints pass.json (hasToken true, mcp) exactly as checker 0.1.19 did, but for the version 1`] = `
-"dunstan 0.1.20  example-org/example-repo#42  head 4b1d9e2a7c3f5e8a0b6d2c9f1e4a7b0d3c6e9f2a
+"dunstan 0.1.21  example-org/example-repo#42  head 4b1d9e2a7c3f5e8a0b6d2c9f1e4a7b0d3c6e9f2a
 report: file spec/examples/reports/found.one-block.md (sha256 04305bbd445ea48c7814d73cc4358d0835004fc52facbfbb8115b3c8e3132634)
 block: found (sha256 1a94bd2e38dca98399490e4f7ee11e2eee048c408839116d8e947222d0541ce2)
 
@@ -201,7 +201,7 @@ verdict: pass
 `;
 
 exports[`renderRecord on a GitHub record > prints unverifiable.json (hasToken false, cli) exactly as checker 0.1.19 did, but for the version 1`] = `
-"dunstan 0.1.20  example-org/example-repo#44  head d15ea5e000111122223333444455556666777788
+"dunstan 0.1.21  example-org/example-repo#44  head d15ea5e000111122223333444455556666777788
 report: file spec/examples/reports/found.checks-unreadable.md (sha256 7f55d77779f751ce448510f12055fdfead1d50d40e21f775eb89d384e3d2367f)
 block: found (sha256 1525b8d9fdaa8cc14ca68db6e616790de4d891fa0be6060c3823c1bbcb8628e2)
 
@@ -220,7 +220,7 @@ verdict: unverifiable
 `;
 
 exports[`renderRecord on a GitHub record > prints unverifiable.json (hasToken false, mcp) exactly as checker 0.1.19 did, but for the version 1`] = `
-"dunstan 0.1.20  example-org/example-repo#44  head d15ea5e000111122223333444455556666777788
+"dunstan 0.1.21  example-org/example-repo#44  head d15ea5e000111122223333444455556666777788
 report: file spec/examples/reports/found.checks-unreadable.md (sha256 7f55d77779f751ce448510f12055fdfead1d50d40e21f775eb89d384e3d2367f)
 block: found (sha256 1525b8d9fdaa8cc14ca68db6e616790de4d891fa0be6060c3823c1bbcb8628e2)
 
@@ -239,7 +239,7 @@ verdict: unverifiable
 `;
 
 exports[`renderRecord on a GitHub record > prints unverifiable.json (hasToken true, cli) exactly as checker 0.1.19 did, but for the version 1`] = `
-"dunstan 0.1.20  example-org/example-repo#44  head d15ea5e000111122223333444455556666777788
+"dunstan 0.1.21  example-org/example-repo#44  head d15ea5e000111122223333444455556666777788
 report: file spec/examples/reports/found.checks-unreadable.md (sha256 7f55d77779f751ce448510f12055fdfead1d50d40e21f775eb89d384e3d2367f)
 block: found (sha256 1525b8d9fdaa8cc14ca68db6e616790de4d891fa0be6060c3823c1bbcb8628e2)
 
@@ -258,7 +258,7 @@ verdict: unverifiable
 `;
 
 exports[`renderRecord on a GitHub record > prints unverifiable.json (hasToken true, mcp) exactly as checker 0.1.19 did, but for the version 1`] = `
-"dunstan 0.1.20  example-org/example-repo#44  head d15ea5e000111122223333444455556666777788
+"dunstan 0.1.21  example-org/example-repo#44  head d15ea5e000111122223333444455556666777788
 report: file spec/examples/reports/found.checks-unreadable.md (sha256 7f55d77779f751ce448510f12055fdfead1d50d40e21f775eb89d384e3d2367f)
 block: found (sha256 1525b8d9fdaa8cc14ca68db6e616790de4d891fa0be6060c3823c1bbcb8628e2)
 
@@ -277,7 +277,7 @@ verdict: unverifiable
 `;
 
 exports[`renderRecord on a GitHub record > prints unverifiable.local-test-run.json (hasToken false, cli) exactly as checker 0.1.19 did, but for the version 1`] = `
-"dunstan 0.1.20  example-org/example-repo#52  head 10ca1e00aaaabbbbccccddddeeeeffff00001111
+"dunstan 0.1.21  example-org/example-repo#52  head 10ca1e00aaaabbbbccccddddeeeeffff00001111
 report: file spec/examples/reports/found.local-test-run.md (sha256 aef69a8ab5914989f82bc0680cf44aad13d8f7fd4ae913c1d10945bc547ca692)
 block: found (sha256 622a2a7a78316d0aa0b2920a523108fad03f84802f17a0e32eb427d037008e16)
 
@@ -295,7 +295,7 @@ verdict: unverifiable
 `;
 
 exports[`renderRecord on a GitHub record > prints unverifiable.local-test-run.json (hasToken false, mcp) exactly as checker 0.1.19 did, but for the version 1`] = `
-"dunstan 0.1.20  example-org/example-repo#52  head 10ca1e00aaaabbbbccccddddeeeeffff00001111
+"dunstan 0.1.21  example-org/example-repo#52  head 10ca1e00aaaabbbbccccddddeeeeffff00001111
 report: file spec/examples/reports/found.local-test-run.md (sha256 aef69a8ab5914989f82bc0680cf44aad13d8f7fd4ae913c1d10945bc547ca692)
 block: found (sha256 622a2a7a78316d0aa0b2920a523108fad03f84802f17a0e32eb427d037008e16)
 
@@ -313,7 +313,7 @@ verdict: unverifiable
 `;
 
 exports[`renderRecord on a GitHub record > prints unverifiable.local-test-run.json (hasToken true, cli) exactly as checker 0.1.19 did, but for the version 1`] = `
-"dunstan 0.1.20  example-org/example-repo#52  head 10ca1e00aaaabbbbccccddddeeeeffff00001111
+"dunstan 0.1.21  example-org/example-repo#52  head 10ca1e00aaaabbbbccccddddeeeeffff00001111
 report: file spec/examples/reports/found.local-test-run.md (sha256 aef69a8ab5914989f82bc0680cf44aad13d8f7fd4ae913c1d10945bc547ca692)
 block: found (sha256 622a2a7a78316d0aa0b2920a523108fad03f84802f17a0e32eb427d037008e16)
 
@@ -331,7 +331,7 @@ verdict: unverifiable
 `;
 
 exports[`renderRecord on a GitHub record > prints unverifiable.local-test-run.json (hasToken true, mcp) exactly as checker 0.1.19 did, but for the version 1`] = `
-"dunstan 0.1.20  example-org/example-repo#52  head 10ca1e00aaaabbbbccccddddeeeeffff00001111
+"dunstan 0.1.21  example-org/example-repo#52  head 10ca1e00aaaabbbbccccddddeeeeffff00001111
 report: file spec/examples/reports/found.local-test-run.md (sha256 aef69a8ab5914989f82bc0680cf44aad13d8f7fd4ae913c1d10945bc547ca692)
 block: found (sha256 622a2a7a78316d0aa0b2920a523108fad03f84802f17a0e32eb427d037008e16)
 

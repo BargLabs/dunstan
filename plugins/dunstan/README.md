@@ -25,12 +25,23 @@ handback covers what the issue asked for: an accurate report of the wrong work p
 
 ## What it runs, reads and sends
 
-The plugin starts the MCP server with `npx -y dunstan@0.1.20 mcp`, which downloads the `dunstan`
+The plugin starts the MCP server with `npx -y dunstan@0.1.21 mcp`, which downloads the `dunstan`
 package at that exact version from the npm registry. The package is one self-contained file with no
 dependencies. The server runs on your machine and reads GitHub's API directly from it: the pull
 request, its files, commits, check runs, workflow runs and artifacts, deployments, and the issues the
-block references. Every request is a read. Nothing is written to GitHub or the repository, and nothing
-is sent to Barg Labs.
+block references. For a GitLab merge request it reads the same evidence from the GitLab host the
+check names, with the optional GitLab token, which it never sends to GitHub; nor the GitHub token to
+GitLab. Every request is a read. Nothing is written to either forge or the repository, and nothing is
+sent to Barg Labs.
+
+## Changes in 0.1.21
+
+- **The plugin asks for an optional GitLab token.** Beside the GitHub token, Claude Code now asks
+  for `gitlab_token`: a GitLab access token with the `read_api` scope only, kept in your system's
+  secure credential store and passed to the server as `GITLAB_TOKEN`. Dunstan sends it only to the
+  GitLab host a check names, and never sends either token to the other forge. Without it a GitLab
+  check reads anonymously, and a tests claim on GitLab stays unverifiable, because GitLab's
+  anonymous project read leaves out the CI configuration file. Nothing else in the checker changes.
 
 ## Changes in 0.1.20
 
