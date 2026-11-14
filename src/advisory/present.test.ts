@@ -33,8 +33,8 @@ import {
 } from './present.js';
 
 const OLD_WORDING = /differs|mismatch|false claim/i;
-// The grammar the published figures were measured on. The extractor that runs is 0.1.3 (0.1.2
-// before it, and 0.1.4 reverted to it), and no figure is published for it.
+// The grammar the published figures were measured on. The extractor that runs is 0.1.5 (0.1.2 and
+// 0.1.3 before it, and 0.1.4 reverted to 0.1.3), and no figure is published for it.
 const EXTRACTOR_0_1_1 = 'ab77ce47d1c5172ec912d1221e03bbe5b312ff5dc2acb594c4b8549fe602c360';
 // The comparison the published differs figure was measured on. The one that runs is 0.3.0.
 const COMPARISON_0_2_0 = '0.2.0';
@@ -254,7 +254,7 @@ describe('the record does not change, but for the figure fields', () => {
     expect(COMPARISON_VERSION).toBe('0.5.0');
     expect(a?.pathsAtHead).toEqual([{ path: 'src/z.ts', status: 'ok', object: 'Blob' }]);
     expect(a?.extractor).toEqual(EXTRACTOR);
-    expect(EXTRACTOR.version).toBe('0.1.3');
+    expect(EXTRACTOR.version).toBe('0.1.5');
     expect(a?.advisories.map((x) => [x.kind, x.value, x.observed, x.note])).toEqual([
       ['file_changed', 'src/a.ts', 'src/a.ts', 'agrees'],
       ['file_changed', 'b.ts', 'pkg/b.ts', 'agrees_by_name'],
@@ -281,14 +281,16 @@ describe('the record does not change, but for the figure fields', () => {
     // `observed`, which now carries the state and close events read. #13's note is unchanged.
     // Spec 0.1.11 and comparison 0.5.0: the advisory digest moved (2b4b5132… before) with the
     // comparison's name only; this report cites no commit, so no note or `observed` changed.
+    // Extractor 0.1.5: the advisory digest moved (2e94790a… before) with the extractor's name and
+    // digest only; no advisory of this report changed.
     expect(record.predicate.digests).toEqual({
       claims: '56cccb4067679d0c95cf609ad87d9ea8eae7198b330baaa9cc0babeb0991b576',
       evidence: '4f508a64cc2f97ef466366f01e6b9491d0f698b43a96817c1a6517e90bcdea09',
-      advisory: '2e94790ae11051030f7d6e892ee5e090cd3d52dc6be093e3eedba25bfebaecda',
+      advisory: 'f4e2074955b32faf05cf42064eb5fd129614fb1a7a404343116317a46861be4c',
     });
     // Named as extractor 0.1.1 and comparison 0.2.0, with their figures and without the answers
     // 0.3.0 records, the section is byte for byte the one pinned when the figures were published:
-    // extractors 0.1.2, 0.1.3 and 0.1.4 changed the extractor's identity and figures here, and
+    // extractors 0.1.2, 0.1.3, 0.1.4 and 0.1.5 changed the extractor's identity and figures here, and
     // comparison 0.3.0 its identity and the answers, and no advisory of this report. Comparison
     // 0.4.0 changed one advisory's `observed` and nothing else: #13's, which now also carries the
     // state and close events the closes check read. With #13's `observed` as 0.3.0 gave it, the

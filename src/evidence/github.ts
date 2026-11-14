@@ -1055,16 +1055,18 @@ export async function readTestRecord(
       .filter((a) => a.name === record.artifact)
       .sort((a, b) => a.id - b.id);
     if (uploaded.length === 0) continue;
-    if (uploaded.length > 1) return { record, ...unreadable('artifact') };
-    const artifact = uploaded[0] as { id: number; expired: boolean; createdAt: string | null };
+    // The artifacts are listed for the whole run, every attempt's, and the jobs at their latest
+    // attempt, so a job re-run in a later attempt leaves one artifact of the name per attempt
+    // (observed 2026-11-14). Only one the named job's latest attempt uploaded counts (spec 0.1.8):
+    // none there, though the run uploaded a record, is unreadable, not absent, and so are two
+    // there, since no rule picks one. An artifact with no creation time cannot be placed outside
+    // that attempt, so it leaves the read unreadable too.
+    if (uploaded.some((a) => a.createdAt === null)) return { record, ...unreadable('artifact') };
+    const latest = uploaded.filter((a) => withinLatestAttempt(named, run, a.createdAt));
+    if (latest.length !== 1) return { record, ...unreadable('artifact') };
+    const artifact = latest[0] as { id: number; expired: boolean };
     // The run uploaded the record but it can no longer be downloaded: unreadable, not absent.
     if (artifact.expired) return { record, ...unreadable('artifact') };
-    // The artifacts are listed for the whole run, every attempt's, and the jobs at their latest
-    // attempt. An artifact the named job's latest attempt did not upload is never read as its
-    // result (spec 0.1.8): the run uploaded a record, so it is unreadable, not absent.
-    if (!withinLatestAttempt(named, run, artifact.createdAt)) {
-      return { record, ...unreadable('artifact') };
-    }
 
     const zipPath = `/repos/${repository}/actions/artifacts/${artifact.id}/zip`;
     const download = await client.read('artifact', zipPath, {

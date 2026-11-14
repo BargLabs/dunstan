@@ -93,6 +93,7 @@ const SUBJECT_FILLERS = words(GRAMMAR.subjectFillers);
 const TRANSIENTS = phrases(GRAMMAR.transients);
 const BASELINES = words(GRAMMAR.baselines);
 const NARRATIONS = phrases(GRAMMAR.narrations);
+const NARRATION_SCOPES = phrases(GRAMMAR.narrationScopes);
 const STAGINGS = phrases(GRAMMAR.stagings);
 const NARRATION_OPENERS = words(GRAMMAR.narrationOpeners);
 const FINAL_STATES = phrases(GRAMMAR.finalStates);
@@ -263,6 +264,11 @@ interface Part {
   item: Item | undefined;
   // The clause is the first of its list item.
   itemStart: boolean;
+  // The paragraph, list item, heading or table row the clause is in (0.1.5): clauses of one block
+  // share the number, and a later block has a higher one.
+  block: number;
+  // The heading's level (1 to 6) for a clause on a heading line, else 0 (0.1.5).
+  heading: number;
 }
 
 // Splits the prepared text into clauses: at . ; : ! ? ending a word, at a blank line, at a list
@@ -277,9 +283,13 @@ function clausesOf(prep: Prepared): Part[] {
   // The list item the text is in: set at a list marker, cleared at a blank line, heading or table.
   let item: Item | undefined;
   let fresh = false;
-  let opened: { item: Item | undefined; itemStart: boolean } = {
+  let block = 0;
+  let heading = 0;
+  let opened: Omit<Part, 'words' | 'colon'> = {
     item: undefined,
     itemStart: false,
+    block,
+    heading,
   };
   const flush = (question = false, colon = false) => {
     if (current.length > 0 && !question) clauses.push({ words: current, colon, ...opened });
@@ -305,16 +315,23 @@ function clausesOf(prep: Prepared): Part[] {
     if (/\n[ \t\r]*\n/.test(gap)) {
       flush();
       item = undefined;
+      block++;
     }
     if (gap.includes('\n')) {
-      if (blockLine) flush();
+      if (blockLine) {
+        flush();
+        block++;
+      }
       blockLine = false;
+      heading = 0;
     }
     const raw = text.slice(i, end);
     if (atom === undefined) {
       const marker = lineStart && /^(?:[-*+]|\d{1,3}[.)]|#{1,6})$/.test(raw);
       if (marker || /^\|+$/.test(raw)) {
         flush();
+        if (marker || lineStart) block++;
+        if (marker && raw.startsWith('#')) heading = raw.length;
         if (lineStart && /^[#|]/.test(raw)) blockLine = true;
         if (marker && !raw.startsWith('#')) {
           item = { column: i - (text.lastIndexOf('\n', i - 1) + 1) };
@@ -329,13 +346,14 @@ function clausesOf(prep: Prepared): Part[] {
       if (lineStart && raw.startsWith('|')) {
         blockLine = true;
         item = undefined;
+        block++;
       }
     }
     const word = makeWord(raw, i, atom?.kind, bracketAt);
     if (word !== undefined) {
       if (current.length > 0 && SUBORDINATORS.has(word.lower)) flush();
       if (current.length === 0) {
-        opened = { item, itemStart: fresh };
+        opened = { item, itemStart: fresh, block, heading };
         fresh = false;
       }
       current.push(word);
@@ -424,6 +442,9 @@ class Clause {
   readonly tokens: Token[];
   // The clause narrates a failure staged on purpose (GRAMMAR.narrations).
   narrated = false;
+  // A narration earlier in its paragraph or list item, or in its section's heading, covers the
+  // clause (GRAMMAR.narrationScopes, 0.1.5): it proposes no false tests or checks result.
+  scoped = false;
   // ...by an edit made to cause it, so its paths are not this pull request's (GRAMMAR.stagings).
   staged = false;
   // The clause before ended in a colon and heads what this clause lists (0.1.3): a file list
@@ -845,6 +866,8 @@ function bindSubject(c: Clause, i: number, emit: Emit): void {
         return;
       }
       const value = PASS.has(p) !== negated;
+      // A failure under a narration beyond the clause is the narrated run's (0.1.5).
+      if (!value && c.scoped) return;
       const span = spanOf(c, first, r);
       if (checks) {
         emit('checks_succeeded', value, r, span);
@@ -862,7 +885,7 @@ function bindSubject(c: Clause, i: number, emit: Emit): void {
 
 // "Ran 42 tests": a count of tests executed.
 function bindRan(c: Clause, k: number, emit: Emit): void {
-  if (!RAN_VERBS.has(c.lower(k)) || !c.asserting(k) || c.narrated) return;
+  if (!RAN_VERBS.has(c.lower(k)) || !c.asserting(k) || c.narrated || c.scoped) return;
   for (let j = k + 1; j <= k + 3 && j + 1 < c.words.length; j++) {
     const token = c.tokens[j];
     if (token?.cls === 'int' && TESTS_NOUNS.has(c.lower(j + 1))) {
@@ -903,6 +926,11 @@ export function extractClaims(report: string): ProposedClaim[] {
   const clauses = parts.map((part) => new Clause(part.words));
   // The clause before was about another pull request or repository.
   let elsewhereBefore = false;
+  // A narration that covers the clauses after it (0.1.5): the rest of a paragraph or list item, and
+  // the list items nested under it, or a heading's section.
+  let narratedBlock: { block: number; column: number | undefined } | undefined;
+  let narratedSection: number | undefined;
+  let headingBlock = -1;
   // The last clause that headed a file list, while the clauses after it continue that list: the
   // clause on the same line after its colon, or the list items that follow it on the next lines,
   // nested under it if it is a list item itself.
@@ -931,13 +959,37 @@ export function extractClaims(report: string): ProposedClaim[] {
     const carried = elsewhere < 0 && elsewhereBefore && refers;
     if (carried) elsewhere = 0;
     elsewhereBefore = elsewhere >= 0;
+    // A narration's scope (0.1.5). A heading at the narrating heading's level or a higher one ends
+    // its section; a block that is neither the narrated one nor a list item nested under it ends a
+    // block's.
+    if (part.heading > 0 && part.block !== headingBlock) {
+      headingBlock = part.block;
+      if (narratedSection !== undefined && part.heading <= narratedSection) {
+        narratedSection = undefined;
+      }
+    }
+    if (narratedBlock !== undefined && part.block !== narratedBlock.block) {
+      const nested =
+        narratedBlock.column !== undefined &&
+        part.item !== undefined &&
+        part.item.column > narratedBlock.column;
+      narratedBlock = nested ? { ...narratedBlock, block: part.block } : undefined;
+    }
+    if (c.holds(NARRATION_SCOPES)) {
+      if (part.heading > 0) narratedSection ??= part.heading;
+      else narratedBlock ??= { block: part.block, column: part.item?.column };
+    }
+    c.scoped = narratedSection !== undefined || narratedBlock !== undefined;
     // A conditional clause ("if tests pass") asserts nothing, and neither does a change made and
     // undone ("temporarily removed …").
     if (CONDITIONALS.has(c.lower(0)) || c.holds(TRANSIENTS)) return;
     const firstFail = words.findIndex((w) => FAIL.has(w.lower));
+    // Since 0.1.5 a clause opened by a word in `narrationOpeners` narrates its own failure too.
     c.narrated =
       firstFail >= 0 &&
-      (c.holds(NARRATIONS) || openedByNarration(prep, words, parts[n + 1]?.words));
+      (c.holds(NARRATIONS) ||
+        NARRATION_OPENERS.has(c.lower(0)) ||
+        openedByNarration(prep, words, parts[n + 1]?.words));
     c.staged = c.narrated && c.holds(STAGINGS, 0, firstFail);
     const own = elsewhere < 0;
     // A clause before a colon that heads a file list or states the merge time (0.1.3).

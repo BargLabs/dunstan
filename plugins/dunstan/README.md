@@ -25,7 +25,7 @@ handback covers what the issue asked for: an accurate report of the wrong work p
 
 ## What it runs, reads and sends
 
-The plugin starts the MCP server with `npx -y dunstan@0.1.21 mcp`, which downloads the `dunstan`
+The plugin starts the MCP server with `npx -y dunstan@0.1.22 mcp`, which downloads the `dunstan`
 package at that exact version from the npm registry. The package is one self-contained file with no
 dependencies. The server runs on your machine and reads GitHub's API directly from it: the pull
 request, its files, commits, check runs, workflow runs and artifacts, deployments, and the issues the
@@ -33,6 +33,23 @@ block references. For a GitLab merge request it reads the same evidence from the
 check names, with the optional GitLab token, which it never sends to GitHub; nor the GitHub token to
 GitLab. Every request is a read. Nothing is written to either forge or the repository, and nothing is
 sent to Barg Labs.
+
+## Changes in 0.1.22
+
+- **A re-run test job's record is read (spec 0.1.12).** When a workflow run's test job is re-run,
+  GitHub lists one artifact of the record's name per attempt. Checker 0.1.21 read any run that
+  listed two as `unreadable`, so the test claim's count rows were `unverifiable`
+  (`source_unreadable:artifact`) even though only one artifact was the latest attempt's. The
+  checker now applies section 7.5's latest-attempt window first and reads the one artifact inside
+  it. Two artifacts inside the window, or an artifact with no creation time, are still
+  `unreadable`. Section 7.5 now states both rules. Section 17 records the observation that the
+  listing keeps an earlier attempt's artifact, which 0.1.8 had left open. No other row changes.
+- **Red-first runs are no longer read as failing tests (advisory extractor 0.1.5).** With
+  `dunstan suggest`, `dunstan_suggest_declarations` or `check --advisory`, a failure narrated by a red-first run ("red first", "the red
+  commit"), a mutated guard, or the old or unmodified code no longer proposes a false
+  `tests_passed`, check result or test count, including when the narration is its own label or the
+  heading of the section the failure sits in. A pass in such a section is still read. Advisories are
+  never part of the verdict, and no figure is published for 0.1.5 yet, so it reads as "unmeasured".
 
 ## Changes in 0.1.21
 

@@ -80,12 +80,12 @@ merged.
       - run: mvn -B test
       - name: Merge the test reports
         if: ${{ !cancelled() }}
-        run: npx -y dunstan@0.1.21 junit-merge target/surefire-reports/TEST-*.xml --out junit.xml
+        run: npx -y dunstan@0.1.22 junit-merge target/surefire-reports/TEST-*.xml --out junit.xml
       # ... the upload step ...
 ```
 
 In a multi-module build, list every module's reports: for example
-`shopt -s globstar && npx -y dunstan@0.1.21 junit-merge **/target/surefire-reports/TEST-*.xml --out junit.xml`.
+`shopt -s globstar && npx -y dunstan@0.1.22 junit-merge **/target/surefire-reports/TEST-*.xml --out junit.xml`.
 
 ## Gradle
 
@@ -95,7 +95,7 @@ Gradle writes one file per test class under `build/test-results/test/`.
       - run: ./gradlew test
       - name: Merge the test reports
         if: ${{ !cancelled() }}
-        run: npx -y dunstan@0.1.21 junit-merge build/test-results/test/*.xml --out junit.xml
+        run: npx -y dunstan@0.1.22 junit-merge build/test-results/test/*.xml --out junit.xml
       # ... the upload step ...
 ```
 
@@ -163,7 +163,9 @@ A run made only on your machine is declared as one: `dunstan template --tests-lo
 - **A matrix job's name includes its matrix values**, as the run records it: `test (ubuntu-latest,
   20)`, not `test`. Each leg uploads its own artifact, so give each a name of its own (for example
   `dunstan-junit-${{ matrix.os }}`) and declare one `tests` entry per leg, or record one leg only.
-  Two artifacts of one name in one run make the record `unreadable`.
+  Two artifacts of one name uploaded within the named job's latest attempt make the record
+  `unreadable`. A job re-run in a later attempt uploads its artifact again under the same name, and
+  only the latest attempt's is read; an earlier attempt's alone is `unreadable`.
 - **The artifact needs a token to read.** GitHub answers an artifact download without a token with
   401 "Requires authentication", even on a public repository (observed 2026-11-02). A check without
   a token reports the `tests` rows `unverifiable` with `source_unreadable:artifact`. The Action

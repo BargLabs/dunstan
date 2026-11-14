@@ -26,7 +26,7 @@ self-contained file with no dependencies, so nothing is built and nothing else i
 /plugin install dunstan@barglabs
 ```
 
-The plugin starts the server with `npx -y dunstan@0.1.21 mcp` and adds the `dunstan-check` skill. When
+The plugin starts the server with `npx -y dunstan@0.1.22 mcp` and adds the `dunstan-check` skill. When
 you enable it, Claude Code asks for an optional GitHub token (below). It stores the value in your
 system's secure credential store and passes it to the server as `GITHUB_TOKEN`. Leave it empty to read
 public repositories anonymously (a `closes` reference and a `tests` count then need the token; see
@@ -44,7 +44,7 @@ environment setting:
   "mcpServers": {
     "dunstan": {
       "command": "npx",
-      "args": ["-y", "dunstan@0.1.21", "mcp"],
+      "args": ["-y", "dunstan@0.1.22", "mcp"],
       "env": { "GITHUB_TOKEN": "<a fine-grained, read-only token>" }
     }
   }
@@ -256,7 +256,7 @@ text item: exactly what `dunstan suggest` prints for that report (`src/mcp/serve
 this). Each claim the prose extractor proposes that the block does not declare is listed with its
 sentence, its kind, its value and the block field that would declare it, with two choices: declare
 it in the block, or reword it if it is not a claim about this pull request. The output is labelled
-with the extractor's version and its measured precision ("unmeasured" for 0.1.3).
+with the extractor's version and its measured precision ("unmeasured" for 0.1.5).
 
 It is a sibling of the check, not an option on it, because it needs no pull request: it reads
 nothing, writes nothing, and makes no call (`readOnlyHint: true`, `openWorldHint: false`). It is

@@ -843,6 +843,105 @@ describe('still a claim beside the 0.1.3 rules', () => {
   });
 });
 
+// Every sentence below is synthetic. A red-first report narrates the run of a commit that adds the
+// tests before the fix, and a mutation check narrates runs with the guard broken on purpose: their
+// failures are not this pull request's final state.
+describe('a failure narrated by a red-first run, a mutation or its section (0.1.5)', () => {
+  // These three read so since 0.1.2; they are kept here beside the rules that extend them.
+  it('reads a narrated failure in its own clause as no false result', () => {
+    expect(claims('The 4 new tests fail as expected before the fix is applied.')).toEqual([]);
+    expect(claims('Regression tests are RED without the guard and GREEN with it.')).toEqual([
+      { kind: 'tests_passed', value: true },
+    ]);
+    expect(claims('3 mutation checks FAIL, confirming the guard is load-bearing.')).toEqual([]);
+  });
+
+  it.each([
+    'Tests, red first.',
+    'Tests (red first)',
+    'Tests, red first (synthetic only)',
+    'At the red commit 5 tests failed.',
+    'The tests failed in the red run.',
+    'Red-first: the new tests failed.',
+    'Three tests failed on the old code.',
+    'The new tests are red against the unmodified parser.',
+    'With the guard mutated out, the guard tests fail.',
+    'Before the fix, 4 tests failed.',
+    'Before this change, the tests failed on every push.',
+  ])('a failure narrated in its own clause: %s', (text) => {
+    expect(claims(text)).toEqual([]);
+  });
+
+  it.each([
+    ['a sentence before', 'The red commit 3f2a1b9c adds the new tests alone. Three tests failed:'],
+    [
+      'a label before a colon',
+      '- Red first: the new tests fail against the current parser and pass against the patched one.',
+    ],
+    [
+      'a mutation in the paragraph',
+      'The tests went red first by mutation. With rule 2 disabled, the scope tests fail.',
+    ],
+    ['a later line of the list item', '- Red first, at 3f2a1b9c.\n  Both tests failed.'],
+  ])('a failure later in the paragraph or list item of a narration: %s', (_, text) => {
+    expect(claims(text)).toEqual([]);
+  });
+
+  it.each([
+    '## Red first\n\nCommit 3f2a1b9c adds the tests on their own.\n\n5 tests failed:\n\n```\nx\n```',
+    '### Mutation check\n\nEach branch was flipped in turn, and all six turned the suite red.',
+    '## Red runs (red-first)\n\nI ran the new file alone and all 7 new tests failed.',
+    '## Red-then-green demonstration\n\nWith the status cell edited, the tests fail loud.',
+    '## Red first\n\n### Parser\n\n5 tests failed.',
+    '## Red first\n\nRan all 12 tests; 5 failed.',
+  ])('a failure in a section whose heading narrates: %s', (text) => {
+    expect(claims(text)).toEqual([]);
+  });
+
+  it('a pass in a narrated section is still read', () => {
+    expect(claims('## Red first\n\n5 tests failed.\n\nAfter the fix, all 40 tests pass.')).toEqual([
+      { kind: 'tests_passed', value: true },
+      { kind: 'test_count', value: 40 },
+    ]);
+  });
+
+  // Negative controls: a failure of the final state is still read as false.
+  it.each([
+    'CI is red: 2 tests fail on the head.',
+    'CI is red: 2 tests fail on the head. The red commit was 3f2a1b9c.',
+    'The red commit adds the tests alone.\n\nCI is red: 2 tests fail on the head.',
+  ])('a final-state failure before or beside a narration: %s', (text) => {
+    expect(claims(text)).toEqual([
+      { kind: 'checks_succeeded', value: false },
+      { kind: 'tests_passed', value: false },
+    ]);
+  });
+
+  it.each([
+    'The suite still fails on main after this change.',
+    'The tests fail.',
+    '## Red first\n\n5 tests failed.\n\n## Status\n\nThe suite still fails on main after this change.',
+    '# Status\n\n## Red first\n\n5 tests failed.\n\n# Result\n\nThe tests fail on the head.',
+  ])('a final-state failure outside any narration: %s', (text) => {
+    expect(claims(text)).toEqual([{ kind: 'tests_passed', value: false }]);
+  });
+});
+
+// The cost of the 0.1.5 rules (docs/advisory.md, "Red-first runs, mutations and their sections"):
+// claims a writer meant for this pull request that 0.1.3 read and 0.1.5 does not.
+describe('not read since 0.1.5, even where it was meant', () => {
+  it.each([
+    // A narrating heading covers its whole section, a final-state failure included.
+    '## Mutation testing\n\nThe suite fails on the head.',
+    // So does a narration earlier in the paragraph.
+    'There is no mutation check yet. The suite fails on the head.',
+    // A pass after `then` is no final state, so nothing is read.
+    'The tests went red then green.',
+  ])('%s', (text) => {
+    expect(claims(text)).toEqual([]);
+  });
+});
+
 describe('false-positive class: user ids and run ids read as SHAs', () => {
   it.each([
     'Pushed after workflow run 18234567890 finished.',

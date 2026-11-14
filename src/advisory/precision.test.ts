@@ -17,8 +17,8 @@ import {
   UNMEASURED,
 } from './precision.js';
 
-// The grammar the figures were measured on: extractor 0.1.1. The extractor that runs is 0.1.3 (0.1.2
-// before it, and 0.1.4 reverted to it), which no figure is published for.
+// The grammar the figures were measured on: extractor 0.1.1. The extractor that runs is 0.1.5 (0.1.2
+// and 0.1.3 before it, and 0.1.4 reverted to 0.1.3), which no figure is published for.
 const DIGEST = 'ab77ce47d1c5172ec912d1221e03bbe5b312ff5dc2acb594c4b8549fe602c360';
 const SOURCE = 'operator-adjudicated, Barg Labs internal corpus, 2026-10-05';
 // The comparison the differs figure was measured on. The one that runs is 0.5.0, which no figure
@@ -138,18 +138,19 @@ describe('the binding: a changed digest or comparison is unmeasured', () => {
     expect(differsAccuracyFor(DIGEST, '0.3.0')).toBeNull();
   });
 
-  // Extractors 0.1.2, 0.1.3 and then 0.1.4 changed the grammar, and 0.1.4 was reverted to 0.1.3.
-  // The figures stay bound to 0.1.1 and are not rebound: 0.1.2, 0.1.3 and 0.1.4 show "unmeasured"
-  // until measured anew.
-  it('extractor 0.1.3, the one that runs, is unmeasured: it inherits nothing from 0.1.1', () => {
-    expect(EXTRACTOR.version).toBe('0.1.3');
+  // Extractors 0.1.2, 0.1.3 and then 0.1.4 changed the grammar, 0.1.4 was reverted to 0.1.3, and
+  // 0.1.5 changed it again. The figures stay bound to 0.1.1 and are not rebound: 0.1.2, 0.1.3, 0.1.4
+  // and 0.1.5 show "unmeasured" until measured anew.
+  it('extractor 0.1.5, the one that runs, is unmeasured: it inherits nothing from 0.1.1', () => {
+    expect(EXTRACTOR.version).toBe('0.1.5');
     expect(EXTRACTOR.digest.sha256).toBe(
-      '2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37',
+      '3672b6e2e63a748b505b2a970e487456ed9891cf4255fef2d25d27bbe9dfc475',
     );
     expect(EXTRACTOR.digest.sha256).not.toBe(DIGEST);
-    // Nor anything for 0.1.2, the extractor before it, or 0.1.4, the reverted one.
+    // Nor anything for 0.1.2 and 0.1.3, the extractors before it, or 0.1.4, the reverted one.
     for (const other of [
       'dfd6563a934667a80448e49b7133ade6d2473e5e13cd9d05fd52c761a1a1780b',
+      '2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37',
       '78b92a682063464faf3cf1de13123d2b232bb3575effd5f31f0e12905643d45c',
     ]) {
       expect(precisionFor(other)).toBeNull();

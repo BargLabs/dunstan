@@ -104,9 +104,9 @@ from the record:
 
 For a record that carries no figure (a later extractor or comparison, not yet measured), the line
 states none. Since extractor 0.1.2 that includes every record the running checker writes: 0.1.2 and
-0.1.3, which runs now, each have figures from constructed reports only, which no record carries, and
-no precision measured on real pull requests, and 0.1.4, which was reverted, has no figures at all
-("Measured figures", below).
+0.1.3 each have figures from constructed reports only, which no record carries, and no precision
+measured on real pull requests, 0.1.4, which was reverted, has no figures at all, and 0.1.5, which
+runs now, has no figures at all yet ("Measured figures", below).
 
 > Advisories never affect the verdict. A possible disagreement is unverified: on the reports measured so far it usually reflected a misread of the report, not a false claim.
 
@@ -200,7 +200,8 @@ files as people do. The extraction grammar is unchanged too: extractor 0.1.1, di
 `ab77ce47d1c5172ec912d1221e03bbe5b312ff5dc2acb594c4b8549fe602c360`. A measurement of the
 extractor's precision on that digest still holds. (Extractor 0.1.2 later changed the grammar:
 "Attribution", below; and 0.1.3 after it: "Lists, merge times and own references", below. 0.1.4
-changed it again and was reverted to 0.1.3: "Labels, used names and descriptions", below.)
+changed it again and was reverted to 0.1.3: "Labels, used names and descriptions", below; and
+0.1.5 changed 0.1.3's: "Red-first runs, mutations and their sections", below.)
 
 The rules are pinned by synthetic tests in `advise.test.ts`, "a file named by a bare name or a
 partial path (comparison 0.2.0)".
@@ -424,7 +425,9 @@ A token is a claim only when it is bound to an asserting verb in its own clause.
 4. **Once.** Each `(kind, value)` is proposed once, at its first clause.
 5. **This pull request's.** A bound claim is still dropped when its clause is about another pull
    request or repository, a change made and undone, a baseline head, a negated list, or a failure
-   staged on purpose (see "Attribution" below).
+   staged on purpose (see "Attribution" below). Since 0.1.5 a false test or check result is also
+   dropped under a narration earlier in its paragraph or list item, or in its section's heading
+   ("Red-first runs, mutations and their sections", below).
 
 ### Asides and analogues (extractor 0.1.1)
 
@@ -582,6 +585,64 @@ The revert is exact: the grammar's lists, rules and version are 0.1.3's, so its 
 their tests are gone from `src/advisory/`. Records written by 0.1.4 name its digest and verify only
 with checker 0.1.4. No figure was ever published for 0.1.4.
 
+### Red-first runs, mutations and their sections (extractor 0.1.5)
+
+Since 0.1.2 a clause that narrates a failure staged on purpose proposes no false test or check
+result ("the new tests fail as expected before the fix", "red without the guard, green with it",
+"3 mutation checks fail"). A red-first report narrates more than that clause. It quotes the run of
+a commit that adds the tests before the fix, and a mutation check quotes runs with the guard broken.
+Their failures are written in clauses of their own, under a heading or after a label that says so:
+"## Red first", "The red commit adds the tests alone. Three tests failed:", "With the guard mutated
+out, the guard tests fail." Through 0.1.3 each of those read as a false `tests_passed` or
+`checks_succeeded` claim about this pull request's final state. 0.1.5 adds three rules. Each only
+drops a false test or check result, or a count of tests run; none adds a claim or changes a value.
+
+1. **More narrations.** `narrations` gains a red-first run (`red first`, `red-first`, `red then`,
+   `red-then-green`, `red commit`, `red run`), a mutated guard (`mutated`) and the code before the
+   fix (`old code`, `unmodified`). `stagings` gains `mutated`, beside `mutation`. A clause that
+   opens with a word in `narrationOpeners` and holds a fail predicate narrates too: "Before the fix,
+   4 tests failed."
+2. **A narration that covers its paragraph or list item.** A clause that holds a phrase in
+   `narrationScopes` covers every clause after it in the same paragraph, list item or table row,
+   and in the list items nested directly under that item. A clause so covered proposes no false
+   test or check result and no count of tests run (`verbs.ran`). A pass is still read: the clause
+   is not narrated, only its failures are.
+3. **A narration that covers a section.** A heading that holds a phrase in `narrationScopes`
+   ("## Red first", "### Mutation check", "## Red runs (red-first)") covers its section the same
+   way, up to the next heading of the same or a higher level. A deeper heading inside it does not
+   end it. "## Red first", "5 tests failed.", "After the fix, all 40 tests pass." proposes
+   `tests_passed: true` and `test_count: 40`, and no false result.
+
+A paragraph, list item or heading is a block of the clause splitter: a blank line, a list marker, a
+heading line and a table row each start one. A narration's scope runs forward only. A final-state
+failure before it, in another paragraph, or under another heading of the same or a higher level is
+still read: "CI is red: 2 tests fail on the head. The red commit was 3f2a1b9c." proposes
+`checks_succeeded: false` and `tests_passed: false`. So is one with no narration near it: "The suite
+still fails on main after this change."
+
+What each costs, on purpose:
+
+- A narrating heading covers its whole section, so a final-state failure written there is not read:
+  "## Mutation testing", "The suite fails on the head." proposes nothing.
+- So does a narration earlier in the paragraph: "There is no mutation check yet. The suite fails on
+  the head." proposes nothing.
+- `red then` narrates, and a pass after it is no final state: "The tests went red then green."
+  proposes nothing.
+
+Left as they were, on purpose:
+
+- **A failure on the base branch named by its branch** ("fails on main and passes here"). "on main"
+  also names the head's own base in a final-state report ("still fails on main after this change"),
+  so it is not a narration.
+- **A red commit named only by a label and a SHA** ("Red at 3f2a1b9c: both tests failed."). `red`
+  alone narrates nothing: it is also the predicate of a final state, "CI is red".
+- **A heading in bold text.** Only markdown headings (`#` to `######`) open a section.
+
+Each rule is pinned by synthetic tests in `extract.test.ts`: "a failure narrated by a red-first
+run, a mutation or its section (0.1.5)", with negative controls whose final-state failures are still
+read, and "not read since 0.1.5, even where it was meant". 0.1.3 proposed the false result each
+negative drops.
+
 ### The lists
 
 - `verbs.file`: added, adds, adjusted, adjusts, amended, amends, changed, changes, created, creates, deleted, deletes, edited, edits, extended, extends, fixed, fixes, modified, modifies, moved, moves, patched, patches, refactored, refactors, removed, removes, renamed, renames, replaced, replaces, reworked, reworks, rewrites, rewritten, rewrote, touched, touches, tweaked, tweaks, updated, updates
@@ -623,8 +684,9 @@ with checker 0.1.4. No figure was ever published for 0.1.4.
 - `transients`: backed out, reverted, reverting, temporarily, then deleted, then removed, throw-away, throwaway, undid, undone
 - `baselines`: base, baseline, earlier, former, old, original, previous, prior
 - `remotePrefixes`: origin/, upstream/
-- `narrations`: as expected, as intended, by design, deliberately, intentionally, mutant, mutants, mutation, mutations, on purpose, without
-- `stagings`: by design, deliberately, intentionally, mutant, mutants, mutation, mutations, on purpose
+- `narrations`: as expected, as intended, by design, deliberately, intentionally, mutant, mutants, mutated, mutation, mutations, old code, on purpose, red commit, red first, red run, red then, red-first, red-then-green, unmodified, without
+- `narrationScopes`: mutant, mutants, mutated, mutation, mutations, red commit, red first, red run, red then, red-first, red-then-green
+- `stagings`: by design, deliberately, intentionally, mutant, mutants, mutated, mutation, mutations, on purpose
 - `narrationOpeners`: before
 - `finalStates`: now, with it, with the change, with the fix, with this change
 - `commandWords`: bash, biome, bun, cargo, cat, cd, chmod, cp, curl, deno, docker, gh, git, go, grep, jest, kubectl, ls, make, mkdir, mv, node, npm, npx, pnpm, pytest, python, python3, rm, ruby, sh, touch, tsc, tsx, vitest, yarn
@@ -681,12 +743,15 @@ figures. Extractor 0.1.3, digest
 `2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37`, ran from 2026-10-06. Extractor
 0.1.4, digest `78b92a682063464faf3cf1de13123d2b232bb3575effd5f31f0e12905643d45c`, ran on 2026-10-07
 and was reverted ("Labels, used names and descriptions", above); no figure of any kind is published
-for it. The extractor that runs since 2026-10-07 is 0.1.3 again, digest
+for it. From 2026-10-07 the extractor that ran was 0.1.3 again, digest
 `2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37`. It has figures measured on
 constructed reports ("Extractor 0.1.3 on constructed reports (recall)", below), and no precision
-measured on real pull requests. So a record the running checker writes carries `null` for both
-figures, shown as "unmeasured", until a precision measured on real pull requests is published for
-0.1.3. No figure here is rebound to it. The `differs` figure and its base rate are bound to
+measured on real pull requests. The extractor that runs since 2026-11-14 is 0.1.5, digest
+`3672b6e2e63a748b505b2a970e487456ed9891cf4255fef2d25d27bbe9dfc475` ("Red-first runs, mutations and
+their sections", above). No figure of any kind is published for it, and the version 0.1.4 is not
+reused. So a record the running checker writes carries `null` for both figures, shown as
+"unmeasured", until a precision measured on real pull requests is published for 0.1.5. No figure
+here is rebound to it. The `differs` figure and its base rate are bound to
 comparison 0.2.0 too. The comparison that ran from 2026-10-07 was 0.3.0 ("Paths that are not at the
 head", above), and the one that runs since 2026-10-11 is 0.4.0 ("Closes read by who closed the
 target", above), so `differsAccuracy` stays `null` until 0.4.0 is measured.

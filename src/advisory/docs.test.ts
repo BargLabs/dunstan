@@ -11,9 +11,10 @@ import { differsAccuracyFor, precisionFor } from './precision.js';
 import { ADVISORY_LINE, advisoryLine, noteText, RECORD_SHOWS } from './present.js';
 
 // Extractor 0.1.3's grammar, the one the constructed-report figures below were measured on, and
-// the one that runs again since 0.1.4 was reverted.
+// the one that ran again once 0.1.4 was reverted, until 0.1.5.
 const EXTRACTOR_0_1_3 = '2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37';
 const EXTRACTOR_0_1_4 = '78b92a682063464faf3cf1de13123d2b232bb3575effd5f31f0e12905643d45c';
+const EXTRACTOR_0_1_5 = '3672b6e2e63a748b505b2a970e487456ed9891cf4255fef2d25d27bbe9dfc475';
 
 const doc = readFileSync(new URL('../../docs/advisory.md', import.meta.url), 'utf8');
 const lines = new Map(
@@ -53,7 +54,7 @@ describe('docs/advisory.md', () => {
 
   it('states the fixed line with the published figures, and the figures and their binding', () => {
     // The figures were measured on extractor 0.1.1 and comparison 0.2.0; the extractor that runs is
-    // 0.1.3, and the comparison 0.5.0.
+    // 0.1.5, and the comparison 0.5.0.
     const measured = 'ab77ce47d1c5172ec912d1221e03bbe5b312ff5dc2acb594c4b8549fe602c360';
     const precision = precisionFor(measured);
     const differsAccuracy = differsAccuracyFor(measured, '0.2.0');
@@ -136,10 +137,10 @@ describe('docs/advisory.md', () => {
     expect(flat).not.toContain('0.1.3, which runs now, has no published figures');
     expect(flat).not.toContain('No figures are published for it');
     expect(flat).toContain(
-      '0.1.2 and 0.1.3, which runs now, each have figures from constructed reports only, which no record carries, and no precision measured on real pull requests, and 0.1.4, which was reverted, has no figures at all',
+      '0.1.2 and 0.1.3 each have figures from constructed reports only, which no record carries, and no precision measured on real pull requests, 0.1.4, which was reverted, has no figures at all, and 0.1.5, which runs now, has no figures at all yet',
     );
     expect(flat).toContain(
-      'carries `null` for both figures, shown as "unmeasured", until a precision measured on real pull requests is published for 0.1.3',
+      'carries `null` for both figures, shown as "unmeasured", until a precision measured on real pull requests is published for 0.1.5',
     );
   });
 
@@ -151,14 +152,21 @@ describe('docs/advisory.md', () => {
 
   it('states the extractor that runs, its digest, and that it is unmeasured', () => {
     expect(precisionFor(EXTRACTOR.digest.sha256)).toBeNull();
-    expect(doc.replace(/\s+/g, ' ')).toContain(
-      `The extractor that runs since 2026-10-07 is ${EXTRACTOR.version} again, digest \`${EXTRACTOR.digest.sha256}\``,
+    const flat = doc.replace(/\s+/g, ' ');
+    expect(flat).toContain(
+      `The extractor that runs since 2026-11-14 is ${EXTRACTOR.version}, digest \`${EXTRACTOR.digest.sha256}\``,
     );
-    expect(EXTRACTOR.digest.sha256).toBe(EXTRACTOR_0_1_3);
+    expect(EXTRACTOR).toEqual({ version: '0.1.5', digest: { sha256: EXTRACTOR_0_1_5 } });
+    expect(flat).toContain(
+      'No figure of any kind is published for it, and the version 0.1.4 is not reused.',
+    );
     expect(doc).toContain('### Attribution (extractor 0.1.2)');
     expect(doc).toContain('### Lists, merge times and own references (extractor 0.1.3)');
-    const flat = doc.replace(/\s+/g, ' ');
+    expect(doc).toContain('### Red-first runs, mutations and their sections (extractor 0.1.5)');
     expect(flat).toContain(`Extractor 0.1.3, digest \`${EXTRACTOR_0_1_3}\`, ran from 2026-10-06.`);
+    expect(flat).toContain(
+      `From 2026-10-07 the extractor that ran was 0.1.3 again, digest \`${EXTRACTOR_0_1_3}\``,
+    );
   });
 
   it('states comparison 0.3.0: the rule, the query as sent, why, and that it is unmeasured', () => {

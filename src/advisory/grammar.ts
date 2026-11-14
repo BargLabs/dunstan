@@ -7,7 +7,7 @@
 import { sha256Canonical } from '../spec/jcs.js';
 import type { JsonValue } from '../spec/json.js';
 
-export const EXTRACTOR_VERSION = '0.1.3';
+export const EXTRACTOR_VERSION = '0.1.5';
 
 // The kinds of claim the extractor proposes, each compared by one 0.1 gate check (advise.ts).
 export const ADVISORY_KINDS = [
@@ -372,8 +372,10 @@ export const GRAMMAR = {
   // A clause with a fail predicate and one of these narrates a failure staged on purpose ("the new
   // tests fail as expected", "red without the guard", "the mutation tests fail"), and so does one
   // followed by a clause that opens with one of `narrationOpeners` ("the new tests failed before the
-  // fix"). Such a clause proposes no tests or checks claim, except a pass predicate after the
-  // failure followed directly by one of `finalStates`: "red without the guard, green with it".
+  // fix") or, since 0.1.5, one that opens with one ("Before the fix, 4 tests failed"). Such a clause
+  // proposes no tests or checks claim, except a pass predicate after the failure followed directly
+  // by one of `finalStates`: "red without the guard, green with it". Since 0.1.5 a red-first run
+  // ("at the red commit"), a mutated guard and the old or unmodified code narrate too.
   narrations: [
     'as expected',
     'as intended',
@@ -382,10 +384,37 @@ export const GRAMMAR = {
     'intentionally',
     'mutant',
     'mutants',
+    'mutated',
     'mutation',
     'mutations',
+    'old code',
     'on purpose',
+    'red commit',
+    'red first',
+    'red run',
+    'red then',
+    'red-first',
+    'red-then-green',
+    'unmodified',
     'without',
+  ],
+  // Since 0.1.5 one of these narrates beyond its clause: in a paragraph or list item, every clause
+  // from it to the item's end; in a heading, the heading's section, up to the next heading of the
+  // same or a higher level. A clause so narrated proposes no false tests or checks result and no
+  // count of tests run: "## Red first", "The red commit adds the tests alone. Three tests failed:".
+  // A pass is still read there: "After the fix, all 40 tests pass".
+  narrationScopes: [
+    'mutant',
+    'mutants',
+    'mutated',
+    'mutation',
+    'mutations',
+    'red commit',
+    'red first',
+    'red run',
+    'red then',
+    'red-first',
+    'red-then-green',
   ],
   // A narrated clause holding one of these before its first fail predicate says the edit itself was
   // made to cause the failure, so it proposes no file claim either (extractor 0.1.3): "deliberately
@@ -397,6 +426,7 @@ export const GRAMMAR = {
     'intentionally',
     'mutant',
     'mutants',
+    'mutated',
     'mutation',
     'mutations',
     'on purpose',

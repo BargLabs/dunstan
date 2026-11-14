@@ -1546,6 +1546,125 @@ describe('readEvidence', () => {
       });
     });
 
+    // A job re-run in attempt 2 uploads a second artifact of the record's name, and the run's
+    // listing gives both, one per attempt (observed 2026-11-14 on two runs at run_attempt 2). Only
+    // the one the named job's latest attempt uploaded counts.
+    describe('a run that lists one artifact of the name per attempt', () => {
+      const ZIP_2 = `GET /repos/${REPO}/actions/artifacts/9002/zip`;
+      // Attempt 1's artifact, created before the job's latest attempt started, and its counts, which
+      // the block's do not match (4 executed, 2 failed).
+      const FIRST = {
+        id: 9001,
+        name: 'junit-report',
+        expired: false,
+        created_at: '2026-10-01T12:05:00Z',
+      };
+      // Attempt 2's, inside the latest attempt, with the counts the block declares (3 and 1).
+      const SECOND = {
+        id: 9002,
+        name: 'junit-report',
+        expired: false,
+        created_at: '2026-10-01T13:05:00Z',
+      };
+      const reRun = (...artifacts: Record<string, unknown>[]) => {
+        const s = attempt({});
+        s.artifacts = { 501: artifacts };
+        s.zips = {
+          9001: makeZip({
+            'reports/junit.xml': junitXml(['pass', 'fail', 'error', 'skip', 'pass']),
+          }),
+          9002: makeZip({ 'reports/junit.xml': junitXml(['pass', 'pass', 'fail', 'skip']) }),
+        };
+        return s;
+      };
+
+      it("reads the latest attempt's artifact and never the earlier attempt's", async () => {
+        for (const listed of [
+          [FIRST, SECOND],
+          [SECOND, FIRST],
+        ]) {
+          const { evidence, fake } = await read(reRun(...listed), FULL_BLOCK);
+          expect(evidence.testRecords?.[0]).toEqual({
+            record: JUNIT,
+            status: 'ok',
+            runs: [{ runId: 501, runAttempt: 2, executed: 3, failed: 1 }],
+          });
+          expect(counts(evidence)).toEqual([
+            ['pass', undefined],
+            ['pass', undefined],
+          ]);
+          expect(fake.requests.some((r) => r.startsWith(ZIP))).toBe(false);
+          expect(fake.requests.some((r) => r.startsWith(ZIP_2))).toBe(true);
+          expect(evidenceSchemaErrors(evidence)).toEqual([]);
+        }
+      });
+
+      it("reads the latest attempt's artifact when the earlier attempt's has expired", async () => {
+        const { evidence } = await read(reRun({ ...FIRST, expired: true }, SECOND), FULL_BLOCK);
+        expect(evidence.testRecords?.[0]).toMatchObject({ record: JUNIT, status: 'ok' });
+      });
+
+      it("is unverifiable when the latest attempt's artifact has expired", async () => {
+        const { evidence, fake } = await read(
+          reRun(FIRST, { ...SECOND, expired: true }),
+          FULL_BLOCK,
+        );
+        expect(evidence.testRecords?.[0]).toEqual({
+          record: JUNIT,
+          status: 'unreadable',
+          source: 'artifact',
+        });
+        expect(fake.requests.some((r) => r.startsWith(ZIP_2))).toBe(false);
+      });
+
+      it('is unverifiable, never read, when two artifacts of the name are inside the latest attempt', async () => {
+        const { evidence, fake } = await read(
+          reRun(SECOND, { ...FIRST, created_at: '2026-10-01T13:06:00Z' }),
+          FULL_BLOCK,
+        );
+        expect(evidence.testRecords?.[0]).toEqual({
+          record: JUNIT,
+          status: 'unreadable',
+          source: 'artifact',
+        });
+        expect(counts(evidence)).toEqual(UNREAD);
+        expect(fake.requests.some((r) => r.includes('/actions/artifacts/'))).toBe(false);
+      });
+
+      it('is unverifiable, never read, when only an earlier attempt uploaded one', async () => {
+        // The job's latest attempt is 2 and uploaded nothing; attempt 1's artifact is listed.
+        for (const listed of [
+          [FIRST],
+          [FIRST, { ...FIRST, id: 9002, created_at: '2026-10-01T12:06:00Z' }],
+        ]) {
+          const { evidence, fake } = await read(reRun(...listed), FULL_BLOCK);
+          expect(evidence.testRecords?.[0]).toEqual({
+            record: JUNIT,
+            status: 'unreadable',
+            source: 'artifact',
+          });
+          expect(counts(evidence)).toEqual(UNREAD);
+          expect(fake.requests.some((r) => r.includes('/actions/artifacts/'))).toBe(false);
+        }
+      });
+
+      it('is unverifiable when an artifact of the name gives no creation time', async () => {
+        // It cannot be placed outside the latest attempt, so it may be that attempt's second.
+        for (const time of [null, undefined]) {
+          const { evidence, fake } = await read(
+            reRun({ ...FIRST, created_at: time }, SECOND),
+            FULL_BLOCK,
+          );
+          expect(evidence.testRecords?.[0]).toEqual({
+            record: JUNIT,
+            status: 'unreadable',
+            source: 'artifact',
+          });
+          expect(fake.requests.some((r) => r.includes('/actions/artifacts/'))).toBe(false);
+        }
+      });
+    });
+
     it('records the jobs or the artifacts unreadable when a time answers in another shape', async () => {
       const job = await read(attempt({ started_at: '2026-10-01 13:00:00' }), FULL_BLOCK);
       expect(job.evidence.testRecords?.[0]).toEqual({

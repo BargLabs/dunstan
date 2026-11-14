@@ -528,6 +528,15 @@ with kind `workflow_runs`. The window is decided from the two listings the check
 whose digests are in `sources`; the evidence records its outcome, as it records an expired
 artifact's, and holds no time of a job or an artifact.
 
+**Several artifacts of the name** (since 0.1.12). The artifact listing can give more than one
+artifact named `artifact` for one run: a run whose test job was re-run keeps each attempt's upload.
+The window is applied first, to every artifact of the name. Exactly one within it is the record,
+whatever earlier attempts' artifacts the listing also gives, and is read as above. More than one
+within it makes the artifact read `unreadable`, because a checker MUST NOT pick one. So does any
+artifact of the name with no `created_at`, wherever it falls, because the window cannot place it.
+In both cases the rows are `unverifiable` with `source_unreadable:artifact`, never
+`record_not_found`.
+
 **A record the pull request produced** (since 0.1.10). On `pull_request`, GitHub runs the
 workflow file as the pull request has it, so a pull request that changes the workflow a `junit`
 record names can make its own CI publish any count: the record is then its own evidence, and the
@@ -941,6 +950,29 @@ against the schemas and check each record's block, report and claim and evidence
 | `source_unreadable:<kind>` | unverifiable | The source errored. |
 
 ## 17. Changes
+
+- **0.1.12** (2026-11-14). A clarification of section 7.5, checked by checker 0.1.22 (issue #141).
+  Section 7.5 counts an artifact only if it was created within the named job's latest attempt
+  (0.1.8), but did not say what a listing with several artifacts of the name means. Checker 0.1.21
+  read any run listing more than one as `unreadable` before applying the window. So a run whose test
+  job was re-run, which lists one artifact per attempt, gave `unverifiable` count rows with
+  `source_unreadable:artifact`, although exactly one artifact was the latest attempt's. The code was
+  stricter than the text, so this patch writes down the rule the text already implied rather than
+  changing it (section 13).
+
+  **The rule.** Section 7.5, "Several artifacts of the name": the window is applied to every
+  artifact of the name first. Exactly one within it is read; more than one within it, or any
+  artifact of the name with no `created_at`, is `unreadable`.
+
+  **What changes.** A count row that checker 0.1.21 gave `unverifiable` only because an earlier
+  attempt's artifact was also listed is now decided on the latest attempt's record, as section 7.5
+  already required. No other row changes. No request, token permission or evidence field is added,
+  and the record and block schemas are unchanged.
+
+  **An observation 0.1.8 left open.** The 0.1.8 entry says it had not been observed whether GitHub's
+  artifact listing keeps an earlier attempt's artifact after a re-run. It does: on 2026-11-14, two
+  runs at `run_attempt` 2 whose test job re-ran each listed two artifacts of one name, one per
+  attempt. The 0.1.8 entry is left as it was written.
 
 - **0.1.11** (2026-11-10). A cited commit only has to exist, checked by checker 0.1.18 (issue
   #127). Under 0.1.10 a `cites` reference to a commit passed only if the commit was the head or an
@@ -1948,7 +1980,7 @@ A checker writes the section only when asked to (`dunstan check --advisory`; the
 
 ```json
 "advisory": {
-  "extractor": { "version": "0.1.3", "digest": { "sha256": "<64 hex>" } },
+  "extractor": { "version": "0.1.5", "digest": { "sha256": "<64 hex>" } },
   "comparison": { "version": "0.5.0" },
   "precision": null,
   "differsAccuracy": null,
@@ -2047,7 +2079,11 @@ in full. In outline:
      guard", "mutation", "by design") proposes no false test or check result and no count. It
      proposes a true one only for a pass predicate followed by a final state ("green with it").
      When a staging phrase ("deliberately", "on purpose", "mutation", "by design") stands before
-     its fail predicate, it proposes no file claim either;
+     its fail predicate, it proposes no file claim either. Since 0.1.5 a red-first run ("red
+     first", "at the red commit"), a mutated guard and the old code narrate too, and so does a
+     clause that opens with "before". A red-first or mutation phrase also covers the rest of its
+     paragraph or list item, and a heading that holds one its section: a false test or check
+     result, or a count of tests run, there is not proposed, and a pass is;
    - since 0.1.3, an issue that is not the verb's subject leaves a closing keyword or a commit in
      the clause this pull request's ("Builds on #10 and closes #12"), and a closing keyword inside
      a bracket binds only when it opens the bracket ("(closes #12)", but not "(the earlier fix
@@ -2183,6 +2219,19 @@ nothing is at that path at the head.
    unchanged.
 
 ### D.12 Changes to this draft
+
+- **2026-11-14.** Advisory extractor 0.1.5: a red-first run (`red first`, `red commit`, …), a
+  mutated guard and the old or unmodified code narrate a failure, and so does a clause that opens
+  with a word in `narrationOpeners`; a phrase in the new list `narrationScopes` covers the rest of
+  its paragraph or list item, and in a heading its section, so a failure there proposes no false
+  test or check result and no count of tests run (D.11.3, item 6; `docs/advisory.md`, "Red-first
+  runs, mutations and their sections"). Each rule only drops a claim. The grammar digest changes
+  from `2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37` to
+  `3672b6e2e63a748b505b2a970e487456ed9891cf4255fef2d25d27bbe9dfc475`; the version 0.1.4, reverted,
+  is not reused. No figure is published for 0.1.5, so a record it writes carries `null` for
+  `precision` and `differsAccuracy`, shown as "unmeasured". The comparison (0.5.0), the schemas,
+  the record members and sections 1 to 17 are unchanged. It ships in checker 0.1.22: offline verify
+  compares a record's extractor with the running one (`src/record/verify.ts`).
 
 - **2026-11-10.** Spec 0.1.11 (section 17), advisory comparison 0.5.0. A `commit` advisory of 40
   hex that is not the head is compared by the 7.4 `cites` check, which now asks only that the

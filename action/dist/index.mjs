@@ -8028,7 +8028,7 @@ import { join } from "node:path";
 import { createHash } from "node:crypto";
 
 // src/spec/constants.ts
-var SPEC_VERSION = "0.1.11";
+var SPEC_VERSION = "0.1.12";
 var BLOCK_VERSION = "0.1";
 var SUPPORTED_BLOCK_VERSIONS = [BLOCK_VERSION];
 var BLOCK_INFO_STRING = "dunstan-handback";
@@ -9686,12 +9686,11 @@ async function readTestRecord(client, repository, record, headCommit, observed) 
     if (artifacts === null) return { record, ...unreadable("workflow_runs") };
     const uploaded = artifacts.filter((a) => a.name === record.artifact).sort((a, b) => a.id - b.id);
     if (uploaded.length === 0) continue;
-    if (uploaded.length > 1) return { record, ...unreadable("artifact") };
-    const artifact = uploaded[0];
+    if (uploaded.some((a) => a.createdAt === null)) return { record, ...unreadable("artifact") };
+    const latest = uploaded.filter((a) => withinLatestAttempt(named, run, a.createdAt));
+    if (latest.length !== 1) return { record, ...unreadable("artifact") };
+    const artifact = latest[0];
     if (artifact.expired) return { record, ...unreadable("artifact") };
-    if (!withinLatestAttempt(named, run, artifact.createdAt)) {
-      return { record, ...unreadable("artifact") };
-    }
     const zipPath = `/repos/${repository}/actions/artifacts/${artifact.id}/zip`;
     const download = await client.read("artifact", zipPath, {
       json: false,
@@ -9835,7 +9834,7 @@ async function readEvidence(client, input2) {
 // src/record/checker.ts
 import { readFileSync } from "node:fs";
 var CHECKER_NAME = "dunstan";
-var CHECKER_VERSION = "0.1.21";
+var CHECKER_VERSION = "0.1.22";
 function checkerIdentity(artifact) {
   return {
     name: CHECKER_NAME,
@@ -10110,7 +10109,7 @@ async function reportFromComment(client, repository, number, login) {
 }
 
 // src/advisory/grammar.ts
-var EXTRACTOR_VERSION = "0.1.3";
+var EXTRACTOR_VERSION = "0.1.5";
 var ADVISORY_KINDS = [
   "file_changed",
   "reference_closes",
@@ -10470,8 +10469,10 @@ var GRAMMAR = {
   // A clause with a fail predicate and one of these narrates a failure staged on purpose ("the new
   // tests fail as expected", "red without the guard", "the mutation tests fail"), and so does one
   // followed by a clause that opens with one of `narrationOpeners` ("the new tests failed before the
-  // fix"). Such a clause proposes no tests or checks claim, except a pass predicate after the
-  // failure followed directly by one of `finalStates`: "red without the guard, green with it".
+  // fix") or, since 0.1.5, one that opens with one ("Before the fix, 4 tests failed"). Such a clause
+  // proposes no tests or checks claim, except a pass predicate after the failure followed directly
+  // by one of `finalStates`: "red without the guard, green with it". Since 0.1.5 a red-first run
+  // ("at the red commit"), a mutated guard and the old or unmodified code narrate too.
   narrations: [
     "as expected",
     "as intended",
@@ -10480,10 +10481,37 @@ var GRAMMAR = {
     "intentionally",
     "mutant",
     "mutants",
+    "mutated",
     "mutation",
     "mutations",
+    "old code",
     "on purpose",
+    "red commit",
+    "red first",
+    "red run",
+    "red then",
+    "red-first",
+    "red-then-green",
+    "unmodified",
     "without"
+  ],
+  // Since 0.1.5 one of these narrates beyond its clause: in a paragraph or list item, every clause
+  // from it to the item's end; in a heading, the heading's section, up to the next heading of the
+  // same or a higher level. A clause so narrated proposes no false tests or checks result and no
+  // count of tests run: "## Red first", "The red commit adds the tests alone. Three tests failed:".
+  // A pass is still read there: "After the fix, all 40 tests pass".
+  narrationScopes: [
+    "mutant",
+    "mutants",
+    "mutated",
+    "mutation",
+    "mutations",
+    "red commit",
+    "red first",
+    "red run",
+    "red then",
+    "red-first",
+    "red-then-green"
   ],
   // A narrated clause holding one of these before its first fail predicate says the edit itself was
   // made to cause the failure, so it proposes no file claim either (extractor 0.1.3): "deliberately
@@ -10495,6 +10523,7 @@ var GRAMMAR = {
     "intentionally",
     "mutant",
     "mutants",
+    "mutated",
     "mutation",
     "mutations",
     "on purpose"
@@ -10885,6 +10914,7 @@ var SUBJECT_FILLERS = words(GRAMMAR.subjectFillers);
 var TRANSIENTS = phrases(GRAMMAR.transients);
 var BASELINES = words(GRAMMAR.baselines);
 var NARRATIONS = phrases(GRAMMAR.narrations);
+var NARRATION_SCOPES = phrases(GRAMMAR.narrationScopes);
 var STAGINGS = phrases(GRAMMAR.stagings);
 var NARRATION_OPENERS = words(GRAMMAR.narrationOpeners);
 var FINAL_STATES = phrases(GRAMMAR.finalStates);
@@ -11004,9 +11034,13 @@ function clausesOf(prep) {
   let current = [];
   let item;
   let fresh = false;
+  let block = 0;
+  let heading = 0;
   let opened = {
     item: void 0,
-    itemStart: false
+    itemStart: false,
+    block,
+    heading
   };
   const flush = (question = false, colon = false) => {
     if (current.length > 0 && !question) clauses.push({ words: current, colon, ...opened });
@@ -11032,16 +11066,23 @@ function clausesOf(prep) {
     if (/\n[ \t\r]*\n/.test(gap)) {
       flush();
       item = void 0;
+      block++;
     }
     if (gap.includes("\n")) {
-      if (blockLine2) flush();
+      if (blockLine2) {
+        flush();
+        block++;
+      }
       blockLine2 = false;
+      heading = 0;
     }
     const raw = text.slice(i, end);
     if (atom === void 0) {
       const marker = lineStart && /^(?:[-*+]|\d{1,3}[.)]|#{1,6})$/.test(raw);
       if (marker || /^\|+$/.test(raw)) {
         flush();
+        if (marker || lineStart) block++;
+        if (marker && raw.startsWith("#")) heading = raw.length;
         if (lineStart && /^[#|]/.test(raw)) blockLine2 = true;
         if (marker && !raw.startsWith("#")) {
           item = { column: i - (text.lastIndexOf("\n", i - 1) + 1) };
@@ -11056,13 +11097,14 @@ function clausesOf(prep) {
       if (lineStart && raw.startsWith("|")) {
         blockLine2 = true;
         item = void 0;
+        block++;
       }
     }
     const word = makeWord(raw, i, atom?.kind, bracketAt);
     if (word !== void 0) {
       if (current.length > 0 && SUBORDINATORS.has(word.lower)) flush();
       if (current.length === 0) {
-        opened = { item, itemStart: fresh };
+        opened = { item, itemStart: fresh, block, heading };
         fresh = false;
       }
       current.push(word);
@@ -11126,6 +11168,9 @@ var Clause = class {
   tokens;
   // The clause narrates a failure staged on purpose (GRAMMAR.narrations).
   narrated = false;
+  // A narration earlier in its paragraph or list item, or in its section's heading, covers the
+  // clause (GRAMMAR.narrationScopes, 0.1.5): it proposes no false tests or checks result.
+  scoped = false;
   // ...by an edit made to cause it, so its paths are not this pull request's (GRAMMAR.stagings).
   staged = false;
   // The clause before ended in a colon and heads what this clause lists (0.1.3): a file list
@@ -11439,6 +11484,7 @@ function bindSubject(c, i, emit) {
         return;
       }
       const value = PASS.has(p) !== negated;
+      if (!value && c.scoped) return;
       const span = spanOf(c, first, r);
       if (checks) {
         emit("checks_succeeded", value, r, span);
@@ -11454,7 +11500,7 @@ function bindSubject(c, i, emit) {
   }
 }
 function bindRan(c, k, emit) {
-  if (!RAN_VERBS.has(c.lower(k)) || !c.asserting(k) || c.narrated) return;
+  if (!RAN_VERBS.has(c.lower(k)) || !c.asserting(k) || c.narrated || c.scoped) return;
   for (let j = k + 1; j <= k + 3 && j + 1 < c.words.length; j++) {
     const token = c.tokens[j];
     if (token?.cls === "int" && TESTS_NOUNS.has(c.lower(j + 1))) {
@@ -11485,6 +11531,9 @@ function extractClaims(report) {
   const parts = clausesOf(prep);
   const clauses = parts.map((part) => new Clause(part.words));
   let elsewhereBefore = false;
+  let narratedBlock;
+  let narratedSection;
+  let headingBlock = -1;
   let head;
   parts.forEach((part, n) => {
     const { words: words2 } = part;
@@ -11507,9 +11556,24 @@ function extractClaims(report) {
     const carried = elsewhere < 0 && elsewhereBefore && refers;
     if (carried) elsewhere = 0;
     elsewhereBefore = elsewhere >= 0;
+    if (part.heading > 0 && part.block !== headingBlock) {
+      headingBlock = part.block;
+      if (narratedSection !== void 0 && part.heading <= narratedSection) {
+        narratedSection = void 0;
+      }
+    }
+    if (narratedBlock !== void 0 && part.block !== narratedBlock.block) {
+      const nested = narratedBlock.column !== void 0 && part.item !== void 0 && part.item.column > narratedBlock.column;
+      narratedBlock = nested ? { ...narratedBlock, block: part.block } : void 0;
+    }
+    if (c.holds(NARRATION_SCOPES)) {
+      if (part.heading > 0) narratedSection ??= part.heading;
+      else narratedBlock ??= { block: part.block, column: part.item?.column };
+    }
+    c.scoped = narratedSection !== void 0 || narratedBlock !== void 0;
     if (CONDITIONALS.has(c.lower(0)) || c.holds(TRANSIENTS)) return;
     const firstFail = words2.findIndex((w) => FAIL.has(w.lower));
-    c.narrated = firstFail >= 0 && (c.holds(NARRATIONS) || openedByNarration(prep, words2, parts[n + 1]?.words));
+    c.narrated = firstFail >= 0 && (c.holds(NARRATIONS) || NARRATION_OPENERS.has(c.lower(0)) || openedByNarration(prep, words2, parts[n + 1]?.words));
     c.staged = c.narrated && c.holds(STAGINGS, 0, firstFail);
     const own = elsewhere < 0;
     const next = parts[n + 1];

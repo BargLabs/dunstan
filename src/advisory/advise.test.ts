@@ -44,12 +44,13 @@ import {
 import { ADVISORY_LINE, advisoryLine } from './present.js';
 
 const OTHER = '0123456789abcdef0123456789abcdef01234567';
-// The grammar the published figures were measured on, the one after it, the one that runs now
-// (0.1.3), and 0.1.4, which ran on 2026-10-07 and was reverted to 0.1.3.
+// The grammar the published figures were measured on, the ones after it, 0.1.4, which ran on
+// 2026-10-07 and was reverted to 0.1.3, and the one that runs now (0.1.5).
 const EXTRACTOR_0_1_1 = 'ab77ce47d1c5172ec912d1221e03bbe5b312ff5dc2acb594c4b8549fe602c360';
 const EXTRACTOR_0_1_2 = 'dfd6563a934667a80448e49b7133ade6d2473e5e13cd9d05fd52c761a1a1780b';
 const EXTRACTOR_0_1_3 = '2f9a1ed7f03e1ff68c8f719fcafc10c39b580abb1a9e9bdb268f9f5b38a14c37';
 const EXTRACTOR_0_1_4 = '78b92a682063464faf3cf1de13123d2b232bb3575effd5f31f0e12905643d45c';
+const EXTRACTOR_0_1_5 = '3672b6e2e63a748b505b2a970e487456ed9891cf4255fef2d25d27bbe9dfc475';
 // The comparison the published differs figure was measured on. The one that runs is 0.3.0.
 const COMPARISON_0_2_0 = '0.2.0';
 
@@ -489,12 +490,14 @@ describe('a file named by a bare name or a partial path (comparison 0.2.0)', () 
   });
 
   // Comparison 0.2.0 left the grammar at 0.1.1. Extractors 0.1.2, 0.1.3 and then 0.1.4 changed it
-  // later, and 0.1.4 was reverted: the grammar that runs is 0.1.3's again, digest for digest.
-  it('is extractor 0.1.3, reverted from 0.1.4; the comparison left 0.1.1 as it was', () => {
-    expect(EXTRACTOR_VERSION).toBe('0.1.3');
-    expect(EXTRACTOR).toEqual({ version: '0.1.3', digest: { sha256: EXTRACTOR_0_1_3 } });
-    expect(EXTRACTOR.digest.sha256).not.toBe(EXTRACTOR_0_1_2);
-    expect(EXTRACTOR.digest.sha256).not.toBe(EXTRACTOR_0_1_4);
+  // later, and 0.1.4 was reverted to 0.1.3. 0.1.5 changes 0.1.3's grammar, so its digest is none of
+  // theirs; the version 0.1.4 is not reused.
+  it('is extractor 0.1.5, after 0.1.3; the comparison left 0.1.1 as it was', () => {
+    expect(EXTRACTOR_VERSION).toBe('0.1.5');
+    expect(EXTRACTOR).toEqual({ version: '0.1.5', digest: { sha256: EXTRACTOR_0_1_5 } });
+    for (const earlier of [EXTRACTOR_0_1_1, EXTRACTOR_0_1_2, EXTRACTOR_0_1_3, EXTRACTOR_0_1_4]) {
+      expect(EXTRACTOR.digest.sha256).not.toBe(earlier);
+    }
   });
 
   it('is comparison 0.5.0; the accuracy of differs notes stays bound to 0.2.0, where it was measured', () => {
@@ -506,7 +509,7 @@ describe('a file named by a bare name or a partial path (comparison 0.2.0)', () 
     expect(differsAccuracyFor(EXTRACTOR_0_1_1, '0.3.0')).toBeNull();
     expect(differsAccuracyFor(EXTRACTOR_0_1_1, '0.4.0')).toBeNull();
     expect(differsAccuracyFor(EXTRACTOR_0_1_1, COMPARISON_VERSION)).toBeNull();
-    // Measured with extractor 0.1.1 only: 0.1.2, 0.1.3 and 0.1.4 are unmeasured.
+    // Measured with extractor 0.1.1 only: 0.1.2, 0.1.3, 0.1.4 and 0.1.5 are unmeasured.
     expect(differsAccuracyFor(EXTRACTOR.digest.sha256, COMPARISON_0_2_0)).toBeNull();
   });
 });
@@ -853,10 +856,10 @@ describe('the constructed-report figures are never carried in a record', () => {
     return out;
   }
 
-  it('the tables a record reads hold no figure for extractor 0.1.2, 0.1.3 or 0.1.4, nor the constructed counts', () => {
+  it('the tables a record reads hold no figure for extractor 0.1.2, 0.1.3, 0.1.4 or 0.1.5, nor the constructed counts', () => {
     expect(PUBLISHED_PRECISION.map((p) => p.extractorDigest)).toEqual([EXTRACTOR_0_1_1]);
     expect(PUBLISHED_DIFFERS_ACCURACY.map((p) => p.extractorDigest)).toEqual([EXTRACTOR_0_1_1]);
-    for (const digest of [EXTRACTOR_0_1_2, EXTRACTOR_0_1_3, EXTRACTOR_0_1_4]) {
+    for (const digest of [EXTRACTOR_0_1_2, EXTRACTOR_0_1_3, EXTRACTOR_0_1_4, EXTRACTOR_0_1_5]) {
       expect(precisionFor(digest)).toBeNull();
       expect(differsAccuracyFor(digest, COMPARISON_VERSION)).toBeNull();
     }
@@ -950,7 +953,7 @@ describe('a record with an advisory section (DRAFT 0.2.0)', () => {
     expect(a?.differsAccuracy).toEqual(
       differsAccuracyFor(EXTRACTOR.digest.sha256, COMPARISON_VERSION),
     );
-    // None is published for extractor 0.1.2, 0.1.3 or 0.1.4: each is unmeasured.
+    // None is published for extractor 0.1.2, 0.1.3, 0.1.4 or 0.1.5: each is unmeasured.
     expect(a?.precision).toBeNull();
     expect(a?.differsAccuracy).toBeNull();
     expect(a?.advisories.map((x) => [x.kind, x.value, x.note])).toEqual([
@@ -1123,8 +1126,8 @@ describe('a record with an advisory section (DRAFT 0.2.0)', () => {
   });
 
   // Before extractor 0.1.2 this was "a figure the record leaves out where one is published". 0.1.2,
-  // 0.1.3 and 0.1.4 have none published, so the case to name is the other one: a record that carries
-  // 0.1.1's figures for the extractor that runs. No version inherits a figure.
+  // 0.1.3, 0.1.4 and 0.1.5 have none published, so the case to name is the other one: a record that
+  // carries 0.1.1's figures for the extractor that runs. No version inherits a figure.
   it('verify names a figure the record carries where none is published', () => {
     const record = JSON.parse(JSON.stringify(build(PROSE, true))) as DunstanRecord;
     const a = record.predicate.advisory;
@@ -1343,7 +1346,8 @@ describe('dunstan check --advisory', () => {
     );
     const lines = advised.text.split('\n');
     const header = lines.findIndex((l) => l.startsWith('advisory (DRAFT'));
-    // Extractor 0.1.3 is unmeasured, as 0.1.2 and 0.1.4 are, so the fixed line states no figure.
+    // Extractor 0.1.5 is unmeasured, as 0.1.2, 0.1.3 and 0.1.4 are, so the fixed line states no
+    // figure.
     const section = advised.record.predicate.advisory;
     if (section === undefined) throw new Error('fixture');
     const line = advisoryLine(section);
