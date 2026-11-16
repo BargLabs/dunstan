@@ -7,14 +7,18 @@ import { EXTRACTOR } from '../advisory/grammar.js';
 import { differsAccuracyFor, precisionFor } from '../advisory/precision.js';
 import type { Evidence } from '../check/types.js';
 import { checkReaderClaim } from '../retrieval/reader-claims.js';
-import { DRAFT_PREDICATE_TYPE, GITLAB_DRAFT_PREDICATE_TYPE } from '../spec/constants.js';
+import {
+  DRAFT_PREDICATE_TYPE,
+  GITLAB_DRAFT_PREDICATE_TYPE,
+  GITLAB_PREDICATE_TYPE,
+} from '../spec/constants.js';
 import { canonicalize, sha256Canonical } from '../spec/jcs.js';
 import type { JsonValue } from '../spec/json.js';
 import { type BlockStatus, claimsDigest, evidenceDigest, overallVerdict } from '../spec/record.js';
 import {
   type SchemaError,
   validateDraftRecord,
-  validateGitlabDraftRecord,
+  validateGitlabRecord,
   validateRecord,
 } from '../spec/schema.js';
 import { claimsFor, type DunstanRecord, readerClaimsDigest, statementSubjects } from './build.js';
@@ -46,15 +50,17 @@ function isDraft(value: unknown): boolean {
   return predicateTypeOf(value) === DRAFT_PREDICATE_TYPE;
 }
 
-// DRAFT GitLab profile 0.1: a record of a GitLab merge request. Its claims and digests are
-// recomputed exactly as a GitHub record's are; only its schema and its subject entry's host differ.
+// GitLab profile 0.1: a record of a GitLab merge request, or one written while the profile was a
+// DRAFT. Its claims and digests are recomputed exactly as a GitHub record's are; only its schema and
+// its subject entry's host differ.
 export function isGitlabRecord(value: unknown): boolean {
-  return predicateTypeOf(value) === GITLAB_DRAFT_PREDICATE_TYPE;
+  const type = predicateTypeOf(value);
+  return type === GITLAB_PREDICATE_TYPE || type === GITLAB_DRAFT_PREDICATE_TYPE;
 }
 
 export function validateAnyRecord(value: unknown): SchemaError[] {
   if (isDraft(value)) return validateDraftRecord(value);
-  if (isGitlabRecord(value)) return validateGitlabDraftRecord(value);
+  if (isGitlabRecord(value)) return validateGitlabRecord(value);
   return validateRecord(value);
 }
 

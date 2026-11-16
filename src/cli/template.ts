@@ -8,7 +8,7 @@
 // valid and printed, so this is not an error (3), and it is not the block that was asked for, so a
 // script that pipes it into a report cannot take it for one with its tests (0). --tests-local and
 // --tests-junit read a local JUnit file and nothing online. With --gitlab-project and --mr
-// (DRAFT GitLab profile 0.1), --tests-ci reads the merge request's head pipeline instead, with
+// (GitLab profile 0.1), --tests-ci reads the merge request's head pipeline instead, with
 // GITLAB_TOKEN; --repo and the GitLab flags together are refused.
 //
 // This file reads the flags and refuses a usage error. Everything after that is runTemplate
@@ -31,7 +31,7 @@ const RECORD_FLAGS = [
 // The flags that name a GitLab merge request, as `dunstan check --gitlab-project` takes them.
 const GITLAB_FLAGS = ['gitlab-project', 'mr', 'gitlab-host'] as const;
 
-// --tests-ci on a GitLab merge request (DRAFT GitLab profile 0.1): the subject as `dunstan check`
+// --tests-ci on a GitLab merge request (GitLab profile 0.1): the subject as `dunstan check`
 // checks its flags, the job, and the file in its archive. --tests-workflow is optional (absent: the
 // project's CI configuration file); --tests-artifact, if given, must be archive.
 function gitlabTests(flag: (name: string) => string | undefined): TemplateTests {

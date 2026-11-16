@@ -10,6 +10,9 @@ Dunstan returns evidence. Your branch protection decides what blocks.
 
 ## Setup in three steps
 
+`npx -y dunstan init --write`, run in the repository, writes step 1's workflow and the files that
+have agents declare their claims, and prints what to add to CI ([`init.md`](init.md)).
+
 **1. Add the workflow.** Copy this to `.github/workflows/dunstan.yml`, with the Action pinned to a
 full commit SHA:
 

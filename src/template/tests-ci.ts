@@ -6,7 +6,7 @@
 // no candidate run, runs that disagree, an artifact or listing that cannot be read), no tests are
 // declared and the note says why and what to do. Read-only toward GitHub.
 //
-// On a GitLab merge request (DRAFT GitLab profile 0.1, G.3), testsFromGitLabCi reads the same way
+// On a GitLab merge request (GitLab profile 0.1, G.3), testsFromGitLabCi reads the same way
 // with the GitLab reader `dunstan check --gitlab-project` uses (src/evidence/gitlab.ts,
 // readGitLabTestRecord): the merge request's head pipeline at HEAD, the named job's artifacts
 // archive and the file in it. Read-only toward GitLab, with GITLAB_TOKEN only.
@@ -139,7 +139,7 @@ export async function testsFromCi(client: GitHubClient, input: CiTestsInput): Pr
   };
 }
 
-// ---------------------------------------------------------------- GitLab (DRAFT profile 0.1)
+// ---------------------------------------------------------------- GitLab (profile 0.1)
 
 export interface GitLabCiTestsInput {
   project: string;
@@ -153,7 +153,7 @@ export interface GitLabCiTestsInput {
   caller: Caller;
 }
 
-// The counts the check reads for a GitLab `junit` record (DRAFT GitLab profile 0.1, G.3): the merge
+// The counts the check reads for a GitLab `junit` record (GitLab profile 0.1, G.3): the merge
 // request read, its head pipeline at HEAD, and the named job's archive, with the check's reader
 // (src/evidence/gitlab.ts, readGitLabTestRecord). Whatever the check would leave unsettled
 // (unverifiable, or head_mismatch) declares no tests, with the check's reason and the remedy the

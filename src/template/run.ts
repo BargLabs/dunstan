@@ -8,7 +8,7 @@
 // Git first: HEAD and the repository are read before anything is read online, so a repository git
 // cannot answer for is refused (TemplateError) with nothing read and nothing printed. Only
 // `from: "ci"` reads the network, read-only: GitHub with GITHUB_TOKEN, or, given a GitLab merge
-// request (DRAFT GitLab profile 0.1), its GitLab host with GITLAB_TOKEN only.
+// request (GitLab profile 0.1), its GitLab host with GITLAB_TOKEN only.
 
 import { DEFAULT_GITLAB_HOST, GitHubClient, GitLabClient } from '../evidence/http.js';
 import {
@@ -40,7 +40,7 @@ export interface TemplateTestsFromCi {
 }
 
 // --tests-ci --gitlab-project: the counts at HEAD, read from the head pipeline of a GitLab merge
-// request as the check reads them (DRAFT GitLab profile 0.1, G.3). Each member is checked by the
+// request as the check reads them (GitLab profile 0.1, G.3). Each member is checked by the
 // caller; the artifact is always `archive`, the job's artifacts archive.
 export interface TemplateTestsFromGitLabCi {
   from: 'ci';

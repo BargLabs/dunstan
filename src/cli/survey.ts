@@ -1,4 +1,4 @@
-// dunstan survey (DRAFT, docs/survey.md): read-only. Lists a repository's recent closed pull
+// dunstan survey (docs/survey.md): read-only. Lists a repository's recent closed pull
 // requests, runs `dunstan check`'s pipeline on each selected one with the named report source,
 // writes the survey record and its Markdown summary. It reports which claims the record could not
 // settle and why, beside the contradicted share of the claims it did settle. GITHUB_TOKEN is

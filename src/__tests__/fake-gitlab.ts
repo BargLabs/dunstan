@@ -1,5 +1,5 @@
 // A small in-memory GitLab for tests: a fetch function that answers the REST reads the GitLab
-// evidence reader makes (spec/claim-format.md, "DRAFT GitLab profile 0.1"), from a scenario object.
+// evidence reader makes (spec/claim-format.md, "GitLab profile 0.1"), from a scenario object.
 // Any request the scenario does not cover answers 404, and every request is logged with its headers
 // so tests can assert what was (and was not) read, and with what. The project is
 // example-org/example-repo: no real project's names are in a fixture.

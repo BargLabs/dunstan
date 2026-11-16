@@ -29,9 +29,9 @@ verdict.
 
 Not part of 0.1.4: [DRAFT 0.2.0: reader claims and retrieval](#draft-020-reader-claims-and-retrieval),
 with [advisories from prose](#d11-advisories-from-prose), for the operator to check. Also not part
-of 0.1, and informative: [DRAFT survey 0.1: the settleability report](#draft-survey-01-the-settleability-report).
-Also not part of 0.1, for the operator to check: [DRAFT GitLab profile 0.1](#draft-gitlab-profile-01),
-which reads a GitLab merge request where section 6 reads a GitHub pull request.
+of 0.1, and informative: [Survey 0.1: the settleability report](#survey-01-the-settleability-report).
+Normative since 0.1.13: the [GitLab profile 0.1](#gitlab-profile-01), which reads a GitLab merge
+request where section 6 reads a GitHub pull request.
 
 ## 1. Conventions
 
@@ -951,6 +951,23 @@ against the schemas and check each record's block, report and claim and evidence
 
 ## 17. Changes
 
+- **0.1.13** (2026-11-15), checked by checker 0.1.23. The operator made the GitLab profile 0.1
+  normative, ruling on each of the draft's open questions (G.9) as the reference implementation
+  already behaves, and promoted the informative survey 0.1 from DRAFT. Sections 1 to 16, the block format and every GitHub
+  verdict are unchanged, and a GitHub record differs from a 0.1.12 one only in `spec`.
+
+  **GitLab.** A GitLab record has `predicateType` `https://barglabs.ai/dunstan/record/v0.1-gitlab`
+  and `spec` `"0.1.13-gitlab-0.1"`, and validates against `record-gitlab-0.1.schema.json`, renamed
+  from `record-gitlab-0.1-draft.schema.json`. That schema admits a record of the DRAFT pair
+  (`record/v0.1-gitlab-draft`, `"<0.1 version>-gitlab-0.1-draft"`), written by checkers 0.1.18 to
+  0.1.22, and never one name of each, so a DRAFT record still verifies (G.2). No read, evidence
+  member, claim row or verdict changes.
+
+  **Survey.** The survey record's `format` is `"dunstan-survey-0.1"`, and its schema
+  `survey-0.1.schema.json`, renamed from `survey-0.1-draft.schema.json`; it admits the DRAFT name,
+  `"dunstan-survey-0.1-draft"`, so a survey record checkers 0.1.13 to 0.1.22 wrote still verifies
+  (S.5). The survey stays informative.
+
 - **0.1.12** (2026-11-14). A clarification of section 7.5, checked by checker 0.1.22 (issue #141).
   Section 7.5 counts an artifact only if it was created within the named job's latest attempt
   (0.1.8), but did not say what a listing with several artifacts of the name means. Checker 0.1.21
@@ -1014,7 +1031,7 @@ against the schemas and check each record's block, report and claim and evidence
   reach `agrees`, where 0.4.0 gave `differs:not_reachable`.
 
 - **DRAFT GitLab profile 0.1** (2026-11-10, not a 0.1 version). Adds the informative
-  [DRAFT GitLab profile 0.1](#draft-gitlab-profile-01): how a checker reads a GitLab merge request
+  [DRAFT GitLab profile 0.1](#gitlab-profile-01): how a checker reads a GitLab merge request
   for every evidence section, the `predicate.subject.forge` member a GitLab record carries, and
   `spec/schema/record-gitlab-0.1-draft.schema.json`. Every evidence section has a GitLab source:
   `pullRequest`, `files`, `closingReferences`, `references` and `closeEvents`; `checkRuns` from the
@@ -2488,12 +2505,13 @@ nothing is at that path at the head.
   (D.11.3, item 4; `docs/advisory.md`, "Asides and analogues"). The grammar digest changes, so no
   precision measured on 0.1.0 applies to 0.1.1. Sections 1 to 17 are unchanged.
 
-## DRAFT survey 0.1: the settleability report
+## Survey 0.1: the settleability report
 
-> **DRAFT. Informative. For the operator to check.** Nothing in this section changes the block, the
-> record, a claim row or a verdict. Sections 1 to 17, DRAFT 0.2.0 and their schemas stand as
-> written. The reference implementation is `src/survey/`, `src/remedy/` and
-> `src/pipeline/survey.ts`; the guide is `docs/survey.md`.
+> **Informative.** Promoted from DRAFT by the operator on 2026-11-15, unchanged but for its
+> format's name (S.5). Nothing in this section changes the block, the record, a claim row or a
+> verdict. Sections 1 to 17, DRAFT 0.2.0 and their schemas stand as written. The reference
+> implementation is `src/survey/`, `src/remedy/` and `src/pipeline/survey.ts`; the guide is
+> `docs/survey.md`.
 
 ### S.1 Scope
 
@@ -2576,8 +2594,10 @@ exists, and the pull request wrote it.
 
 ### S.5 The survey record
 
-A survey record has `format` `"dunstan-survey-0.1-draft"` and validates against
-`spec/schema/survey-0.1-draft.schema.json`. It holds the checker identity, the selection (its
+A survey record has `format` `"dunstan-survey-0.1"` and validates against
+`spec/schema/survey-0.1.schema.json`. Checkers 0.1.13 to 0.1.22 wrote the DRAFT name,
+`"dunstan-survey-0.1-draft"`; a record of that name and the same shape still validates and
+verifies, and its summary still says DRAFT. It holds the checker identity, the selection (its
 parameters, its reader, the listing and the selected numbers), the entries, the aggregate, and the
 commands to verify it offline and to run it again. `selection.listing.abandoned` holds one item per
 abandoned read (S.2), in order, each `{"pages": [...]}` with pages of the shape the listing's pages
@@ -2614,14 +2634,14 @@ reads, or, when all 3 reads repeated, one that closed during the last (S.2): `du
 only the closes that caused a repeat, and `0` does not prove the listing held still. To trust a survey's completeness, run it again online
 (`rerun.online`).
 
-## DRAFT GitLab profile 0.1
+## GitLab profile 0.1
 
-> **DRAFT. Not normative. For the operator to check.** Nothing in this section changes version
-> 0.1.11. Sections 1 to 17, `handback-block-0.1.schema.json`, `record-0.1.schema.json` and every
-> 0.1 verdict stand as written, and a record of a GitHub pull request is written exactly as it was
-> before this section. The key words of section 1 are used here to say what the profile would
-> require if it is adopted; until then they bind nothing. Promoting it to normative is the
-> operator's. The reference implementation is `src/evidence/gitlab.ts`; open questions are in G.9.
+> **Normative since 0.1.13**, by the operator's ruling of 2026-11-15 (section 17). It was a DRAFT
+> from 2026-11-10. Sections 1 to 17, `handback-block-0.1.schema.json`, `record-0.1.schema.json`
+> and every 0.1 verdict stand as written, and a record of a GitHub pull request is written exactly
+> as it was before this section. The key words of section 1 bind a checker that reads a GitLab
+> merge request. The reference implementation is `src/evidence/gitlab.ts`; the operator's rulings
+> on the draft's open questions are in G.9.
 
 ### G.1 Scope
 
@@ -2647,10 +2667,13 @@ valid 0.1 block (G.9).
 
 ### G.2 The record
 
-A record of a merge request has `predicateType`
+A record of a merge request has `predicateType` `https://barglabs.ai/dunstan/record/v0.1-gitlab`
+and `spec` `"<0.1 version>-gitlab-0.1"` (`"0.1.13-gitlab-0.1"`), and validates against
+`spec/schema/record-gitlab-0.1.schema.json`. A record written while the profile was a DRAFT, by
+checkers 0.1.18 to 0.1.22, has `predicateType`
 `https://barglabs.ai/dunstan/record/v0.1-gitlab-draft` and `spec`
-`"<0.1 version>-gitlab-0.1-draft"` (`"0.1.11-gitlab-0.1-draft"` for checker 0.1.18), and
-validates against `spec/schema/record-gitlab-0.1-draft.schema.json`. That schema refers to the 0.1
+`"<0.1 version>-gitlab-0.1-draft"`; the schema admits that pair too, never one name of each, and
+such a record still verifies. That schema refers to the 0.1
 schema for every member the two share. It differs from 0.1 in these members only:
 
 - **`predicate.subject.forge`**, REQUIRED in a GitLab record: `{"kind": "gitlab", "host":
@@ -2679,7 +2702,7 @@ merge request.
 input, or the merge request's description, which is its body. A description report is recorded
 as `kind` `pr-body` with the locator `GET /api/v4/projects/<id>/merge_requests/<iid>#description`,
 where `<id>` is the project's full path, URL-encoded (`example-org%2Fexample-repo`). A comment by
-its author is not read in this draft.
+its author is not read (G.9, question 8).
 
 The record keeps `kind` `pr-body` for a description report, and the claims table a person reads
 names it "merge request description".
@@ -2797,28 +2820,35 @@ diffs are digested with the rest of its body and never recorded, and the JUnit f
 `junit` record names is read from the job's artifacts archive only to be counted, as section 7.5
 reads GitHub's artifact; its counts are recorded, never its text.
 
-### G.9 Open questions for the operator
+### G.9 The operator's rulings
+
+The draft left these questions open. The operator ruled on them on 2026-11-15, each as the
+reference implementation already behaves, so no verdict a DRAFT record gave changes.
 
 1. A block that names an issue of another project in a subgroup in full
    (`group/subgroup/project#N`) is not a valid 0.1 block, since the block schema's issue pattern
    admits two segments; an issue of the subject project is `#N` at any depth. Widening the block's
-   pattern is a change to the block format, which this draft leaves alone.
+   pattern is a change to the block format. **Ruled:** the block format is left as it is; such an
+   issue is not declared in 0.1.
 2. A fast-forward merge without a squash has no `mergeSha`, since GitLab states no merged commit
    for it. The head is the commit a fast-forward puts on the target when no rebase was needed, but
-   the API does not say which case a merge was.
+   the API does not say which case a merge was. **Ruled:** `mergeSha` stays `null` for it, and no
+   claim reads it.
 3. A `manual` job that was never run concludes `skipped` (the job status table), so it fails
    `allSucceeded` and does not fail `noneFailed`. Reading it as not completed instead would leave
-   both unsettled while it waits.
+   both unsettled while it waits. **Ruled:** it is `skipped`.
 4. `successAt` is a successful deployment's `updated_at`, which is no earlier than the time it
    succeeded, since the API gives no such time. A later update to the deployment can only make it
    read later, never earlier, so it can fail a claim it should pass but never pass one it should
-   fail.
+   fail. **Ruled:** `successAt` is `updated_at`; the error it allows fails closed.
 5. The deployments listing has no commit filter, so the whole environment's listing is read, to
-   the bound of 100 pages; an environment with more deployments is unreadable.
+   the bound of 100 pages; an environment with more deployments is unreadable. **Ruled:** as
+   stated.
 6. A `junit` record's `artifact` is `archive`, the job's one artifacts archive. A name from the
    job's `artifacts:name` would read as GitHub's artifact name does, but the listing gives it only as
-   the archive's file name.
+   the archive's file name. **Ruled:** `artifact` is `archive`.
 7. The head pipeline is the merge request's `head_pipeline` only. A merge request whose head has
    pipelines for both the branch and the merge request has one of them as its head pipeline; the
-   other is not read.
-8. A comment by its author (section 3) as the report.
+   other is not read. **Ruled:** the head pipeline only.
+8. A comment by its author (section 3) as the report. **Ruled:** not read on GitLab; the report is
+   a file, standard input, or the merge request's description.

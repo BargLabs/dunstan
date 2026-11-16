@@ -13,7 +13,9 @@ write, then asks the author about the prose the block does not cover.
 
 ## The instruction block
 
-Copy this into `AGENTS.md`, `CLAUDE.md` or `.github/copilot-instructions.md`:
+Copy this into `AGENTS.md`, `CLAUDE.md` or `.github/copilot-instructions.md`, or run
+`npx -y dunstan init --write`, which adds it to `AGENTS.md` and to those of the others that exist
+([`init.md`](init.md)):
 
 ```markdown
 ## Before you report a task done
@@ -76,7 +78,7 @@ dunstan template [--base <ref>]
 It prints a `dunstan-handback` fence on standard output and nothing else, so the output can be
 pasted or appended as it is. Notes go to standard error. It reads only local git, except with
 `--tests-ci`, which reads the CI record from GitHub, or, with `--gitlab-project` and `--mr`, from
-the GitLab merge request's head pipeline (DRAFT GitLab profile 0.1).
+the GitLab merge request's head pipeline (GitLab profile 0.1).
 
 | Field | Filled from |
 | --- | --- |

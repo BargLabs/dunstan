@@ -22,7 +22,7 @@ import { checkerIdentity } from '../record/checker.js';
 import { isGitlabRecord } from '../record/verify.js';
 import { escapePointerToken, type JsonValue, parseStrictJson } from '../spec/json.js';
 import { withoutSources } from '../spec/record.js';
-import { validateGitlabDraftRecord, validateRecord } from '../spec/schema.js';
+import { validateGitlabRecord, validateRecord } from '../spec/schema.js';
 import { parseCheckRunIds } from './check.js';
 import { type CliIo, exitFor, renderRecord, UsageError } from './output.js';
 
@@ -63,10 +63,10 @@ export async function rerun(args: string[], io: CliIo): Promise<number> {
     throw new UsageError('rerun never overwrites the record it re-runs');
 
   const value = parseStrictJson(readFileSync(path, 'utf8'));
-  // A GitLab record (DRAFT GitLab profile 0.1) validates against its own schema; every other
+  // A GitLab record (GitLab profile 0.1) validates against its own schema; every other
   // record against 0.1's, as before.
   const gitlab = isGitlabRecord(value);
-  const errors = gitlab ? validateGitlabDraftRecord(value) : validateRecord(value);
+  const errors = gitlab ? validateGitlabRecord(value) : validateRecord(value);
   if (errors.length > 0) {
     throw new UsageError(
       `${path} is not a valid record: ${errors[0]?.pointer} ${errors[0]?.message}`,

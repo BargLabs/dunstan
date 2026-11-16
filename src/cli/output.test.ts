@@ -1,5 +1,5 @@
 // The claims table `dunstan check`, `rerun` and the MCP tool print (renderRecord). A GitLab record
-// (DRAFT GitLab profile 0.1, `predicate.subject.forge.kind` `gitlab`) is printed in GitLab's terms:
+// (GitLab profile 0.1, `predicate.subject.forge.kind` `gitlab`) is printed in GitLab's terms:
 // the merge request is `<project>!<iid>`, a description report is "merge request description", and
 // no remedy line names a GitHub-only thing. The record is unchanged: only the printed text differs.
 // A GitHub record's table is byte-identical to the one checker 0.1.19 printed (the snapshot file), but for the checker version in its first line.

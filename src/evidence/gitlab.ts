@@ -1,4 +1,4 @@
-// The GitLab evidence reader (spec/claim-format.md, "DRAFT GitLab profile 0.1"). REST v4 over the
+// The GitLab evidence reader (spec/claim-format.md, "GitLab profile 0.1"). REST v4 over the
 // same client contract as GitHub's (src/evidence/http.ts): every read a source with its SHA-256,
 // every listing paginated to its end or to MAX_PAGES, a failed read never filled in with a guess.
 // It reads the merge request, its diffs listing, its closing issues, the issues and commits a block
@@ -52,7 +52,7 @@ export const HEAD_PIPELINE_ELSEWHERE = 'head_pipeline_not_at_head_commit';
 // A target's resource state events are read to at most ten pages, as GitHub's ClosedEvents are.
 const CLOSE_EVENT_PAGES = 10;
 
-// A project's full path, `group/subgroup/.../project`, and an issue reference, as the DRAFT GitLab
+// A project's full path, `group/subgroup/.../project`, and an issue reference, as the GitLab
 // schema admits them (profile G.1): up to 20 levels of groups, each segment as GitLab allows one.
 // Every path the 0.1 `repository` pattern admits is one of these.
 const SEGMENT = '[A-Za-z0-9_][A-Za-z0-9._-]{0,254}';

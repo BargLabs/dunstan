@@ -1,4 +1,4 @@
-// The survey's Markdown summary (DRAFT, docs/survey.md), built from the survey record alone and
+// The survey's Markdown summary (docs/survey.md), built from the survey record alone and
 // deterministic: the same record gives the same bytes. Its first lines state the selection and
 // whether GitHub was read with a token, and an anonymous survey says that its cannot-settle share is
 // higher for it. Then, in order: the claims the record could not
@@ -67,7 +67,7 @@ export function renderSurveySummary(record: SurveyRecord): string {
   lines.push(
     `# Settleability survey: ${parameters.repository}`,
     '',
-    `DRAFT (${record.format}). ${record.checker.name} ${record.checker.version}, survey mapping ${a.mapping.version}. Read-only.`,
+    `${record.format.endsWith('-draft') ? 'DRAFT' : 'Survey'} (${record.format}). ${record.checker.name} ${record.checker.version}, survey mapping ${a.mapping.version}. Read-only.`,
     '',
     `Selection: ${scope.join(', ')}. Report: ${report}. Advisory reader: ${parameters.advisory ? 'on' : 'off'}.`,
     '',

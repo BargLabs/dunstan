@@ -26,7 +26,7 @@ self-contained file with no dependencies, so nothing is built and nothing else i
 /plugin install dunstan@barglabs
 ```
 
-The plugin starts the server with `npx -y dunstan@0.1.22 mcp` and adds the `dunstan-check` skill. When
+The plugin starts the server with `npx -y dunstan@0.1.23 mcp` and adds the `dunstan-check` skill. When
 you enable it, Claude Code asks for an optional GitHub token (below). It stores the value in your
 system's secure credential store and passes it to the server as `GITHUB_TOKEN`. Leave it empty to read
 public repositories anonymously (a `closes` reference and a `tests` count then need the token; see
@@ -44,7 +44,7 @@ environment setting:
   "mcpServers": {
     "dunstan": {
       "command": "npx",
-      "args": ["-y", "dunstan@0.1.22", "mcp"],
+      "args": ["-y", "dunstan@0.1.23", "mcp"],
       "env": { "GITHUB_TOKEN": "<a fine-grained, read-only token>" }
     }
   }
@@ -63,7 +63,7 @@ a public repository is checked anonymously.
 ### A GitLab merge request (DRAFT)
 
 `dunstan_check_handback` also checks a GitLab merge request, on gitlab.com or a self-managed host,
-as `dunstan check --gitlab-project` does (DRAFT GitLab profile 0.1; the README's GitLab section). For
+as `dunstan check --gitlab-project` does (GitLab profile 0.1; the README's GitLab section). For
 a GitLab subject the server reads `GITLAB_TOKEN` from its environment, and only that: it sends
 `GITLAB_TOKEN` only to the GitLab host the call names and `GITHUB_TOKEN` only to GitHub, never one
 forge's token to the other's host. In another MCP client, give the server `GITLAB_TOKEN` in the same
@@ -215,7 +215,7 @@ phrase table in `src/template/wording.ts` (`src/mcp/template-parity.test.ts` hol
   repository the origin remote names). It reads the counts at HEAD from the JUnit record CI
   published, as the gate reads it, with `GITHUB_TOKEN`.
 - `{ "from": "ci", "gitlabProject", "mergeRequest", "gitlabHost"?, "command", "job", "path"?,
-  "workflow"? }` (DRAFT GitLab profile 0.1): the same as `--tests-ci --gitlab-project --mr
+  "workflow"? }` (GitLab profile 0.1): the same as `--tests-ci --gitlab-project --mr
   [--gitlab-host] --tests-command --tests-job [--tests-path] [--tests-workflow]`. It reads the merge
   request's head pipeline at HEAD and the named job's artifacts archive, with the reader `dunstan
   check --gitlab-project` uses, and `GITLAB_TOKEN` only, sent only to the GitLab host. `path` is the
@@ -271,7 +271,7 @@ the prose. Details: [`docs/agents.md`](agents.md).
   queries: the closing references, and the two that read a target's ClosedEvents and the pull
   request's base branch and commit ids. It never reads a repository file's contents.
 - For a GitLab merge request it reads GitLab metadata with `GITLAB_TOKEN`, every request a `GET` to
-  the GitLab host the call names: the evidence the DRAFT GitLab profile maps (README, "GitLab
+  the GitLab host the call names: the evidence the GitLab profile maps (README, "GitLab
   (draft)"). It never sends `GITHUB_TOKEN` to GitLab, nor `GITLAB_TOKEN` to GitHub.
 - It writes nothing to GitHub or GitLab, and nothing to the repository.
 - It writes a file only when the caller passes `outPath`, and never over an existing file. Without

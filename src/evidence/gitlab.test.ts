@@ -1,4 +1,4 @@
-// The GitLab reader (spec/claim-format.md, "DRAFT GitLab profile 0.1"): a merge request checked as a
+// The GitLab reader (spec/claim-format.md, "GitLab profile 0.1"): a merge request checked as a
 // pull request is, from a fake GitLab, with every GitHub record left as it was.
 
 import { readdirSync, readFileSync } from 'node:fs';
@@ -31,7 +31,7 @@ import { PullRequestMoved, PullRequestUnreadable } from './github.js';
 import { GITLAB_PROJECT, reportFromMergeRequestDescription } from './gitlab.js';
 import { GitLabClient } from './http.js';
 
-const CHECKER = { name: 'dunstan', version: '0.1.22', digest: { sha256: '0'.repeat(64) } };
+const CHECKER = { name: 'dunstan', version: '0.1.23', digest: { sha256: '0'.repeat(64) } };
 // Not a real token, and not in GitLab's token format, so no secret scanner reads it as one.
 const TOKEN = 'fake-gitlab-token-NEVER-IN-A-RECORD';
 
@@ -115,8 +115,8 @@ describe('a merged merge request', () => {
   it('gives the pullRequest and files sections, a rename, an addition and a deletion', async () => {
     const { record } = await checkMr(scenario());
     const p = record.predicate;
-    expect(record.predicateType).toBe('https://barglabs.ai/dunstan/record/v0.1-gitlab-draft');
-    expect(p.spec).toBe('0.1.12-gitlab-0.1-draft');
+    expect(record.predicateType).toBe('https://barglabs.ai/dunstan/record/v0.1-gitlab');
+    expect(p.spec).toBe('0.1.13-gitlab-0.1');
     expect(p.subject).toEqual({
       repository: GL_PROJECT,
       pullRequest: 1,
@@ -204,6 +204,18 @@ describe('a merged merge request', () => {
     expect(result.problems).toEqual([]);
     expect(result.ok).toBe(true);
     expect(serializeRecord(record)).not.toContain('FILE-CONTENT');
+  });
+
+  it('verifies a record written while the profile was a DRAFT, and refuses a mixed pair', async () => {
+    const { record } = await checkMr(scenario());
+    const draft = JSON.parse(serializeRecord(record)) as DunstanRecord;
+    draft.predicateType = 'https://barglabs.ai/dunstan/record/v0.1-gitlab-draft';
+    draft.predicate.spec = '0.1.12-gitlab-0.1-draft';
+    expect(verifyRecord(draft).problems).toEqual([]);
+    const mixed = { ...draft, predicate: { ...draft.predicate, spec: '0.1.13-gitlab-0.1' } };
+    expect(verifyRecord(mixed).ok).toBe(false);
+    const other = { ...JSON.parse(serializeRecord(record)), predicate: { ...draft.predicate } };
+    expect(verifyRecord(other).ok).toBe(false);
   });
 
   it('marks an undeclared file and a declared file the merge request does not change', async () => {
@@ -437,7 +449,7 @@ const SUBGROUP = 'example-org/sub-group/deeper/example-repo';
 describe('a project in a subgroup (profile G.1)', () => {
   it("names a project by the GitLab schema's repository pattern, which admits every 0.1 path", () => {
     const gitlab = JSON.parse(
-      readFileSync('spec/schema/record-gitlab-0.1-draft.schema.json', 'utf8'),
+      readFileSync('spec/schema/record-gitlab-0.1.schema.json', 'utf8'),
     ) as { $defs: { repository: { pattern: string } } };
     const v01 = JSON.parse(readFileSync('spec/schema/record-0.1.schema.json', 'utf8')) as {
       $defs: { repository: { pattern: string } };

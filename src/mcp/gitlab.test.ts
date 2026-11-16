@@ -1,4 +1,4 @@
-// dunstan_check_handback on a GitLab merge request (DRAFT GitLab profile 0.1), against a fake
+// dunstan_check_handback on a GitLab merge request (GitLab profile 0.1), against a fake
 // GitLab: exactly one subject, each token only to its own forge's host, and the CLI's record on the
 // same evidence. The GitHub cases are in server.test.ts and github-unchanged.test.ts.
 

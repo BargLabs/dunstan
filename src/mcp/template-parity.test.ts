@@ -318,7 +318,7 @@ describe('dunstan_template_handback parity with dunstan template', () => {
   });
 });
 
-// The GitLab form (DRAFT GitLab profile 0.1): the declared case and each case that declares none,
+// The GitLab form (GitLab profile 0.1): the declared case and each case that declares none,
 // byte for byte between `dunstan template --tests-ci --gitlab-project` and tests.from "ci" with
 // gitlabProject. GITLAB_TOKEN only; the origin remote is not read.
 const GL_TOKEN = { GITLAB_TOKEN: 'fake-gitlab-token-PARITY-0042' };

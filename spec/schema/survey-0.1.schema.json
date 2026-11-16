@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://barglabs.ai/dunstan/spec/schema/survey-0.1-draft.schema.json",
-  "title": "Dunstan survey record, DRAFT 0.1",
-  "description": "DRAFT, informative, for the operator to check (spec/claim-format.md, \"DRAFT survey 0.1\"). A read-only survey of a repository's recent pull requests: the selection, one entry per selected pull request with the record a check wrote for it or the reason there is none, and an aggregate that is a pure function of the entries. Each embedded record is a 0.1 or DRAFT 0.2.0 record and is validated against its own schema when the survey is verified. It changes neither record schema.",
+  "$id": "https://barglabs.ai/dunstan/spec/schema/survey-0.1.schema.json",
+  "title": "Dunstan survey record 0.1",
+  "description": "Informative (spec/claim-format.md, \"Survey 0.1\"). `format` is dunstan-survey-0.1; a record checkers 0.1.13 to 0.1.22 wrote under the DRAFT name dunstan-survey-0.1-draft, of the same shape, still validates. A read-only survey of a repository's recent pull requests: the selection, one entry per selected pull request with the record a check wrote for it or the reason there is none, and an aggregate that is a pure function of the entries. Each embedded record is a 0.1 or DRAFT 0.2.0 record and is validated against its own schema when the survey is verified. It changes neither record schema.",
   "type": "object",
   "required": ["format", "checker", "selection", "entries", "aggregate", "rerun", "digest"],
   "additionalProperties": false,
   "properties": {
-    "format": { "const": "dunstan-survey-0.1-draft" },
+    "format": { "enum": ["dunstan-survey-0.1", "dunstan-survey-0.1-draft"] },
     "checker": { "$ref": "record-0.1.schema.json#/$defs/predicate/properties/checker" },
     "selection": {
       "type": "object",

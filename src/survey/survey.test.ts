@@ -17,10 +17,14 @@ import { parseStrictJson } from '../spec/json.js';
 import { rate } from './aggregate.js';
 import { claimType, column, mappingDigest, SURVEY_MAPPING_VERSION } from './mapping.js';
 import {
+  isSurveyRecord,
   LISTING_READS,
+  SURVEY_DRAFT_FORMAT,
+  SURVEY_FORMAT,
   type SurveyParameters,
   type SurveyRecord,
   selectPullRequests,
+  surveyDigest,
 } from './record.js';
 import { ANONYMOUS, renderSurveySummary } from './summary.js';
 import { verifySurveyRecord } from './verify.js';
@@ -167,6 +171,20 @@ describe('the fixture repository', () => {
     const v = await verifyFile(one.out);
     expect(v.out).toMatch(/^verified: .*survey of 13 pull requests/);
     expect(v.code).toBe(0);
+  });
+});
+
+describe('a survey record of the DRAFT format name', () => {
+  it('still verifies, and its summary still says DRAFT', async () => {
+    const run = await fixtureRun();
+    const record = JSON.parse(run.bytes) as SurveyRecord;
+    expect(record.format).toBe(SURVEY_FORMAT);
+    const draft = { ...record, format: SURVEY_DRAFT_FORMAT } as SurveyRecord;
+    const signed = { ...draft, digest: { sha256: surveyDigest(draft) } } as SurveyRecord;
+    expect(isSurveyRecord(signed)).toBe(true);
+    expect(verifySurveyRecord(signed).problems).toEqual([]);
+    expect(renderSurveySummary(signed)).toMatch(/^DRAFT \(dunstan-survey-0\.1-draft\)\./m);
+    expect(renderSurveySummary(record)).toMatch(/^Survey \(dunstan-survey-0\.1\)\./m);
   });
 });
 
@@ -609,10 +627,7 @@ describe('the listing', () => {
       // The schema alone refuses a record past the bound, so its maxItems and LISTING_READS must
       // agree: changing either without the other fails here.
       const schema = JSON.parse(
-        readFileSync(
-          new URL('../../spec/schema/survey-0.1-draft.schema.json', import.meta.url),
-          'utf8',
-        ),
+        readFileSync(new URL('../../spec/schema/survey-0.1.schema.json', import.meta.url), 'utf8'),
       );
       expect(schema.$defs.listing.properties.abandoned.maxItems).toBe(LISTING_READS - 1);
     });

@@ -1,4 +1,4 @@
-// dunstan template --tests-ci on a GitLab merge request (DRAFT GitLab profile 0.1, G.3): the counts
+// dunstan template --tests-ci on a GitLab merge request (GitLab profile 0.1, G.3): the counts
 // are the ones `dunstan check --gitlab-project` reads for the same record, through the merge
 // request's head pipeline at HEAD, with the check's own reader. Every outcome the check would not
 // settle declares no tests and says why. Against a fake GitLab; the project is

@@ -35,7 +35,7 @@ export interface RemedyContext {
   // dunstan_template_handback and its inputs for an MCP caller (src/template/wording.ts). Only
   // dunstan_check_handback's text passes 'mcp'; the CLI, the Action and the survey pass 'cli'.
   caller: Caller;
-  // 'gitlab' for a GitLab record (DRAFT GitLab profile 0.1): a tests row's line is then
+  // 'gitlab' for a GitLab record (GitLab profile 0.1): a tests row's line is then
   // GITLAB_TESTS_REMEDIES', in GitLab's terms. Absent for a GitHub record, whose lines are REMEDIES'.
   // Only renderRecord sets it, from the record's `subject.forge`.
   forge?: 'gitlab';
@@ -159,7 +159,7 @@ const GITLAB_PROFILE = 'spec/claim-format.md, G.3';
 const ARCHIVE_UNREADABLE =
   "the job's artifacts archive could not be read: it expired, its download failed, or the archive or the JUnit file in it does not parse.";
 
-// The same reasons on a GitLab record, in GitLab's terms (DRAFT GitLab profile 0.1, G.3): a junit
+// The same reasons on a GitLab record, in GitLab's terms (GitLab profile 0.1, G.3): a junit
 // record names the CI configuration file, a job of the head pipeline, its artifacts archive and the
 // file's path inside it. docs/ci-test-records.md reads GitHub only, so no line names it, nor the
 // template; no line depends on the caller. Printed by the claims table, and by `dunstan template

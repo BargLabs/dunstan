@@ -21,8 +21,10 @@ export interface CliIo {
   readStdin: () => Uint8Array;
   // Tests only: the clock `dunstan survey` reads with, so two runs write the same bytes.
   now?: () => Date;
-  // The directory `dunstan template` runs git in; process.cwd() when absent.
+  // The directory `dunstan template` and `dunstan init` run git in; process.cwd() when absent.
   cwd?: string;
+  // Tests only: stands in for `git ls-remote`, which `dunstan init` reads the Action's pin with.
+  lsRemote?: (url: string, refs: string[]) => string;
   // The streams `dunstan mcp` speaks the protocol on; process stdin and stdout when absent.
   stdin?: Readable;
   stdout?: Writable;
@@ -73,7 +75,7 @@ function reportKindText(kind: string, gitlab: boolean): string {
 // (src/remedy/remedies.ts). Each tests row the record could not settle for a reason a repository
 // can act on is followed by one indented `remedy:` line; the record holds no remedy.
 //
-// A GitLab record (DRAFT GitLab profile 0.1, `subject.forge.kind` `gitlab`) is printed in GitLab's
+// A GitLab record (GitLab profile 0.1, `subject.forge.kind` `gitlab`) is printed in GitLab's
 // terms: its merge request is `<project>!<iid>`, since `#N` names an issue on GitLab. The record is
 // unchanged; a GitHub record's table is byte-identical to before (src/cli/output.test.ts).
 export function renderRecord(record: DunstanRecord, context: RemedyContext): string {

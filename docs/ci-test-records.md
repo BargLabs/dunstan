@@ -80,12 +80,12 @@ merged.
       - run: mvn -B test
       - name: Merge the test reports
         if: ${{ !cancelled() }}
-        run: npx -y dunstan@0.1.22 junit-merge target/surefire-reports/TEST-*.xml --out junit.xml
+        run: npx -y dunstan@0.1.23 junit-merge target/surefire-reports/TEST-*.xml --out junit.xml
       # ... the upload step ...
 ```
 
 In a multi-module build, list every module's reports: for example
-`shopt -s globstar && npx -y dunstan@0.1.22 junit-merge **/target/surefire-reports/TEST-*.xml --out junit.xml`.
+`shopt -s globstar && npx -y dunstan@0.1.23 junit-merge **/target/surefire-reports/TEST-*.xml --out junit.xml`.
 
 ## Gradle
 
@@ -95,7 +95,7 @@ Gradle writes one file per test class under `build/test-results/test/`.
       - run: ./gradlew test
       - name: Merge the test reports
         if: ${{ !cancelled() }}
-        run: npx -y dunstan@0.1.22 junit-merge build/test-results/test/*.xml --out junit.xml
+        run: npx -y dunstan@0.1.23 junit-merge build/test-results/test/*.xml --out junit.xml
       # ... the upload step ...
 ```
 
@@ -161,11 +161,42 @@ A run made only on your machine is declared as one: `dunstan template --tests-lo
 ## Limits
 
 - **A matrix job's name includes its matrix values**, as the run records it: `test (ubuntu-latest,
-  20)`, not `test`. Each leg uploads its own artifact, so give each a name of its own (for example
-  `dunstan-junit-${{ matrix.os }}`) and declare one `tests` entry per leg, or record one leg only.
-  Two artifacts of one name uploaded within the named job's latest attempt make the record
-  `unreadable`. A job re-run in a later attempt uploads its artifact again under the same name, and
-  only the latest attempt's is read; an earlier attempt's alone is `unreadable`.
+  20)`, not `test`. Record one leg only: two artifacts of one name uploaded within the named job's
+  latest attempt make the record `unreadable`. A job re-run in a later attempt uploads its artifact
+  again under the same name, and only the latest attempt's is read; an earlier attempt's alone is
+  `unreadable`. Either give the upload an `if:` that names one leg, and declare that leg's job name,
+  or, when its name is hard to give (an `include`, a matrix from an expression), have the first leg
+  upload its report, and a job of its own, whose name is fixed, upload it as `dunstan-junit`. In
+  the matrix job, in place of the upload step:
+
+  ```yaml
+        - name: Upload the test record of one leg for Dunstan
+          if: ${{ !cancelled() && strategy.job-index == 0 }}
+          uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+          with:
+            name: dunstan-junit-leg
+            path: junit.xml
+            if-no-files-found: error
+  ```
+
+  and beside it, a job the record names (`"job": "dunstan-junit"`):
+
+  ```yaml
+    dunstan-junit:
+      needs: test
+      if: ${{ !cancelled() }}
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+          with:
+            name: dunstan-junit-leg
+        - name: Upload the test record for Dunstan
+          uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+          with:
+            name: dunstan-junit
+            path: junit.xml
+            if-no-files-found: error
+  ```
 - **The artifact needs a token to read.** GitHub answers an artifact download without a token with
   401 "Requires authentication", even on a public repository (observed 2026-11-02). A check without
   a token reports the `tests` rows `unverifiable` with `source_unreadable:artifact`. The Action

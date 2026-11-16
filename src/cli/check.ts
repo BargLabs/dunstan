@@ -157,7 +157,7 @@ interface CheckValues {
   'report-mr-description'?: boolean | undefined;
 }
 
-// DRAFT GitLab profile 0.1: one merge request, named by its project's full path and its iid, on
+// GitLab profile 0.1: one merge request, named by its project's full path and its iid, on
 // gitlab.com or the host given. The report is a file, stdin or the description. A flag that names
 // a GitHub subject is refused, never ignored. --exclude-gitlab-job names the checker's own job
 // (CI_JOB_ID), which the check runs leave out and record under excludedIds (profile G.3).

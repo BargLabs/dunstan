@@ -1,4 +1,4 @@
-// The survey mapping (DRAFT, docs/survey.md): which claim type a claim row is, and which column it
+// The survey mapping (docs/survey.md): which claim type a claim row is, and which column it
 // falls in. A survey's aggregate is a pure function of its entries and this mapping, and the record
 // names the mapping's version. Any change to a type, a column or a remedy line (src/remedy/) is a new
 // version; src/survey/survey.test.ts pins the version to a digest of the whole mapping.

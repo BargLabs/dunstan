@@ -26,12 +26,14 @@ jobs:
   handback:
     runs-on: ubuntu-latest
     steps:
-      - uses: BargLabs/dunstan@v0.1.22 # pin the full commit SHA in production
+      - uses: BargLabs/dunstan@v0.1.23 # pin the full commit SHA in production
         with:
           report-source: pr-body
 ```
 
-More in [`docs/action.md`](docs/action.md).
+More in [`docs/action.md`](docs/action.md). Or run `npx -y dunstan init` in the repository: it
+writes this workflow, the agent instructions and the pull request template's Handback section, and
+prints the CI steps that make test claims checkable ([`docs/init.md`](docs/init.md)).
 
 Dunstan holds a coding agent's completion report to the record.
 
@@ -62,7 +64,7 @@ report a pull request's handback before it says done ([`plugins/dunstan/`](plugi
 /plugin install dunstan@barglabs
 ```
 
-The plugin runs the MCP server with `npx -y dunstan@0.1.22 mcp`, the `dunstan` npm package at that
+The plugin runs the MCP server with `npx -y dunstan@0.1.23 mcp`, the `dunstan` npm package at that
 exact version: one self-contained file, no dependencies.
 
 **The token.** When you enable the plugin, Claude Code asks for an optional GitHub token and keeps it
@@ -110,7 +112,7 @@ pnpm install && pnpm build          # writes dist/dunstan.mjs and prints its SHA
 GITHUB_TOKEN=... dist/dunstan.mjs check --repo <owner/name> --pr <n> --report-pr-body --out record.json
 #   or --report-file <path|->, or --report-comment-author <login> (that author's latest comment)
 
-# Check a GitLab merge request (DRAFT, see "GitLab (draft)" below). GITLAB_TOKEN is optional.
+# Check a GitLab merge request (see "GitLab" below). GITLAB_TOKEN is optional.
 dist/dunstan.mjs check --gitlab-project <full path> --mr <iid> --report-mr-description --out record.json
 #   or --report-file <path|->; --gitlab-host <host> for a self-managed GitLab (default gitlab.com);
 #   --exclude-gitlab-job "$CI_JOB_ID" in a pipeline, so the checker's own job is not counted
@@ -141,7 +143,7 @@ What to declare: [`docs/agents.md`](docs/agents.md#the-instruction-block).
 
 ## Survey: how much of a repository's handbacks can be checked
 
-`dunstan survey` (DRAFT) runs `dunstan check` over a repository's recent closed pull requests and
+`dunstan survey` runs `dunstan check` over a repository's recent closed pull requests and
 reports settleability: which claims the record could not settle, why, and what would let it settle
 them. It is read-only and needs no token to start.
 
@@ -214,7 +216,7 @@ wrote its own evidence, so its `tests` rows are `unverifiable` (`record_producer
 spec 0.1.10): land the workflow change in a pull request of its own. Each `tests` row the record
 cannot settle is printed with a `remedy:` line saying what to do.
 
-## GitLab (draft)
+## GitLab
 
 `dunstan check --gitlab-project <full path> --mr <iid>` checks a GitLab merge request on
 gitlab.com, or on a self-managed instance with `--gitlab-host <host>`. The project is named by its
@@ -222,9 +224,12 @@ full path, `group/subgroup/.../project`. The report is `--report-mr-description`
 request's description) or `--report-file <path|->`. It reads without a token; set `GITLAB_TOKEN`
 to read what an anonymous reader cannot. The token is sent as a header and is never written into a
 record, a source, a log line or an error. This is the
-[DRAFT GitLab profile 0.1](spec/claim-format.md#draft-gitlab-profile-01), which the operator has
-not yet made normative. Nothing about GitHub changes: every GitHub record is written byte for byte
-as before.
+[GitLab profile 0.1](spec/claim-format.md#gitlab-profile-01), normative since spec 0.1.13. Nothing
+about GitHub changes: every GitHub record is written byte for byte as before.
+
+`npx -y dunstan init --forge gitlab` sets a project up: the include of the GitLab CI/CD component
+(the gate), the agent instructions and the merge request template
+([`docs/init.md`](docs/init.md#gitlab)).
 
 Every evidence section has a GitLab source, so every claim a block makes can be settled:
 
@@ -251,8 +256,8 @@ workflow, a deployment's status events, a fast-forward merge's merged commit wit
 `#N` at any depth; it cannot name another subgroup project's issue in full, since the block format
 admits two-segment references only.
 
-A GitLab record has its own predicate type (`.../record/v0.1-gitlab-draft`) and schema
-(`spec/schema/record-gitlab-0.1-draft.schema.json`), and carries
+A GitLab record has its own predicate type (`.../record/v0.1-gitlab`) and schema
+(`spec/schema/record-gitlab-0.1.schema.json`), and carries
 `predicate.subject.forge: {"kind": "gitlab", "host": ...}`. `dunstan verify` re-runs it offline,
 and `dunstan rerun` re-reads it from the host it names.
 

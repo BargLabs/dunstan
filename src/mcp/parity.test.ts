@@ -253,7 +253,7 @@ describe('MCP parity with dunstan check, reader stubbed', () => {
   );
 });
 
-// GitLab (DRAFT GitLab profile 0.1): on the same recorded GitLab evidence, a fake GitLab answering
+// GitLab (GitLab profile 0.1): on the same recorded GitLab evidence, a fake GitLab answering
 // both callers, the tool given gitlabProject and mergeRequest and `dunstan check --gitlab-project
 // ... --mr ...` give the same claims, verdict and digests, compared as the GitHub cases are. The
 // clock is fixed, so each source's readAt is the same in both records, and the two records differ

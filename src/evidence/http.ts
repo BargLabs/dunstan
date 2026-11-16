@@ -258,7 +258,7 @@ export class GitHubClient extends ForgeClient {
   }
 }
 
-// DRAFT GitLab profile 0.1 (spec/claim-format.md). gitlab.com unless a self-managed host is given.
+// GitLab profile 0.1 (spec/claim-format.md). gitlab.com unless a self-managed host is given.
 export const DEFAULT_GITLAB_HOST = 'gitlab.com';
 
 // A host the GitLab reader may be pointed at: a lowercase DNS name, with no scheme, port, path or

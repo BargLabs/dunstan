@@ -25,7 +25,7 @@ handback covers what the issue asked for: an accurate report of the wrong work p
 
 ## What it runs, reads and sends
 
-The plugin starts the MCP server with `npx -y dunstan@0.1.22 mcp`, which downloads the `dunstan`
+The plugin starts the MCP server with `npx -y dunstan@0.1.23 mcp`, which downloads the `dunstan`
 package at that exact version from the npm registry. The package is one self-contained file with no
 dependencies. The server runs on your machine and reads GitHub's API directly from it: the pull
 request, its files, commits, check runs, workflow runs and artifacts, deployments, and the issues the
@@ -33,6 +33,23 @@ block references. For a GitLab merge request it reads the same evidence from the
 check names, with the optional GitLab token, which it never sends to GitHub; nor the GitHub token to
 GitLab. Every request is a read. Nothing is written to either forge or the repository, and nothing is
 sent to Barg Labs.
+
+## Changes in 0.1.23
+
+- **`dunstan init` sets a repository up (`npx -y dunstan init`).** It prints, and with `--write`
+  writes, only where Dunstan is not yet: the gate (the Action's workflow pinned to its release
+  commit, or on GitLab the include of the CI/CD component), the agent instructions in `AGENTS.md`
+  (and `CLAUDE.md` and `.github/copilot-instructions.md` where they exist), and a Handback section
+  in the pull or merge request template. It never edits a workflow or CI configuration file: for
+  each job that runs the tests, read through package scripts, Makefile, just, Taskfile, nox, tox,
+  shell scripts and workspace runners, it prints what to add so CI publishes the JUnit record, and
+  the `--tests-ci` line to declare it, matrix legs included. `docs/init.md`.
+- **The GitLab profile 0.1 is normative (spec 0.1.13).** The operator ruled on the draft's open
+  questions as the checker already behaves; no verdict changes. A GitLab record is now
+  `record/v0.1-gitlab` with `spec` `0.1.13-gitlab-0.1`; a record written while the profile was a
+  DRAFT still verifies.
+- **Survey 0.1 is no longer DRAFT.** A survey record's format is `dunstan-survey-0.1`; one written
+  under `dunstan-survey-0.1-draft` still verifies.
 
 ## Changes in 0.1.22
 

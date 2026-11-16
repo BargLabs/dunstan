@@ -1,5 +1,5 @@
-// The survey record (DRAFT `dunstan-survey-0.1-draft`, spec "DRAFT survey 0.1", docs/survey.md,
-// spec/schema/survey-0.1-draft.schema.json): the checker that ran, the selection parameters and the
+// The survey record (`dunstan-survey-0.1`, spec "Survey 0.1", docs/survey.md,
+// spec/schema/survey-0.1.schema.json): the checker that ran, the selection parameters and the
 // pull request listing they were applied to, one entry per selected pull request with the record
 // `dunstan check` writes for it (or the reason there is none), the aggregate, and the commands to
 // re-run it. Its digest is the SHA-256 of its JCS bytes without the digest member, as a record's
@@ -16,7 +16,10 @@ import {
   type SurveyReader,
 } from './aggregate.js';
 
-export const SURVEY_FORMAT = 'dunstan-survey-0.1-draft';
+export const SURVEY_FORMAT = 'dunstan-survey-0.1';
+// The name checkers 0.1.13 to 0.1.22 wrote, while survey 0.1 was a DRAFT. A record of that name and
+// the same shape still verifies; no checker writes it.
+export const SURVEY_DRAFT_FORMAT = 'dunstan-survey-0.1-draft';
 
 // The pulls listing's page size, and the default and largest --last.
 export const LISTING_PER_PAGE = 100;
@@ -116,7 +119,7 @@ export function appendListed(
 }
 
 export interface SurveyRecord {
-  format: typeof SURVEY_FORMAT;
+  format: typeof SURVEY_FORMAT | typeof SURVEY_DRAFT_FORMAT;
   checker: CheckerIdentity;
   // `reader`: whether GITHUB_TOKEN was set, which words the remedy lines (src/remedy/remedies.ts)
   // and which the summary states. The token is never recorded.
@@ -248,6 +251,6 @@ export function isSurveyRecord(value: unknown): boolean {
     value !== null &&
     typeof value === 'object' &&
     !Array.isArray(value) &&
-    (value as { format?: unknown }).format === SURVEY_FORMAT
+    [SURVEY_FORMAT, SURVEY_DRAFT_FORMAT].includes((value as { format?: unknown }).format as string)
   );
 }

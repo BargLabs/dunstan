@@ -1,4 +1,4 @@
-// Offline verification of a survey record (DRAFT, docs/survey.md): every embedded record verifies
+// Offline verification of a survey record (docs/survey.md): every embedded record verifies
 // as `dunstan verify` verifies a record; the listing holds each number once and its duplicate count
 // recomputes from its pages; the selection recomputes from the recorded listing and parameters; the
 // listing was read exactly as far as its stated end; its abandoned reads follow the reread rule; the

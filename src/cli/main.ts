@@ -2,13 +2,15 @@
 // `verify` exits 0 when the record verifies and 1 when it does not. `template` exits 0 when it prints
 // a block, 2 when it prints one without the tests --tests-ci was asked for (no count settled), and 3
 // when git cannot answer; `suggest` exits 0 unless the report cannot be read; `junit-merge` exits 0
-// when it writes the file and 3 when it refuses.
+// when it writes the file and 3 when it refuses; `init` exits 0 once it has printed or written its
+// plan, and 3 outside a git repository.
 
 import { PullRequestMoved, PullRequestUnreadable } from '../evidence/github.js';
 import { ReportUnavailable } from '../evidence/report.js';
 import { CHECKER_VERSION } from '../record/checker.js';
 import { TemplateError } from '../template/template.js';
 import { check } from './check.js';
+import { init } from './init.js';
 import { junitMerge } from './junit-merge.js';
 import { mcp } from './mcp.js';
 import { type CliIo, EXIT, UsageError } from './output.js';
@@ -45,13 +47,14 @@ usage:
                  [--last <n>] [--since <YYYY-MM-DD>] [--author <login>]...
                  [--report-comment-author <login>] [--advisory]
   dunstan junit-merge <file>... --out <file>
+  dunstan init [--write] [--forge github|gitlab]
   dunstan mcp
 
 check     reads the pull request, the named report and the evidence its block needs, writes the
           record and prints the claims table. GITHUB_TOKEN is read from the environment.
           --advisory also reads the report's prose for asserted claims and records them as
           advisories (DRAFT 0.2.0, docs/advisory.md). They never change the verdict.
-          GitLab (DRAFT GitLab profile 0.1): --gitlab-project and --mr check a merge request on
+          GitLab (profile 0.1): --gitlab-project and --mr check a merge request on
           gitlab.com, or on --gitlab-host; --report-mr-description reads its description.
           GITLAB_TOKEN is optional. Checks are the head pipeline's jobs and bridges, less each
           --exclude-gitlab-job (the checker's own job, CI_JOB_ID).
@@ -65,13 +68,13 @@ template  local git: prints a dunstan-handback block for HEAD, its files against
           --tests-local declares a local JUnit file's counts as a local run; --tests-junit
           declares them against a CI record. Only --tests-ci reads the network. References,
           checks and mergedAt never (docs/agents.md, docs/ci-test-records.md).
-          GitLab (DRAFT GitLab profile 0.1): --tests-ci --gitlab-project and --mr read the counts
+          GitLab (profile 0.1): --tests-ci --gitlab-project and --mr read the counts
           from the merge request's head pipeline at HEAD, as check reads them: the job's
           artifacts archive, file junit.xml unless --tests-path, the project's CI configuration
           file unless --tests-workflow. GITLAB_TOKEN is read from the environment.
 suggest   offline: lists sentences in the report's prose (a file, or stdin) that look like claims
           its block does not declare, to declare or reword. Never a verdict (docs/agents.md).
-survey    read-only, DRAFT (docs/survey.md): checks the --last (default 30, at most 200) most
+survey    read-only (docs/survey.md): checks the --last (default 30, at most 200) most
           recently created closed pull requests as check does, the report in each body or the
           named author's latest comment; writes the survey record and a Markdown summary of the
           claims the record could not settle, why, and the contradicted share of the claims it
@@ -80,13 +83,21 @@ survey    read-only, DRAFT (docs/survey.md): checks the --last (default 30, at m
 junit-merge
           offline: one JUnit file from several (Maven Surefire, Gradle), inputs in code-unit
           order of path, each copied whole; refused unless its counts are the inputs' sum.
-mcp       serves dunstan_check_handback and dunstan_suggest_declarations over stdio
-          (docs/mcp.md): check's checker and suggest, called by an agent before it says done.
+init      sets the repository up for Dunstan (docs/init.md): the gate (the Action's workflow; on
+          GitLab, printed, the include of the CI/CD component), the agent instructions and the
+          pull or merge request template's Handback section, each only where Dunstan is not yet,
+          and, printed, the CI changes that publish the JUnit record. Prints the plan; --write
+          writes it. Never edits a workflow or CI configuration file. --forge picks GitHub or
+          GitLab (default: from the origin remote). Reads the network only for the gate's pin.
+mcp       serves dunstan_check_handback, dunstan_template_handback and
+          dunstan_suggest_declarations over stdio (docs/mcp.md): check's checker, template and
+          suggest, called by an agent before it says done.
 
 exit codes: 0 pass (verify: verified; template: printed; suggest: always; survey: written;
-            junit-merge: written), 1 fail (verify: not verified), 2 unverifiable (template:
-            printed without the tests --tests-ci asked for), 3 usage or internal error, git
-            cannot answer (template), or refused (junit-merge)
+            junit-merge: written; init: planned or written), 1 fail (verify: not verified),
+            2 unverifiable (template: printed without the tests --tests-ci asked for), 3 usage or
+            internal error, git cannot answer (template), refused (junit-merge), or not in a git
+            repository (init)
 `;
 
 export async function main(argv: string[], io: CliIo): Promise<number> {
@@ -107,6 +118,8 @@ export async function main(argv: string[], io: CliIo): Promise<number> {
         return await survey(args, io);
       case 'junit-merge':
         return await junitMerge(args, io);
+      case 'init':
+        return await init(args, io);
       case 'mcp':
         return await mcp(args, io);
       case '--version':

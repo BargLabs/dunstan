@@ -1,4 +1,4 @@
-# Survey: how much of a repository's handbacks can be checked (DRAFT)
+# Survey: how much of a repository's handbacks can be checked
 
 `dunstan survey` checks a repository's recent closed pull requests the way `dunstan check` checks
 one. It reports **which claims the record could not settle, why, and what would fix it**, beside the
@@ -6,9 +6,10 @@ share of the claims it did settle that the record contradicts. It reports settle
 nothing about why a claim was made, and a claim the record could not settle is neither supported
 nor contradicted.
 
-The survey record is DRAFT (`dunstan-survey-0.1-draft`). It changes no block, record, claim row or
-verdict. The spec's informative section is "DRAFT survey 0.1" in
-[`spec/claim-format.md`](../spec/claim-format.md).
+The survey record is `dunstan-survey-0.1`. It changes no block, record, claim row or verdict. The
+spec's informative section is "Survey 0.1" in [`spec/claim-format.md`](../spec/claim-format.md).
+It was DRAFT until 2026-11-15; a record checkers 0.1.13 to 0.1.22 wrote under the DRAFT name,
+`dunstan-survey-0.1-draft`, still verifies.
 
 ## Usage
 
@@ -169,7 +170,7 @@ The fixture the tests pin (`src/survey/testdata/fixture-summary.md`) is a worked
 
 ## The survey record
 
-`spec/schema/survey-0.1-draft.schema.json`. It holds:
+`spec/schema/survey-0.1.schema.json`. It holds:
 
 - the checker identity;
 - the selection: the parameters, the reader (`{"authenticated": <boolean>}`), every listing page

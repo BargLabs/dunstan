@@ -1,4 +1,4 @@
-// The survey's aggregate (DRAFT, docs/survey.md): a pure function of the entries and the mapping
+// The survey's aggregate (docs/survey.md): a pure function of the entries and the mapping
 // (src/survey/mapping.ts). Every number in it is an exact integer or a fixed-decimal string, so two
 // machines write the same bytes. No rate reads an advisory note.
 

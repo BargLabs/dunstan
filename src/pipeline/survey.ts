@@ -1,4 +1,4 @@
-// The survey's reads (DRAFT, docs/survey.md): the closed pull requests listing, newest first, page
+// The survey's reads (docs/survey.md): the closed pull requests listing, newest first, page
 // by page up to the listings' bound, read again from page 1 when a page repeats an earlier item (at
 // most LISTING_READS reads), and for each selected pull request exactly the check
 // `dunstan check` runs (checkPullRequest), each with a client of its own so no source of one pull

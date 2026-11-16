@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://barglabs.ai/dunstan/spec/schema/record-gitlab-0.1-draft.schema.json",
-  "title": "Dunstan record, DRAFT GitLab profile 0.1",
-  "description": "DRAFT, not normative, for the operator to check (spec/claim-format.md, \"DRAFT GitLab profile 0.1\"). A 0.1 record of a GitLab merge request: the predicate's subject carries forge {kind: gitlab, host}, and the head commit's subject entry names that host. A project and an issue reference are named by the project's full path, group/subgroup/.../project, which admits every path the 0.1 repository pattern admits; the evidence sections that hold issue references are restated here with that pattern. Every other member is a reference into record-0.1.schema.json, which this file does not change.",
+  "$id": "https://barglabs.ai/dunstan/spec/schema/record-gitlab-0.1.schema.json",
+  "title": "Dunstan record, GitLab profile 0.1",
+  "description": "Normative since spec 0.1.13 (spec/claim-format.md, \"GitLab profile 0.1\"). predicateType is record/v0.1-gitlab and spec <0.1 version>-gitlab-0.1; a record written while the profile was a DRAFT (record/v0.1-gitlab-draft, <0.1 version>-gitlab-0.1-draft) still validates. A 0.1 record of a GitLab merge request: the predicate's subject carries forge {kind: gitlab, host}, and the head commit's subject entry names that host. A project and an issue reference are named by the project's full path, group/subgroup/.../project, which admits every path the 0.1 repository pattern admits; the evidence sections that hold issue references are restated here with that pattern. Every other member is a reference into record-0.1.schema.json, which this file does not change.",
   "type": "object",
   "required": ["_type", "subject", "predicateType", "predicate"],
   "additionalProperties": false,
@@ -18,10 +18,33 @@
       ],
       "items": false
     },
-    "predicateType": { "const": "https://barglabs.ai/dunstan/record/v0.1-gitlab-draft" },
+    "predicateType": {
+      "enum": [
+        "https://barglabs.ai/dunstan/record/v0.1-gitlab",
+        "https://barglabs.ai/dunstan/record/v0.1-gitlab-draft"
+      ]
+    },
     "predicate": { "$ref": "#/$defs/predicate" }
   },
-  "allOf": [{ "$ref": "record-0.1.schema.json#/allOf/0" }],
+  "allOf": [
+    { "$ref": "record-0.1.schema.json#/allOf/0" },
+    {
+      "description": "A DRAFT predicate type goes with a DRAFT spec, and the normative one with a normative spec.",
+      "if": {
+        "properties": {
+          "predicateType": { "const": "https://barglabs.ai/dunstan/record/v0.1-gitlab-draft" }
+        }
+      },
+      "then": {
+        "properties": { "predicate": { "properties": { "spec": { "pattern": "-draft$" } } } }
+      },
+      "else": {
+        "properties": {
+          "predicate": { "properties": { "spec": { "pattern": "-gitlab-0\\.1$" } } }
+        }
+      }
+    }
+  ],
   "$defs": {
     "repository": {
       "description": "A GitLab project's full path: up to 20 levels of groups, then the project. Every path the 0.1 repository pattern admits is one.",
@@ -198,9 +221,9 @@
       "additionalProperties": false,
       "properties": {
         "spec": {
-          "description": "The 0.1 version the checker implements, with the profile: 0.1.11-gitlab-0.1-draft.",
+          "description": "The 0.1 version the checker implements, with the profile: 0.1.13-gitlab-0.1, or, written while the profile was a DRAFT, 0.1.11-gitlab-0.1-draft.",
           "type": "string",
-          "pattern": "^0\\.1\\.(?:0|[1-9][0-9]*)-gitlab-0\\.1-draft$"
+          "pattern": "^0\\.1\\.(?:0|[1-9][0-9]*)-gitlab-0\\.1(?:-draft)?$"
         },
         "checker": { "$ref": "record-0.1.schema.json#/$defs/predicate/properties/checker" },
         "report": { "$ref": "record-0.1.schema.json#/$defs/predicate/properties/report" },

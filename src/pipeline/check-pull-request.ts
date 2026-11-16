@@ -65,7 +65,7 @@ export function githubReaders(client: GitHubClient): EvidenceReaders {
   };
 }
 
-// DRAFT GitLab profile 0.1: a merge request read with its diffs, and the evidence the profile maps.
+// GitLab profile 0.1: a merge request read with its diffs, and the evidence the profile maps.
 // The advisory's existence query is GitHub's only; `dunstan check` refuses --advisory on GitLab.
 export function gitlabReaders(client: GitLabClient): EvidenceReaders {
   return {
@@ -126,7 +126,7 @@ export interface CheckPullRequestInput {
   // Run the advisory extractor over the report (DRAFT 0.2.0, src/advisory/). Off by default. It
   // adds an advisory section and never changes the verdict or the claims.
   advisory?: boolean;
-  // DRAFT GitLab profile 0.1: the subject is a GitLab merge request on this host, read with
+  // GitLab profile 0.1: the subject is a GitLab merge request on this host, read with
   // gitlabReaders. Absent, it is a GitHub pull request and the record is written as before.
   forge?: Forge;
 }

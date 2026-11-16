@@ -158,17 +158,20 @@ const FIGURES_LINE =
 // that hold issue references with them; the 0.1 record and block schemas are unchanged. And but
 // for comparison 0.5.0 (spec 0.1.11), whose name the DRAFT schema's comparison description gained,
 // and the GitLab profile schema's `spec` description, which names 0.1.11 as its example; no other
-// schema changed.
+// schema changed. The survey schema was then renamed from its DRAFT name, survey-0.1-draft, when
+// the operator promoted survey 0.1 (2026-11-15): its format admits both names, and nothing else in
+// it changed. And the GitLab profile schema was renamed from its DRAFT name when the operator made
+// the profile normative (spec 0.1.13): it admits the normative predicate type and spec and still the
+// DRAFT pair, each with its own; the 0.1 record and block schemas are unchanged.
 const SCHEMA_SHA256: Record<string, string> = {
   'handback-block-0.1.schema.json':
     'f61ddacb345dc9d0529fec2d0e4d2742b9bc6c7f3b7887795f097a9671eab8ff',
   'record-0.1.schema.json': 'ab2981f637624a9da5d6397669d927a20a7e75d30403ae55ad580ee87d0f6c0b',
   'record-0.2-draft.schema.json':
     '6c91b6702bf66a2603fe3ab4218441ef2b20d54521097fd6985ab5a97f66e750',
-  'record-gitlab-0.1-draft.schema.json':
-    'f8feb99f73eff1e1f47632a6c1f4fe0bccc16608965e02aace8bf9b26cda3dbd',
-  'survey-0.1-draft.schema.json':
-    '2958cf69b1cf0919c3d8b48e7f13f7583d222f8bb6733d5bda08161b4c2709b0',
+  'record-gitlab-0.1.schema.json':
+    '4e2214e5bb096d968bce886df4d47905a760d3dac5fb83c44c402da886469f95',
+  'survey-0.1.schema.json': 'ecf312cf268c6928156bd9986fb95ee1f47c3236394f0e97e144be503298fa3c',
 };
 
 const evidence: Evidence = {
