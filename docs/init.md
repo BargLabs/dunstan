@@ -90,6 +90,19 @@ and replace this whole comment with the block it prints.
   `working-directory`, it reads the tool's files there, and the upload names
   `<working-directory>/junit.xml`. A runner no job runs gets its whole recipe, with the directories
   that name it. A job that already uploads `dunstan-junit` needs nothing.
+- **The base commit.** `dunstan check --base-tests` (DRAFT, [spec
+  D.13](../spec/claim-format.md#d13-a-baseline-test-counts-at-the-base-commit)) compares the test
+  counts at a pull request's head with those at its base commit, on the default branch, and the base
+  commit has a record only if the workflow also runs on a push there. For each job, `init` reads its
+  workflow's `on:` and says whether it does: a `push` with no branch filter, or one whose
+  `branches` match the default branch (or whose `branches-ignore` does not), runs it; no `push`, or
+  `tags` alone, does not. Where it does not, `init` prints the `push` trigger to add, and where the
+  push filters on paths, says that a base commit whose push changed none of them has no record.
+  Where it cannot tell (an expression or a flow mapping in `on:`, a `!`, `?`, `+` or `[` in a
+  branch pattern, or no default branch), it says so, and does not guess. Once one test workflow
+  runs on a push to the default branch, the others are not told to: a release workflow need not.
+  The default branch is the `origin` remote's HEAD as the clone knows it (`git symbolic-ref
+  refs/remotes/origin/HEAD`), read without the network. GitHub only.
 
 Land that workflow change in a pull request of its own: a pull request that changes the workflow
 that writes the record is its own evidence, and its `tests` rows are `unverifiable`

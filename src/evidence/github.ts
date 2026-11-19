@@ -11,6 +11,7 @@
 import type { PathAnswer, PathObject } from '../advisory/advise.js';
 import { qualifyIssue, sameIssue } from '../check/index.js';
 import type {
+  BaselineEvidence,
   Block,
   CheckRun,
   CheckRunsEvidence,
@@ -19,6 +20,8 @@ import type {
   CloseEventsEvidence,
   CloseTargetEvidence,
   ClosingReferencesEvidence,
+  CountedRun,
+  CountedRuns,
   Deployment,
   DeploymentRelation,
   DeploymentsEvidence,
@@ -30,13 +33,12 @@ import type {
   ReferenceEvidence,
   SourceKind,
   TestRecordEvidence,
-  TestRecordRun,
   Unread,
 } from '../check/types.js';
 import { canonicalize } from '../spec/jcs.js';
 import type { JsonValue } from '../spec/json.js';
 import type { GitHubClient, Read } from './http.js';
-import { countJunit, JunitError } from './junit.js';
+import { countJunitWithSkipped, JunitError } from './junit.js';
 import { readZipEntry, ZipError } from './zip.js';
 
 export const PER_PAGE = 100;
@@ -122,6 +124,9 @@ export interface PullRequestRead {
   repository: string;
   // The branch the pull request merges into. Not evidence: it tells a read again from the first.
   baseRef: string;
+  // The pull request's `base.sha`, null where the answer gives none. Not evidence of its own: a
+  // baseline (DRAFT 0.2.0, D.13) records it as the commit it read the base counts at.
+  baseSha?: string | null;
   body: string | null;
 }
 
@@ -165,6 +170,7 @@ export async function readPullRequest(
       },
       repository: str(base.full_name),
       baseRef,
+      baseSha: typeof obj(pr.base).sha === 'string' ? (obj(pr.base).sha as string) : null,
       body: strOrNull(pr.body),
     };
   } catch (e) {
@@ -976,6 +982,40 @@ export async function readTestRecord(
   headCommit: string,
   observed?: TestRecordObserved,
 ): Promise<TestRecordEvidence> {
+  return withoutSkipped(await readCountedRuns(client, repository, record, headCommit, observed));
+}
+
+// One side of a baseline entry: the counted runs, without the record they are of.
+function counted(read: { record: JunitRecord } & CountedRuns): CountedRuns {
+  const { record: _, ...side } = read;
+  return side;
+}
+
+// A 0.1 `testRecords` entry: the counted runs less `skipped`, which no 0.1 member holds.
+function withoutSkipped(read: { record: JunitRecord } & CountedRuns): TestRecordEvidence {
+  if (read.status !== 'ok') return read;
+  return {
+    record: read.record,
+    status: 'ok',
+    runs: read.runs.map((r) => ({
+      runId: r.runId,
+      runAttempt: r.runAttempt,
+      executed: r.executed,
+      failed: r.failed,
+    })),
+  };
+}
+
+// The candidate runs of one `junit` record at `commit` (section 7.5), with each run's skipped test
+// cases too. At the head it is the 0.1 read; a baseline (DRAFT 0.2.0, D.13) reads the base commit
+// with it as well, by the same rule.
+async function readCountedRuns(
+  client: GitHubClient,
+  repository: string,
+  record: JunitRecord,
+  headCommit: string,
+  observed?: TestRecordObserved,
+): Promise<{ record: JunitRecord } & CountedRuns> {
   const workflowFile = record.workflow.split('/').at(-1) as string;
   const runsPath = (page: number) =>
     `/repos/${repository}/actions/workflows/${encodeURIComponent(workflowFile)}/runs?head_sha=${headCommit}&per_page=${PER_PAGE}&page=${page}`;
@@ -1005,7 +1045,7 @@ export async function readTestRecord(
     ).length;
   }
 
-  const runs: TestRecordRun[] = [];
+  const runs: CountedRun[] = [];
   // The listing gives each run at its latest attempt. A run of another workflow file with the same
   // base name (or a dynamic run) is not a candidate.
   for (const run of listed.filter((r) => r.path.replace(/@.*$/, '') === record.workflow)) {
@@ -1077,7 +1117,7 @@ export async function readTestRecord(
     try {
       const file = readZipEntry(download.body, record.path, client.maxEntryBytes);
       if (file === null) continue;
-      const counts = countJunit(new TextDecoder('utf-8').decode(file));
+      const counts = countJunitWithSkipped(new TextDecoder('utf-8').decode(file));
       runs.push({ runId: run.id, runAttempt: run.attempt, ...counts });
     } catch (e) {
       if (!(e instanceof ZipError || e instanceof JunitError)) throw e;
@@ -1193,6 +1233,9 @@ export interface ReadEvidenceInput {
   block: Block | null;
   // Check runs the checker itself executes in (spec section 7.5).
   excludedCheckRunIds?: readonly number[];
+  // DRAFT 0.2.0 (D.13): also read each `junit` record's counts at the pull request's base commit,
+  // into `baseline`. Off by default; it changes no 0.1 section.
+  baseTests?: boolean;
 }
 
 export async function readEvidence(
@@ -1235,11 +1278,21 @@ export async function readEvidence(
     }
     if (records.size > 0) {
       evidence.testRecords = [];
+      const baseline: BaselineEvidence | undefined =
+        input.baseTests === true
+          ? { baseSha: input.pullRequest.baseSha ?? null, testRecords: [] }
+          : undefined;
       for (const record of records.values()) {
-        evidence.testRecords.push(
-          await readTestRecord(client, repository, record, block.headCommit),
-        );
+        const head = await readCountedRuns(client, repository, record, block.headCommit);
+        evidence.testRecords.push(withoutSkipped(head));
+        if (baseline === undefined) continue;
+        const base: { record: JunitRecord } & CountedRuns =
+          baseline.baseSha === null
+            ? { record, status: 'unpopulated', field: 'base.sha' }
+            : await readCountedRuns(client, repository, record, baseline.baseSha);
+        baseline.testRecords.push({ record, head: counted(head), base: counted(base) });
       }
+      if (baseline !== undefined) evidence.baseline = baseline;
     }
     if (block.deployedAt !== undefined) {
       evidence.deployments = [await readDeployments(client, repository, pr, block.deployedAt)];

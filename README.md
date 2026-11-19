@@ -26,7 +26,7 @@ jobs:
   handback:
     runs-on: ubuntu-latest
     steps:
-      - uses: BargLabs/dunstan@v0.1.23 # pin the full commit SHA in production
+      - uses: BargLabs/dunstan@v0.1.24 # pin the full commit SHA in production
         with:
           report-source: pr-body
 ```
@@ -45,6 +45,8 @@ checks. It writes a record anyone can re-run on their own machine and get the sa
 - No model decides pass or fail.
 - Fail closed: a claim the record cannot answer is `unverifiable`, never a pass by absence.
 - Evidence, not a gate: Dunstan returns a record; your branch protection decides what blocks.
+- A pass shows that the record agrees with what the agent declared, not that the change is correct
+  or that the tests were the right ones ([spec section 8.2](spec/claim-format.md#82-what-a-verdict-does-not-show-informative)).
 
 The claim format, the block an agent declares and the record Dunstan writes, is an open
 specification: [`spec/claim-format.md`](spec/claim-format.md), with JSON Schemas in `spec/schema/`
@@ -64,7 +66,7 @@ report a pull request's handback before it says done ([`plugins/dunstan/`](plugi
 /plugin install dunstan@barglabs
 ```
 
-The plugin runs the MCP server with `npx -y dunstan@0.1.23 mcp`, the `dunstan` npm package at that
+The plugin runs the MCP server with `npx -y dunstan@0.1.24 mcp`, the `dunstan` npm package at that
 exact version: one self-contained file, no dependencies.
 
 **The token.** When you enable the plugin, Claude Code asks for an optional GitHub token and keeps it
@@ -99,6 +101,9 @@ GitHub or to the repository, and nothing is sent to Barg Labs.
    35d6201d00cf926f9af10df61bfec05b6624ee12 and the same two files.` Without a token the `closes`
    row is `unverifiable` (`source_unreadable:closing_references`): the record could not settle it,
    which is not the same as false. With a token it is `pass`.
+
+The first and third are recorded in [`cases/`](cases/), each with its report and record, and CI
+fails if these sentences and the records disagree.
 
 **Support.** [GitHub issues](https://github.com/BargLabs/dunstan/issues) or team@barglabs.ai.
 [Privacy](https://barglabs.ai/privacy) and [terms](https://barglabs.ai/terms).

@@ -14,6 +14,8 @@ import {
   POSSIBLE_DISAGREEMENT,
 } from '../advisory/present.js';
 import type { Claim, Verdict } from '../check/types.js';
+import { contextFlags, contextText } from '../cli/context.js';
+import { VERDICT_LIMITS } from '../cli/limits.js';
 import type { DunstanRecord } from '../record/build.js';
 import { type RemedyContext, remedyFor } from '../remedy/remedies.js';
 import type { UnverifiableConclusion } from './inputs.js';
@@ -201,7 +203,10 @@ export function renderSummary(outcome: Outcome): string {
       `| Subject | ${escapeHtml(p.subject.repository)}#${p.subject.pullRequest} at <code>${p.subject.headSha}</code> |`,
       `| Report | ${p.report.source.kind} <code>${escapeHtml(p.report.source.locator)}</code> (sha256 <code>${p.report.sha256}</code>) |`,
       `| Block | ${blockLine(record)} |`,
-      `| Verdict | <code>${p.verdict}</code> |`,
+      `| Verdict | <code>${p.verdict}</code>. ${VERDICT_LIMITS[p.verdict]} |`,
+      ...contextFlags(record).map(
+        (f) => `| Context (not part of the verdict) | ${escapeHtml(contextText(f))} |`,
+      ),
       `| Digests | claims <code>${p.digests.claims}</code>, evidence <code>${p.digests.evidence}</code> |`,
       `| Checker | ${p.checker.name} ${p.checker.version} (sha256 <code>${p.checker.digest.sha256}</code>) |`,
     );

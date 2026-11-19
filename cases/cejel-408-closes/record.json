@@ -1,0 +1,167 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "git+https://github.com/BargLabs/cejel@35d6201d00cf926f9af10df61bfec05b6624ee12",
+      "digest": {
+        "gitCommit": "35d6201d00cf926f9af10df61bfec05b6624ee12"
+      }
+    },
+    {
+      "name": "handback-block",
+      "digest": {
+        "sha256": "331945a6dcbce2738b13b0903eb26ffbde6076d7c516dd2584d5ffd6ffa61e0f"
+      }
+    }
+  ],
+  "predicateType": "https://barglabs.ai/dunstan/record/v0.1",
+  "predicate": {
+    "spec": "0.1.13",
+    "checker": {
+      "name": "dunstan",
+      "version": "0.1.24",
+      "digest": {
+        "sha256": "fb7da4a8c645b4aa502bfcb277c89b468cee40892605fea75bb43a1a3ca7ebc0"
+      }
+    },
+    "report": {
+      "sha256": "b8bcb67f226df23df7cc7a3dcb9ab0fa3d5742697c501cf0f8d22e2c41faaf78",
+      "source": {
+        "kind": "file",
+        "locator": "cases/cejel-408-closes/report.md"
+      }
+    },
+    "block": {
+      "status": "found",
+      "sha256": "331945a6dcbce2738b13b0903eb26ffbde6076d7c516dd2584d5ffd6ffa61e0f",
+      "value": {
+        "dunstan": "0.1",
+        "headCommit": "35d6201d00cf926f9af10df61bfec05b6624ee12",
+        "filesChanged": [
+          ".github/workflows/verify-published-windows-binary.yml",
+          "scripts/validate-distribution-metadata.mjs"
+        ],
+        "references": [
+          {
+            "issue": "#407",
+            "relation": "closes"
+          }
+        ]
+      }
+    },
+    "subject": {
+      "repository": "BargLabs/cejel",
+      "pullRequest": 408,
+      "headSha": "35d6201d00cf926f9af10df61bfec05b6624ee12",
+      "mergeSha": "1445fefa4d5cd397aa0f2a79b7234b2a5f5fe9c3"
+    },
+    "evidence": {
+      "pullRequest": {
+        "status": "ok",
+        "number": 408,
+        "state": "closed",
+        "merged": true,
+        "mergedAt": "2026-10-04T13:30:48Z",
+        "headSha": "35d6201d00cf926f9af10df61bfec05b6624ee12",
+        "mergeSha": "1445fefa4d5cd397aa0f2a79b7234b2a5f5fe9c3",
+        "changedFiles": 2
+      },
+      "sources": [
+        {
+          "kind": "closing_references",
+          "locator": "POST /graphql repository(BargLabs/cejel).pullRequest(408).closingIssuesReferences",
+          "sha256": "10f8d0b82d203a4f11bce79507f79611738c36b9a3d641656a12a14bdb556649",
+          "readAt": "2026-11-18T16:07:39.205Z"
+        },
+        {
+          "kind": "pull_request",
+          "locator": "GET /repos/BargLabs/cejel/pulls/408",
+          "sha256": "c4305bd84a52358f6b05a429df8de621e08451012bd11eb1772bcf038ac7495d",
+          "readAt": "2026-11-18T16:07:37.860Z",
+          "etag": "\"a036bc52f5f36969dabbc662f520674f015cdc114f22f5ef5e897158c1347a9f\""
+        },
+        {
+          "kind": "pull_request_files",
+          "locator": "GET /repos/BargLabs/cejel/pulls/408/files?per_page=100&page=1",
+          "sha256": "19fec2e46093590dce3f8058ec4ad369ee2057a71c007f48cc94b934823f4dec",
+          "readAt": "2026-11-18T16:07:38.716Z",
+          "etag": "W/\"c89ea1f78ca3366c1b30c671a80a70ff6a6120b596d1728776a48f0dfaf39859\""
+        }
+      ],
+      "files": {
+        "status": "ok",
+        "complete": true,
+        "entries": [
+          {
+            "path": ".github/workflows/verify-published-windows-binary.yml",
+            "status": "modified"
+          },
+          {
+            "path": "scripts/validate-distribution-metadata.mjs",
+            "status": "modified"
+          }
+        ]
+      },
+      "closingReferences": {
+        "status": "ok",
+        "issues": [
+          "BargLabs/cejel#407"
+        ]
+      }
+    },
+    "claims": [
+      {
+        "id": "head:/headCommit",
+        "check": "head",
+        "field": "/headCommit",
+        "declared": "35d6201d00cf926f9af10df61bfec05b6624ee12",
+        "observed": "35d6201d00cf926f9af10df61bfec05b6624ee12",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/0",
+        "check": "scope",
+        "field": "/filesChanged/0",
+        "declared": ".github/workflows/verify-published-windows-binary.yml",
+        "observed": ".github/workflows/verify-published-windows-binary.yml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/1",
+        "check": "scope",
+        "field": "/filesChanged/1",
+        "declared": "scripts/validate-distribution-metadata.mjs",
+        "observed": "scripts/validate-distribution-metadata.mjs",
+        "verdict": "pass"
+      },
+      {
+        "id": "reference:/references/0",
+        "check": "reference",
+        "field": "/references/0",
+        "declared": {
+          "issue": "#407",
+          "relation": "closes"
+        },
+        "observed": {
+          "closing": [
+            "BargLabs/cejel#407"
+          ]
+        },
+        "verdict": "pass"
+      }
+    ],
+    "verdict": "pass",
+    "digests": {
+      "claims": "8b32ca05124578cb75e90bf489cb0eeb290e9d6d3c7589114d5f001e245d6256",
+      "evidence": "a4217a12d3d12d1e746f53ff6914499fe939247a2f064f434894e25cce88ac12"
+    },
+    "rerun": {
+      "offline": "dunstan verify record.json",
+      "online": "dunstan rerun record.json"
+    },
+    "assurance": {
+      "status": "unsigned",
+      "issuer": "self-generated"
+    }
+  }
+}

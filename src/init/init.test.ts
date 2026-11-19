@@ -23,7 +23,14 @@ import {
   UPLOAD_STEP,
   workflowYaml,
 } from './content.js';
-import { detectRunners, gitlabTestJobs, junitOutput, testJobs } from './detect.js';
+import {
+  branchMatches,
+  detectRunners,
+  gitlabTestJobs,
+  junitOutput,
+  pushTrigger,
+  testJobs,
+} from './detect.js';
 import { applyPlan, type InitPlan, type Pin, planInit, renderPlan, WORKFLOW_PATH } from './init.js';
 
 isolateGit();
@@ -1084,5 +1091,133 @@ describe('GitLab (profile 0.1)', () => {
     expect(doc('docs/init.md')).toContain(
       `\`\`\`yaml\n${componentInclude('<commit> # <version>').join('\n')}\n\`\`\``,
     );
+  });
+});
+
+// Whether a pull request's base commit gets a test record (spec D.13): the workflow that runs the
+// tests has to run on a push to the default branch. init reads that from the workflow's `on:` and
+// prints it; it never edits the workflow.
+describe('the push trigger, for a test record at the base commit', () => {
+  const on = (lines: string[]) =>
+    pushTrigger(['name: CI', ...lines, 'jobs:', '  a:', ''].join('\n'));
+
+  it('reads the forms of `on:`', () => {
+    expect(on(['on: push'])).toEqual({ kind: 'all' });
+    expect(on(['on: [pull_request, push]'])).toEqual({ kind: 'all' });
+    expect(on(['on: [pull_request]'])).toEqual({ kind: 'none' });
+    expect(on(['on:', '  - pull_request', '  - push'])).toEqual({ kind: 'all' });
+    expect(on(['"on":', '  pull_request:', '  push:'])).toEqual({ kind: 'all' });
+    expect(on(['on:', '  push:', '    branches: [main, "release/**"]'])).toEqual({
+      kind: 'branches',
+      patterns: ['main', 'release/**'],
+    });
+    expect(
+      on(['on:', '  push:', '    branches:', '      - main # the default', '  pull_request:']),
+    ).toEqual({ kind: 'branches', patterns: ['main'] });
+    expect(on(['on:', '  push:', '    branches-ignore: [main]'])).toEqual({
+      kind: 'ignore',
+      patterns: ['main'],
+    });
+    expect(on(['on:', '  push:', '    paths: ["src/**"]'])).toEqual({ kind: 'all', paths: true });
+    // Tags alone: no branch push runs it.
+    expect(on(['on:', '  push:', '    tags: ["v*"]'])).toEqual({ kind: 'none' });
+    expect(on(['on:', '  workflow_dispatch:', '  pull_request:'])).toEqual({ kind: 'none' });
+    expect(on(['on: { push: { branches: [main] } }'])).toEqual({ kind: 'unknown' });
+    expect(on(['on:', `  push: \${{ fromJSON(x) }}`])).toEqual({ kind: 'unknown' });
+    expect(on([])).toEqual({ kind: 'unknown' });
+  });
+
+  it("matches a branch filter's globs, and leaves the ones it does not evaluate undecided", () => {
+    expect(branchMatches('main', 'main')).toBe(true);
+    expect(branchMatches('mai', 'main')).toBe(false);
+    expect(branchMatches('ma*', 'main')).toBe(true);
+    expect(branchMatches('*', 'feature/x')).toBe(false);
+    expect(branchMatches('**', 'feature/x')).toBe(true);
+    expect(branchMatches('release.1', 'releasex1')).toBe(false);
+    expect(branchMatches('!main', 'main')).toBeUndefined();
+    expect(branchMatches('ma?n', 'main')).toBeUndefined();
+  });
+
+  const withOn = (on: string[]) =>
+    repo({
+      ...VITEST_REPO,
+      '.github/workflows/ci.yml': (VITEST_REPO['.github/workflows/ci.yml'] as string).replace(
+        'on: [pull_request]',
+        on.join('\n'),
+      ),
+    });
+  const ci = (dir: string, defaultBranch?: string) =>
+    planInit(dir, VERSION, PIN, defaultBranch === undefined ? {} : { defaultBranch }).ci.join('\n');
+
+  it('says the base commit gets a record once the job uploads one, where a push runs it', () => {
+    const text = ci(withOn(['on:', '  pull_request:', '  push:', '    branches: [main]']), 'main');
+    expect(text).toContain(
+      'Its workflow runs on push to `main`, so once the job uploads the record, a base commit has one too:\n' +
+        "`dunstan check --base-tests` (DRAFT) can compare its counts with the head's.",
+    );
+  });
+
+  it('prints the trigger to add where no push to the default branch runs it', () => {
+    expect(ci(withOn(['on: [pull_request]']), 'trunk')).toContain(
+      "Its workflow does not run on push to `trunk`, so a pull request's base commit has no test\n" +
+        "record for `dunstan check --base-tests` (DRAFT) to compare with the head's.\n" +
+        'For one, add to its `on:`:\n\n      push:\n        branches: [trunk]',
+    );
+    expect(ci(withOn(['on:', '  push:', '    branches: [develop]']), 'main')).toContain(
+      'For one, add `main` to its `on.push.branches`.',
+    );
+    expect(ci(withOn(['on:', '  push:', '    branches-ignore: [main]']), 'main')).toContain(
+      'For one, take `main` out of its `on.push.branches-ignore`.',
+    );
+  });
+
+  it('says it cannot tell, rather than guess, without the default branch or a pattern it reads', () => {
+    expect(ci(withOn(['on:', '  push:', '    branches: [main]']))).toContain(
+      'its push trigger names branches (main) and init does not know the default branch.',
+    );
+    expect(ci(withOn(['on:', '  push:', '    branches: ["!main"]']), 'main')).toContain(
+      'init cannot match `main` to the branches its push trigger names (!main).',
+    );
+  });
+
+  it('says a path filter leaves some base commits without a record', () => {
+    expect(ci(withOn(['on:', '  push:', '    paths: ["src/**"]']), 'main')).toContain(
+      'Its push trigger filters on paths, so a base commit whose push changed none of them has\nno test record.',
+    );
+  });
+
+  it('tells no other test workflow to run on push when one already does', () => {
+    const dir = withOn(['on:', '  push:', '    branches: [main]']);
+    write(
+      dir,
+      '.github/workflows/release.yml',
+      [
+        'name: Release',
+        'on:',
+        '  release:',
+        'jobs:',
+        '  publish:',
+        '    runs-on: ubuntu-latest',
+        '    steps:',
+        '      - run: pnpm test',
+        '',
+      ].join('\n'),
+    );
+    const text = ci(dir, 'main');
+    expect(text).toContain('.github/workflows/release.yml');
+    expect(text).not.toContain('does not run on push');
+  });
+
+  it('prints nothing of it on GitLab', () => {
+    const plan = planInit(
+      repo({
+        'package.json': VITEST_REPO['package.json'],
+        '.gitlab-ci.yml': 'test:\n  script:\n    - pnpm test\n',
+      }),
+      VERSION,
+      PIN,
+      { forge: 'gitlab', defaultBranch: 'main' },
+    );
+    expect(plan.ci.join('\n')).not.toContain('--base-tests');
   });
 });

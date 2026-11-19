@@ -1,7 +1,9 @@
 // A GitHub subject's output is byte-identical to what dunstan_check_handback gave before it took a
 // GitLab subject. The snapshot was written by this test on main (b0de1e4), before the tool changed,
 // with the clock and the checker artifact fixed so that every byte of the response is reproducible:
-// a later change to a GitHub call's text, notes, table or record fails here.
+// a later change to a GitHub call's text, notes, table or record fails here. One change is allowed
+// and checked: since spec section 8.2 the table closes with the verdict's limits line
+// (src/cli/limits.ts), which is taken off before the snapshot.
 
 import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -18,6 +20,8 @@ import {
   REPO,
   type Scenario,
 } from '../__tests__/fake-github.js';
+import type { Verdict } from '../check/types.js';
+import { VERDICT_LIMITS } from '../cli/limits.js';
 import { createDunstanMcpServer, TOOL_NAME } from './server.js';
 
 const BLOCK = { dunstan: '0.1', headCommit: HEAD, filesChanged: ['src/a.ts', 'src/b.ts'] };
@@ -60,6 +64,20 @@ async function call(args: Record<string, unknown>, env: Record<string, string | 
 
 const TOKEN = { GITHUB_TOKEN: 'test-token' };
 
+// The response with the table's limits line taken off, after checking that a table, where there is
+// one, closes with its verdict's line.
+function withoutLimits(result: CallToolResult): CallToolResult {
+  if (result.isError === true) return result;
+  const content = result.content.map((c, i) => {
+    if (i !== 1 || c.type !== 'text') return c;
+    const verdict = /\nverdict: (pass|fail|unverifiable)\n/.exec(c.text)?.[1] as Verdict;
+    const limits = `${VERDICT_LIMITS[verdict]}\n`;
+    expect(c.text.endsWith(`\nverdict: ${verdict}\n${limits}`)).toBe(true);
+    return { ...c, text: c.text.slice(0, -limits.length) };
+  });
+  return { ...result, content };
+}
+
 describe('dunstan_check_handback on a GitHub subject, byte for byte as on main', () => {
   it.each([
     ['a report text', { repository: REPO, pullRequest: 7, report: REPORT }, TOKEN],
@@ -74,6 +92,6 @@ describe('dunstan_check_handback on a GitHub subject, byte for byte as on main',
     ],
   ] as const)('%s', async (_, args, env) => {
     const { result, requests } = await call({ ...args }, { ...env });
-    expect({ result, requests }).toMatchSnapshot();
+    expect({ result: withoutLimits(result), requests }).toMatchSnapshot();
   });
 });

@@ -12,6 +12,7 @@ import {
 } from '../__tests__/fake-github.js';
 import { checkScope } from '../check/checks.js';
 import type { Block, CloseEvent, Evidence } from '../check/types.js';
+import { VERDICT_LIMITS } from '../cli/limits.js';
 import { main } from '../cli/main.js';
 import { PATH_QUERY } from '../evidence/github.js';
 import { buildRecord, type DunstanRecord, recordBlock, serializeRecord } from '../record/build.js';
@@ -1329,7 +1330,10 @@ describe('dunstan check --advisory', () => {
     expect(advised.text).toMatch(
       /possible disagreement, unverified: not among the changed files\s+file_changed\s+src\/c\.ts\s+null/,
     );
-    expect(advised.text.trimEnd().split('\n').at(-2)).toMatch(/^verdict: pass$/);
+    expect(advised.text.trimEnd().split('\n').slice(-3, -1)).toEqual([
+      'verdict: pass',
+      VERDICT_LIMITS.pass,
+    ]);
     expect(advised.verified).toBe(0);
   });
 

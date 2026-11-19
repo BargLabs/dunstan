@@ -8425,12 +8425,12 @@ function closedBy(reference, field, evidence, repository, at, observed) {
   const pr = evidence.pullRequest;
   const section = evidence.closeEvents;
   const target = section?.targets.find((t) => sameIssue(t.ref, at));
-  const side = section?.pullRequest;
+  const side2 = section?.pullRequest;
   let unread2;
   if (section === void 0 || target === void 0) unread2 = absentSection("closeEvents");
   else if (target.status !== "ok") unread2 = unreadReason(target);
   const events = target?.status === "ok" ? target.events : [];
-  const sideUnread = () => side === void 0 ? absentSection("closeEvents") : unreadReason(side);
+  const sideUnread = () => side2 === void 0 ? absentSection("closeEvents") : unreadReason(side2);
   const self = `${repository}#${pr.number}`;
   const byThis = events.find(
     (e) => e.closer?.kind === "pull_request" && sameIssue(e.closer.ref, self)
@@ -8441,17 +8441,17 @@ function closedBy(reference, field, evidence, repository, at, observed) {
   for (const e of events) {
     if (e.closer?.kind !== "commit") continue;
     const oid = e.closer.oid;
-    if (oid === pr.mergeSha || side?.status === "ok" && side.commits.includes(oid)) {
+    if (oid === pr.mergeSha || side2?.status === "ok" && side2.commits.includes(oid)) {
       return pass("reference", field, reference, { ...observed, closedBy: e });
     }
-    if (side?.status !== "ok") unread2 ??= sideUnread();
+    if (side2?.status !== "ok") unread2 ??= sideUnread();
   }
   if (pr.state === "open" && !pr.merged) {
     return unverifiable("reference", field, reference, "closing_link_unsettled");
   }
   if (pr.merged && target?.status === "ok" && target.state === "open") {
-    if (side?.status !== "ok") unread2 ??= sideUnread();
-    else if (side.baseRef !== side.defaultBranch) {
+    if (side2?.status !== "ok") unread2 ??= sideUnread();
+    else if (side2.baseRef !== side2.defaultBranch) {
       return unverifiable("reference", field, reference, "closing_base_not_default");
     }
   }
@@ -8744,9 +8744,9 @@ var JunitError = class extends Error {
     this.name = "JunitError";
   }
 };
-function countJunit(xml) {
-  const { executed, failed } = scanJunit(xml);
-  return { executed, failed };
+function countJunitWithSkipped(xml) {
+  const { executed, skipped, failed } = scanJunit(xml);
+  return { executed, skipped, failed };
 }
 var NAME = /[A-Za-z_:][-A-Za-z0-9_:.]*/y;
 var ENTITY = /&(?:lt|gt|amp|quot|apos|#[0-9]+|#x[0-9A-Fa-f]+);/y;
@@ -8755,6 +8755,7 @@ function scanJunit(xml) {
   const stack = [];
   let roots = 0;
   let executed = 0;
+  let skipped = 0;
   let failed = 0;
   let tagStart = 0;
   let root;
@@ -8806,7 +8807,8 @@ function scanJunit(xml) {
     const frame = stack.pop();
     if (frame === void 0 || frame.name !== name) fail2(`unbalanced </${name}>`);
     const testcase = frame?.testcase;
-    if (testcase !== void 0 && !testcase.skipped) {
+    if (testcase?.skipped === true) skipped++;
+    else if (testcase !== void 0) {
       executed++;
       if (testcase.failed) failed++;
     }
@@ -8886,7 +8888,7 @@ function scanJunit(xml) {
   }
   if (stack.length > 0) fail2(`unclosed <${stack.at(-1)?.name}>`);
   if (roots === 0 || root === void 0) return fail2("no root element");
-  return { executed, failed, root };
+  return { executed, skipped, failed, root };
 }
 
 // src/evidence/zip.ts
@@ -9050,6 +9052,7 @@ async function readPullRequest(client, repository, number, options = {}) {
       },
       repository: str(base.full_name),
       baseRef,
+      baseSha: typeof obj(pr.base).sha === "string" ? obj(pr.base).sha : null,
       body: strOrNull(pr.body)
     };
   } catch (e) {
@@ -9615,7 +9618,24 @@ function withinLatestAttempt(jobs, run, createdAt) {
     (job) => (job.attempt === null || job.attempt <= run.attempt) && job.startedAt !== null && job.completedAt !== null && second(job.startedAt) <= created && created <= second(job.completedAt)
   );
 }
-async function readTestRecord(client, repository, record, headCommit, observed) {
+function counted(read) {
+  const { record: _, ...side2 } = read;
+  return side2;
+}
+function withoutSkipped(read) {
+  if (read.status !== "ok") return read;
+  return {
+    record: read.record,
+    status: "ok",
+    runs: read.runs.map((r) => ({
+      runId: r.runId,
+      runAttempt: r.runAttempt,
+      executed: r.executed,
+      failed: r.failed
+    }))
+  };
+}
+async function readCountedRuns(client, repository, record, headCommit, observed) {
   const workflowFile = record.workflow.split("/").at(-1);
   const runsPath = (page) => `/repos/${repository}/actions/workflows/${encodeURIComponent(workflowFile)}/runs?head_sha=${headCommit}&per_page=${PER_PAGE}&page=${page}`;
   const listed2 = await readAllPages(
@@ -9700,7 +9720,7 @@ async function readTestRecord(client, repository, record, headCommit, observed) 
     try {
       const file = readZipEntry(download.body, record.path, client.maxEntryBytes);
       if (file === null) continue;
-      const counts = countJunit(new TextDecoder("utf-8").decode(file));
+      const counts = countJunitWithSkipped(new TextDecoder("utf-8").decode(file));
       runs.push({ runId: run.id, runAttempt: run.attempt, ...counts });
     } catch (e) {
       if (!(e instanceof ZipError || e instanceof JunitError)) throw e;
@@ -9817,11 +9837,15 @@ async function readEvidence(client, input2) {
     }
     if (records.size > 0) {
       evidence.testRecords = [];
+      const baseline = input2.baseTests === true ? { baseSha: input2.pullRequest.baseSha ?? null, testRecords: [] } : void 0;
       for (const record of records.values()) {
-        evidence.testRecords.push(
-          await readTestRecord(client, repository, record, block.headCommit)
-        );
+        const head = await readCountedRuns(client, repository, record, block.headCommit);
+        evidence.testRecords.push(withoutSkipped(head));
+        if (baseline === void 0) continue;
+        const base = baseline.baseSha === null ? { record, status: "unpopulated", field: "base.sha" } : await readCountedRuns(client, repository, record, baseline.baseSha);
+        baseline.testRecords.push({ record, head: counted(head), base: counted(base) });
       }
+      if (baseline !== void 0) evidence.baseline = baseline;
     }
     if (block.deployedAt !== void 0) {
       evidence.deployments = [await readDeployments(client, repository, pr, block.deployedAt)];
@@ -9834,7 +9858,7 @@ async function readEvidence(client, input2) {
 // src/record/checker.ts
 import { readFileSync } from "node:fs";
 var CHECKER_NAME = "dunstan";
-var CHECKER_VERSION = "0.1.23";
+var CHECKER_VERSION = "0.1.24";
 function checkerIdentity(artifact) {
   return {
     name: CHECKER_NAME,
@@ -12152,10 +12176,10 @@ function namedWorkflowRuns(text, combined, evidence) {
   ];
   const named = workflowJobs(text, jobNames, recordedWorkflows);
   if (named.length === 0) return [...combined];
-  const counted = new Map(
+  const counted2 = new Map(
     countedCheckRuns(section.runs, section.excludedIds).map((r) => [String(r.id), r])
   );
-  const runOf = (c) => counted.get(c.id);
+  const runOf = (c) => counted2.get(c.id);
   const isOf = (r, workflow) => r.workflowPath === workflow || r.workflowName === workflow;
   let kept = [...combined];
   for (const job of new Set(named.map((n) => n.job))) {
@@ -12181,7 +12205,7 @@ function namedWorkflowRuns(text, combined, evidence) {
       const of = (r) => r?.name === job && isOf(r, workflow);
       if (kept.some((c) => of(runOf(c)))) continue;
       return {
-        reason: [...counted.values()].some(of) ? "declared_item_not_among_candidates" : "workflow_not_in_record"
+        reason: [...counted2.values()].some(of) ? "declared_item_not_among_candidates" : "workflow_not_in_record"
       };
     }
   }
@@ -12378,13 +12402,15 @@ function buildRecord(input2) {
     }
   };
   if (input2.forge !== void 0) {
-    if (readerClaims !== void 0 || advisory !== void 0) {
-      throw new Error("a GitLab record carries no reader claims or advisories in this draft");
+    if (readerClaims !== void 0 || advisory !== void 0 || evidence.baseline !== void 0) {
+      throw new Error(
+        "a GitLab record carries no reader claims, advisories or baseline in this draft"
+      );
     }
     record.predicateType = GITLAB_PREDICATE_TYPE;
     record.predicate.spec = GITLAB_SPEC_VERSION;
   }
-  if (readerClaims !== void 0 || advisory !== void 0) {
+  if (readerClaims !== void 0 || advisory !== void 0 || evidence.baseline !== void 0) {
     record.predicateType = DRAFT_PREDICATE_TYPE;
     record.predicate.spec = DRAFT_SPEC_VERSION;
   }
@@ -12679,6 +12705,7 @@ var FILES = { "handback-block-0.1.schema.json": `{
           "$ref": "record-0.1.schema.json#/$defs/evidence/properties/deployments"
         },
         "items": { "$ref": "#/$defs/items" },
+        "baseline": { "$ref": "#/$defs/baseline" },
         "sources": {
           "type": "array",
           "items": {
@@ -12822,6 +12849,59 @@ var FILES = { "handback-block-0.1.schema.json": `{
           ]
         }
       }
+    },
+    "baseline": {
+      "description": "D.13: each declared junit record's counts at the head and at the pull request's base commit, read as section 7.5 reads candidate runs, with each run's skipped test cases. Context only: no claim row reads it.",
+      "type": "object",
+      "required": ["baseSha", "testRecords"],
+      "additionalProperties": false,
+      "properties": {
+        "baseSha": {
+          "oneOf": [{ "$ref": "record-0.1.schema.json#/$defs/commitSha" }, { "type": "null" }]
+        },
+        "testRecords": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["record", "head", "base"],
+            "additionalProperties": false,
+            "properties": {
+              "record": { "$ref": "handback-block-0.1.schema.json#/$defs/junitRecord" },
+              "head": { "$ref": "#/$defs/countedRuns" },
+              "base": { "$ref": "#/$defs/countedRuns" }
+            }
+          }
+        }
+      }
+    },
+    "countedRuns": {
+      "description": "D.13: one side of a baseline entry: the candidate runs with their counts, or why they could not be read.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["status", "runs"],
+          "additionalProperties": false,
+          "properties": {
+            "status": { "const": "ok" },
+            "runs": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["runId", "runAttempt", "executed", "skipped", "failed"],
+                "additionalProperties": false,
+                "properties": {
+                  "runId": { "type": "integer", "minimum": 1 },
+                  "runAttempt": { "type": "integer", "minimum": 1 },
+                  "executed": { "type": "integer", "minimum": 0 },
+                  "skipped": { "type": "integer", "minimum": 0 },
+                  "failed": { "type": "integer", "minimum": 0 }
+                }
+              }
+            }
+          }
+        },
+        { "$ref": "record-0.1.schema.json#/$defs/unreadOnly" }
+      ]
     },
     "candidate": {
       "type": "object",
@@ -13539,7 +13619,8 @@ async function checkAt(input2, pr) {
     repository,
     pullRequest: pr,
     block: proposed === void 0 ? found : readingBlock(found, proposed, pr.evidence.headSha),
-    excludedCheckRunIds: [...input2.excludedCheckRunIds ?? [], ...ownRuns]
+    excludedCheckRunIds: [...input2.excludedCheckRunIds ?? [], ...ownRuns],
+    ...input2.baseTests === true ? { baseTests: true } : {}
   });
   const paths = proposed === void 0 ? [] : pathsToRead(proposed, evidence, repository);
   const pathsAtHead = paths.length === 0 ? [] : await input2.readers.pathObjects({ repository, headSha: pr.evidence.headSha, paths });
@@ -13835,11 +13916,16 @@ function parseInputs(env) {
   if (advisory !== "true" && advisory !== "false") {
     throw new ActionError(`advisory must be true or false, not "${advisory}"`);
   }
+  const baseTests = input(env, "base-tests") || "false";
+  if (baseTests !== "true" && baseTests !== "false") {
+    throw new ActionError(`base-tests must be true or false, not "${baseTests}"`);
+  }
   return {
     reportSource,
     unverifiableConclusion: unverifiable3,
     ...keyPath === "" ? {} : { sign: { keyPath, signer } },
-    advisory: advisory === "true"
+    advisory: advisory === "true",
+    baseTests: baseTests === "true"
   };
 }
 
@@ -13847,8 +13933,8 @@ function parseInputs(env) {
 function member(value, key) {
   return value !== null && typeof value === "object" ? value[key] : void 0;
 }
-function fullName(side) {
-  return member(member(side, "repo"), "full_name");
+function fullName(side2) {
+  return member(member(side2, "repo"), "full_name");
 }
 function readEvent(env, readFile) {
   const name = env.GITHUB_EVENT_NAME ?? "";
@@ -13926,6 +14012,96 @@ function noteText(note) {
 function isPossibleDisagreement(note) {
   return note.startsWith("differs:");
 }
+
+// src/cli/context.ts
+var WORKFLOW_DIR = ".github/workflows/";
+function side(runs) {
+  if (runs.status === "unreadable") return { reason: `source_unreadable:${runs.source}` };
+  if (runs.status === "unpopulated") return { reason: `evidence_field_unpopulated:${runs.field}` };
+  const [first, ...rest] = runs.runs;
+  if (first === void 0) return { reason: "record_not_found" };
+  const same = (r) => r.executed === first.executed && r.skipped === first.skipped && r.failed === first.failed;
+  if (!rest.every(same)) return { reason: "record_ambiguous" };
+  return { executed: first.executed, skipped: first.skipped, failed: first.failed };
+}
+function baselineFlags(record) {
+  const baseline = record.predicate.evidence.baseline;
+  if (baseline === void 0) return [];
+  return baseline.testRecords.flatMap((t) => {
+    const base = side(t.base);
+    const head = side(t.head);
+    const flags = [
+      { kind: "baseline", record: t.record, baseSha: baseline.baseSha, base, head }
+    ];
+    if ("reason" in base || "reason" in head) return flags;
+    if (head.skipped > base.skipped) {
+      flags.push({
+        kind: "skipped_rose",
+        record: t.record,
+        base: base.skipped,
+        head: head.skipped
+      });
+    }
+    if (head.executed < base.executed) {
+      flags.push({
+        kind: "executed_fell",
+        record: t.record,
+        base: base.executed,
+        head: head.executed
+      });
+    }
+    return flags;
+  });
+}
+var underWorkflows = (path) => path?.startsWith(WORKFLOW_DIR) === true;
+function contextFlags(record) {
+  const p = record.predicate;
+  if (p.subject.forge?.kind === "gitlab" || p.block.status !== "found") return [];
+  const files = p.evidence.files;
+  if (files === void 0) {
+    return [{ kind: "workflow_changes_unknown", reason: "evidence_field_unpopulated:files" }];
+  }
+  if (files.status === "unreadable") {
+    return [{ kind: "workflow_changes_unknown", reason: `source_unreadable:${files.source}` }];
+  }
+  if (files.status === "unpopulated") {
+    return [
+      { kind: "workflow_changes_unknown", reason: `evidence_field_unpopulated:${files.field}` }
+    ];
+  }
+  const flags = files.entries.filter((e) => underWorkflows(e.path) || underWorkflows(e.previousPath)).map((entry) => ({ kind: "workflow_changed", entry }));
+  if (!files.complete && flags.length === 0) {
+    flags.push({ kind: "workflow_changes_unknown", reason: "file_list_truncated" });
+  }
+  return [...flags, ...baselineFlags(record)];
+}
+var sideText = (s) => "reason" in s ? `none settled (${s.reason})` : `${s.executed} executed, ${s.skipped} skipped, ${s.failed} failed`;
+var recordName = (r) => `${r.workflow} / ${r.job}`;
+function contextText(flag) {
+  if (flag.kind === "baseline") {
+    const at = flag.baseSha === null ? "base" : `base ${flag.baseSha.slice(0, 12)}`;
+    return `tests in ${recordName(flag.record)}: at ${at}, ${sideText(flag.base)}; at head, ${sideText(flag.head)}`;
+  }
+  if (flag.kind === "skipped_rose") {
+    return `skipped tests rose from ${flag.base} at base to ${flag.head} at head in ${recordName(flag.record)}`;
+  }
+  if (flag.kind === "executed_fell") {
+    return `executed tests fell from ${flag.base} at base to ${flag.head} at head in ${recordName(flag.record)}`;
+  }
+  if (flag.kind === "workflow_changes_unknown") {
+    return `workflow changes unknown: the file list cannot show that no workflow changed (${flag.reason})`;
+  }
+  const e = flag.entry;
+  const from = e.previousPath === void 0 ? "" : ` from ${e.previousPath}`;
+  return `workflow changed by this pull request: ${e.path} (${e.status}${from})`;
+}
+
+// src/cli/limits.ts
+var VERDICT_LIMITS = {
+  pass: "A pass shows that the record agrees with every claim the block declares. It does not show that the change is correct, that the tests are the right ones, or anything the block does not declare.",
+  fail: "A fail shows that the record contradicts the block in at least one row. It does not show that the change itself is wrong.",
+  unverifiable: "An unverifiable verdict shows that the record cannot settle the block. It is not evidence that a claim is false, nor that it is true."
+};
 
 // src/template/wording.ts
 var PHRASES = {
@@ -14227,7 +14403,10 @@ function renderSummary(outcome) {
       `| Subject | ${escapeHtml(p.subject.repository)}#${p.subject.pullRequest} at <code>${p.subject.headSha}</code> |`,
       `| Report | ${p.report.source.kind} <code>${escapeHtml(p.report.source.locator)}</code> (sha256 <code>${p.report.sha256}</code>) |`,
       `| Block | ${blockLine(record)} |`,
-      `| Verdict | <code>${p.verdict}</code> |`,
+      `| Verdict | <code>${p.verdict}</code>. ${VERDICT_LIMITS[p.verdict]} |`,
+      ...contextFlags(record).map(
+        (f) => `| Context (not part of the verdict) | ${escapeHtml(contextText(f))} |`
+      ),
       `| Digests | claims <code>${p.digests.claims}</code>, evidence <code>${p.digests.evidence}</code> |`,
       `| Checker | ${p.checker.name} ${p.checker.version} (sha256 <code>${p.checker.digest.sha256}</code>) |`
     );
@@ -14451,7 +14630,8 @@ async function runAction(io) {
       checker: checkerIdentity(io.artifact),
       recordFile: RECORD_FILE,
       ...assurance === void 0 ? {} : { assurance },
-      advisory: inputs.advisory
+      advisory: inputs.advisory,
+      baseTests: inputs.baseTests
     });
     const dir = join(env.RUNNER_TEMP || tmpdir(), "dunstan");
     mkdirSync(dir, { recursive: true });

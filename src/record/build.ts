@@ -230,14 +230,17 @@ export function buildRecord(input: BuildInput): DunstanRecord {
     },
   };
   if (input.forge !== undefined) {
-    // The GitLab profile carries no reader claims or advisories in this draft.
-    if (readerClaims !== undefined || advisory !== undefined) {
-      throw new Error('a GitLab record carries no reader claims or advisories in this draft');
+    // The GitLab profile carries no reader claims, advisories or baseline in this draft.
+    if (readerClaims !== undefined || advisory !== undefined || evidence.baseline !== undefined) {
+      throw new Error(
+        'a GitLab record carries no reader claims, advisories or baseline in this draft',
+      );
     }
     record.predicateType = GITLAB_PREDICATE_TYPE;
     record.predicate.spec = GITLAB_SPEC_VERSION;
   }
-  if (readerClaims !== undefined || advisory !== undefined) {
+  // A baseline (D.13) is DRAFT 0.2.0 evidence, so a record that holds one is a DRAFT record.
+  if (readerClaims !== undefined || advisory !== undefined || evidence.baseline !== undefined) {
     record.predicateType = DRAFT_PREDICATE_TYPE;
     record.predicate.spec = DRAFT_SPEC_VERSION;
   }

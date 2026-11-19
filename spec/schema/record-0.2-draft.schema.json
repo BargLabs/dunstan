@@ -92,6 +92,7 @@
           "$ref": "record-0.1.schema.json#/$defs/evidence/properties/deployments"
         },
         "items": { "$ref": "#/$defs/items" },
+        "baseline": { "$ref": "#/$defs/baseline" },
         "sources": {
           "type": "array",
           "items": {
@@ -235,6 +236,59 @@
           ]
         }
       }
+    },
+    "baseline": {
+      "description": "D.13: each declared junit record's counts at the head and at the pull request's base commit, read as section 7.5 reads candidate runs, with each run's skipped test cases. Context only: no claim row reads it.",
+      "type": "object",
+      "required": ["baseSha", "testRecords"],
+      "additionalProperties": false,
+      "properties": {
+        "baseSha": {
+          "oneOf": [{ "$ref": "record-0.1.schema.json#/$defs/commitSha" }, { "type": "null" }]
+        },
+        "testRecords": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["record", "head", "base"],
+            "additionalProperties": false,
+            "properties": {
+              "record": { "$ref": "handback-block-0.1.schema.json#/$defs/junitRecord" },
+              "head": { "$ref": "#/$defs/countedRuns" },
+              "base": { "$ref": "#/$defs/countedRuns" }
+            }
+          }
+        }
+      }
+    },
+    "countedRuns": {
+      "description": "D.13: one side of a baseline entry: the candidate runs with their counts, or why they could not be read.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["status", "runs"],
+          "additionalProperties": false,
+          "properties": {
+            "status": { "const": "ok" },
+            "runs": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["runId", "runAttempt", "executed", "skipped", "failed"],
+                "additionalProperties": false,
+                "properties": {
+                  "runId": { "type": "integer", "minimum": 1 },
+                  "runAttempt": { "type": "integer", "minimum": 1 },
+                  "executed": { "type": "integer", "minimum": 0 },
+                  "skipped": { "type": "integer", "minimum": 0 },
+                  "failed": { "type": "integer", "minimum": 0 }
+                }
+              }
+            }
+          }
+        },
+        { "$ref": "record-0.1.schema.json#/$defs/unreadOnly" }
+      ]
     },
     "candidate": {
       "type": "object",

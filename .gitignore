@@ -10,6 +10,9 @@ coverage/
 *.tsbuildinfo
 .pnpm-store/
 .worktrees/
+# The goal runner's per-stream clones and logs. Each clone carries its own biome.json, which a
+# local `biome check .` would otherwise read as a second root configuration.
+.goal-streams/
 # The demo's conversion inputs and the reports it passes to `dunstan check --report-file`.
 demo/*/.work/
 # A study's pull request bodies, records and worksheets: they hold copied text and stay local.

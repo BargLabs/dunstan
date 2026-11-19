@@ -2,7 +2,9 @@
 // (GitLab profile 0.1, `predicate.subject.forge.kind` `gitlab`) is printed in GitLab's terms:
 // the merge request is `<project>!<iid>`, a description report is "merge request description", and
 // no remedy line names a GitHub-only thing. The record is unchanged: only the printed text differs.
-// A GitHub record's table is byte-identical to the one checker 0.1.19 printed (the snapshot file), but for the checker version in its first line.
+// A GitHub record's table is byte-identical to the one checker 0.1.19 printed (the snapshot file), but
+// for the checker version in its first line and, since spec section 8.2, the verdict's limits line
+// that closes it (src/cli/limits.ts), which the test checks and takes off before the snapshot.
 
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -10,6 +12,7 @@ import type { Claim } from '../check/types.js';
 import type { DunstanRecord } from '../record/build.js';
 import { serializeRecord } from '../record/build.js';
 import { GITLAB_TESTS_REMEDIES, TESTS_REMEDY_REASONS } from '../remedy/remedies.js';
+import { VERDICT_LIMITS } from './limits.js';
 import { renderRecord } from './output.js';
 
 const EXAMPLES = [
@@ -52,7 +55,11 @@ describe('renderRecord on a GitHub record', () => {
     for (const hasToken of [true, false]) {
       for (const caller of ['cli', 'mcp'] as const) {
         it(`prints ${name} (hasToken ${hasToken}, ${caller}) exactly as checker 0.1.19 did, but for the version`, () => {
-          expect(renderRecord(example(name), { hasToken, caller })).toMatchSnapshot();
+          const record = example(name);
+          const text = renderRecord(record, { hasToken, caller });
+          const limits = `${VERDICT_LIMITS[record.predicate.verdict]}\n`;
+          expect(text.endsWith(`\nverdict: ${record.predicate.verdict}\n${limits}`)).toBe(true);
+          expect(text.slice(0, -limits.length)).toMatchSnapshot();
         });
       }
     }

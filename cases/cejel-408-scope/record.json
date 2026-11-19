@@ -1,0 +1,143 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "git+https://github.com/BargLabs/cejel@35d6201d00cf926f9af10df61bfec05b6624ee12",
+      "digest": {
+        "gitCommit": "35d6201d00cf926f9af10df61bfec05b6624ee12"
+      }
+    },
+    {
+      "name": "handback-block",
+      "digest": {
+        "sha256": "43b0aa137502b1b6de8750f05db27fa84b6ed04776ef8611af448955470afd47"
+      }
+    }
+  ],
+  "predicateType": "https://barglabs.ai/dunstan/record/v0.1",
+  "predicate": {
+    "spec": "0.1.13",
+    "checker": {
+      "name": "dunstan",
+      "version": "0.1.24",
+      "digest": {
+        "sha256": "fb7da4a8c645b4aa502bfcb277c89b468cee40892605fea75bb43a1a3ca7ebc0"
+      }
+    },
+    "report": {
+      "sha256": "05733e9e4c7e4d8fa13b869843968bf5b9c624fe1a4c2b40baf035662ef685fc",
+      "source": {
+        "kind": "file",
+        "locator": "cases/cejel-408-scope/report.md"
+      }
+    },
+    "block": {
+      "status": "found",
+      "sha256": "43b0aa137502b1b6de8750f05db27fa84b6ed04776ef8611af448955470afd47",
+      "value": {
+        "dunstan": "0.1",
+        "headCommit": "35d6201d00cf926f9af10df61bfec05b6624ee12",
+        "filesChanged": [
+          ".github/workflows/verify-published-windows-binary.yml",
+          "scripts/validate-distribution-metadata.mjs"
+        ],
+        "mergedAt": "2026-10-04T13:30:48Z"
+      }
+    },
+    "subject": {
+      "repository": "BargLabs/cejel",
+      "pullRequest": 408,
+      "headSha": "35d6201d00cf926f9af10df61bfec05b6624ee12",
+      "mergeSha": "1445fefa4d5cd397aa0f2a79b7234b2a5f5fe9c3"
+    },
+    "evidence": {
+      "pullRequest": {
+        "status": "ok",
+        "number": 408,
+        "state": "closed",
+        "merged": true,
+        "mergedAt": "2026-10-04T13:30:48Z",
+        "headSha": "35d6201d00cf926f9af10df61bfec05b6624ee12",
+        "mergeSha": "1445fefa4d5cd397aa0f2a79b7234b2a5f5fe9c3",
+        "changedFiles": 2
+      },
+      "sources": [
+        {
+          "kind": "pull_request",
+          "locator": "GET /repos/BargLabs/cejel/pulls/408",
+          "sha256": "c4305bd84a52358f6b05a429df8de621e08451012bd11eb1772bcf038ac7495d",
+          "readAt": "2026-11-18T16:07:35.874Z",
+          "etag": "\"a036bc52f5f36969dabbc662f520674f015cdc114f22f5ef5e897158c1347a9f\""
+        },
+        {
+          "kind": "pull_request_files",
+          "locator": "GET /repos/BargLabs/cejel/pulls/408/files?per_page=100&page=1",
+          "sha256": "19fec2e46093590dce3f8058ec4ad369ee2057a71c007f48cc94b934823f4dec",
+          "readAt": "2026-11-18T16:07:36.824Z",
+          "etag": "W/\"c89ea1f78ca3366c1b30c671a80a70ff6a6120b596d1728776a48f0dfaf39859\""
+        }
+      ],
+      "files": {
+        "status": "ok",
+        "complete": true,
+        "entries": [
+          {
+            "path": ".github/workflows/verify-published-windows-binary.yml",
+            "status": "modified"
+          },
+          {
+            "path": "scripts/validate-distribution-metadata.mjs",
+            "status": "modified"
+          }
+        ]
+      }
+    },
+    "claims": [
+      {
+        "id": "head:/headCommit",
+        "check": "head",
+        "field": "/headCommit",
+        "declared": "35d6201d00cf926f9af10df61bfec05b6624ee12",
+        "observed": "35d6201d00cf926f9af10df61bfec05b6624ee12",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/0",
+        "check": "scope",
+        "field": "/filesChanged/0",
+        "declared": ".github/workflows/verify-published-windows-binary.yml",
+        "observed": ".github/workflows/verify-published-windows-binary.yml",
+        "verdict": "pass"
+      },
+      {
+        "id": "scope:/filesChanged/1",
+        "check": "scope",
+        "field": "/filesChanged/1",
+        "declared": "scripts/validate-distribution-metadata.mjs",
+        "observed": "scripts/validate-distribution-metadata.mjs",
+        "verdict": "pass"
+      },
+      {
+        "id": "time:/mergedAt",
+        "check": "time",
+        "field": "/mergedAt",
+        "declared": "2026-10-04T13:30:48Z",
+        "observed": "2026-10-04T13:30:48Z",
+        "verdict": "pass"
+      }
+    ],
+    "verdict": "pass",
+    "digests": {
+      "claims": "6960ed4b3cba595b52eb0d95a1f9a14f80fb4bc2698035e5a76a350883479cda",
+      "evidence": "0ea2da3c54c72b98b94a51980f167e2f53c17a88e1273905a01908c678d19b0e"
+    },
+    "rerun": {
+      "offline": "dunstan verify record.json",
+      "online": "dunstan rerun record.json"
+    },
+    "assurance": {
+      "status": "unsigned",
+      "issuer": "self-generated"
+    }
+  }
+}

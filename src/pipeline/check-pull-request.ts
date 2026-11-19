@@ -126,6 +126,9 @@ export interface CheckPullRequestInput {
   // Run the advisory extractor over the report (DRAFT 0.2.0, src/advisory/). Off by default. It
   // adds an advisory section and never changes the verdict or the claims.
   advisory?: boolean;
+  // Also read each `junit` record's counts at the pull request's base commit (DRAFT 0.2.0, D.13).
+  // Off by default. It adds a baseline evidence section and never changes the verdict or claims.
+  baseTests?: boolean;
   // GitLab profile 0.1: the subject is a GitLab merge request on this host, read with
   // gitlabReaders. Absent, it is a GitHub pull request and the record is written as before.
   forge?: Forge;
@@ -152,6 +155,7 @@ async function checkAt(input: CheckPullRequestInput, pr: PullRequestRead): Promi
     pullRequest: pr,
     block: proposed === undefined ? found : readingBlock(found, proposed, pr.evidence.headSha),
     excludedCheckRunIds: [...(input.excludedCheckRunIds ?? []), ...ownRuns],
+    ...(input.baseTests === true ? { baseTests: true } : {}),
   });
   // After the evidence, which decides which paths need asking. The answers go to the advisory
   // section, never into the evidence.

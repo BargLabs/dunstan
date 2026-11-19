@@ -10,6 +10,7 @@
       "**",
       "!spec/examples/blocks/invalid",
       "!action/dist",
+      "!cases/*/record*.json",
       "!experiments/closes-probe-2026-10/results.json",
       "!experiments/closes-probe-2026-10/reread-2026-10-12.json",
       "!experiments/checks-probe-2026-10/results.json",

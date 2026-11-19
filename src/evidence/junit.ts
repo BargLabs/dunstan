@@ -31,12 +31,21 @@ export interface JunitRoot {
 }
 
 export interface JunitScan extends JunitCounts {
+  // Test cases with a `skipped` child. Read only for a baseline (DRAFT 0.2.0, D.13); no 0.1 count
+  // or record member holds it.
+  skipped: number;
   root: JunitRoot;
 }
 
 export function countJunit(xml: string): JunitCounts {
   const { executed, failed } = scanJunit(xml);
   return { executed, failed };
+}
+
+// The counts with skipped test cases, for a baseline (DRAFT 0.2.0, D.13).
+export function countJunitWithSkipped(xml: string): JunitCounts & { skipped: number } {
+  const { executed, skipped, failed } = scanJunit(xml);
+  return { executed, skipped, failed };
 }
 
 const NAME = /[A-Za-z_:][-A-Za-z0-9_:.]*/y;
@@ -53,6 +62,7 @@ export function scanJunit(xml: string): JunitScan {
   const stack: Frame[] = [];
   let roots = 0;
   let executed = 0;
+  let skipped = 0;
   let failed = 0;
   // The tag being read starts here; the root's offsets are taken from it.
   let tagStart = 0;
@@ -111,7 +121,8 @@ export function scanJunit(xml: string): JunitScan {
     const frame = stack.pop();
     if (frame === undefined || frame.name !== name) fail(`unbalanced </${name}>`);
     const testcase = frame?.testcase;
-    if (testcase !== undefined && !testcase.skipped) {
+    if (testcase?.skipped === true) skipped++;
+    else if (testcase !== undefined) {
       executed++;
       if (testcase.failed) failed++;
     }
@@ -194,5 +205,5 @@ export function scanJunit(xml: string): JunitScan {
   }
   if (stack.length > 0) fail(`unclosed <${stack.at(-1)?.name}>`);
   if (roots === 0 || root === undefined) return fail('no root element');
-  return { executed, failed, root };
+  return { executed, skipped, failed, root };
 }

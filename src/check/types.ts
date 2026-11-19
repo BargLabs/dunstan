@@ -162,6 +162,22 @@ export type TestRecordEvidence =
   | { record: JunitRecord; status: 'ok'; runs: TestRecordRun[] }
   | ({ record: JunitRecord } & Unread);
 
+// DRAFT 0.2.0 only (D.13): a candidate run's counts with its skipped test cases.
+export interface CountedRun extends TestRecordRun {
+  skipped: number;
+}
+
+export type CountedRuns = { status: 'ok'; runs: CountedRun[] } | Unread;
+
+// DRAFT 0.2.0 only (D.13): each declared `junit` record's counts at the head and at the pull
+// request's base commit, read as section 7.5 reads candidate runs. Context only: no claim row
+// reads it, and a 0.1 record never carries it.
+export interface BaselineEvidence {
+  // The pull request's `base.sha` as the first read of it gave, or null if it gave none.
+  baseSha: string | null;
+  testRecords: { record: JunitRecord; head: CountedRuns; base: CountedRuns }[];
+}
+
 export type DeploymentRelation = 'head' | 'merge' | 'descendant' | 'unrelated' | 'unknown';
 
 export interface Deployment {
@@ -232,6 +248,7 @@ export interface Evidence {
   testRecords?: TestRecordEvidence[];
   deployments?: DeploymentsEvidence[];
   items?: ItemsEvidence;
+  baseline?: BaselineEvidence;
   sources: Source[];
 }
 

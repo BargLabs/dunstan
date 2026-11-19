@@ -735,6 +735,51 @@ section 2's "fail closed" in in-toto's terms. A gate that also keeps earlier rec
 later `fail` or `unverifiable` record for the same head; that adds denies and never an allow. How a
 record reads in in-toto's and other formats' terms: [`docs/interop.md`](../docs/interop.md).
 
+### 8.2 What a verdict does not show (informative)
+
+This subsection is informative. It adds no requirement and changes no verdict.
+
+A verdict answers whether the block's claims agree with the record. It does not answer whether the
+work is right. "The tests ran and 34 passed" and "these were the right tests" are separate claims,
+and a record can only settle the first: a change can pass every declared claim and still be wrong.
+
+| Verdict | What it shows | What it does not show |
+| --- | --- | --- |
+| `pass` | The record agrees with every claim the block declares. | That the change is correct, that the tests are the right ones, or anything the block does not declare (section 8.1). |
+| `fail` | The record contradicts the block in at least one row. | That the change itself is wrong. |
+| `unverifiable` | The record cannot settle the block. | That a claim is false, or that it is true. |
+
+The reference checker prints the line for the verdict beside it, in its CLI, its MCP tool and its
+Action summary. The record does not hold it: a record states a verdict and no prose about it
+(section 2).
+
+### 8.3 Context beside a verdict (informative)
+
+This subsection is informative. It adds no requirement, no read and no record member, and it
+changes no verdict.
+
+Some evidence a record already holds bears on how far a `pass` can be trusted without deciding any
+claim. The reference checker prints it beside the verdict as context, worked out from the record
+when it is printed, so it can be worked out again from any record, including one written before
+this subsection.
+
+- **A changed workflow.** On `pull_request`, GitHub runs the workflows as the pull request has them
+  (section 7.5, "A record the pull request produced"), so a pull request that changes a workflow
+  can change what its own check runs and test records show: skip a job, drop a test step, or relax
+  what counts as success. Each `files.entries` entry whose `path` or `previousPath` starts with
+  `.github/workflows/` is printed as a changed workflow. Where no entry does but the list cannot
+  show that none changed (`files.complete` `false`, or the section unreadable or absent), the
+  checker prints that workflow changes are unknown, with the reason the scope rows give. Nothing is
+  printed for a record with no found block, whose file list was not read, or for a GitLab record.
+
+Only the workflow file's path is read. No path is taken to be a test file: which files are tests
+is not in the record, and a checker does not guess (section 14). Section 7.5's rule, which makes
+the counts `unverifiable` when the workflow that produced the record changed, is a rule on claims;
+this is context only, and holds for every workflow the pull request changes.
+
+A DRAFT record can carry more evidence to print as context: a baseline, the test counts at the pull
+request's base commit (D.13).
+
 ## 9. The record
 
 A record is an in-toto Statement v1, the shape Cejel's attestations use, so a consumer that ingests
@@ -759,6 +804,10 @@ one ingests the other.
 ### 9.2 Predicate type
 
 `https://barglabs.ai/dunstan/record/v0.1`. It names the major and minor version of this specification.
+
+Every identifier this specification gives, each predicate type and each schema's `$id`, is under
+`https://barglabs.ai/dunstan/` (decided 2026-11-16, section 17), and each resolves: a predicate
+type to a page that describes it, a schema `$id` to the schema itself.
 
 ### 9.3 Predicate
 
@@ -950,6 +999,21 @@ against the schemas and check each record's block, report and claim and evidence
 | `source_unreadable:<kind>` | unverifiable | The source errored. |
 
 ## 17. Changes
+
+- **What a verdict does not show** (2026-11-17, not a 0.1 version). Section 8.2, informative, states
+  for each verdict what it shows and what it does not: a `pass` shows that the record agrees with
+  the declared claims, not that the change is correct or that the tests are the right ones. The CLI,
+  the MCP tool and the Action print that line beside the verdict. Section 8.3, informative, has
+  them print, as context, each workflow file the pull request changes, worked out from the file
+  list the record already holds; the operator ruled that the context names workflow files only and
+  no test files, and is printed, not recorded. No record, block, claim row or verdict changes. It
+  ships in checker 0.1.24.
+
+- **The identifiers' domain** (2026-11-16, not a 0.1 version). The operator decided that the
+  identifiers stay under `https://barglabs.ai/dunstan/`: the predicate types (section 9.2, G.2,
+  D.1) and the schemas' `$id`s. Records written since 0.1.0 already carry them, and they already
+  resolve. The domain had been left open until the repository went public. No identifier, record,
+  block or verdict changes; section 9.2 now says that each identifier resolves.
 
 - **0.1.13** (2026-11-15), checked by checker 0.1.23. The operator made the GitLab profile 0.1
   normative, ruling on each of the draft's open questions (G.9) as the reference implementation
@@ -1651,10 +1715,10 @@ block, which stays `"dunstan": "0.1"`, or any 0.1 claim row.
 
 ### D.2 The record
 
-A record that carries `readerClaims` or `advisory` (D.11) has `predicateType`
+A record that carries `readerClaims`, `advisory` (D.11) or the evidence member `baseline` (D.13) has `predicateType`
 `https://barglabs.ai/dunstan/record/v0.2-draft` and `spec` `"0.2.0-draft"`, and validates against
 `spec/schema/record-0.2-draft.schema.json`. That schema refers to the 0.1 schema for every member the
-two share. A record with neither is written to 0.1, unchanged.
+two share. A record with none of them is written to 0.1, unchanged.
 
 The predicate gains `readerClaims` (D.5) and `digests.readerClaims`, the SHA-256 over the JCS bytes
 of the `readerClaims` array (section 10). `digests.readerClaims` is REQUIRED when `readerClaims` is
@@ -2237,6 +2301,15 @@ nothing is at that path at the head.
 
 ### D.12 Changes to this draft
 
+- **2026-11-17.** D.13, a baseline: with base tests asked for, each declared `junit` record's
+  counts, with its skipped test cases, at the pull request's base commit and at the head, as
+  context beside the verdict. The operator ruled that the base read takes counts only, at the pull
+  request's `base.sha`, and that what is compared is printed, not recorded; the counts are evidence,
+  so `verify` recomputes the digests over them. The DRAFT schema gains `evidence.baseline` and
+  `countedRuns`. No claim row, verdict or 0.1 member changes, and a record without a baseline is
+  written as before. Reference implementation: `--base-tests` (`dunstan check`) and `base-tests`
+  (the Action), checker 0.1.24.
+
 - **2026-11-14.** Advisory extractor 0.1.5: a red-first run (`red first`, `red commit`, …), a
   mutated guard and the old or unmodified code narrate a failure, and so does a clause that opens
   with a word in `narrationOpeners`; a phrase in the new list `narrationScopes` covers the rest of
@@ -2504,6 +2577,58 @@ nothing is at that path at the head.
   after an analogue phrase, no longer binds to a verb outside the bracket or before the phrase
   (D.11.3, item 4; `docs/advisory.md`, "Asides and analogues"). The grammar digest changes, so no
   precision measured on 0.1.0 applies to 0.1.1. Sections 1 to 17 are unchanged.
+
+### D.13 A baseline: test counts at the base commit
+
+This subsection is DRAFT, as is everything under DRAFT 0.2.0. It adds no claim row and changes no
+verdict.
+
+**Why.** A `tests` claim is checked at the head (section 7.5). "34 passed" can be true at the head
+after three tests were skipped or deleted, and the head's record alone cannot show that. The base
+commit's record, where CI ran there, can: it is the same workflow's record before the change. It is
+read, never run.
+
+**When.** Only when the checker is asked to (`dunstan check --base-tests`; the Action's
+`base-tests: true`), and only for a block that declares at least one `junit` test record. A record
+that holds a baseline is a DRAFT record (D.2). Without one, nothing here is read or written.
+
+**What is read.** The pull request's `base.sha`, from the read of the pull request section 6
+already makes (no further request). For each distinct `junit` record the block declares, in the
+order `testRecords` uses, the candidate runs at `base.sha`, by section 7.5's rule for the head:
+the runs of that workflow file whose head SHA is `base.sha`, each at its latest attempt, with the
+named job, and the one artifact of the name that job's latest attempt uploaded. Each test case
+counts once: as `skipped` if it has a `skipped` child, otherwise as `executed`, and an executed one
+as `failed` as in section 7.5. The head's candidate runs are counted the same way, from the reads section 7.5
+already makes: the head is not read twice. No test case name is read or recorded.
+
+**The evidence.** `evidence.baseline` is `{baseSha, testRecords}`. `baseSha` is the `base.sha` the
+pull request read gave, or `null` where it gave none. Each `testRecords` entry is
+`{record, head, base}`; `head` and `base` each hold `{status: "ok", runs}`, every run
+`{runId, runAttempt, executed, skipped, failed}` in ascending `runId`, or a read status as in
+section 6. A `base.sha` that is `null` makes `base` `unpopulated` with field `base.sha`. The 0.1
+`testRecords` section is unchanged: it holds no `skipped`, and the 0.1 rows read it as before.
+`digests.evidence` covers `baseline`.
+
+**What it shows.** A side settles counts when its candidate runs agree, as section 7.5 requires of
+a count; otherwise it settles none, for the reason a count row would take (`record_not_found`,
+`record_ambiguous`, or the side's read status). Where both sides settle, the reference checker
+prints the two sets of counts beside the verdict as context (section 8.3), and states when skipped
+test cases rose or executed test cases fell from base to head. Nothing it prints is in the record,
+and nothing it compares is a claim: a rise in skipped tests may be deliberate. A gate that wants to
+act on it reads the counts from the record.
+
+**What it does not show.** The base commit is the one GitHub gives as the pull request's base, not
+the merge base, and it can change while the pull request is open; the record holds which one was
+read.
+Counts do not show which test was skipped or added, and a base commit on which CI did not run, or
+whose artifact has expired, settles nothing. A workflow the pull request changed (section 8.3) can
+make the head's counts its own, as section 7.5 says of the record it produced.
+
+**Re-running.** Offline verify recomputes the digests over the recorded baseline, as over any
+evidence. As in D.8, an online re-run of a draft record is not defined.
+
+**What a record would newly publish.** Beyond section 14: the pull request's base commit, and the
+run ids, attempts and counts of the base's candidate runs.
 
 ## Survey 0.1: the settleability report
 

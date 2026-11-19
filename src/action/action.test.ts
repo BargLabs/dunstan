@@ -11,6 +11,7 @@ import {
 } from '../__tests__/fake-github.js';
 import type { AdvisorySection } from '../advisory/advise.js';
 import { ADVISORY_LINE, advisoryLine } from '../advisory/present.js';
+import { VERDICT_LIMITS } from '../cli/limits.js';
 import type { DunstanRecord } from '../record/build.js';
 import { verifyRecord } from '../record/verify.js';
 import { extractHandbackBlock } from '../spec/extract.js';
@@ -74,6 +75,16 @@ describe('inputs', () => {
     expect(parseInputs({ ...env, INPUT_ADVISORY: 'true' }).advisory).toBe(true);
     for (const bad of ['yes', 'TRUE', '1', 'on']) {
       expect(() => parseInputs({ ...env, INPUT_ADVISORY: bad })).toThrow(/true or false/);
+    }
+  });
+
+  it('defaults base-tests to false and accepts only true or false', () => {
+    const env = { 'INPUT_REPORT-SOURCE': 'pr-body' };
+    expect(parseInputs(env).baseTests).toBe(false);
+    expect(parseInputs({ ...env, 'INPUT_BASE-TESTS': 'false' }).baseTests).toBe(false);
+    expect(parseInputs({ ...env, 'INPUT_BASE-TESTS': 'true' }).baseTests).toBe(true);
+    for (const bad of ['yes', 'TRUE', '1', 'on']) {
+      expect(() => parseInputs({ ...env, 'INPUT_BASE-TESTS': bad })).toThrow(/true or false/);
     }
   });
 });
@@ -404,9 +415,26 @@ describe('the Action', () => {
     expect(r.exitCode).toBe(1);
     expect(r.outcome.title).toBe('fail: 1 of 3 claims (undeclared_file)');
     expect(r.summary).toContain('| Claim | Declared | Observed | Verdict | Reason |');
+    // The verdict row says what a fail does not show (spec section 8.2).
+    expect(r.summary).toContain(`| Verdict | <code>fail</code>. ${VERDICT_LIMITS.fail} |`);
     // A pipe in a path cannot break the table.
     expect(r.summary).toContain(
       '| <code>scope:undeclared:src/b&#124;c.ts</code> | <code>null</code> | <code>"src/b&#124;c.ts"</code> | **fail** | <code>undeclared_file</code> |',
+    );
+  });
+
+  it('lists a changed workflow as context in the summary, and the verdict stays as checked', async () => {
+    const h = harness({
+      pr: basePullRequest({ body: block(['.github/workflows/ci.yml', 'src/a.ts']) }),
+      files: [
+        { filename: '.github/workflows/ci.yml', status: 'modified' },
+        { filename: 'src/a.ts', status: 'modified' },
+      ],
+    });
+    const r = await act(h, { 'report-source': 'pr-body' });
+    expect(r.outcome.verdict).toBe('pass');
+    expect(r.summary).toContain(
+      '| Context (not part of the verdict) | workflow changed by this pull request: .github/workflows/ci.yml (modified) |',
     );
   });
 

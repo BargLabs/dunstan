@@ -79,6 +79,7 @@ what a branch requires.
 | `unverifiable-conclusion` | `failure` | The conclusion for an `unverifiable` verdict: `failure` or `neutral`. |
 | `sign-key-path`, `signer` | none | An SSH private key and the signer principal: the record is written as its JCS bytes with a detached signature, both uploaded. |
 | `advisory` | `false` | `true` also reads the report's prose for asserted claims and records each one, compared with the evidence, as an advisory (DRAFT 0.2.0, [`docs/advisory.md`](advisory.md)). Advisories never change the verdict, the conclusion or the title. The summary gains one row counting them, and a section listing each `differs` note as a "possible disagreement, unverified" ([`docs/advisory.md`](advisory.md), "How a `differs` note is shown"). |
+| `base-tests` | `false` | `true` also reads each declared `junit` test record's counts, with skipped test cases, at the pull request's base commit (`base.sha`) and at the head, into a baseline (DRAFT 0.2.0, [spec D.13](../spec/claim-format.md#d13-a-baseline-test-counts-at-the-base-commit)). The summary prints both sets of counts as context, and says when skipped tests rose or executed tests fell. A baseline never changes the verdict, the conclusion or the title. It needs no permission beyond `actions: read`, and settles nothing for a base commit CI did not run on. |
 
 | Output | Meaning |
 | --- | --- |

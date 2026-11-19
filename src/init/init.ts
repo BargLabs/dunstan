@@ -38,6 +38,7 @@ import {
   workflowYaml,
 } from './content.js';
 import {
+  branchMatches,
   detectRunners,
   GITLAB_CI,
   gitlabRunsDunstan,
@@ -71,6 +72,9 @@ export interface InitOptions {
   // A GitLab project's full path and host, for the --tests-ci line, from the remote.
   gitlabProject?: string;
   gitlabHost?: string;
+  // The default branch, from the `origin` remote's HEAD (src/cli/init.ts); undefined when git
+  // does not say. The branch a pull request's base commit is on.
+  defaultBranch?: string;
 }
 
 export interface Pin {
@@ -190,7 +194,98 @@ function jobUpload(job: WorkflowJob, path?: string): string[] {
   );
 }
 
-function ciSteps(job: WorkflowJob, version: string): string[] {
+// Whether a pull request's base commit gets a test record from the job's workflow: the workflow has
+// to run on a push to the default branch (spec D.13). Printed after the job's steps; init never
+// edits the workflow. Undefined when init has no trigger for the job.
+// `runs`: whether a push to the default branch runs the workflow, undefined when init cannot tell.
+export function baseRecordNote(
+  job: WorkflowJob,
+  defaultBranch?: string,
+): { runs: boolean | undefined; lines: string[] } | undefined {
+  const push = job.push;
+  if (push === undefined) return undefined;
+  const branch = defaultBranch === undefined ? 'the default branch' : `\`${defaultBranch}\``;
+  const tool = '`dunstan check --base-tests` (DRAFT)';
+  const paths =
+    push.paths === true
+      ? [
+          'Its push trigger filters on paths, so a base commit whose push changed none of them has',
+          'no test record.',
+        ]
+      : [];
+  let runs: boolean | undefined;
+  if (push.kind === 'all') runs = true;
+  else if (push.kind === 'none') runs = false;
+  else if (push.kind === 'unknown' || defaultBranch === undefined) runs = undefined;
+  else {
+    const matches = (push.patterns ?? []).map((p) => branchMatches(p, defaultBranch));
+    const any = matches.includes(true) ? true : matches.includes(undefined) ? undefined : false;
+    runs = push.kind === 'branches' ? any : any === undefined ? undefined : !any;
+  }
+  if (runs === true) {
+    const to = defaultBranch === undefined ? 'every branch' : branch;
+    const has = job.uploadsRecord
+      ? "so a pull request's base commit has a test record too:"
+      : 'so once the job uploads the record, a base commit has one too:';
+    return {
+      runs,
+      lines: [
+        `Its workflow runs on push to ${to}, ${has}`,
+        `${tool} can compare its counts with the head's.`,
+        ...paths,
+      ],
+    };
+  }
+  if (runs === false) {
+    const lines = [
+      `Its workflow does not run on push to ${branch}, so a pull request's base commit has no test`,
+      `record for ${tool} to compare with the head's.`,
+    ];
+    if (push.kind === 'branches') lines.push(`For one, add ${branch} to its \`on.push.branches\`.`);
+    else if (push.kind === 'ignore') {
+      lines.push(`For one, take ${branch} out of its \`on.push.branches-ignore\`.`);
+    } else {
+      lines.push(
+        'For one, add to its `on:`:',
+        '',
+        '      push:',
+        `        branches: [${defaultBranch ?? '<default branch>'}]`,
+      );
+    }
+    return { runs, lines };
+  }
+  const why =
+    push.kind === 'unknown'
+      ? 'init could not read its `on:`'
+      : defaultBranch === undefined
+        ? `its push trigger names branches (${push.patterns?.join(', ')}) and init does not know the default branch`
+        : `init cannot match ${branch} to the branches its push trigger names (${push.patterns?.join(', ')})`;
+  return {
+    runs,
+    lines: [
+      `Whether a pull request's base commit has a test record for ${tool} depends on the workflow`,
+      `running on push to ${branch}: ${why}.`,
+      ...paths,
+    ],
+  };
+}
+
+// `baseCovered`: another test job's workflow already runs on push to the default branch, so the base
+// commit has a record without this one; a job that does not is then not told to add a trigger (a
+// release workflow, say, that should not run on every push).
+function ciSteps(
+  job: WorkflowJob,
+  version: string,
+  defaultBranch: string | undefined,
+  baseCovered: boolean,
+): string[] {
+  const out = jobSteps(job, version);
+  const note = baseRecordNote(job, defaultBranch);
+  if (note === undefined || (note.runs !== true && baseCovered)) return out;
+  return [...out, '', ...note.lines];
+}
+
+function jobSteps(job: WorkflowJob, version: string): string[] {
   const where = `${job.workflow}, job \`${job.name ?? job.jobId}\``;
   if (job.uploadsRecord) {
     return [`${where} already uploads dunstan-junit: nothing to add.`];
@@ -470,8 +565,14 @@ export function planInit(
       'record, every tests claim is unverifiable; the recipes are in docs/ci-test-records.md.',
     ]);
   }
+  const baseCovered = jobs.some((j) => baseRecordNote(j, options.defaultBranch)?.runs === true);
   for (const job of jobs)
-    separated(ci, gitlab ? gitlabCiSteps(job, version) : ciSteps(job, version));
+    separated(
+      ci,
+      gitlab
+        ? gitlabCiSteps(job, version)
+        : ciSteps(job, version, options.defaultBranch, baseCovered),
+    );
   const run = new Set(jobs.flatMap((j) => j.packages?.map((p) => p.recipe.id) ?? [j.recipe.id]));
   for (const runner of runners.filter((r) => !run.has(r.recipe.id))) {
     separated(ci, gitlab ? gitlabRecipe(runner, version) : recipeWithoutJob(runner, version));

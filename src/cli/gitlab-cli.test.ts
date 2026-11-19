@@ -171,6 +171,7 @@ describe('dunstan check on a GitLab merge request', () => {
       ['--report-mr-description', '--pr', '1'],
       ['--report-mr-description', '--exclude-check-run', '5'],
       ['--report-mr-description', '--advisory'],
+      ['--report-mr-description', '--base-tests'],
       ['--report-mr-description', '--gitlab-host', 'https://gitlab.example.com'],
     ]) {
       const r = await run([...base, ...extra]);

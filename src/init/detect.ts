@@ -386,6 +386,103 @@ export interface WorkflowJob {
   workingDirectory?: string;
   // Whether the job already uploads an artifact named dunstan-junit.
   uploadsRecord: boolean;
+  // What pushes run the job's workflow (GitHub only): whether a pull request's base commit, on the
+  // default branch, gets a run and so a test record (spec D.13).
+  push?: PushTrigger;
+}
+
+// The pushes that run a workflow, from its `on:`. 'all': a push to any branch; 'branches': a push
+// to a branch that matches one of `patterns`; 'ignore': to any branch but those; 'none': no push to
+// a branch (no `push` event, or only tags); 'unknown': init cannot read the `on:` (an expression, a
+// flow mapping, a shape it does not know). `paths`: the push event filters on paths, so a push that
+// changes none of them does not run it.
+export interface PushTrigger {
+  kind: 'all' | 'branches' | 'ignore' | 'none' | 'unknown';
+  patterns?: string[];
+  paths?: boolean;
+}
+
+const flowList = (value: string): string[] | undefined =>
+  value.startsWith('[') && value.endsWith(']')
+    ? value
+        .slice(1, -1)
+        .split(',')
+        .map(unquote)
+        .filter((x) => x !== '')
+    : undefined;
+
+export function pushTrigger(text: string): PushTrigger {
+  const lines = text.split(/\r?\n/).map(withoutComment);
+  const at = lines.findIndex((l) => /^(on|"on"|'on'):/.test(l));
+  if (at < 0) return { kind: 'unknown' };
+  const inline = (lines[at] as string).replace(/^[^:]+:/, '').trim();
+  if (inline !== '') {
+    if (inline.startsWith('{')) return { kind: 'unknown' };
+    const events = flowList(inline) ?? [unquote(inline)];
+    return { kind: events.includes('push') ? 'all' : 'none' };
+  }
+  const body: string[] = [];
+  for (const line of lines.slice(at + 1)) {
+    if (line.trim() === '') continue;
+    if (indentOf(line) === 0) break;
+    body.push(line);
+  }
+  const top = body[0] === undefined ? undefined : indentOf(body[0]);
+  if (top === undefined) return { kind: 'unknown' };
+  if ((body[0] as string).trimStart().startsWith('-')) {
+    const events = body
+      .filter((l) => indentOf(l) === top)
+      .map((l) => unquote(l.trim().replace(/^-\s*/, '')));
+    return { kind: events.includes('push') ? 'all' : 'none' };
+  }
+  const i = body.findIndex((l) => indentOf(l) === top && /^\s*push:/.test(l));
+  if (i < 0) return { kind: 'none' };
+  const value = (body[i] as string).replace(/^\s*push:/, '').trim();
+  if (!['', '{}', 'null', '~'].includes(value)) return { kind: 'unknown' };
+  const filters = new Map<string, string[]>();
+  let key: string | undefined;
+  let keyIndent: number | undefined;
+  for (const line of body.slice(i + 1)) {
+    if (indentOf(line) <= top) break;
+    keyIndent ??= indentOf(line);
+    if (indentOf(line) === keyIndent) {
+      const m = /^\s*([A-Za-z-]+):\s*(.*)$/.exec(line);
+      if (m === null) return { kind: 'unknown' };
+      key = m[1] as string;
+      const v = (m[2] ?? '').trim();
+      const list = v === '' ? [] : flowList(v);
+      if (list === undefined) return { kind: 'unknown' };
+      filters.set(key, list);
+    } else {
+      const item = /^\s*-\s*(.+)$/.exec(line);
+      if (item === null || key === undefined) return { kind: 'unknown' };
+      filters.get(key)?.push(unquote(item[1] as string));
+    }
+  }
+  const paths = filters.has('paths') || filters.has('paths-ignore') ? { paths: true } : {};
+  const branches = filters.get('branches');
+  if (branches !== undefined) return { kind: 'branches', patterns: branches, ...paths };
+  const ignored = filters.get('branches-ignore');
+  if (ignored !== undefined) return { kind: 'ignore', patterns: ignored, ...paths };
+  // Tags alone: GitHub runs it for no branch push.
+  if (filters.has('tags') || filters.has('tags-ignore')) return { kind: 'none' };
+  return { kind: 'all', ...paths };
+}
+
+// Whether a branch filter pattern matches `branch`: true, false, or undefined when the pattern uses
+// a filter character init does not evaluate (`?`, `+`, `[`, or a leading `!`).
+export function branchMatches(pattern: string, branch: string): boolean | undefined {
+  if (/[?+[\]]/.test(pattern) || pattern.startsWith('!')) return undefined;
+  const regex = pattern
+    .split('**')
+    .map((part) =>
+      part
+        .split('*')
+        .map((x) => x.replace(/[.^$(){}|\\/]/g, '\\$&'))
+        .join('[^/]*'),
+    )
+    .join('.*');
+  return new RegExp(`^${regex}$`).test(branch);
 }
 
 export const WORKFLOWS_DIR = '.github/workflows';
@@ -711,6 +808,7 @@ export function testJobs(dir: string, runners: Runner[]): WorkflowJob[] {
         ...(workingDirectory === undefined ? {} : { workingDirectory }),
         ...(leg === undefined ? {} : { leg }),
         uploadsRecord: job.lines.some((l) => /\bdunstan-junit\b/.test(l)),
+        push: pushTrigger(text),
       });
     }
   }

@@ -8,6 +8,8 @@ import type { GitHubClient } from '../evidence/http.js';
 import type { EvidenceReaders } from '../pipeline/check-pull-request.js';
 import type { DunstanRecord } from '../record/build.js';
 import { type RemedyContext, remedyFor } from '../remedy/remedies.js';
+import { contextFlags, contextText } from './context.js';
+import { VERDICT_LIMITS } from './limits.js';
 
 export interface CliIo {
   out: (text: string) => void;
@@ -138,6 +140,14 @@ export function renderRecord(record: DunstanRecord, context: RemedyContext): str
       );
     }
   }
-  lines.push('', `verdict: ${p.verdict}`);
+  const flags = contextFlags(record);
+  if (flags.length > 0) {
+    lines.push(
+      '',
+      'context (not part of the verdict):',
+      ...flags.map((f) => `  ${contextText(f)}`),
+    );
+  }
+  lines.push('', `verdict: ${p.verdict}`, VERDICT_LIMITS[p.verdict]);
   return `${lines.join('\n')}\n`;
 }

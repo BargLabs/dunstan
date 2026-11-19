@@ -26,7 +26,7 @@ usage:
   dunstan check --repo <owner/name> --pr <n>
                 (--report-file <path|-> | --report-pr-body | --report-comment-author <login>)
                 [--out <record.json>] [--sign-key <path> --signer <principal>]
-                [--exclude-check-run <id>]... [--advisory]
+                [--exclude-check-run <id>]... [--advisory] [--base-tests]
   dunstan check --gitlab-project <namespace/project> --mr <iid> [--gitlab-host <host>]
                 (--report-file <path|-> | --report-mr-description)
                 [--out <record.json>] [--sign-key <path> --signer <principal>]
@@ -54,6 +54,9 @@ check     reads the pull request, the named report and the evidence its block ne
           record and prints the claims table. GITHUB_TOKEN is read from the environment.
           --advisory also reads the report's prose for asserted claims and records them as
           advisories (DRAFT 0.2.0, docs/advisory.md). They never change the verdict.
+          --base-tests also reads each junit test record's counts at the pull request's base
+          commit, and prints them beside the head's as context (DRAFT 0.2.0, spec D.13).
+          They never change the verdict.
           GitLab (profile 0.1): --gitlab-project and --mr check a merge request on
           gitlab.com, or on --gitlab-host; --report-mr-description reads its description.
           GITLAB_TOKEN is optional. Checks are the head pipeline's jobs and bridges, less each

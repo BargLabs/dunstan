@@ -1,0 +1,51 @@
+name: Bring a pull request you don't trust
+description: An agent said it was done. Send us the pull request and its report, and we check its claims against the record.
+title: "Case: "
+labels: ["case"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Dunstan checks a coding agent's completion report against the pull request's own record: its files, commits, CI runs and closing references. Give us a public pull request and the report the agent wrote, and we run `dunstan check` on it and reply with the record.
+
+        **This issue is public.** If the pull request or its repository should not be named in public, do not open an issue: email team@barglabs.ai with the same fields instead.
+
+        A case we publish goes into [`cases/`](https://github.com/BargLabs/dunstan/tree/main/cases) **anonymised**: the repository, its owner, people, commit ids and issue numbers are replaced, and file paths too if you ask. Only the verdicts and the reasons stay as they were.
+  - type: input
+    id: pull-request
+    attributes:
+      label: Pull request
+      description: A public GitHub pull request, as a link.
+      placeholder: https://github.com/<owner>/<repo>/pull/<number>
+    validations:
+      required: true
+  - type: textarea
+    id: report
+    attributes:
+      label: The agent's report
+      description: What the agent said when it finished, as it said it. If it is the pull request description or a comment there, say which.
+    validations:
+      required: true
+  - type: textarea
+    id: doubt
+    attributes:
+      label: What you doubt
+      description: The claim you do not trust, for example "34 tests passed" or "fixes #12".
+    validations:
+      required: false
+  - type: dropdown
+    id: paths
+    attributes:
+      label: File paths in a published case
+      options:
+        - Keep them
+        - Replace them too
+    validations:
+      required: true
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: Publishing
+      options:
+        - label: Barg Labs may publish this case in cases/, anonymised as described above.
+          required: false

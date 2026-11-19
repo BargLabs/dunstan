@@ -236,6 +236,7 @@ export async function runAction(io: ActionIo): Promise<ActionResult> {
       recordFile: RECORD_FILE,
       ...(assurance === undefined ? {} : { assurance }),
       advisory: inputs.advisory,
+      baseTests: inputs.baseTests,
     });
 
     const dir = join(env.RUNNER_TEMP || tmpdir(), 'dunstan');

@@ -22,6 +22,9 @@ export interface ActionInputs {
   sign?: { keyPath: string; signer: string };
   // Run the advisory extractor (DRAFT 0.2.0). It never changes the verdict or the conclusion.
   advisory: boolean;
+  // Also read each junit record's counts at the base commit (DRAFT 0.2.0, D.13). Context only: it
+  // never changes the verdict or the conclusion.
+  baseTests: boolean;
 }
 
 // A GitHub login, or an app's bot login such as `my-agent[bot]`.
@@ -78,10 +81,16 @@ export function parseInputs(env: Record<string, string | undefined>): ActionInpu
     throw new ActionError(`advisory must be true or false, not "${advisory}"`);
   }
 
+  const baseTests = input(env, 'base-tests') || 'false';
+  if (baseTests !== 'true' && baseTests !== 'false') {
+    throw new ActionError(`base-tests must be true or false, not "${baseTests}"`);
+  }
+
   return {
     reportSource,
     unverifiableConclusion: unverifiable,
     ...(keyPath === '' ? {} : { sign: { keyPath, signer } }),
     advisory: advisory === 'true',
+    baseTests: baseTests === 'true',
   };
 }

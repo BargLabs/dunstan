@@ -1,4 +1,5 @@
-// PROVENANCE.md against the records it describes. Every record under demo/ and spec/examples/ must
+// PROVENANCE.md against the records it describes. Every record under demo/, spec/examples/ and
+// cases/ must
 // carry the checker version and checker.digest that PROVENANCE.md gives for its path: in its Records
 // table (the build a tag reproduces, or the spec examples' placeholder) or as a development-build
 // record, whose file must still have the listed SHA-256, so an edited original fails. A row built
@@ -15,7 +16,7 @@ import { describe, expect, it } from 'vitest';
 import { CHECKER_VERSION } from '../record/checker.js';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
-const GUARDED = ['demo', 'spec/examples'];
+const GUARDED = ['demo', 'spec/examples', 'cases'];
 const RECORD_TYPE_TEXT = 'https://barglabs.ai/dunstan/record/';
 const RECORD_TYPE = /^https:\/\/barglabs\.ai\/dunstan\/record\//;
 const HEX64 = /^[0-9a-f]{64}$/;
@@ -192,6 +193,9 @@ describe('PROVENANCE.md', () => {
     expect(p.builds.map((b) => [b.pattern, b.version, b.tag])).toEqual([
       ['demo/2026-10/*/rerun-v0.1.1-2026-10-06/record.json', '0.1.1', 'v0.1.1'],
       ['spec/examples/records/*.json', CHECKER_VERSION, null],
+      // The cases are rewritten by each release's build (cases/README.md), so their tag is the
+      // running checker's.
+      ['cases/*/record*.json', CHECKER_VERSION, `v${CHECKER_VERSION}`],
     ]);
     expect(p.originals).toHaveLength(6);
   });

@@ -68,6 +68,7 @@ export async function check(args: string[], io: CliIo): Promise<number> {
       'exclude-check-run': { type: 'string', multiple: true },
       'exclude-gitlab-job': { type: 'string', multiple: true },
       advisory: { type: 'boolean' },
+      'base-tests': { type: 'boolean' },
       'gitlab-project': { type: 'string' },
       mr: { type: 'string' },
       'gitlab-host': { type: 'string' },
@@ -129,6 +130,7 @@ export async function check(args: string[], io: CliIo): Promise<number> {
     recordFile: basename(out),
     ...(assurance === undefined ? {} : { assurance }),
     advisory: values.advisory === true,
+    baseTests: values['base-tests'] === true,
   });
   writeFileSync(out, serializeRecord(record));
   io.out(renderRecord(record, { hasToken: client.hasToken, caller: 'cli' }));
@@ -151,6 +153,7 @@ interface CheckValues {
   'exclude-check-run'?: string[] | undefined;
   'exclude-gitlab-job'?: string[] | undefined;
   advisory?: boolean | undefined;
+  'base-tests'?: boolean | undefined;
   'gitlab-project'?: string | undefined;
   mr?: string | undefined;
   'gitlab-host'?: string | undefined;
@@ -169,6 +172,7 @@ async function checkGitLab(values: CheckValues, io: CliIo): Promise<number> {
     ['--report-comment-author', values['report-comment-author'] !== undefined],
     ['--exclude-check-run', values['exclude-check-run'] !== undefined],
     ['--advisory', values.advisory === true],
+    ['--base-tests', values['base-tests'] === true],
   ];
   const named = refused.filter(([, given]) => given).map(([flag]) => flag);
   if (named.length > 0) {

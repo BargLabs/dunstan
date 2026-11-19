@@ -82,6 +82,25 @@ function originUrl(cwd: string): string | undefined {
   }
 }
 
+// The default branch as the `origin` remote's HEAD names it locally (`origin/main` -> `main`), read
+// without the network; undefined when the clone has no such ref.
+function defaultBranch(cwd: string): string | undefined {
+  try {
+    const ref = execFileSync(
+      'git',
+      ['symbolic-ref', '--quiet', '--short', 'refs/remotes/origin/HEAD'],
+      {
+        cwd,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      },
+    ).trim();
+    return ref.startsWith('origin/') && ref.length > 'origin/'.length ? ref.slice(7) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function topLevel(cwd: string): string | undefined {
   try {
     return execFileSync('git', ['rev-parse', '--show-toplevel'], {
@@ -120,6 +139,8 @@ export async function init(args: string[], io: CliIo): Promise<number> {
     options.gitlabProject = remote.path;
     options.gitlabHost = remote.host;
   }
+  const branch = defaultBranch(dir);
+  if (branch !== undefined) options.defaultBranch = branch;
   const pin = resolvePin(CHECKER_VERSION, io.lsRemote, forgeOf(dir, options));
   const plan = planInit(dir, CHECKER_VERSION, pin, options);
   if (values.write) applyPlan(dir, plan);

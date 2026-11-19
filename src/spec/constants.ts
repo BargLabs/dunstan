@@ -14,7 +14,8 @@ export const BLOCK_INFO_STRING = 'dunstan-handback';
 
 export const STATEMENT_TYPE = 'https://in-toto.io/Statement/v1';
 
-// Open for the operator: the domain may change before the repository goes public.
+// Every identifier is under https://barglabs.ai/dunstan/ (spec section 9.2; decided 2026-11-16), and
+// each resolves on barglabs.ai: a predicate type to a page, a schema $id to the schema.
 export const PREDICATE_TYPE = 'https://barglabs.ai/dunstan/record/v0.1';
 
 // DRAFT 0.2.0 (spec/claim-format.md, "DRAFT 0.2.0"; record-0.2-draft.schema.json), for the

@@ -42,6 +42,14 @@ inputs:
       or the conclusion. `false` (default) leaves the record as it was.
     required: false
     default: 'false'
+  base-tests:
+    description: >-
+      `true` also reads each declared junit test record's counts, with skipped test cases, at the
+      pull request's base commit and at the head, into a baseline (DRAFT 0.2.0, spec D.13). The
+      summary shows them, and a rise in skipped tests, as context. A baseline never changes the
+      verdict or the conclusion. `false` (default) leaves the record as it was.
+    required: false
+    default: 'false'
 
 outputs:
   verdict:

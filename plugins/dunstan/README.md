@@ -25,7 +25,7 @@ handback covers what the issue asked for: an accurate report of the wrong work p
 
 ## What it runs, reads and sends
 
-The plugin starts the MCP server with `npx -y dunstan@0.1.23 mcp`, which downloads the `dunstan`
+The plugin starts the MCP server with `npx -y dunstan@0.1.24 mcp`, which downloads the `dunstan`
 package at that exact version from the npm registry. The package is one self-contained file with no
 dependencies. The server runs on your machine and reads GitHub's API directly from it: the pull
 request, its files, commits, check runs, workflow runs and artifacts, deployments, and the issues the
@@ -33,6 +33,28 @@ block references. For a GitLab merge request it reads the same evidence from the
 check names, with the optional GitLab token, which it never sends to GitHub; nor the GitHub token to
 GitLab. Every request is a read. Nothing is written to either forge or the repository, and nothing is
 sent to Barg Labs.
+
+## Changes in 0.1.24
+
+- **Each verdict says what it does not show (spec 8.2).** The table, the MCP tool and the Action
+  summary print one line beside the verdict: a `pass` shows that the record agrees with every claim
+  the block declares, not that the change is correct or that the tests are the right ones. No
+  record or verdict changes.
+- **A changed workflow is printed as context (spec 8.3).** A pull request that changes a file under
+  `.github/workflows/` can change what its own check runs and test records show, so each one it
+  changes is listed beside the verdict, never in it. Worked out from the file list the record
+  already holds; no record changes.
+- **Test counts at the base commit (`--base-tests`, DRAFT 0.2.0, spec D.13).** With `dunstan check
+  --base-tests`, or the Action's `base-tests: true`, the checker also reads each declared `junit`
+  record's counts, with skipped test cases, at the pull request's base commit, and prints them
+  beside the head's, saying when skipped tests rose or executed tests fell. The record is a DRAFT
+  record with an `evidence.baseline`; the verdict is unchanged.
+- **`dunstan init` says whether a base commit gets a test record.** For each job that runs the
+  tests it reads the workflow's `on:` and says whether a push to the default branch runs it, and
+  where not, prints the trigger to add. It still never edits a workflow. `docs/init.md`.
+- **`cases/`.** Real pull requests with the report checked and the records written; CI holds the
+  README's claims about them to their records. Cases from other repositories are published
+  anonymised; bring one with the "Bring a pull request you don't trust" issue form.
 
 ## Changes in 0.1.23
 
