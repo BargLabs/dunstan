@@ -32,8 +32,10 @@ import {
   MR_TEMPLATE_SECTION,
   mergeStep,
   PR_TEMPLATE_SECTION,
+  type Recipe,
   recipeAfter,
   recipeSteps,
+  TEST_PATHS,
   uploadStep,
   workflowYaml,
 } from './content.js';
@@ -358,6 +360,24 @@ function jobSteps(job: WorkflowJob, version: string): string[] {
   return out;
 }
 
+// The test paths init proposes: each found runner's defaults (TEST_PATHS), once each, in runner order.
+export function proposedTestPaths(ids: readonly Recipe['id'][]): string[] {
+  return [...new Set(ids.flatMap((id) => TEST_PATHS[id]))];
+}
+
+// Printed, never written: the patterns are the consumer's to accept (spec D.14).
+function testPathsStep(patterns: readonly string[]): string[] {
+  return [
+    'To have the files you count as tests listed beside the verdict when a pull request changes',
+    "them (DRAFT, never part of it), give the Action's step these patterns, from your test runners'",
+    'defaults; accept them, or edit them to what your repository calls a test:',
+    '',
+    '        with:',
+    '          test-paths: |',
+    ...patterns.map((p) => `            ${p}`),
+  ];
+}
+
 function recipeWithoutJob({ recipe, dirs }: Runner, version: string): string[] {
   const where = dirs.map((d) => (d === '' ? 'the root' : d)).join(', ');
   return [
@@ -588,6 +608,11 @@ export function planInit(
         : 'workflow that writes the record is its own evidence, and its tests rows are unverifiable',
       gitlab ? 'unverifiable (record_producer_changed_by_pr).' : '(record_producer_changed_by_pr).',
     );
+  }
+
+  if (!gitlab) {
+    const proposed = proposedTestPaths(runners.map((r) => r.recipe.id));
+    if (proposed.length > 0) separated(ci, testPathsStep(proposed));
   }
 
   const notes = gitlab

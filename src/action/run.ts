@@ -237,6 +237,7 @@ export async function runAction(io: ActionIo): Promise<ActionResult> {
       ...(assurance === undefined ? {} : { assurance }),
       advisory: inputs.advisory,
       baseTests: inputs.baseTests,
+      testPaths: inputs.testPaths,
     });
 
     const dir = join(env.RUNNER_TEMP || tmpdir(), 'dunstan');

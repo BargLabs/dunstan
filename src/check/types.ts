@@ -249,6 +249,9 @@ export interface Evidence {
   deployments?: DeploymentsEvidence[];
   items?: ItemsEvidence;
   baseline?: BaselineEvidence;
+  // DRAFT 0.2.0 only (D.14): the test file patterns the consumer gave the checker. Never read from
+  // the repository; no claim row reads them.
+  testPaths?: { patterns: string[] };
   sources: Source[];
 }
 

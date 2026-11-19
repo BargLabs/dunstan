@@ -493,12 +493,18 @@ describe('every GitHub read and write Dunstan makes has a permission', () => {
     expect(WRITE_PERMISSION.find((w) => w.site === 'uploadArtifact')?.permissions).toEqual([]);
   });
 
-  it('makes network calls only through the GitHub client and the artifact upload', () => {
+  // And the local-model proposer of test paths (spec D.14), which only dunstan-eval runs and which
+  // refuses any endpoint that is not a loopback address (src/propose/test-paths.test.ts).
+  it('makes network calls only through the GitHub client, the artifact upload and the local proposer', () => {
     const callers = [...sourceFiles()]
       .filter(([, src]) => /\bfetch\s*\(|#fetch\s*\(|\bfetchFn\s*\(|from 'node:https?'/.test(src))
       .map(([file]) => file)
       .sort();
-    expect(callers).toEqual(['src/action/artifact.ts', 'src/evidence/http.ts']);
+    expect(callers).toEqual([
+      'src/action/artifact.ts',
+      'src/evidence/http.ts',
+      'src/propose/test-paths.ts',
+    ]);
   });
 
   it('catches a read whose kind is not in the table, or cannot be resolved', () => {

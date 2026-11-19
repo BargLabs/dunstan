@@ -2,6 +2,8 @@
 // Action cannot use is an ActionError, which the Action reports as a failure conclusion with the
 // reason in the summary: a missing or malformed input never falls back to a guess.
 
+import { parseTestPaths } from '../check/test-paths.js';
+
 export class ActionError extends Error {
   constructor(message: string) {
     super(message);
@@ -25,6 +27,9 @@ export interface ActionInputs {
   // Also read each junit record's counts at the base commit (DRAFT 0.2.0, D.13). Context only: it
   // never changes the verdict or the conclusion.
   baseTests: boolean;
+  // The consumer's test file patterns (DRAFT 0.2.0, D.14), one per line of the `test-paths` input;
+  // empty when it gives none. Context only.
+  testPaths: string[];
 }
 
 // A GitHub login, or an app's bot login such as `my-agent[bot]`.
@@ -86,11 +91,24 @@ export function parseInputs(env: Record<string, string | undefined>): ActionInpu
     throw new ActionError(`base-tests must be true or false, not "${baseTests}"`);
   }
 
+  // One pattern per line; blank lines and lines starting with # are left out.
+  const lines = input(env, 'test-paths')
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l !== '' && !l.startsWith('#'));
+  let testPaths: string[];
+  try {
+    testPaths = parseTestPaths(lines);
+  } catch (e) {
+    throw new ActionError(`test-paths: ${(e as Error).message}`);
+  }
+
   return {
     reportSource,
     unverifiableConclusion: unverifiable,
     ...(keyPath === '' ? {} : { sign: { keyPath, signer } }),
     advisory: advisory === 'true',
     baseTests: baseTests === 'true',
+    testPaths,
   };
 }

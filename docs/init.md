@@ -103,6 +103,14 @@ and replace this whole comment with the block it prints.
   runs on a push to the default branch, the others are not told to: a release workflow need not.
   The default branch is the `origin` remote's HEAD as the clone knows it (`git symbolic-ref
   refs/remotes/origin/HEAD`), read without the network. GitHub only.
+- **Test paths.** For the Action's `test-paths` input (DRAFT, [spec
+  D.14](../spec/claim-format.md#d14-test-paths-what-the-consumer-counts-as-a-test-file)), it prints
+  the default test file patterns of the runners it found, each once: pytest's `test_*.py`,
+  `*_test.py` and `conftest.py`; Jest's `**/__tests__/**` and `*.{test,spec}.{js,jsx,ts,tsx,mjs,cjs}`;
+  Vitest's `*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}`; Go's `*_test.go` and `**/testdata/**`;
+  Maven's and Gradle's `**/src/test/**`. They are the runners' documented defaults, not read from
+  the repository's configuration: accept them, or edit them to what the repository calls a test.
+  GitHub only.
 
 Land that workflow change in a pull request of its own: a pull request that changes the workflow
 that writes the record is its own evidence, and its `tests` rows are `unverifiable`

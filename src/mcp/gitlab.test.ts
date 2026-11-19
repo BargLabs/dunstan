@@ -207,6 +207,12 @@ describe('dunstan_check_handback on a GitLab merge request', () => {
       { gitlabProject: GL_PROJECT, mergeRequest: 2 ** 53 },
       /mergeRequest/,
     ],
+    ['testPaths on a GitLab subject', { ...SUBJECT, testPaths: ['*_test.go'] }, /testPaths/],
+    [
+      'a testPaths pattern that is not a test path',
+      { repository: 'example-org/example-repo', pullRequest: 7, testPaths: ['/abs'] },
+      /testPaths: test path "\/abs"/,
+    ],
   ])('refuses %s as an input error, reading nothing', async (_, subject, message) => {
     const { call, requests } = await connect({ GITLAB_TOKEN, GITHUB_TOKEN });
     const { result, text } = await call({ ...subject, block: BLOCK });

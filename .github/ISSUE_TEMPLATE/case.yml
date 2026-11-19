@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Dunstan checks a coding agent's completion report against the pull request's own record: its files, commits, CI runs and closing references. Give us a public pull request and the report the agent wrote, and we run `dunstan check` on it and reply with the record.
+        Dunstan checks a coding agent's completion report against the pull request's own record: its files, commits, CI runs and closing references. Give us a public pull request and the report the agent wrote, and we run `dunstan check` on it and reply here with the claims table and the record within a week.
 
         **This issue is public.** If the pull request or its repository should not be named in public, do not open an issue: email team@barglabs.ai with the same fields instead.
 

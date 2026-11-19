@@ -14,16 +14,16 @@ record no longer recomputes.
 
 Each case holds `report.md`, the report as checked, and one record per run. A checker verifies only
 the records its own version wrote (spec section 12), so each release rewrites them with its own
-build, from the repository root; these were written by checker 0.1.24, the build the npm package
-`dunstan@0.1.24` publishes (`dist/dunstan.mjs`, sha256
-`fb7da4a8c645b4aa502bfcb277c89b468cee40892605fea75bb43a1a3ca7ebc0`, as `PROVENANCE.md` records):
+build, from the repository root; these were written by checker 0.1.25, the build the npm package
+`dunstan@0.1.25` publishes (`dist/dunstan.mjs`, sha256
+`e7190f3245ee325ae8ab19201f74031a44340689cf2f86c3bbad374bb869cd56`, as `PROVENANCE.md` records):
 
 ```sh
-GITHUB_TOKEN=... npx -y dunstan@0.1.24 check --repo BargLabs/cejel --pr 408 \
+GITHUB_TOKEN=... npx -y dunstan@0.1.25 check --repo BargLabs/cejel --pr 408 \
   --report-file cases/cejel-408-closes/report.md --out cases/cejel-408-closes/record.json
 ```
 
-Check one yourself, offline: `npx -y dunstan@0.1.24 verify cases/cejel-408-closes/record.json`
+Check one yourself, offline: `npx -y dunstan@0.1.25 verify cases/cejel-408-closes/record.json`
 recomputes its claims, verdict and digests from the evidence it carries. `dunstan rerun` reads the
 pull request again, online.
 
@@ -35,7 +35,8 @@ has expired, and writes a new record beside it.
 An agent said it was done and you are not sure. Open a
 [case issue](https://github.com/BargLabs/dunstan/issues/new?template=case.yml) with the public pull
 request and the agent's report, or email team@barglabs.ai if it should not be named in public. We
-run `dunstan check` on it and reply with the record. With your consent we add it here, anonymised.
+run `dunstan check` on it and reply with the claims table and the record within a week. With your
+consent we add it here, anonymised.
 
 ## Anonymised cases
 

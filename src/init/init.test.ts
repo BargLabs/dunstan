@@ -20,6 +20,7 @@ import {
   PIN_PLACEHOLDER,
   PR_TEMPLATE_SECTION,
   RECIPES,
+  TEST_PATHS,
   UPLOAD_STEP,
   workflowYaml,
 } from './content.js';
@@ -31,7 +32,15 @@ import {
   pushTrigger,
   testJobs,
 } from './detect.js';
-import { applyPlan, type InitPlan, type Pin, planInit, renderPlan, WORKFLOW_PATH } from './init.js';
+import {
+  applyPlan,
+  type InitPlan,
+  type Pin,
+  planInit,
+  proposedTestPaths,
+  renderPlan,
+  WORKFLOW_PATH,
+} from './init.js';
 
 isolateGit();
 
@@ -1219,5 +1228,35 @@ describe('the push trigger, for a test record at the base commit', () => {
       { forge: 'gitlab', defaultBranch: 'main' },
     );
     expect(plan.ci.join('\n')).not.toContain('--base-tests');
+  });
+});
+
+// Test paths (spec D.14): init proposes each found runner's default test file patterns for the
+// Action's test-paths input, printed for a person to accept; never on GitLab, never written.
+describe('the proposed test paths', () => {
+  it("prints the found runners' defaults for the Action's test-paths input", () => {
+    const ci = planInit(repo(VITEST_REPO), VERSION, PIN).ci.join('\n');
+    expect(ci).toContain(
+      `          test-paths: |\n${TEST_PATHS.vitest.map((p) => `            ${p}`).join('\n')}`,
+    );
+  });
+
+  it('proposes each pattern once, in runner order, and none without a runner or on GitLab', () => {
+    expect(proposedTestPaths(['maven', 'gradle', 'go'])).toEqual([
+      '**/src/test/**',
+      '*_test.go',
+      '**/testdata/**',
+    ]);
+    expect(planInit(repo(), VERSION, PIN).ci.join('\n')).not.toContain('test-paths');
+    const gitlab = planInit(
+      repo({
+        'package.json': VITEST_REPO['package.json'],
+        '.gitlab-ci.yml': 'test:\n  script:\n    - pnpm test\n',
+      }),
+      VERSION,
+      PIN,
+      { forge: 'gitlab' },
+    );
+    expect(gitlab.ci.join('\n')).not.toContain('test-paths');
   });
 });

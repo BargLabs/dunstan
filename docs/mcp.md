@@ -26,7 +26,7 @@ self-contained file with no dependencies, so nothing is built and nothing else i
 /plugin install dunstan@barglabs
 ```
 
-The plugin starts the server with `npx -y dunstan@0.1.24 mcp` and adds the `dunstan-check` skill. When
+The plugin starts the server with `npx -y dunstan@0.1.25 mcp` and adds the `dunstan-check` skill. When
 you enable it, Claude Code asks for an optional GitHub token (below). It stores the value in your
 system's secure credential store and passes it to the server as `GITHUB_TOKEN`. Leave it empty to read
 public repositories anonymously (a `closes` reference and a `tests` count then need the token; see
@@ -44,7 +44,7 @@ environment setting:
   "mcpServers": {
     "dunstan": {
       "command": "npx",
-      "args": ["-y", "dunstan@0.1.24", "mcp"],
+      "args": ["-y", "dunstan@0.1.25", "mcp"],
       "env": { "GITHUB_TOKEN": "<a fine-grained, read-only token>" }
     }
   }

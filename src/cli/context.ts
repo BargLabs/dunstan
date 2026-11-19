@@ -9,7 +9,12 @@
 //
 // With a baseline (DRAFT 0.2.0, D.13), each declared junit record's counts at the base commit and at
 // the head, and a rise in skipped test cases or a fall in executed ones between them.
+//
+// With test paths (DRAFT 0.2.0, D.14), the patterns the consumer gave, each changed file one of them
+// matches, by its path or its previous path: the consumer's statement of what a test is, never a
+// guess of the checker's.
 
+import { isTestPath } from '../check/test-paths.js';
 import type { CountedRuns, FileEntry, JunitRecord } from '../check/types.js';
 import type { DunstanRecord } from '../record/build.js';
 
@@ -20,6 +25,10 @@ export type ContextFlag =
   | { kind: 'workflow_changed'; entry: FileEntry }
   // The file list cannot show that no workflow changed: its reason, as the scope rows give it.
   | { kind: 'workflow_changes_unknown'; reason: string }
+  // A changed-file entry a test path matches (D.14).
+  | { kind: 'test_changed'; entry: FileEntry }
+  // With test paths, the file list cannot show every changed test file: its reason.
+  | { kind: 'test_changes_unknown'; reason: string }
   // A baseline entry: each side's counts, or why it settles none.
   | { kind: 'baseline'; record: JunitRecord; baseSha: string | null; base: Side; head: Side }
   // Between a baseline entry's settled sides: more skipped, or fewer executed, at the head.
@@ -76,25 +85,35 @@ const underWorkflows = (path: string | undefined) => path?.startsWith(WORKFLOW_D
 export function contextFlags(record: DunstanRecord): ContextFlag[] {
   const p = record.predicate;
   if (p.subject.forge?.kind === 'gitlab' || p.block.status !== 'found') return [];
-  const files = p.evidence.files;
-  if (files === undefined) {
-    return [{ kind: 'workflow_changes_unknown', reason: 'evidence_field_unpopulated:files' }];
-  }
-  if (files.status === 'unreadable') {
-    return [{ kind: 'workflow_changes_unknown', reason: `source_unreadable:${files.source}` }];
-  }
-  if (files.status === 'unpopulated') {
-    return [
-      { kind: 'workflow_changes_unknown', reason: `evidence_field_unpopulated:${files.field}` },
-    ];
-  }
+  return [...fileFlags(record), ...baselineFlags(record)];
+}
+
+function fileFlags(record: DunstanRecord): ContextFlag[] {
+  const files = record.predicate.evidence.files;
+  const patterns = record.predicate.evidence.testPaths?.patterns;
+  const unknown = (reason: string): ContextFlag[] => [
+    { kind: 'workflow_changes_unknown', reason },
+    ...(patterns === undefined ? [] : [{ kind: 'test_changes_unknown', reason } as const]),
+  ];
+  if (files === undefined) return unknown('evidence_field_unpopulated:files');
+  if (files.status === 'unreadable') return unknown(`source_unreadable:${files.source}`);
+  if (files.status === 'unpopulated') return unknown(`evidence_field_unpopulated:${files.field}`);
   const flags: ContextFlag[] = files.entries
     .filter((e) => underWorkflows(e.path) || underWorkflows(e.previousPath))
     .map((entry) => ({ kind: 'workflow_changed', entry }));
   if (!files.complete && flags.length === 0) {
     flags.push({ kind: 'workflow_changes_unknown', reason: 'file_list_truncated' });
   }
-  return [...flags, ...baselineFlags(record)];
+  if (patterns !== undefined) {
+    const test = (path: string | undefined) => path !== undefined && isTestPath(patterns, path);
+    for (const entry of files.entries) {
+      if (test(entry.path) || test(entry.previousPath)) flags.push({ kind: 'test_changed', entry });
+    }
+    // An incomplete list may leave out more test files, whatever it lists.
+    if (!files.complete)
+      flags.push({ kind: 'test_changes_unknown', reason: 'file_list_truncated' });
+  }
+  return flags;
 }
 
 const sideText = (s: Side) =>
@@ -114,6 +133,14 @@ export function contextText(flag: ContextFlag): string {
   }
   if (flag.kind === 'executed_fell') {
     return `executed tests fell from ${flag.base} at base to ${flag.head} at head in ${recordName(flag.record)}`;
+  }
+  if (flag.kind === 'test_changed') {
+    const e = flag.entry;
+    const from = e.previousPath === undefined ? '' : ` from ${e.previousPath}`;
+    return `test file changed by this pull request: ${e.path} (${e.status}${from})`;
+  }
+  if (flag.kind === 'test_changes_unknown') {
+    return `test file changes unknown: the file list cannot show every changed test file (${flag.reason})`;
   }
   if (flag.kind === 'workflow_changes_unknown') {
     return `workflow changes unknown: the file list cannot show that no workflow changed (${flag.reason})`;

@@ -129,6 +129,9 @@ export interface CheckPullRequestInput {
   // Also read each `junit` record's counts at the pull request's base commit (DRAFT 0.2.0, D.13).
   // Off by default. It adds a baseline evidence section and never changes the verdict or claims.
   baseTests?: boolean;
+  // The consumer's test file patterns (DRAFT 0.2.0, D.14), already validated. Recorded as evidence
+  // when given; they read nothing and decide no claim.
+  testPaths?: readonly string[];
   // GitLab profile 0.1: the subject is a GitLab merge request on this host, read with
   // gitlabReaders. Absent, it is a GitHub pull request and the record is written as before.
   forge?: Forge;
@@ -157,6 +160,9 @@ async function checkAt(input: CheckPullRequestInput, pr: PullRequestRead): Promi
     excludedCheckRunIds: [...(input.excludedCheckRunIds ?? []), ...ownRuns],
     ...(input.baseTests === true ? { baseTests: true } : {}),
   });
+  if (input.testPaths !== undefined && input.testPaths.length > 0 && found !== null) {
+    evidence.testPaths = { patterns: [...input.testPaths] };
+  }
   // After the evidence, which decides which paths need asking. The answers go to the advisory
   // section, never into the evidence.
   const paths = proposed === undefined ? [] : pathsToRead(proposed, evidence, repository);

@@ -50,6 +50,15 @@ inputs:
       verdict or the conclusion. `false` (default) leaves the record as it was.
     required: false
     default: 'false'
+  test-paths:
+    description: >-
+      Optional. The files you count as tests, one glob per line (`*_test.go`, `src/**/*.test.ts`,
+      `tests/**`): a pattern without `/` matches a file name in any directory. `dunstan init`
+      proposes them from the test runners it finds; accept or edit them here. The summary then lists
+      each changed test file as context, and the record keeps the patterns (DRAFT 0.2.0, spec D.14).
+      They never change the verdict or the conclusion. Empty (default) leaves the record as it was.
+    required: false
+    default: ''
 
 outputs:
   verdict:

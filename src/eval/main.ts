@@ -2,7 +2,8 @@
 // done, 3 usage or internal error.
 
 import { anonymiseCaseCommand } from '../cases/command.js';
-import { type CliIo, EXIT, UsageError } from '../cli/output.js';
+import { EXIT, UsageError } from '../cli/output.js';
+import { type ProposeIo, proposeTestPathsCommand } from '../propose/command.js';
 import { CHECKER_VERSION } from '../record/checker.js';
 import { retrievalEval } from './retrieval.js';
 
@@ -13,6 +14,8 @@ usage:
   dunstan-eval anonymise-case --record <file> --report <file> --case <name>
                               --mapping-out <file> [--map <original>=<replacement>]...
                               [--map-paths] [--salt <salt>] [--cases <dir>]
+  dunstan-eval propose-test-paths --model <name> [--endpoint <url>] [--dir <checkout>]
+                                  [--out <proposal.json>]
 
 retrieval  recall at k = 5 per arm on a corpus of claims with known matching record items
            (docs/retrieval.md), each arm's no-candidate rate, and the recall of a uniformly
@@ -26,9 +29,15 @@ anonymise-case  writes cases/<name>/ (report.md, record.json, case.json) from a 
            cases/. --map-paths also replaces file paths; --salt, the mapping's (salt), rewrites
            a case with the same names, as each release must (a checker verifies only its own
            version's records).
+propose-test-paths  asks a model on this machine (an Ollama-compatible server on a loopback
+           address, default http://127.0.0.1:11434; any other endpoint is refused) to propose
+           test paths (spec D.14) from the checkout's tracked file paths, never their contents.
+           Prints each valid pattern with how many paths it matches, and the model's name and
+           digest. A proposal for a person to accept: it writes no record. Exit 1 when it
+           proposes nothing usable.
 `;
 
-export async function evalMain(argv: string[], io: Pick<CliIo, 'out' | 'err'>): Promise<number> {
+export async function evalMain(argv: string[], io: ProposeIo): Promise<number> {
   const [command, ...args] = argv;
   try {
     switch (command) {
@@ -36,6 +45,8 @@ export async function evalMain(argv: string[], io: Pick<CliIo, 'out' | 'err'>): 
         return await retrievalEval(args, io);
       case 'anonymise-case':
         return await anonymiseCaseCommand(args, io);
+      case 'propose-test-paths':
+        return await proposeTestPathsCommand(args, io);
       case '--version':
         io.out(`${CHECKER_VERSION}\n`);
         return 0;

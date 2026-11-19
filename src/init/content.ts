@@ -116,6 +116,19 @@ const SUREFIRE_MERGE =
 const GRADLE_MERGE =
   '        run: npx -y dunstan@{version} junit-merge build/test-results/test/*.xml --out junit.xml';
 
+// Each runner's own default test file patterns, as test paths (DRAFT 0.2.0, spec D.14): what init
+// proposes for the Action's `test-paths` input, for a person to accept or edit. The runner's
+// documented defaults, nothing read from the repository's files: pytest's python_files, Jest's
+// testMatch, Vitest's include, Go's _test.go files and testdata, Maven's and Gradle's src/test.
+export const TEST_PATHS: Readonly<Record<Recipe['id'], readonly string[]>> = {
+  pytest: ['test_*.py', '*_test.py', 'conftest.py'],
+  jest: ['**/__tests__/**', '*.{test,spec}.{js,jsx,ts,tsx,mjs,cjs}'],
+  vitest: ['*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+  go: ['*_test.go', '**/testdata/**'],
+  maven: ['**/src/test/**'],
+  gradle: ['**/src/test/**'],
+};
+
 export const RECIPES: readonly Recipe[] = [
   {
     id: 'pytest',

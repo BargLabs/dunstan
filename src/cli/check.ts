@@ -4,6 +4,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import { parseArgs } from 'node:util';
+import { parseTestPaths } from '../check/test-paths.js';
 import { GITLAB_PROJECT, reportFromMergeRequestDescription } from '../evidence/gitlab.js';
 import { DEFAULT_GITLAB_HOST, GITLAB_HOST, GitHubClient, GitLabClient } from '../evidence/http.js';
 import { type Report, reportFromComment, reportFromPullRequestBody } from '../evidence/report.js';
@@ -69,6 +70,7 @@ export async function check(args: string[], io: CliIo): Promise<number> {
       'exclude-gitlab-job': { type: 'string', multiple: true },
       advisory: { type: 'boolean' },
       'base-tests': { type: 'boolean' },
+      'test-paths': { type: 'string', multiple: true },
       'gitlab-project': { type: 'string' },
       mr: { type: 'string' },
       'gitlab-host': { type: 'string' },
@@ -131,6 +133,9 @@ export async function check(args: string[], io: CliIo): Promise<number> {
     ...(assurance === undefined ? {} : { assurance }),
     advisory: values.advisory === true,
     baseTests: values['base-tests'] === true,
+    ...(values['test-paths'] === undefined
+      ? {}
+      : { testPaths: testPathsOption(values['test-paths']) }),
   });
   writeFileSync(out, serializeRecord(record));
   io.out(renderRecord(record, { hasToken: client.hasToken, caller: 'cli' }));
@@ -139,6 +144,15 @@ export async function check(args: string[], io: CliIo): Promise<number> {
     io.out(`signature: ${signRecordFile(out, values['sign-key'] as string)}\n`);
   }
   return exitFor(record.predicate.verdict);
+}
+
+// --test-paths, given once per pattern (DRAFT 0.2.0, D.14); a refused pattern is a usage error.
+function testPathsOption(given: string[]): string[] {
+  try {
+    return parseTestPaths(given);
+  } catch (e) {
+    throw new UsageError(`--test-paths: ${(e as Error).message}`);
+  }
 }
 
 interface CheckValues {
@@ -154,6 +168,7 @@ interface CheckValues {
   'exclude-gitlab-job'?: string[] | undefined;
   advisory?: boolean | undefined;
   'base-tests'?: boolean | undefined;
+  'test-paths'?: string[] | undefined;
   'gitlab-project'?: string | undefined;
   mr?: string | undefined;
   'gitlab-host'?: string | undefined;
@@ -173,6 +188,7 @@ async function checkGitLab(values: CheckValues, io: CliIo): Promise<number> {
     ['--exclude-check-run', values['exclude-check-run'] !== undefined],
     ['--advisory', values.advisory === true],
     ['--base-tests', values['base-tests'] === true],
+    ['--test-paths', values['test-paths'] !== undefined],
   ];
   const named = refused.filter(([, given]) => given).map(([flag]) => flag);
   if (named.length > 0) {

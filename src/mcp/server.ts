@@ -32,6 +32,7 @@ import { basename, isAbsolute, resolve } from 'node:path';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
+import { MAX_TEST_PATHS, parseTestPaths } from '../check/test-paths.js';
 import { defaultRecordFile, REPOSITORY } from '../cli/check.js';
 import { renderRecord } from '../cli/output.js';
 import { PullRequestMoved, PullRequestUnreadable, readPullRequest } from '../evidence/github.js';
@@ -78,6 +79,7 @@ export interface CheckHandbackInput {
   block?: Record<string, unknown> | undefined;
   report?: string | undefined;
   outPath?: string | undefined;
+  testPaths?: string[] | undefined;
 }
 
 class InputError extends Error {}
@@ -234,6 +236,17 @@ export async function checkHandback(
     throw new InputError(`${outPath} exists; the tool never overwrites a file`);
   }
   const subject = subjectOf(input);
+  let testPaths: string[] | undefined;
+  if (input.testPaths !== undefined) {
+    if (subject.forge === 'gitlab') {
+      throw new InputError('testPaths is for a GitHub pull request; a GitLab record holds none');
+    }
+    try {
+      testPaths = parseTestPaths(input.testPaths);
+    } catch (e) {
+      throw new InputError(`testPaths: ${(e as Error).message}`);
+    }
+  }
   const { report, block } =
     input.block !== undefined ? reportOfBlock(input.block) : reportOfText(input.report as string);
   if (subject.forge === 'gitlab')
@@ -264,6 +277,7 @@ export async function checkHandback(
     ...(block === undefined ? {} : { block }),
     checker: checkerIdentity(options.artifact),
     recordFile: basename(recordFile),
+    ...(testPaths === undefined ? {} : { testPaths }),
   });
   const serialized = serializeRecord(record);
   if (outPath !== undefined) writeFileSync(outPath, serialized, { flag: 'wx' });
@@ -586,6 +600,13 @@ export function createDunstanMcpServer(options: DunstanMcpOptions): McpServer {
           .optional()
           .describe(
             'Write the record to this path (must not exist). Without it nothing is written.',
+          ),
+        testPaths: z
+          .array(z.string())
+          .max(MAX_TEST_PATHS)
+          .optional()
+          .describe(
+            "Optional, GitHub only (DRAFT): the file patterns the user counts as tests, such as *_test.go or src/**/*.test.ts (a pattern without / matches a file name in any directory). The table then lists each changed test file as context, and the record keeps the patterns. They never change the verdict. You may propose them from the repository's test runners and layout, but pass only patterns the user has accepted: they are the user's statement of what a test is, not yours.",
           ),
       },
       annotations: {

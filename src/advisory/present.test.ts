@@ -163,14 +163,14 @@ const FIGURES_LINE =
 // it changed. And the GitLab profile schema was renamed from its DRAFT name when the operator made
 // the profile normative (spec 0.1.13): it admits the normative predicate type and spec and still the
 // DRAFT pair, each with its own; the 0.1 record and block schemas are unchanged. And the DRAFT
-// schema gained the evidence member `baseline` and its `countedRuns` (D.13, 2026-11-17); no other
-// schema changed.
+// schema gained the evidence member `baseline` and its `countedRuns` (D.13, 2026-11-17), then the
+// evidence member `testPaths` (D.14, 2026-11-18); no other schema changed.
 const SCHEMA_SHA256: Record<string, string> = {
   'handback-block-0.1.schema.json':
     'f61ddacb345dc9d0529fec2d0e4d2742b9bc6c7f3b7887795f097a9671eab8ff',
   'record-0.1.schema.json': 'ab2981f637624a9da5d6397669d927a20a7e75d30403ae55ad580ee87d0f6c0b',
   'record-0.2-draft.schema.json':
-    'bfd1d141f9139c3a9b95150bf0139b130e8516187cdb01bdad294adb89783ddb',
+    '09e76e1e17097c9256850dc7568e0800a9666e007174483104637b8393a66009',
   'record-gitlab-0.1.schema.json':
     '4e2214e5bb096d968bce886df4d47905a760d3dac5fb83c44c402da886469f95',
   'survey-0.1.schema.json': 'ecf312cf268c6928156bd9986fb95ee1f47c3236394f0e97e144be503298fa3c',

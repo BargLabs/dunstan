@@ -78,6 +78,16 @@ describe('inputs', () => {
     }
   });
 
+  it('reads test-paths one per line, leaving out blank and # lines, and refuses a bad one', () => {
+    const env = { 'INPUT_REPORT-SOURCE': 'pr-body' };
+    expect(parseInputs(env).testPaths).toEqual([]);
+    expect(
+      parseInputs({ ...env, 'INPUT_TEST-PATHS': '*_test.go\n\n# fixtures\n**/testdata/**\n' })
+        .testPaths,
+    ).toEqual(['*_test.go', '**/testdata/**']);
+    expect(() => parseInputs({ ...env, 'INPUT_TEST-PATHS': '/abs' })).toThrow(/test-paths/);
+  });
+
   it('defaults base-tests to false and accepts only true or false', () => {
     const env = { 'INPUT_REPORT-SOURCE': 'pr-body' };
     expect(parseInputs(env).baseTests).toBe(false);

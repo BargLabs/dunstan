@@ -9858,7 +9858,7 @@ async function readEvidence(client, input2) {
 // src/record/checker.ts
 import { readFileSync } from "node:fs";
 var CHECKER_NAME = "dunstan";
-var CHECKER_VERSION = "0.1.24";
+var CHECKER_VERSION = "0.1.25";
 function checkerIdentity(artifact) {
   return {
     name: CHECKER_NAME,
@@ -12402,15 +12402,15 @@ function buildRecord(input2) {
     }
   };
   if (input2.forge !== void 0) {
-    if (readerClaims !== void 0 || advisory !== void 0 || evidence.baseline !== void 0) {
+    if (readerClaims !== void 0 || advisory !== void 0 || evidence.baseline !== void 0 || evidence.testPaths !== void 0) {
       throw new Error(
-        "a GitLab record carries no reader claims, advisories or baseline in this draft"
+        "a GitLab record carries no reader claims, advisories, baseline or test paths in this draft"
       );
     }
     record.predicateType = GITLAB_PREDICATE_TYPE;
     record.predicate.spec = GITLAB_SPEC_VERSION;
   }
-  if (readerClaims !== void 0 || advisory !== void 0 || evidence.baseline !== void 0) {
+  if (readerClaims !== void 0 || advisory !== void 0 || evidence.baseline !== void 0 || evidence.testPaths !== void 0) {
     record.predicateType = DRAFT_PREDICATE_TYPE;
     record.predicate.spec = DRAFT_SPEC_VERSION;
   }
@@ -12706,6 +12706,7 @@ var FILES = { "handback-block-0.1.schema.json": `{
         },
         "items": { "$ref": "#/$defs/items" },
         "baseline": { "$ref": "#/$defs/baseline" },
+        "testPaths": { "$ref": "#/$defs/testPaths" },
         "sources": {
           "type": "array",
           "items": {
@@ -12870,6 +12871,26 @@ var FILES = { "handback-block-0.1.schema.json": `{
               "head": { "$ref": "#/$defs/countedRuns" },
               "base": { "$ref": "#/$defs/countedRuns" }
             }
+          }
+        }
+      }
+    },
+    "testPaths": {
+      "description": "D.14: the test file patterns the consumer gave the checker, never read from the repository. Context only: no claim row reads them.",
+      "type": "object",
+      "required": ["patterns"],
+      "additionalProperties": false,
+      "properties": {
+        "patterns": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[^/!\\\\\\\\\\\\[\\\\]\\\\s][^\\\\\\\\\\\\[\\\\]]*$"
           }
         }
       }
@@ -13622,6 +13643,9 @@ async function checkAt(input2, pr) {
     excludedCheckRunIds: [...input2.excludedCheckRunIds ?? [], ...ownRuns],
     ...input2.baseTests === true ? { baseTests: true } : {}
   });
+  if (input2.testPaths !== void 0 && input2.testPaths.length > 0 && found !== null) {
+    evidence.testPaths = { patterns: [...input2.testPaths] };
+  }
   const paths = proposed === void 0 ? [] : pathsToRead(proposed, evidence, repository);
   const pathsAtHead = paths.length === 0 ? [] : await input2.readers.pathObjects({ repository, headSha: pr.evidence.headSha, paths });
   return buildRecord({
@@ -13865,6 +13889,60 @@ async function ownJobCheckRun(client, repository, env) {
   return matches.length === 1 ? matches[0] : void 0;
 }
 
+// src/check/test-paths.ts
+var MAX_TEST_PATHS = 50;
+var MAX_PATTERN_LENGTH = 200;
+function testPathProblem(pattern) {
+  if (pattern.trim() !== pattern || pattern === "") return "is empty or has spaces around it";
+  if (pattern.length > MAX_PATTERN_LENGTH) return `is longer than ${MAX_PATTERN_LENGTH}`;
+  if (pattern.startsWith("/") || pattern.startsWith("!")) return "starts with / or !";
+  if (pattern.split("/").some((s) => s === ".." || s === ".")) return "has a . or .. segment";
+  if (/[\\[\]]/.test(pattern)) return "uses \\, [ or ], which test paths do not";
+  if (/\{[^}]*\{/.test(pattern) || (pattern.match(/\{/g)?.length ?? 0) !== (pattern.match(/\}/g)?.length ?? 0)) {
+    return "has unbalanced or nested { }";
+  }
+  return void 0;
+}
+function parseTestPaths(patterns) {
+  if (patterns.length > MAX_TEST_PATHS) {
+    throw new Error(`at most ${MAX_TEST_PATHS} test paths, not ${patterns.length}`);
+  }
+  for (const p of patterns) {
+    const problem = testPathProblem(p);
+    if (problem !== void 0) throw new Error(`test path "${p}" ${problem}`);
+  }
+  return [...new Set(patterns)];
+}
+function segmentRegex(glob) {
+  let out = "";
+  for (let i = 0; i < glob.length; i++) {
+    const c = glob[i];
+    if (c === "*") out += "[^/]*";
+    else if (c === "?") out += "[^/]";
+    else if (c === "{") {
+      const end = glob.indexOf("}", i);
+      out += `(?:${glob.slice(i + 1, end).split(",").map(segmentRegex).join("|")})`;
+      i = end;
+    } else out += c.replace(/[.^$+()|]/g, "\\$&");
+  }
+  return out;
+}
+function regexOf(pattern) {
+  const parts = pattern.split("/");
+  const body = parts.map((part, i) => {
+    if (part !== "**") return `${segmentRegex(part)}${i < parts.length - 1 ? "/" : ""}`;
+    return i < parts.length - 1 ? "(?:[^/]+/)*" : ".*";
+  }).join("");
+  return new RegExp(`^${body}$`);
+}
+function matchesTestPath(pattern, path) {
+  if (!pattern.includes("/")) return regexOf(pattern).test(path.split("/").at(-1) ?? path);
+  return regexOf(pattern).test(path);
+}
+function isTestPath(patterns, path) {
+  return patterns.some((p) => matchesTestPath(p, path));
+}
+
 // src/action/inputs.ts
 var ActionError = class extends Error {
   constructor(message) {
@@ -13920,12 +13998,20 @@ function parseInputs(env) {
   if (baseTests !== "true" && baseTests !== "false") {
     throw new ActionError(`base-tests must be true or false, not "${baseTests}"`);
   }
+  const lines = input(env, "test-paths").split(/\r?\n/).map((l) => l.trim()).filter((l) => l !== "" && !l.startsWith("#"));
+  let testPaths;
+  try {
+    testPaths = parseTestPaths(lines);
+  } catch (e) {
+    throw new ActionError(`test-paths: ${e.message}`);
+  }
   return {
     reportSource,
     unverifiableConclusion: unverifiable3,
     ...keyPath === "" ? {} : { sign: { keyPath, signer } },
     advisory: advisory === "true",
-    baseTests: baseTests === "true"
+    baseTests: baseTests === "true",
+    testPaths
   };
 }
 
@@ -14057,23 +14143,31 @@ var underWorkflows = (path) => path?.startsWith(WORKFLOW_DIR) === true;
 function contextFlags(record) {
   const p = record.predicate;
   if (p.subject.forge?.kind === "gitlab" || p.block.status !== "found") return [];
-  const files = p.evidence.files;
-  if (files === void 0) {
-    return [{ kind: "workflow_changes_unknown", reason: "evidence_field_unpopulated:files" }];
-  }
-  if (files.status === "unreadable") {
-    return [{ kind: "workflow_changes_unknown", reason: `source_unreadable:${files.source}` }];
-  }
-  if (files.status === "unpopulated") {
-    return [
-      { kind: "workflow_changes_unknown", reason: `evidence_field_unpopulated:${files.field}` }
-    ];
-  }
+  return [...fileFlags(record), ...baselineFlags(record)];
+}
+function fileFlags(record) {
+  const files = record.predicate.evidence.files;
+  const patterns = record.predicate.evidence.testPaths?.patterns;
+  const unknown = (reason) => [
+    { kind: "workflow_changes_unknown", reason },
+    ...patterns === void 0 ? [] : [{ kind: "test_changes_unknown", reason }]
+  ];
+  if (files === void 0) return unknown("evidence_field_unpopulated:files");
+  if (files.status === "unreadable") return unknown(`source_unreadable:${files.source}`);
+  if (files.status === "unpopulated") return unknown(`evidence_field_unpopulated:${files.field}`);
   const flags = files.entries.filter((e) => underWorkflows(e.path) || underWorkflows(e.previousPath)).map((entry) => ({ kind: "workflow_changed", entry }));
   if (!files.complete && flags.length === 0) {
     flags.push({ kind: "workflow_changes_unknown", reason: "file_list_truncated" });
   }
-  return [...flags, ...baselineFlags(record)];
+  if (patterns !== void 0) {
+    const test = (path) => path !== void 0 && isTestPath(patterns, path);
+    for (const entry of files.entries) {
+      if (test(entry.path) || test(entry.previousPath)) flags.push({ kind: "test_changed", entry });
+    }
+    if (!files.complete)
+      flags.push({ kind: "test_changes_unknown", reason: "file_list_truncated" });
+  }
+  return flags;
 }
 var sideText = (s) => "reason" in s ? `none settled (${s.reason})` : `${s.executed} executed, ${s.skipped} skipped, ${s.failed} failed`;
 var recordName = (r) => `${r.workflow} / ${r.job}`;
@@ -14087,6 +14181,14 @@ function contextText(flag) {
   }
   if (flag.kind === "executed_fell") {
     return `executed tests fell from ${flag.base} at base to ${flag.head} at head in ${recordName(flag.record)}`;
+  }
+  if (flag.kind === "test_changed") {
+    const e2 = flag.entry;
+    const from2 = e2.previousPath === void 0 ? "" : ` from ${e2.previousPath}`;
+    return `test file changed by this pull request: ${e2.path} (${e2.status}${from2})`;
+  }
+  if (flag.kind === "test_changes_unknown") {
+    return `test file changes unknown: the file list cannot show every changed test file (${flag.reason})`;
   }
   if (flag.kind === "workflow_changes_unknown") {
     return `workflow changes unknown: the file list cannot show that no workflow changed (${flag.reason})`;
@@ -14631,7 +14733,8 @@ async function runAction(io) {
       recordFile: RECORD_FILE,
       ...assurance === void 0 ? {} : { assurance },
       advisory: inputs.advisory,
-      baseTests: inputs.baseTests
+      baseTests: inputs.baseTests,
+      testPaths: inputs.testPaths
     });
     const dir = join(env.RUNNER_TEMP || tmpdir(), "dunstan");
     mkdirSync(dir, { recursive: true });

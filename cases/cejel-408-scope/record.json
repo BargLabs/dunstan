@@ -19,9 +19,9 @@
     "spec": "0.1.13",
     "checker": {
       "name": "dunstan",
-      "version": "0.1.24",
+      "version": "0.1.25",
       "digest": {
-        "sha256": "fb7da4a8c645b4aa502bfcb277c89b468cee40892605fea75bb43a1a3ca7ebc0"
+        "sha256": "e7190f3245ee325ae8ab19201f74031a44340689cf2f86c3bbad374bb869cd56"
       }
     },
     "report": {
@@ -66,14 +66,14 @@
           "kind": "pull_request",
           "locator": "GET /repos/BargLabs/cejel/pulls/408",
           "sha256": "c4305bd84a52358f6b05a429df8de621e08451012bd11eb1772bcf038ac7495d",
-          "readAt": "2026-11-18T16:07:35.874Z",
+          "readAt": "2026-11-19T13:53:44.349Z",
           "etag": "\"a036bc52f5f36969dabbc662f520674f015cdc114f22f5ef5e897158c1347a9f\""
         },
         {
           "kind": "pull_request_files",
           "locator": "GET /repos/BargLabs/cejel/pulls/408/files?per_page=100&page=1",
           "sha256": "19fec2e46093590dce3f8058ec4ad369ee2057a71c007f48cc94b934823f4dec",
-          "readAt": "2026-11-18T16:07:36.824Z",
+          "readAt": "2026-11-19T13:53:45.120Z",
           "etag": "W/\"c89ea1f78ca3366c1b30c671a80a70ff6a6120b596d1728776a48f0dfaf39859\""
         }
       ],

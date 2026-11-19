@@ -27,6 +27,7 @@ usage:
                 (--report-file <path|-> | --report-pr-body | --report-comment-author <login>)
                 [--out <record.json>] [--sign-key <path> --signer <principal>]
                 [--exclude-check-run <id>]... [--advisory] [--base-tests]
+                [--test-paths <pattern>]...
   dunstan check --gitlab-project <namespace/project> --mr <iid> [--gitlab-host <host>]
                 (--report-file <path|-> | --report-mr-description)
                 [--out <record.json>] [--sign-key <path> --signer <principal>]
@@ -57,6 +58,9 @@ check     reads the pull request, the named report and the evidence its block ne
           --base-tests also reads each junit test record's counts at the pull request's base
           commit, and prints them beside the head's as context (DRAFT 0.2.0, spec D.13).
           They never change the verdict.
+          --test-paths names a file pattern you count as tests (*_test.go, src/**/*.test.ts),
+          once per pattern; each changed test file is printed as context and the record keeps
+          the patterns (DRAFT 0.2.0, spec D.14). They never change the verdict.
           GitLab (profile 0.1): --gitlab-project and --mr check a merge request on
           gitlab.com, or on --gitlab-host; --report-mr-description reads its description.
           GITLAB_TOKEN is optional. Checks are the head pipeline's jobs and bridges, less each

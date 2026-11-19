@@ -25,7 +25,7 @@ handback covers what the issue asked for: an accurate report of the wrong work p
 
 ## What it runs, reads and sends
 
-The plugin starts the MCP server with `npx -y dunstan@0.1.24 mcp`, which downloads the `dunstan`
+The plugin starts the MCP server with `npx -y dunstan@0.1.25 mcp`, which downloads the `dunstan`
 package at that exact version from the npm registry. The package is one self-contained file with no
 dependencies. The server runs on your machine and reads GitHub's API directly from it: the pull
 request, its files, commits, check runs, workflow runs and artifacts, deployments, and the issues the
@@ -33,6 +33,21 @@ block references. For a GitLab merge request it reads the same evidence from the
 check names, with the optional GitLab token, which it never sends to GitHub; nor the GitHub token to
 GitLab. Every request is a read. Nothing is written to either forge or the repository, and nothing is
 sent to Barg Labs.
+
+## Changes in 0.1.25
+
+- **Test paths (DRAFT 0.2.0, spec D.14).** Tell the checker which files you count as tests:
+  `dunstan check --test-paths <pattern>` (once per pattern), the Action's `test-paths` input (one
+  per line) or the MCP tool's `testPaths`. Each changed test file is listed beside the verdict as
+  context, never in it, and the record, a DRAFT one, keeps the patterns. They are never read from
+  the repository. `*_test.go` matches a file name in any directory; `src/**/*.test.ts` the whole
+  path.
+- **Proposed patterns, for you to accept.** `dunstan init` prints your test runners' default
+  patterns for `test-paths`. The MCP tool asks the calling model to pass only patterns you
+  accepted. `dunstan-eval propose-test-paths` asks a model on your own machine (an
+  Ollama-compatible server on a loopback address; any other is refused) from the tracked file
+  paths, never their contents, and lists the top-level directories its patterns leave uncovered.
+- **Cases.** The "Bring a pull request you don't trust" form promises a reply within a week.
 
 ## Changes in 0.1.24
 

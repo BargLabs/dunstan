@@ -778,7 +778,8 @@ the counts `unverifiable` when the workflow that produced the record changed, is
 this is context only, and holds for every workflow the pull request changes.
 
 A DRAFT record can carry more evidence to print as context: a baseline, the test counts at the pull
-request's base commit (D.13).
+request's base commit (D.13), and test paths, the patterns the consumer counts as test files, by
+which the changed files that are tests are listed (D.14).
 
 ## 9. The record
 
@@ -1715,7 +1716,7 @@ block, which stays `"dunstan": "0.1"`, or any 0.1 claim row.
 
 ### D.2 The record
 
-A record that carries `readerClaims`, `advisory` (D.11) or the evidence member `baseline` (D.13) has `predicateType`
+A record that carries `readerClaims`, `advisory` (D.11), or the evidence member `baseline` (D.13) or `testPaths` (D.14) has `predicateType`
 `https://barglabs.ai/dunstan/record/v0.2-draft` and `spec` `"0.2.0-draft"`, and validates against
 `spec/schema/record-0.2-draft.schema.json`. That schema refers to the 0.1 schema for every member the
 two share. A record with none of them is written to 0.1, unchanged.
@@ -2301,6 +2302,20 @@ nothing is at that path at the head.
 
 ### D.12 Changes to this draft
 
+- **2026-11-18.** D.14's local-model proposer, `dunstan-eval propose-test-paths`: loopback only,
+  paths only, its proposal printed with the model's digest and never recorded, with the top-level
+  directories its patterns leave uncovered. No record, schema, claim row or verdict changes. It
+  ships in checker 0.1.25.
+
+- **2026-11-18.** D.14, test paths: the file patterns the consumer counts as tests, given to the
+  checker (`--test-paths`, the Action's `test-paths`, the MCP tool's `testPaths`) and recorded as
+  `evidence.testPaths`, by which each changed test file is printed as context. The operator ruled
+  that the patterns are the consumer's, never read from the repository, never the checker's guess
+  (section 14 stands), and recorded so the context is worked out again from the record; and that
+  they may be proposed by `dunstan init` from the runners' defaults, by the caller's model through
+  the MCP tool, or by a model on the user's own machine, a person accepting them in every case. The
+  DRAFT schema gains `testPaths`. No claim row or verdict changes. It ships in checker 0.1.25.
+
 - **2026-11-17.** D.13, a baseline: with base tests asked for, each declared `junit` record's
   counts, with its skipped test cases, at the pull request's base commit and at the head, as
   context beside the verdict. The operator ruled that the base read takes counts only, at the pull
@@ -2629,6 +2644,57 @@ evidence. As in D.8, an online re-run of a draft record is not defined.
 
 **What a record would newly publish.** Beyond section 14: the pull request's base commit, and the
 run ids, attempts and counts of the base's candidate runs.
+
+### D.14 Test paths: what the consumer counts as a test file
+
+This subsection is DRAFT, as is everything under DRAFT 0.2.0. It adds no claim row and changes no
+verdict.
+
+**Why.** A pull request that edits its tests can make "34 passed" true by changing what is tested.
+Which changed files are tests is not in the record, and a checker does not guess (section 14). The
+consumer knows, and can say so.
+
+**Given, never read.** The consumer gives the checker a list of patterns: `dunstan check
+--test-paths <pattern>`, once per pattern; the Action's `test-paths` input, one per line (blank
+lines and lines starting with `#` left out); or the MCP tool's `testPaths`. The checker never reads
+them from the repository, whose files' contents it does not read (section 2), and a pull request
+cannot change them without changing the workflow that gives them, which section 8.3 prints as
+context. At most 50 patterns, each at most 200 characters, none empty, starting with `/` or `!`,
+with a `.` or `..` segment, or with `\`, `[`, `]` or nested or unbalanced `{ }`; each is kept once.
+GitHub only in this draft.
+
+**Matching.** A pattern without `/` matches a changed file's last path segment, in any directory
+(`*_test.go`); one with `/` matches the whole path from the root (`src/**/*.test.ts`). `**` as a
+whole segment matches any number of segments, none included; `*` any characters but `/`; `?` one
+character but `/`; `{a,b}` either alternative. Nothing else is special. An entry of `files.entries`
+is a test file when a pattern matches its `path` or its `previousPath`.
+
+**The evidence.** `evidence.testPaths` is `{patterns}`, the patterns as given, written only when a
+block is found. A record that holds it is a DRAFT record (D.2), and `digests.evidence` covers it.
+
+**What it shows.** The reference checker prints each test file the pull request changes beside the
+verdict as context (section 8.3), with its status and, for a rename, its previous path. Where the
+file list is incomplete it also says that more test files may be unlisted, and where the list is
+unreadable or absent, that test file changes are unknown, with the reason the scope rows give.
+Nothing it prints is in the record, and nothing is a claim: changing a test is often the work.
+
+**Proposing patterns.** Someone has to write the patterns, and a model may help, as `suggest`
+does: it proposes, and a person accepts. `dunstan init` prints the defaults of the test runners it
+finds (pytest's `python_files`, Jest's `testMatch`, Vitest's `include`, Go's `_test.go` files and
+`testdata`, Maven's and Gradle's `src/test`) for the Action's `test-paths` input. The MCP tool's
+`testPaths` asks the calling model to pass only patterns the user accepted. A model the checker
+calls itself runs on the user's own machine, never a hosted one, and only proposes: what it says
+never enters a record. `dunstan-eval propose-test-paths` is that proposer: it sends a model behind
+an Ollama-compatible API on a loopback address (any other endpoint is refused) the checkout's
+tracked file paths, at most 3,000 and never their contents, with temperature 0, and prints each
+pattern it answers that is a test path, with how many paths it matches and the model's name and
+digest; a pattern that is not one is listed as left out. It also lists the largest top-level
+directories (at most ten) in which no accepted pattern matches a path, so the person reviewing it
+sees a directory of tests or fixtures the model missed.
+
+**Re-running.** Offline verify recomputes the digests over the recorded patterns, as over any
+evidence; the context is worked out again from the record. As in D.8, an online re-run of a draft
+record is not defined.
 
 ## Survey 0.1: the settleability report
 

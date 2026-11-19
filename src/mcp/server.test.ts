@@ -94,6 +94,7 @@ describe('dunstan_check_handback', () => {
         'pullRequest',
         'report',
         'repository',
+        'testPaths',
       ].sort(),
     );
     expect(schema.required ?? []).toEqual([]);
