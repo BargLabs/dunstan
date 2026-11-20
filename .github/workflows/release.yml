@@ -9,9 +9,11 @@ name: Release
 # the tag or input matches the build. It can be re-run: a version npm already serves with this exact
 # tarball skips the npm publish, and an entry the registry already holds skips the registry publish.
 #
-# Secrets: NPM_TOKEN, an npm automation or granular access token that can publish `dunstan`. The MCP
-# registry needs no secret: `mcp-publisher login github-oidc` proves the io.github.BargLabs namespace
-# with this workflow's OIDC token.
+# Secrets: none. npm publishes through trusted publishing: the `dunstan` package trusts this workflow
+# (BargLabs/dunstan, release.yml, environment `release`), and npm exchanges this job's OIDC token for a
+# short-lived publish credential, so no long-lived npm token exists to leak or to publish another
+# package. The MCP registry likewise needs no secret: `mcp-publisher login github-oidc` proves the
+# io.github.BargLabs namespace with the same OIDC token.
 
 on:
   push:
@@ -81,10 +83,32 @@ jobs:
           echo "VERSION=$version" >> "$GITHUB_ENV"
           echo "INTEGRITY=$local_integrity" >> "$GITHUB_ENV"
 
+      # Trusted publishing needs npm 11.5.1 or later; Node 22 bundles npm 10.
+      - name: Require npm CLI with trusted-publishing support
+        if: env.NPM_PUBLISHED != '1'
+        run: |
+          npm install --global npm@11.5.1
+          test "$(npm --version)" = "11.5.1"
+
+      # setup-node's registry-url writes an `_authToken=${NODE_AUTH_TOKEN}` placeholder. Left in place,
+      # npm uses it instead of exchanging the OIDC token, and the publish fails unauthenticated.
+      - name: Remove setup-node auth placeholder for npm trusted publishing
+        if: env.NPM_PUBLISHED != '1'
+        run: |
+          npmrc="${NPM_CONFIG_USERCONFIG:-$HOME/.npmrc}"
+          for config in "$npmrc" .npmrc; do
+            if [ -f "$config" ]; then
+              sed -i '/_authToken/d' "$config"
+            fi
+          done
+          if grep -rl '_authToken' "$npmrc" .npmrc 2>/dev/null | grep -q .; then
+            echo "_authToken present after strip; OIDC exchange would be skipped" >&2
+            exit 1
+          fi
+          echo "_authToken absence assertion passed for user and project npmrc"
+
       - name: Publish to npm with provenance
         if: env.NPM_PUBLISHED != '1'
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --provenance --access public
 
       # npm processes a publish before serving it: dunstan@0.1.6, the first, took about 95 seconds,

@@ -192,6 +192,29 @@ describe('the release workflow', () => {
     expect(release).toContain('test "$published" = "$local_integrity"');
     expect(release).toMatch(/versions\/\$VERSION"\n[\s\S]*already in the MCP registry/);
   });
+
+  // dunstan publishes through npm trusted publishing: the job's OIDC token, not a long-lived token
+  // that could publish any package on the account. setup-node's token placeholder must be gone
+  // before the publish, and npm must be new enough to make the exchange.
+  it('publishes to npm through trusted publishing, with no npm token', () => {
+    expect(release).not.toMatch(/NPM_TOKEN|NODE_AUTH_TOKEN:/);
+    expect(release).toMatch(/permissions:\n\s+contents: read\n\s+id-token: write/);
+    expect(release).toContain('environment: release');
+    const steps = release.slice(
+      release.indexOf('  publish:'),
+      release.indexOf('  github-release:'),
+    );
+    const strip = steps.indexOf(
+      '- name: Remove setup-node auth placeholder for npm trusted publishing',
+    );
+    const npm = steps.indexOf('npm install --global npm@11.5.1');
+    const publish = steps.indexOf('- name: Publish to npm with provenance');
+    expect(strip).toBeGreaterThan(-1);
+    expect(npm).toBeGreaterThan(-1);
+    expect(publish).toBeGreaterThan(Math.max(strip, npm));
+    expect(steps).toContain("sed -i '/_authToken/d'");
+    expect(steps).toContain('npm publish --provenance --access public');
+  });
 });
 
 // No example hands the server a credential the user's machine already holds: the checklist holds a
