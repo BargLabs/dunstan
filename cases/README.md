@@ -14,16 +14,16 @@ record no longer recomputes.
 
 Each case holds `report.md`, the report as checked, and one record per run. A checker verifies only
 the records its own version wrote (spec section 12), so each release rewrites them with its own
-build, from the repository root; these were written by checker 0.1.25, the build the npm package
-`dunstan@0.1.25` publishes (`dist/dunstan.mjs`, sha256
-`e7190f3245ee325ae8ab19201f74031a44340689cf2f86c3bbad374bb869cd56`, as `PROVENANCE.md` records):
+build, from the repository root; these were written by checker 0.1.26, the build the npm package
+`dunstan@0.1.26` publishes (`dist/dunstan.mjs`, sha256
+`6f6bbd1420a931a930e87bf0856b12a65c0fdc5c4df0c6ba6b92db30c5ffde60`, as `PROVENANCE.md` records):
 
 ```sh
-GITHUB_TOKEN=... npx -y dunstan@0.1.25 check --repo BargLabs/cejel --pr 408 \
+GITHUB_TOKEN=... npx -y dunstan@0.1.26 check --repo BargLabs/cejel --pr 408 \
   --report-file cases/cejel-408-closes/report.md --out cases/cejel-408-closes/record.json
 ```
 
-Check one yourself, offline: `npx -y dunstan@0.1.25 verify cases/cejel-408-closes/record.json`
+Check one yourself, offline: `npx -y dunstan@0.1.26 verify cases/cejel-408-closes/record.json`
 recomputes its claims, verdict and digests from the evidence it carries. `dunstan rerun` reads the
 pull request again, online.
 

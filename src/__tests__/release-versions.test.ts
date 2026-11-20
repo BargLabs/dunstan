@@ -192,6 +192,24 @@ describe('the release workflow', () => {
     expect(release).toContain('test "$published" = "$local_integrity"');
     expect(release).toMatch(/versions\/\$VERSION"\n[\s\S]*already in the MCP registry/);
   });
+
+  // npm publishes dunstan through a trusted publisher bound to BargLabs/dunstan, release.yml and the
+  // `release` environment. A stored token could publish from anywhere for as long as it existed; with
+  // trusted publishing the workflow's OIDC token is the only credential. npm skips the OIDC exchange
+  // when an _authToken line is present (setup-node writes one), and needs npm 11.5.1 or later.
+  it('publishes to npm with no stored token, through the trusted publisher', () => {
+    expect(release).not.toMatch(/NPM_TOKEN|NODE_AUTH_TOKEN/);
+    expect(release).toMatch(/environment: release\n/);
+    expect(release).toMatch(/id-token: write/);
+    expect(release).toContain("sed -i '/_authToken/d'");
+    const pinned = /npm install --global npm@(\d+)\.(\d+)\.(\d+)/.exec(release);
+    expect(pinned).not.toBeNull();
+    const [major = 0, minor = 0, patch = 0] = (pinned?.slice(1) ?? []).map(Number);
+    expect(major * 1e6 + minor * 1e3 + patch).toBeGreaterThanOrEqual(11_005_001);
+    expect(release.indexOf("sed -i '/_authToken/d'")).toBeLessThan(
+      release.indexOf('npm publish --provenance'),
+    );
+  });
 });
 
 // No example hands the server a credential the user's machine already holds: the checklist holds a

@@ -9,9 +9,12 @@ name: Release
 # the tag or input matches the build. It can be re-run: a version npm already serves with this exact
 # tarball skips the npm publish, and an entry the registry already holds skips the registry publish.
 #
-# Secrets: NPM_TOKEN, an npm automation or granular access token that can publish `dunstan`. The MCP
-# registry needs no secret: `mcp-publisher login github-oidc` proves the io.github.BargLabs namespace
-# with this workflow's OIDC token.
+# Secrets: none. npm publishes `dunstan` through a trusted publisher configured on npmjs.com for
+# BargLabs/dunstan, this file (release.yml) and the `release` environment: npm accepts this
+# workflow's OIDC token in place of a stored token, so renaming the file or the environment breaks
+# the publish until the trusted publisher is updated to match. The MCP registry needs no secret
+# either: `mcp-publisher login github-oidc` proves the io.github.BargLabs namespace with the same
+# OIDC token.
 
 on:
   push:
@@ -46,6 +49,27 @@ jobs:
           node-version: '22'
           cache: 'pnpm'
           registry-url: 'https://registry.npmjs.org'
+
+      # setup-node writes a placeholder _authToken line into .npmrc; npm skips the OIDC exchange while
+      # one is present, so it is removed, and its absence is checked.
+      - name: Remove setup-node's auth placeholder for npm trusted publishing
+        run: |
+          npmrc="${NPM_CONFIG_USERCONFIG:-$HOME/.npmrc}"
+          for config in "$npmrc" .npmrc; do
+            if [ -f "$config" ]; then
+              sed -i '/_authToken/d' "$config"
+            fi
+          done
+          if grep -rl '_authToken' "$npmrc" .npmrc 2>/dev/null | grep -q .; then
+            echo "_authToken present after the strip; npm would skip the OIDC exchange" >&2
+            exit 1
+          fi
+
+      # Node 22 ships an npm without trusted publishing; it needs 11.5.1 or later.
+      - name: Require an npm CLI with trusted-publishing support
+        run: |
+          npm install --global npm@11.5.1
+          test "$(npm --version)" = "11.5.1"
 
       - run: pnpm install --frozen-lockfile
       - name: Test (includes the version agreement across package.json, plugin.json, .mcp.json and server.json)
@@ -83,8 +107,6 @@ jobs:
 
       - name: Publish to npm with provenance
         if: env.NPM_PUBLISHED != '1'
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --provenance --access public
 
       # npm processes a publish before serving it: dunstan@0.1.6, the first, took about 95 seconds,

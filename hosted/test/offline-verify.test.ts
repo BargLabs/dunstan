@@ -21,7 +21,7 @@ import {
   webhook,
 } from './support.js';
 
-const CHECKER = { name: 'dunstan', version: '0.1.25', digest: { sha256: 'b'.repeat(64) } };
+const CHECKER = { name: 'dunstan', version: '0.1.26', digest: { sha256: 'b'.repeat(64) } };
 
 let emulated: Emulated;
 let response: { record: string; signature: string; rerun: { file: string } };

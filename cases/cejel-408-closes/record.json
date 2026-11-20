@@ -19,9 +19,9 @@
     "spec": "0.1.13",
     "checker": {
       "name": "dunstan",
-      "version": "0.1.25",
+      "version": "0.1.26",
       "digest": {
-        "sha256": "e7190f3245ee325ae8ab19201f74031a44340689cf2f86c3bbad374bb869cd56"
+        "sha256": "6f6bbd1420a931a930e87bf0856b12a65c0fdc5c4df0c6ba6b92db30c5ffde60"
       }
     },
     "report": {
@@ -71,20 +71,20 @@
           "kind": "closing_references",
           "locator": "POST /graphql repository(BargLabs/cejel).pullRequest(408).closingIssuesReferences",
           "sha256": "10f8d0b82d203a4f11bce79507f79611738c36b9a3d641656a12a14bdb556649",
-          "readAt": "2026-11-19T13:53:47.411Z"
+          "readAt": "2026-11-20T17:18:26.351Z"
         },
         {
           "kind": "pull_request",
           "locator": "GET /repos/BargLabs/cejel/pulls/408",
-          "sha256": "c4305bd84a52358f6b05a429df8de621e08451012bd11eb1772bcf038ac7495d",
-          "readAt": "2026-11-19T13:53:46.131Z",
-          "etag": "\"a036bc52f5f36969dabbc662f520674f015cdc114f22f5ef5e897158c1347a9f\""
+          "sha256": "acd734ca1bc6a69fdf6ce632afc637da80407dcfa8017d5ff73339d360967120",
+          "readAt": "2026-11-20T17:18:25.340Z",
+          "etag": "\"57ad122e74f19411bb720cf0c54c373e715dbb9132fb98aa6d4318eb6bc541be\""
         },
         {
           "kind": "pull_request_files",
           "locator": "GET /repos/BargLabs/cejel/pulls/408/files?per_page=100&page=1",
           "sha256": "19fec2e46093590dce3f8058ec4ad369ee2057a71c007f48cc94b934823f4dec",
-          "readAt": "2026-11-19T13:53:46.782Z",
+          "readAt": "2026-11-20T17:18:26.085Z",
           "etag": "W/\"c89ea1f78ca3366c1b30c671a80a70ff6a6120b596d1728776a48f0dfaf39859\""
         }
       ],

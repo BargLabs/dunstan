@@ -27,12 +27,12 @@ the build to verify it with.
 | Records | Checker | `checker.digest` | Built from |
 |---|---|---|---|
 | `demo/2026-10/*/rerun-v0.1.1-2026-10-06/record.json` | 0.1.1 | `9bbd685b8adbb1cf11beaad7dc294150e30775f50c3c3a2468f596deca7f38e4` | tag `v0.1.1`: `pnpm install --frozen-lockfile && pnpm build` there reproduces this digest |
-| `spec/examples/records/*.json` | 0.1.25 | `73a50031c8bdf06b0bd96062386dc3347ad18d6b3c458c4dae123efd6e6c044a` | nothing: these records are illustrative, regenerated for spec 0.1.13, and this digest is a placeholder (spec section 15) |
-| `cases/*/record*.json` | 0.1.25 | `e7190f3245ee325ae8ab19201f74031a44340689cf2f86c3bbad374bb869cd56` | tag `v0.1.25`: the npm package `dunstan@0.1.25`, whose `dist/dunstan.mjs` has this digest. Real runs, rewritten by each release's build, since a checker verifies only the records its own version wrote (`cases/README.md`) |
+| `spec/examples/records/*.json` | 0.1.26 | `73a50031c8bdf06b0bd96062386dc3347ad18d6b3c458c4dae123efd6e6c044a` | nothing: these records are illustrative, regenerated for spec 0.1.13, and this digest is a placeholder (spec section 15) |
+| `cases/*/record*.json` | 0.1.26 | `6f6bbd1420a931a930e87bf0856b12a65c0fdc5c4df0c6ba6b92db30c5ffde60` | tag `v0.1.26`: the npm package `dunstan@0.1.26`, whose `dist/dunstan.mjs` has this digest. Real runs, rewritten by each release's build, since a checker verifies only the records its own version wrote (`cases/README.md`) |
 
 The demo's `rerun-v0.1.1-2026-10-06` records carry checker 0.1.1 and digest `9bbd685b…`. That digest
 is reproduced by `pnpm build` at the tag `v0.1.1`, not at the current head of this repository, which
-builds checker 0.1.25 and another bundle. Verify them with the `v0.1.1` build: checker 0.1.25 refuses
+builds checker 0.1.26 and another bundle. Verify them with the `v0.1.1` build: checker 0.1.26 refuses
 a record that checker 0.1.1 wrote, as spec section 12 requires. The spec examples are recomputed by
 the checker the current head builds, and carry its version.
 
