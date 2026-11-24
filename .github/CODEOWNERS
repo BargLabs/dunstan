@@ -1,0 +1,8 @@
+# Gate files and the hosted-record trust root: a change to any of these needs the owner's review.
+/.github/ @houman44
+/package.json @houman44
+/pnpm-lock.yaml @houman44
+/vitest.config.ts @houman44
+/biome.json @houman44
+/docs/security/ @houman44
+/hosted/wrangler.toml @houman44
