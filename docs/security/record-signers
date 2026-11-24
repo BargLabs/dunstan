@@ -2,6 +2,8 @@
 #
 # One line per signing key: the principal, the namespace restriction, and the public key. The
 # operator adds the line when the record signing key is created (docs/runbooks/hosted-provisioning.md,
-# step 5); no key has been created yet, so no record can verify against this file until then.
+# step 5). The first key was created on 2026-11-24 (SHA256:RQJkefUMOZ6kitdQl6FYmH5Tq1c2LBN6F6BtO049W6Q).
 #
 # A key that is retired is moved to docs/security/record-revocations, never deleted from history.
+
+dunstan-hosted@barglabs.ai namespaces="dunstan-record" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH/79ixpfczLXFV4f6AHbj3PyWalytwQlsDTm/6i8iN3
