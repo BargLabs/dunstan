@@ -14,6 +14,7 @@ compatibility_flags = ["nodejs_compat"]
 no_bundle = true
 find_additional_modules = true
 workers_dev = false
+routes = [{ pattern = "dunstan.barglabs.ai", custom_domain = true }]
 
 [[rules]]
 type = "ESModule"
@@ -27,7 +28,7 @@ RECORD_SIGNER = "dunstan-hosted@barglabs.ai"
 binding = "DB"
 database_name = "dunstan-hosted"
 # Printed by `wrangler d1 create` (runbook step 2). Not a secret.
-database_id = "REPLACE_WITH_THE_ID_WRANGLER_D1_CREATE_PRINTS"
+database_id = "3eb4477f-6bc0-4b65-a9c7-c3dffa85b00c"
 migrations_dir = "migrations"
 
 [[r2_buckets]]
