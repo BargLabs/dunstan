@@ -10,7 +10,9 @@ use it and do not need it: nothing leaves your runner unless you call this API. 
 evidence, not a gate: the hosted tier writes no check run and comments on nothing. Your own Action
 or gate decides what blocks.
 
-**Controller: Barg Labs Ltd.**
+**Controller: Barg Labs Inc.** (British Columbia, Canada). UK representative: Barg Labs Ltd
+(England and Wales, 17501363). Privacy notice: <https://www.barglabs.ai/privacy/dunstan-hosted>;
+terms: <https://www.barglabs.ai/terms/dunstan-hosted>.
 
 ## What is read
 

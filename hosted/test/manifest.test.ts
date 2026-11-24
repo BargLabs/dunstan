@@ -36,13 +36,13 @@ describe('the GitHub App manifest', () => {
   it('states the Contents: read caveat on the install page', () => {
     expect(manifest.description).toMatch(/Contents: read/);
     expect(manifest.description).toMatch(/never requests file contents/);
-    expect(manifest.description).toMatch(/Barg Labs Ltd/);
+    expect(manifest.description).toMatch(/Controller: Barg Labs Inc\./);
   });
 
   it('states the caveat and names the controller in docs/hosted.md', () => {
     const doc = readFileSync(join(ROOT, 'docs/hosted.md'), 'utf8');
     expect(doc).toMatch(/Contents: read/);
-    expect(doc).toMatch(/Barg Labs Ltd/);
+    expect(doc).toMatch(/Controller: Barg Labs Inc\./);
   });
 
   it('builds the creation form only with a real origin in place of the placeholder', () => {
